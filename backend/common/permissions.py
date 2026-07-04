@@ -1,1 +1,1 @@
-"""Shared API permission utilities."""
+# Placeholder for shared API permissions.

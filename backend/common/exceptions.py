@@ -1,1 +1,1 @@
-"""Shared API exception utilities."""
+# Placeholder for shared API exception handling.

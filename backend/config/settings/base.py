@@ -73,7 +73,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Manila"
 USE_I18N = True
 USE_TZ = True
 
@@ -100,5 +100,5 @@ REST_FRAMEWORK = {
         "rest_framework.parsers.JSONParser",
     ],
     "DEFAULT_PAGINATION_CLASS": pagination_class,
-    "PAGE_SIZE": 25,
+    "PAGE_SIZE": 20,
 }
