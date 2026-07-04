@@ -147,6 +147,12 @@ python manage.py migrate
 
 After starting Django, validate `http://127.0.0.1:8000/api/health/`.
 
+## Database Foundation Note
+
+- UUID is the default primary key strategy for future backend models.
+- Shared base models are abstract and do not create standalone business tables.
+- Concrete business tables start in later tasks.
+
 ## Redis and Celery Local Setup
 
 Redis must be running locally before starting a Celery worker. The default local URLs used by the backend are:
@@ -195,4 +201,4 @@ celery-ok
 
 ## Next Task
 
-FO-007 - Initial Database Migration and Base Models.
+FO-008 - Authentication Foundation.
