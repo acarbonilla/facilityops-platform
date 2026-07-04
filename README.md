@@ -153,6 +153,15 @@ After starting Django, validate `http://127.0.0.1:8000/api/health/`.
 - Shared base models are abstract and do not create standalone business tables.
 - Concrete business tables start in later tasks.
 
+## Authentication Foundation
+
+- JWT authentication is used for backend API authentication.
+- Login URL: `/api/auth/login/`
+- Refresh URL: `/api/auth/refresh/`
+- Logout URL: `/api/auth/logout/`
+- Current user URL: `/api/auth/me/`
+- RBAC comes in FO-009.
+
 ## Redis and Celery Local Setup
 
 Redis must be running locally before starting a Celery worker. The default local URLs used by the backend are:
@@ -201,4 +210,4 @@ celery-ok
 
 ## Next Task
 
-FO-008 - Authentication Foundation.
+FO-009 - Authorization and RBAC Foundation.
