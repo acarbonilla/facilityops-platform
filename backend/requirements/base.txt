@@ -4,3 +4,5 @@ django-cors-headers
 python-decouple
 psycopg2-binary
 dj-database-url
+celery
+redis

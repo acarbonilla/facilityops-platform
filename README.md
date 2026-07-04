@@ -8,7 +8,8 @@ FacilityOps Platform is an enterprise facility operations management platform. T
 
 - Backend: Python, Django, and Django REST Framework
 - Frontend: Next.js, React, TypeScript, and Tailwind CSS
-- Data configuration: SQLite for current local development; PostgreSQL is not configured yet
+- Data configuration: PostgreSQL for local database validation with SQLite fallback when `DATABASE_URL` is empty
+- Async foundation: Redis and Celery
 - Tooling: pytest, Black, isort, flake8, ESLint, and npm
 
 ## Repository Structure
@@ -25,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A — Application Development, Stage 1 — Foundation. FO-004 standardizes shared local environment conventions after backend and frontend initialization.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-006 establishes the Redis and Celery foundation after backend, frontend, shared environment, and PostgreSQL configuration.
 
 ## Backend Local Setup
 
@@ -74,9 +75,13 @@ Backend variables:
 - `SECRET_KEY`
 - `DEBUG`
 - `ALLOWED_HOSTS`
-- `DATABASE_URL` — an empty value uses SQLite during development
+- `DATABASE_URL` - an empty value uses SQLite during development
 - `CORS_ALLOWED_ORIGINS`
 - `TIME_ZONE`
+- `REDIS_URL`
+- `CELERY_BROKER_URL`
+- `CELERY_RESULT_BACKEND`
+- `CELERY_TASK_ALWAYS_EAGER`
 
 Frontend variables:
 
@@ -114,7 +119,7 @@ npm run build
 - Keep secrets and real environment files out of Git.
 - Keep backend and frontend dependencies isolated in their respective workspaces.
 - Add only work approved by the current task scope.
-- Do not introduce Redis, Celery, Docker runtime, authentication, business modules, or AI services before their approved tasks.
+- Do not introduce Docker runtime, authentication, business modules, or AI services before their approved tasks.
 
 ## PostgreSQL Local Setup
 
@@ -142,6 +147,52 @@ python manage.py migrate
 
 After starting Django, validate `http://127.0.0.1:8000/api/health/`.
 
+## Redis and Celery Local Setup
+
+Redis must be running locally before starting a Celery worker. The default local URLs used by the backend are:
+
+- `REDIS_URL=redis://localhost:6379/0`
+- `CELERY_BROKER_URL=redis://localhost:6379/0`
+- `CELERY_RESULT_BACKEND=redis://localhost:6379/1`
+
+Start the backend from `backend/`:
+
+```text
+python manage.py runserver
+```
+
+Start a Celery worker from `backend/`:
+
+```text
+celery -A config worker -l info
+```
+
+On Windows, use the solo pool:
+
+```text
+celery -A config worker -l info -P solo
+```
+
+Smoke test the infrastructure task from `backend/`:
+
+```text
+python manage.py shell
+```
+
+Then run:
+
+```text
+from apps.core.tasks import celery_health_check
+result = celery_health_check.delay()
+result.get(timeout=10)
+```
+
+Expected result:
+
+```text
+celery-ok
+```
+
 ## Next Task
 
-FO-006 — Redis and Celery Configuration.
+FO-007 - Initial Database Migration and Base Models.
