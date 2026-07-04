@@ -114,8 +114,34 @@ npm run build
 - Keep secrets and real environment files out of Git.
 - Keep backend and frontend dependencies isolated in their respective workspaces.
 - Add only work approved by the current task scope.
-- Do not introduce PostgreSQL, Redis, Celery, Docker runtime, authentication, business modules, or AI services before their approved tasks.
+- Do not introduce Redis, Celery, Docker runtime, authentication, business modules, or AI services before their approved tasks.
+
+## PostgreSQL Local Setup
+
+PostgreSQL is required when validating the database configuration introduced by FO-005. Use these standard local values:
+
+- Database: `facilityops_db`
+- User: `facilityops_user`
+- Host: `localhost`
+- Port: `5432`
+
+Configure the backend with:
+
+```text
+DATABASE_URL=postgres://facilityops_user:facilityops_password@localhost:5432/facilityops_db
+```
+
+The example password is a local development convention only. Do not reuse it for deployed environments or commit real credentials. When `DATABASE_URL` is empty or absent, development settings continue to use SQLite.
+
+Apply migrations from the repository root:
+
+```text
+cd backend
+python manage.py migrate
+```
+
+After starting Django, validate `http://127.0.0.1:8000/api/health/`.
 
 ## Next Task
 
-FO-005 — PostgreSQL Configuration.
+FO-006 — Redis and Celery Configuration.
