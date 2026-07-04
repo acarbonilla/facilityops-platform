@@ -169,6 +169,13 @@ After starting Django, validate `http://127.0.0.1:8000/api/health/`.
 - Business permissions are added later per module.
 - Frontend route guards come later.
 
+## Master Data Foundation
+
+- Master data is required before business modules.
+- Seed command: `python manage.py seed_master_data`
+- API base path: `/api/master-data/`
+- Business modules begin after this foundation.
+
 ## Redis and Celery Local Setup
 
 Redis must be running locally before starting a Celery worker. The default local URLs used by the backend are:
@@ -217,4 +224,4 @@ celery-ok
 
 ## Next Task
 
-FO-010 - Master Data Foundation.
+FO-011 - Frontend API Client and App Shell Foundation.

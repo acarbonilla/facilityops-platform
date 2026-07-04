@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "apps.accounts",
     "apps.access_control",
+    "apps.master_data",
     "apps.core",
 ]
 
