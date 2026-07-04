@@ -70,7 +70,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 *.tsbuildinfo
-next-env.d.ts
 
 # Build and test output
 dist/
