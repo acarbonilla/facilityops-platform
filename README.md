@@ -160,7 +160,14 @@ After starting Django, validate `http://127.0.0.1:8000/api/health/`.
 - Refresh URL: `/api/auth/refresh/`
 - Logout URL: `/api/auth/logout/`
 - Current user URL: `/api/auth/me/`
-- RBAC comes in FO-009.
+
+## RBAC Foundation
+
+- RBAC is backend-based.
+- Permission code format is `module.action`.
+- Seed command: `python manage.py seed_rbac`
+- Business permissions are added later per module.
+- Frontend route guards come later.
 
 ## Redis and Celery Local Setup
 
@@ -210,4 +217,4 @@ celery-ok
 
 ## Next Task
 
-FO-009 - Authorization and RBAC Foundation.
+FO-010 - Master Data Foundation.

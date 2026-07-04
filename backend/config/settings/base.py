@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "apps.accounts",
+    "apps.access_control",
     "apps.core",
 ]
 
