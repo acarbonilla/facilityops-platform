@@ -1,40 +1,121 @@
 # FacilityOps Platform
 
-FacilityOps Platform is organized as a separate backend, frontend, shared-contract, documentation, and infrastructure workspace. Task FO-001 establishes the repository structure only; application features and business logic are intentionally excluded.
+## Project Overview
+
+FacilityOps Platform is an enterprise facility operations management platform. The repository separates backend, frontend, shared contracts, documentation, and future infrastructure concerns while the product foundation is established.
 
 ## Technology Stack
 
-The planned stack indicated by the approved workspace requirements is:
+- Backend: Python, Django, and Django REST Framework
+- Frontend: Next.js, React, TypeScript, and Tailwind CSS
+- Data configuration: SQLite for current local development; PostgreSQL is not configured yet
+- Tooling: pytest, Black, isort, flake8, ESLint, and npm
 
-- Backend: Python and Django
-- Frontend: Node.js, Next.js, and TypeScript
-- Infrastructure: Docker and Nginx
-- Automation: GitHub Actions
-
-Runtime versions, packages, databases, authentication, and deployment services will be selected and configured in later tasks.
-
-## Folder Structure
+## Repository Structure
 
 ```text
 facilityops-platform/
-|-- backend/          Python/Django backend workspace
-|-- frontend/         Next.js/TypeScript frontend workspace
-|-- docs/             Architecture and delivery documentation
-|-- infrastructure/   Docker, Nginx, and operational scripts
-|-- shared/           Cross-application constants, schemas, types, and utilities
-`-- .github/          GitHub workflow definitions
+|-- backend/          Django and REST API application
+|-- frontend/         Next.js application
+|-- docs/             Architecture and development documentation
+|-- infrastructure/   Reserved infrastructure workspace
+|-- shared/           Reserved cross-application contracts and utilities
+`-- .github/          GitHub workflow workspace
 ```
 
-## Development Stages
+## Current Development Stage
 
-1. Phase 12A, Stage 1: repository foundation
-2. Backend and frontend project initialization: to be defined by subsequent tasks
-3. Application development, integration, testing, and deployment: to be defined by the approved roadmap
+Phase 12A — Application Development, Stage 1 — Foundation. FO-004 standardizes shared local environment conventions after backend and frontend initialization.
 
-## How to Start
+## Backend Local Setup
 
-Startup instructions will be added after the backend and frontend runtimes are initialized.
+```text
+cd backend
+python -m venv .venv
+```
 
-## Roadmap
+Activate the environment on Windows:
 
-The implementation roadmap will be documented as subsequent FacilityOps tasks are approved.
+```text
+.venv\Scripts\activate
+```
+
+Activate it on Linux or macOS:
+
+```text
+source .venv/bin/activate
+```
+
+Install and start the backend:
+
+```text
+pip install --upgrade pip
+pip install -r requirements/development.txt
+python manage.py check
+python manage.py migrate
+python manage.py runserver
+```
+
+## Frontend Local Setup
+
+```text
+cd frontend
+npm install
+npm run lint
+npm run dev
+```
+
+## Environment Configuration
+
+Copy the relevant `.env.example` file to a local ignored environment file when local overrides are needed. Never commit real secrets.
+
+Backend variables:
+
+- `SECRET_KEY`
+- `DEBUG`
+- `ALLOWED_HOSTS`
+- `DATABASE_URL` — an empty value uses SQLite during development
+- `CORS_ALLOWED_ORIGINS`
+- `TIME_ZONE`
+
+Frontend variables:
+
+- `NEXT_PUBLIC_APP_NAME`
+- `NEXT_PUBLIC_APP_VERSION`
+- `NEXT_PUBLIC_API_URL`
+
+Values prefixed with `NEXT_PUBLIC_` are exposed to the browser and must not contain secrets.
+
+## Local Development URLs
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://127.0.0.1:8000`
+- Backend health check: `http://127.0.0.1:8000/api/health/`
+
+## Validation Commands
+
+Backend, from `backend/`:
+
+```text
+python manage.py check
+python manage.py migrate
+python -m pytest
+```
+
+Frontend, from `frontend/`:
+
+```text
+npm run lint
+npm run build
+```
+
+## Development Rules
+
+- Keep secrets and real environment files out of Git.
+- Keep backend and frontend dependencies isolated in their respective workspaces.
+- Add only work approved by the current task scope.
+- Do not introduce PostgreSQL, Redis, Celery, Docker runtime, authentication, business modules, or AI services before their approved tasks.
+
+## Next Task
+
+FO-005 — PostgreSQL Configuration.
