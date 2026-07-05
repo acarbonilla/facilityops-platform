@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-013 extends the frontend foundation with permission-aware navigation and route guards on top of the existing JWT authentication flow.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-014 extends the frontend shell with current-user account presentation on top of the existing authentication and RBAC foundations.
 
 ## Backend Local Setup
 
@@ -87,6 +87,13 @@ npm run dev
 - The sidebar filters navigation items against the authenticated user's permissions.
 - Frontend route guards improve UX, but backend authorization remains the source of truth.
 - Placeholder routes exist only to validate the RBAC and navigation foundation.
+
+## Current User UI
+
+- Profile route: `/profile`
+- The header exposes a user menu for authenticated sessions.
+- Logout is available from the user menu and continues through the existing auth provider flow.
+- Profile editing, password management, and avatar uploads are intentionally deferred.
 
 ## Environment Configuration
 
@@ -246,4 +253,4 @@ celery-ok
 
 ## Next Task
 
-FO-014 - User Profile and Current User UI.
+FO-015 - Master Data Frontend Read Screens.
