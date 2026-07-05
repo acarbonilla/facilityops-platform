@@ -6,4 +6,7 @@ export const API_ENDPOINTS = {
     logout: "/auth/logout/",
     me: "/auth/me/",
   },
+  accessControl: {
+    mePermissions: "/access-control/me/permissions/",
+  },
 } as const;

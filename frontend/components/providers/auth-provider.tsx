@@ -15,6 +15,7 @@ import {
   login as loginRequest,
   logout as logoutRequest,
 } from "@/services/api/auth";
+import { getCurrentUserPermissions } from "@/services/api/rbac";
 import {
   clearTokens,
   getAccessToken,
@@ -27,6 +28,7 @@ export interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
+  refreshPermissions: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(
@@ -38,11 +40,50 @@ const INITIAL_STATE: AuthState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  permissions: [],
+  permissionsLoading: false,
+  permissionsError: null,
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [state, setState] = useState<AuthState>(INITIAL_STATE);
+
+  const refreshPermissions = useCallback(async () => {
+    if (!getAccessToken()) {
+      setState((current) => ({
+        ...current,
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
+      }));
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      permissionsLoading: true,
+      permissionsError: null,
+    }));
+
+    try {
+      const response = await getCurrentUserPermissions();
+      setState((current) => ({
+        ...current,
+        permissions: response.permissions,
+        permissionsLoading: false,
+        permissionsError: null,
+      }));
+    } catch {
+      setState((current) => ({
+        ...current,
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError:
+          "Permissions could not be loaded. Permission-based navigation may be limited.",
+      }));
+    }
+  }, []);
 
   const refreshCurrentUser = useCallback(async () => {
     if (!getAccessToken()) {
@@ -51,6 +92,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
       });
       return;
     }
@@ -63,7 +107,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
       });
+      await refreshPermissions();
     } catch {
       clearTokens();
       setState({
@@ -71,9 +119,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: "Your session could not be restored. Please sign in again.",
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
       });
     }
-  }, []);
+  }, [refreshPermissions]);
 
   useEffect(() => {
     void refreshCurrentUser();
@@ -90,7 +141,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
       });
+      await refreshPermissions();
     } catch (error) {
       clearTokens();
       setState({
@@ -98,10 +153,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: "Sign-in failed. Check your credentials and try again.",
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
       });
       throw error;
     }
-  }, []);
+  }, [refreshPermissions]);
 
   const logout = useCallback(async () => {
     setState((current) => ({ ...current, isLoading: true, error: null }));
@@ -120,6 +178,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        permissions: [],
+        permissionsLoading: false,
+        permissionsError: null,
       });
       router.replace("/login");
       router.refresh();
@@ -132,8 +193,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       refreshCurrentUser,
+      refreshPermissions,
     }),
-    [login, logout, refreshCurrentUser, state],
+    [login, logout, refreshCurrentUser, refreshPermissions, state],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

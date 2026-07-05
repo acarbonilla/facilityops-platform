@@ -1,3 +1,5 @@
+import type { PermissionCode } from "./rbac";
+
 export interface LoginCredentials {
   email: string;
   password: string;
@@ -27,4 +29,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  permissions: PermissionCode[];
+  permissionsLoading: boolean;
+  permissionsError: string | null;
 }

@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-012 connects the frontend to the backend JWT authentication foundation with local session handling and protected-route behavior.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-013 extends the frontend foundation with permission-aware navigation and route guards on top of the existing JWT authentication flow.
 
 ## Backend Local Setup
 
@@ -79,7 +79,14 @@ npm run dev
 - Backend endpoints: `/api/auth/login/`, `/api/auth/refresh/`, `/api/auth/logout/`, and `/api/auth/me/`
 - Access and refresh tokens are centralized in browser local storage for local development; the production storage strategy requires a dedicated security review.
 - The auth provider restores the current user, supports login/logout, and supplies the protected-route foundation used by `/dashboard`.
-- Permission-based route and navigation guards are deferred to FO-013.
+
+## Frontend RBAC
+
+- Permission codes use the `module.action` convention.
+- Frontend permissions are loaded from `/api/access-control/me/permissions/`.
+- The sidebar filters navigation items against the authenticated user's permissions.
+- Frontend route guards improve UX, but backend authorization remains the source of truth.
+- Placeholder routes exist only to validate the RBAC and navigation foundation.
 
 ## Environment Configuration
 
@@ -239,4 +246,4 @@ celery-ok
 
 ## Next Task
 
-FO-013 - Frontend RBAC and Navigation Guard Foundation.
+FO-014 - User Profile and Current User UI.
