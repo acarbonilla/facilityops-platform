@@ -1,5 +1,7 @@
 import { ApiError, type ApiErrorResponse } from "./types";
 
+import { getAccessToken } from "@/lib/auth/token-storage";
+
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export interface ApiClientOptions extends Omit<RequestInit, "body"> {
@@ -42,8 +44,9 @@ export async function apiClient<T>(
   if (body !== undefined) {
     requestHeaders.set("Content-Type", "application/json");
   }
-  if (accessToken) {
-    requestHeaders.set("Authorization", `Bearer ${accessToken}`);
+  const resolvedAccessToken = accessToken ?? getAccessToken();
+  if (resolvedAccessToken) {
+    requestHeaders.set("Authorization", `Bearer ${resolvedAccessToken}`);
   }
 
   let response: Response;
@@ -77,6 +80,13 @@ export async function apiClient<T>(
 
   if (!response.ok) {
     const details = normalizeErrorResponse(payload);
+    if (response.status === 401) {
+      throw new ApiError(
+        "Authentication is required or the session has expired.",
+        response.status,
+        details,
+      );
+    }
     throw new ApiError(
       details?.message ?? `API request failed with status ${response.status}.`,
       response.status,

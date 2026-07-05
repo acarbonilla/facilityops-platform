@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-011 establishes the frontend API client, provider composition, backend connectivity check, and application shell.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-012 connects the frontend to the backend JWT authentication foundation with local session handling and protected-route behavior.
 
 ## Backend Local Setup
 
@@ -72,6 +72,14 @@ npm run dev
 - The home page validates backend availability through `GET /health/` and displays safe loading, connected, and unavailable states.
 - TanStack Query manages asynchronous server-state requests through the root application providers.
 - The responsive app shell provides shared header, sidebar, and main-content foundations without authentication or permission gating.
+
+## Frontend Authentication
+
+- Login page: `http://localhost:3000/login`
+- Backend endpoints: `/api/auth/login/`, `/api/auth/refresh/`, `/api/auth/logout/`, and `/api/auth/me/`
+- Access and refresh tokens are centralized in browser local storage for local development; the production storage strategy requires a dedicated security review.
+- The auth provider restores the current user, supports login/logout, and supplies the protected-route foundation used by `/dashboard`.
+- Permission-based route and navigation guards are deferred to FO-013.
 
 ## Environment Configuration
 
@@ -231,4 +239,4 @@ celery-ok
 
 ## Next Task
 
-FO-012 - Frontend Authentication Integration.
+FO-013 - Frontend RBAC and Navigation Guard Foundation.
