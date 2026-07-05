@@ -9,6 +9,9 @@ export const API_ENDPOINTS = {
   accessControl: {
     mePermissions: "/access-control/me/permissions/",
   },
+  dashboard: {
+    foundationSummary: "/dashboard/foundation-summary/",
+  },
   masterData: {
     tenants: "/master-data/tenants/",
     tenant: (id: string) => `/master-data/tenants/${id}/`,

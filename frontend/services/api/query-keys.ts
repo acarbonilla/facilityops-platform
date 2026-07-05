@@ -19,3 +19,9 @@ export const masterDataQueryKeys = {
   detail: (resource: MasterDataResourceKey, id: string) =>
     ["master-data", resource, id] as const,
 };
+
+export const dashboardQueryKeys = {
+  all: ["dashboard"] as const,
+  foundationSummary: () => ["dashboard", "foundation-summary"] as const,
+  systemStatus: () => ["dashboard", "system-status"] as const,
+};

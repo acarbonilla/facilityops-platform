@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-016 extends the master data frontend with create and edit forms on top of the existing authentication, RBAC, current-user, and read-screen foundations.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-017 adds the first authenticated dashboard shell with foundation-only metrics on top of the existing authentication, RBAC, current-user, and master-data foundations.
 
 ## Backend Local Setup
 
@@ -109,6 +109,15 @@ npm run dev
 - Write routes are permission-guarded with the existing master data management foundation.
 - Delete, import, export, and bulk actions are not implemented yet.
 - Business modules are still not implemented.
+
+## Dashboard Foundation
+
+- Dashboard route: `/dashboard`
+- Authenticated users can access the dashboard from the shared sidebar.
+- The dashboard displays foundation metrics only: tenants, organizations, departments, buildings, floors, areas, asset types, and assets.
+- Backend summary endpoint: `/api/dashboard/foundation-summary/`
+- Backend connectivity is surfaced through the existing health check foundation.
+- No business analytics, charts, workflow metrics, exports, or notifications are implemented yet.
 
 ## Environment Configuration
 
@@ -268,4 +277,4 @@ celery-ok
 
 ## Next Task
 
-FO-017 - Dashboard Shell and Foundation Metrics.
+FO-018 - Stage 1 Foundation Stabilization and MVP QA.
