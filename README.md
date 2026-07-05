@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-017 adds the first authenticated dashboard shell with foundation-only metrics on top of the existing authentication, RBAC, current-user, and master-data foundations.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-018 stabilizes the Stage 1 internal MVP, validates the backend and frontend foundations, and documents the remaining local-environment QA gaps before Stage 2.
 
 ## Backend Local Setup
 
@@ -68,7 +68,7 @@ npm run dev
 
 ## Frontend Integration Foundation
 
-- The frontend API base URL is configured by `NEXT_PUBLIC_API_URL` and defaults in `.env.example` to `http://127.0.0.1:8000/api`.
+- The frontend API base URL is configured by `NEXT_PUBLIC_API_URL` and falls back locally to `http://127.0.0.1:8000/api` when no explicit browser-safe override is provided.
 - The home page validates backend availability through `GET /health/` and displays safe loading, connected, and unavailable states.
 - TanStack Query manages asynchronous server-state requests through the root application providers.
 - The responsive app shell provides shared header, sidebar, and main-content foundations without authentication or permission gating.
@@ -157,6 +157,8 @@ Backend, from `backend/`:
 ```text
 python manage.py check
 python manage.py migrate
+python manage.py seed_rbac
+python manage.py seed_master_data
 python -m pytest
 ```
 
@@ -164,7 +166,8 @@ Frontend, from `frontend/`:
 
 ```text
 npm run lint
-npm run build
+npx tsc --noEmit
+npm run dev
 ```
 
 ## Development Rules
@@ -277,4 +280,4 @@ celery-ok
 
 ## Next Task
 
-FO-018 - Stage 1 Foundation Stabilization and MVP QA.
+Stage 2 - Core Platform.

@@ -8,8 +8,27 @@ from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+
+def config_bool(name, default=False):
+    value = config(name, default=None)
+
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"", "0", "false", "no", "off"}:
+        return False
+
+    return default
+
+
 SECRET_KEY = config("SECRET_KEY", default="")
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = config_bool("DEBUG", default=False)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
 INSTALLED_APPS = [
@@ -108,8 +127,7 @@ CELERY_RESULT_BACKEND = config(
 )
 CELERY_TASK_ALWAYS_EAGER = config(
     "CELERY_TASK_ALWAYS_EAGER",
-    default=False,
-    cast=bool,
+    default=config_bool("CELERY_TASK_ALWAYS_EAGER", default=False),
 )
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
