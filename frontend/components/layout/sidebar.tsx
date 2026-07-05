@@ -50,7 +50,9 @@ export function Sidebar() {
           <ul className="flex gap-1 overflow-x-auto md:flex-col">
             {visibleNavigation.map((item) => {
               const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+                item.matchStrategy === "exact"
+                  ? pathname === item.href
+                  : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
               return (
                 <li key={item.href}>

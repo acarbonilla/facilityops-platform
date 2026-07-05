@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-014 extends the frontend shell with current-user account presentation on top of the existing authentication and RBAC foundations.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-015 extends the frontend shell with read-only master data screens on top of the existing authentication, RBAC, and current-user foundations.
 
 ## Backend Local Setup
 
@@ -94,6 +94,14 @@ npm run dev
 - The header exposes a user menu for authenticated sessions.
 - Logout is available from the user menu and continues through the existing auth provider flow.
 - Profile editing, password management, and avatar uploads are intentionally deferred.
+
+## Master Data Frontend
+
+- Read-only master data screens are available under `/master-data`.
+- The frontend includes tenants, organizations, departments, buildings, floors, areas, asset types, and assets list screens.
+- The screens use the authenticated API client and TanStack Query for read operations only.
+- Create, edit, and delete workflows are deferred to FO-016.
+- Business modules are still not implemented.
 
 ## Environment Configuration
 
@@ -253,4 +261,4 @@ celery-ok
 
 ## Next Task
 
-FO-015 - Master Data Frontend Read Screens.
+FO-016 - Master Data Create/Edit Forms.

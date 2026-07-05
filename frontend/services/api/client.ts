@@ -4,17 +4,46 @@ import { getAccessToken } from "@/lib/auth/token-storage";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
+type ApiClientQueryValue = string | number | boolean;
+
 export interface ApiClientOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   accessToken?: string;
+  query?: Record<
+    string,
+    | ApiClientQueryValue
+    | ApiClientQueryValue[]
+    | null
+    | undefined
+  >;
 }
 
-function resolveApiUrl(endpoint: string): string {
+function resolveApiUrl(
+  endpoint: string,
+  query?: ApiClientOptions["query"],
+): string {
   if (!API_BASE_URL) {
     throw new ApiError("The frontend API URL is not configured.");
   }
 
-  return `${API_BASE_URL.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`;
+  const url = new URL(
+    `${API_BASE_URL.replace(/\/$/, "")}/${endpoint.replace(/^\//, "")}`,
+  );
+
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value === null || value === undefined) {
+        continue;
+      }
+
+      const values = Array.isArray(value) ? value : [value];
+      for (const item of values) {
+        url.searchParams.append(key, String(item));
+      }
+    }
+  }
+
+  return url.toString();
 }
 
 function normalizeErrorResponse(value: unknown): ApiErrorResponse | undefined {
@@ -37,7 +66,7 @@ export async function apiClient<T>(
   endpoint: string,
   options: ApiClientOptions = {},
 ): Promise<T> {
-  const { accessToken, body, headers, ...requestOptions } = options;
+  const { accessToken, body, headers, query, ...requestOptions } = options;
   const requestHeaders = new Headers(headers);
 
   requestHeaders.set("Accept", "application/json");
@@ -51,7 +80,7 @@ export async function apiClient<T>(
 
   let response: Response;
   try {
-    response = await fetch(resolveApiUrl(endpoint), {
+    response = await fetch(resolveApiUrl(endpoint, query), {
       ...requestOptions,
       headers: requestHeaders,
       body: body === undefined ? undefined : JSON.stringify(body),

@@ -2,13 +2,13 @@
 
 import { ProtectedPermissionRoute } from "@/components/auth/protected-permission-route";
 import { AppShell } from "@/components/layout/app-shell";
-import { MasterDataLandingContent } from "@/components/master-data/master-data-screens";
+import { TenantsReadScreen } from "@/components/master-data/master-data-screens";
 
-export default function MasterDataPage() {
+export default function TenantsPage() {
   return (
     <ProtectedPermissionRoute requiredPermission="settings.view">
       <AppShell>
-        <MasterDataLandingContent />
+        <TenantsReadScreen />
       </AppShell>
     </ProtectedPermissionRoute>
   );

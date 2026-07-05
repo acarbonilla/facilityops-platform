@@ -14,4 +14,5 @@ export interface NavigationItem {
   requiredPermissions?: PermissionCode[];
   permissionMode?: PermissionGuardMode;
   authenticatedOnly?: boolean;
+  matchStrategy?: "exact" | "prefix";
 }

@@ -9,4 +9,22 @@ export const API_ENDPOINTS = {
   accessControl: {
     mePermissions: "/access-control/me/permissions/",
   },
+  masterData: {
+    tenants: "/master-data/tenants/",
+    tenant: (id: string) => `/master-data/tenants/${id}/`,
+    organizations: "/master-data/organizations/",
+    organization: (id: string) => `/master-data/organizations/${id}/`,
+    departments: "/master-data/departments/",
+    department: (id: string) => `/master-data/departments/${id}/`,
+    buildings: "/master-data/buildings/",
+    building: (id: string) => `/master-data/buildings/${id}/`,
+    floors: "/master-data/floors/",
+    floor: (id: string) => `/master-data/floors/${id}/`,
+    areas: "/master-data/areas/",
+    area: (id: string) => `/master-data/areas/${id}/`,
+    assetTypes: "/master-data/asset-types/",
+    assetType: (id: string) => `/master-data/asset-types/${id}/`,
+    assets: "/master-data/assets/",
+    asset: (id: string) => `/master-data/assets/${id}/`,
+  },
 } as const;
