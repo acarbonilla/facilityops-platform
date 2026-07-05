@@ -12,6 +12,8 @@ function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
 
 export const masterDataQueryKeys = {
   all: ["master-data"] as const,
+  resource: (resource: MasterDataResourceKey) =>
+    ["master-data", resource] as const,
   list: (resource: MasterDataResourceKey, params?: MasterDataListParams) =>
     ["master-data", resource, normalizeParams(params)] as const,
   detail: (resource: MasterDataResourceKey, id: string) =>

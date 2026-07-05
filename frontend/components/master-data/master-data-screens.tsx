@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 
 import { DataTableColumn } from "@/components/common/data-table";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   getAreas,
   getAssetTypes,
@@ -36,6 +38,29 @@ import { MASTER_DATA_RESOURCES } from "@/lib/master-data/resources";
 
 import { MasterDataListScreen } from "./master-data-list-screen";
 import { MasterDataResourceCard } from "./master-data-resource-card";
+
+function ManageActionLink({
+  href,
+  label,
+}: {
+  href: string;
+  label: string;
+}) {
+  return (
+    <Link
+      className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      href={href}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function useMasterDataWriteActions() {
+  const { hasPermission } = usePermissions();
+
+  return hasPermission("settings.manage");
+}
 
 function StatusBadge({ isActive }: { isActive: boolean }) {
   return (
@@ -79,13 +104,19 @@ function useNameMapQuery<T extends { id: string; name: string }>(
 }
 
 export function MasterDataLandingContent() {
+  const canManage = useMasterDataWriteActions();
+
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Read-only master data screens for the FacilityOps foundation. Create, edit, and delete workflows remain outside this task."
+        description="Master data screens for the FacilityOps foundation. Create and edit workflows are available for authorized users, while delete, import, and export remain outside this task."
         eyebrow="Master data"
         title="Master Data"
-      />
+      >
+        {canManage ? (
+          <ManageActionLink href="/master-data/tenants/new" label="Create tenant" />
+        ) : null}
+      </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {MASTER_DATA_RESOURCES.map((resource) => (
@@ -94,14 +125,15 @@ export function MasterDataLandingContent() {
       </div>
 
       <EmptyState
-        title="Read-only foundation"
-        message="These screens expose the seeded master data records without create, edit, delete, import, or export controls."
+        title="Scoped foundation"
+        message="Create and edit flows are limited to master data only. Delete, import, export, and business workflows remain out of scope."
       />
     </div>
   );
 }
 
 export function TenantsReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const tenantsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("tenants", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getTenants(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -118,6 +150,19 @@ export function TenantsReadScreen() {
       header: "Status",
       cell: (tenant) => <StatusBadge isActive={tenant.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (tenant: Tenant) => (
+              <ManageActionLink
+                href={`/master-data/tenants/${tenant.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Tenant>,
+        ]
+      : []),
   ];
 
   return (
@@ -131,12 +176,18 @@ export function TenantsReadScreen() {
       isLoading={tenantsQuery.isPending}
       items={tenantsQuery.data?.results ?? []}
       onRetry={() => void tenantsQuery.refetch()}
+      actions={
+        canManage ? (
+          <ManageActionLink href="/master-data/tenants/new" label="New tenant" />
+        ) : null
+      }
       title="Tenants"
     />
   );
 }
 
 export function OrganizationsReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const organizationsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("organizations", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getOrganizations(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -163,6 +214,19 @@ export function OrganizationsReadScreen() {
       header: "Status",
       cell: (organization) => <StatusBadge isActive={organization.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (organization: Organization) => (
+              <ManageActionLink
+                href={`/master-data/organizations/${organization.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Organization>,
+        ]
+      : []),
   ];
 
   const isLoading = organizationsQuery.isPending || tenantsQuery.isPending;
@@ -182,12 +246,21 @@ export function OrganizationsReadScreen() {
         void organizationsQuery.refetch();
         void tenantsQuery.refetch();
       }}
+      actions={
+        canManage ? (
+          <ManageActionLink
+            href="/master-data/organizations/new"
+            label="New organization"
+          />
+        ) : null
+      }
       title="Organizations"
     />
   );
 }
 
 export function DepartmentsReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const departmentsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("departments", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getDepartments(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -214,6 +287,19 @@ export function DepartmentsReadScreen() {
       header: "Status",
       cell: (department) => <StatusBadge isActive={department.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (department: Department) => (
+              <ManageActionLink
+                href={`/master-data/departments/${department.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Department>,
+        ]
+      : []),
   ];
 
   const isLoading = departmentsQuery.isPending || organizationsQuery.isPending;
@@ -233,12 +319,21 @@ export function DepartmentsReadScreen() {
         void departmentsQuery.refetch();
         void organizationsQuery.refetch();
       }}
+      actions={
+        canManage ? (
+          <ManageActionLink
+            href="/master-data/departments/new"
+            label="New department"
+          />
+        ) : null
+      }
       title="Departments"
     />
   );
 }
 
 export function BuildingsReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const buildingsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("buildings", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getBuildings(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -270,6 +365,19 @@ export function BuildingsReadScreen() {
       header: "Status",
       cell: (building) => <StatusBadge isActive={building.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (building: Building) => (
+              <ManageActionLink
+                href={`/master-data/buildings/${building.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Building>,
+        ]
+      : []),
   ];
 
   const isLoading = buildingsQuery.isPending || organizationsQuery.isPending;
@@ -289,12 +397,18 @@ export function BuildingsReadScreen() {
         void buildingsQuery.refetch();
         void organizationsQuery.refetch();
       }}
+      actions={
+        canManage ? (
+          <ManageActionLink href="/master-data/buildings/new" label="New building" />
+        ) : null
+      }
       title="Buildings"
     />
   );
 }
 
 export function FloorsReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const floorsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("floors", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getFloors(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -319,6 +433,19 @@ export function FloorsReadScreen() {
       header: "Status",
       cell: (floor) => <StatusBadge isActive={floor.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (floor: Floor) => (
+              <ManageActionLink
+                href={`/master-data/floors/${floor.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Floor>,
+        ]
+      : []),
   ];
 
   const isLoading = floorsQuery.isPending || buildingsQuery.isPending;
@@ -338,12 +465,18 @@ export function FloorsReadScreen() {
         void floorsQuery.refetch();
         void buildingsQuery.refetch();
       }}
+      actions={
+        canManage ? (
+          <ManageActionLink href="/master-data/floors/new" label="New floor" />
+        ) : null
+      }
       title="Floors"
     />
   );
 }
 
 export function AreasReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const areasQuery = useQuery({
     queryKey: masterDataQueryKeys.list("areas", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getAreas(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -374,6 +507,19 @@ export function AreasReadScreen() {
       header: "Status",
       cell: (area) => <StatusBadge isActive={area.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (area: Area) => (
+              <ManageActionLink
+                href={`/master-data/areas/${area.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Area>,
+        ]
+      : []),
   ];
 
   const isLoading =
@@ -396,12 +542,18 @@ export function AreasReadScreen() {
         void buildingsQuery.refetch();
         void floorsQuery.refetch();
       }}
+      actions={
+        canManage ? (
+          <ManageActionLink href="/master-data/areas/new" label="New area" />
+        ) : null
+      }
       title="Areas"
     />
   );
 }
 
 export function AssetTypesReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const assetTypesQuery = useQuery({
     queryKey: masterDataQueryKeys.list("asset-types", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getAssetTypes(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -420,6 +572,19 @@ export function AssetTypesReadScreen() {
       header: "Status",
       cell: (assetType) => <StatusBadge isActive={assetType.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (assetType: AssetType) => (
+              <ManageActionLink
+                href={`/master-data/asset-types/${assetType.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<AssetType>,
+        ]
+      : []),
   ];
 
   return (
@@ -433,12 +598,21 @@ export function AssetTypesReadScreen() {
       isLoading={assetTypesQuery.isPending}
       items={assetTypesQuery.data?.results ?? []}
       onRetry={() => void assetTypesQuery.refetch()}
+      actions={
+        canManage ? (
+          <ManageActionLink
+            href="/master-data/asset-types/new"
+            label="New asset type"
+          />
+        ) : null
+      }
       title="Asset Types"
     />
   );
 }
 
 export function AssetsReadScreen() {
+  const canManage = useMasterDataWriteActions();
   const assetsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("assets", DEFAULT_MASTER_DATA_LIST_PARAMS),
     queryFn: () => getAssets(DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -490,6 +664,19 @@ export function AssetsReadScreen() {
       header: "Status",
       cell: (asset) => <StatusBadge isActive={asset.is_active} />,
     },
+    ...(canManage
+      ? [
+          {
+            header: "Actions",
+            cell: (asset: Asset) => (
+              <ManageActionLink
+                href={`/master-data/assets/${asset.id}/edit`}
+                label="Edit"
+              />
+            ),
+          } satisfies DataTableColumn<Asset>,
+        ]
+      : []),
   ];
 
   const isLoading =
@@ -522,6 +709,11 @@ export function AssetsReadScreen() {
         void floorsQuery.refetch();
         void areasQuery.refetch();
       }}
+      actions={
+        canManage ? (
+          <ManageActionLink href="/master-data/assets/new" label="New asset" />
+        ) : null
+      }
       title="Assets"
     />
   );

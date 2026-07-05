@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-015 extends the frontend shell with read-only master data screens on top of the existing authentication, RBAC, and current-user foundations.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-016 extends the master data frontend with create and edit forms on top of the existing authentication, RBAC, current-user, and read-screen foundations.
 
 ## Backend Local Setup
 
@@ -99,8 +99,15 @@ npm run dev
 
 - Read-only master data screens are available under `/master-data`.
 - The frontend includes tenants, organizations, departments, buildings, floors, areas, asset types, and assets list screens.
-- The screens use the authenticated API client and TanStack Query for read operations only.
-- Create, edit, and delete workflows are deferred to FO-016.
+- The screens use the authenticated API client and TanStack Query for read operations and related option loading.
+- Create and edit workflows are now available; delete remains deferred.
+- Business modules are still not implemented.
+
+## Master Data Write UI
+
+- Create and edit master data screens are available for tenants, organizations, departments, buildings, floors, areas, asset types, and assets.
+- Write routes are permission-guarded with the existing master data management foundation.
+- Delete, import, export, and bulk actions are not implemented yet.
 - Business modules are still not implemented.
 
 ## Environment Configuration
@@ -261,4 +268,4 @@ celery-ok
 
 ## Next Task
 
-FO-016 - Master Data Create/Edit Forms.
+FO-017 - Dashboard Shell and Foundation Metrics.

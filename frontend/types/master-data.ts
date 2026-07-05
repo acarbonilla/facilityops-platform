@@ -71,3 +71,54 @@ export type MasterDataResourceKey =
   | "areas"
   | "asset-types"
   | "assets";
+
+export interface TenantFormValues {
+  name: string;
+  code: string;
+  description: string;
+  is_active: boolean;
+}
+
+export interface OrganizationFormValues extends TenantFormValues {
+  tenant: string;
+}
+
+export interface DepartmentFormValues extends OrganizationFormValues {
+  organization: string;
+}
+
+export interface BuildingFormValues extends OrganizationFormValues {
+  organization: string;
+  address: string;
+}
+
+export interface FloorFormValues extends TenantFormValues {
+  tenant: string;
+  building: string;
+  level_number: number;
+}
+
+export interface AreaFormValues extends TenantFormValues {
+  tenant: string;
+  building: string;
+  floor: string;
+}
+
+export interface AssetTypeFormValues extends TenantFormValues {
+  tenant: string;
+}
+
+export interface AssetFormValues extends TenantFormValues {
+  tenant: string;
+  organization: string;
+  building: string;
+  floor: string;
+  area: string;
+  asset_type: string;
+  serial_number: string;
+}
+
+export interface AssetMutationPayload extends Omit<AssetFormValues, "floor" | "area"> {
+  floor: string | null;
+  area: string | null;
+}

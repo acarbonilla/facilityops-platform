@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { ErrorState } from "@/components/common/error-state";
 import { EmptyState } from "@/components/common/empty-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -18,6 +20,7 @@ export interface MasterDataListScreenProps<T> {
   emptyMessage: string;
   onRetry: () => void;
   getRowKey: (row: T) => string;
+  actions?: ReactNode;
 }
 
 export function MasterDataListScreen<T>({
@@ -30,6 +33,7 @@ export function MasterDataListScreen<T>({
   isLoading,
   items,
   onRetry,
+  actions,
   title,
 }: MasterDataListScreenProps<T>) {
   return (
@@ -43,6 +47,7 @@ export function MasterDataListScreen<T>({
           <DetailField label="Visible rows" value={items.length} />
           <DetailField label="Total records" value={count} />
         </dl>
+        {actions ? <div className="mt-4">{actions}</div> : null}
       </PageHeader>
 
       {isLoading ? (
