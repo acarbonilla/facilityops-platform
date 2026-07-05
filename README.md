@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-006 establishes the Redis and Celery foundation after backend, frontend, shared environment, and PostgreSQL configuration.
+Phase 12A - Application Development, Stage 1 - Foundation. FO-011 establishes the frontend API client, provider composition, backend connectivity check, and application shell.
 
 ## Backend Local Setup
 
@@ -65,6 +65,13 @@ npm install
 npm run lint
 npm run dev
 ```
+
+## Frontend Integration Foundation
+
+- The frontend API base URL is configured by `NEXT_PUBLIC_API_URL` and defaults in `.env.example` to `http://127.0.0.1:8000/api`.
+- The home page validates backend availability through `GET /health/` and displays safe loading, connected, and unavailable states.
+- TanStack Query manages asynchronous server-state requests through the root application providers.
+- The responsive app shell provides shared header, sidebar, and main-content foundations without authentication or permission gating.
 
 ## Environment Configuration
 
@@ -224,4 +231,4 @@ celery-ok
 
 ## Next Task
 
-FO-011 - Frontend API Client and App Shell Foundation.
+FO-012 - Frontend Authentication Integration.
