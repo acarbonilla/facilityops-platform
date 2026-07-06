@@ -12,9 +12,11 @@ import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
 import { getFmTicket } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 
+import { TicketCommentForm } from "./ticket-comment-form";
 import { TicketComments } from "./ticket-comments";
 import { TicketHistory } from "./ticket-history";
 import { TicketPriorityBadge } from "./ticket-priority-badge";
+import { TicketStatusActions } from "./ticket-status-actions";
 import { TicketStatusBadge } from "./ticket-status-badge";
 import {
   SectionCard,
@@ -26,6 +28,10 @@ import {
 export function TicketDetailScreen({ id }: { id: string }) {
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission("fm_tickets.update");
+  const canManage = hasPermission("fm_tickets.manage");
+  const canClose = hasPermission("fm_tickets.close");
+  const canComment = canUpdate || canManage;
+  const canRunStatusWorkflow = canUpdate || canClose || canManage;
   const ticketQuery = useQuery({
     queryKey: fmTicketsQueryKeys.detail(id),
     queryFn: () => getFmTicket(id),
@@ -66,7 +72,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`FM ticket detail for ${ticket.ticket_number}. Assignment, status-change, comments, and attachments remain out of scope in this screen.`}
+        description={`FM ticket detail for ${ticket.ticket_number}. Comments and basic status workflow are supported here, while assignment, attachments, notifications, and automation remain out of scope.`}
         eyebrow="FM Ticketing"
         title={ticket.title}
       >
@@ -156,6 +162,8 @@ export function TicketDetailScreen({ id }: { id: string }) {
         </dl>
       </SectionCard>
 
+      {canRunStatusWorkflow ? <TicketStatusActions ticket={ticket} /> : null}
+      {canComment ? <TicketCommentForm ticketId={ticket.id} /> : null}
       <TicketComments ticketId={ticket.id} />
       <TicketHistory ticketId={ticket.id} />
     </div>

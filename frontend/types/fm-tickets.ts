@@ -27,6 +27,16 @@ export type FmTicketSource =
   | "inspection"
   | "system";
 
+export const FM_TICKET_WORKFLOW_STATUSES: FmTicketStatus[] = [
+  "open",
+  "assigned",
+  "in_progress",
+  "on_hold",
+  "resolved",
+  "closed",
+  "cancelled",
+];
+
 export interface FmTicketListParams
   extends Record<string, string | number | boolean | undefined> {
   page?: number;
@@ -118,6 +128,27 @@ export interface FmTicketStatusHistory {
   note: string;
 }
 
+export interface FmTicketCommentCreatePayload {
+  body: string;
+  is_internal?: boolean;
+}
+
+export interface FmTicketStatusUpdatePayload {
+  to_status: FmTicketStatus;
+  note?: string;
+}
+
+export interface FmTicketStatusTransition {
+  from: FmTicketStatus;
+  to: FmTicketStatus[];
+}
+
+export interface FmTicketWorkflowAction {
+  label: string;
+  to_status: FmTicketStatus;
+  requiresClosePermission: boolean;
+}
+
 export interface FmTicketCreatePayload {
   tenant: string;
   organization: string;
@@ -153,3 +184,38 @@ export interface FmTicketFormValues {
   status: FmTicketStatus;
   assignee?: string;
 }
+
+export const FM_TICKET_STATUS_TRANSITIONS: FmTicketStatusTransition[] = [
+  {
+    from: "open",
+    to: ["assigned", "in_progress", "on_hold", "cancelled"],
+  },
+  {
+    from: "assigned",
+    to: ["in_progress", "on_hold", "resolved", "cancelled"],
+  },
+  {
+    from: "in_progress",
+    to: ["on_hold", "resolved", "cancelled"],
+  },
+  {
+    from: "on_hold",
+    to: ["in_progress", "cancelled"],
+  },
+  {
+    from: "resolved",
+    to: ["closed", "in_progress"],
+  },
+  {
+    from: "closed",
+    to: [],
+  },
+  {
+    from: "cancelled",
+    to: [],
+  },
+  {
+    from: "draft",
+    to: ["open", "cancelled"],
+  },
+];

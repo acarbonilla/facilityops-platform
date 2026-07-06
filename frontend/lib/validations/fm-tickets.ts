@@ -59,3 +59,13 @@ export const fmTicketSchema = z.object({
   assignee: optionalString.optional(),
   due_at: optionalString,
 });
+
+export const fmTicketCommentSchema = z.object({
+  body: z.string().trim().min(3, "Comment body must be at least 3 characters."),
+  is_internal: z.boolean().optional(),
+});
+
+export const fmTicketStatusUpdateSchema = z.object({
+  to_status: z.enum(FM_TICKET_STATUS_VALUES),
+  note: optionalString,
+});

@@ -4,11 +4,13 @@ import { API_ENDPOINTS } from "./endpoints";
 import type { PaginatedResponse } from "@/services/api/types";
 import type {
   FmTicketComment,
+  FmTicketCommentCreatePayload,
   FmTicketCreatePayload,
   FmTicketDetail,
   FmTicketHistory,
   FmTicketListItem,
   FmTicketListParams,
+  FmTicketStatusUpdatePayload,
   FmTicketUpdatePayload,
 } from "@/types/fm-tickets";
 
@@ -60,6 +62,16 @@ export function getFmTicketComments(
   );
 }
 
+export function createFmTicketComment(
+  ticketId: string,
+  payload: FmTicketCommentCreatePayload,
+): Promise<FmTicketComment> {
+  return apiClient<FmTicketComment>(API_ENDPOINTS.fmTickets.comments(ticketId), {
+    method: "POST",
+    body: payload,
+  });
+}
+
 export function getFmTicketHistory(
   ticketId: string,
 ): Promise<PaginatedResponse<FmTicketHistory>> {
@@ -69,4 +81,17 @@ export function getFmTicketHistory(
       method: "GET",
     },
   );
+}
+
+export function changeFmTicketStatus(
+  ticketId: string,
+  payload: FmTicketStatusUpdatePayload,
+): Promise<FmTicketDetail> {
+  return apiClient<FmTicketDetail>(API_ENDPOINTS.fmTickets.changeStatus(ticketId), {
+    method: "POST",
+    body: {
+      status: payload.to_status,
+      note: payload.note ?? "",
+    },
+  });
 }
