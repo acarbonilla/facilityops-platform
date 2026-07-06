@@ -4,10 +4,12 @@ import { API_ENDPOINTS } from "./endpoints";
 import type { PaginatedResponse } from "@/services/api/types";
 import type {
   FmTicketComment,
+  FmTicketCreatePayload,
   FmTicketDetail,
   FmTicketHistory,
   FmTicketListItem,
   FmTicketListParams,
+  FmTicketUpdatePayload,
 } from "@/types/fm-tickets";
 
 export function getFmTickets(
@@ -25,6 +27,25 @@ export function getFmTickets(
 export function getFmTicket(id: string): Promise<FmTicketDetail> {
   return apiClient<FmTicketDetail>(API_ENDPOINTS.fmTickets.ticket(id), {
     method: "GET",
+  });
+}
+
+export function createFmTicket(
+  payload: FmTicketCreatePayload,
+): Promise<FmTicketDetail> {
+  return apiClient<FmTicketDetail>(API_ENDPOINTS.fmTickets.tickets, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function updateFmTicket(
+  id: string,
+  payload: FmTicketUpdatePayload,
+): Promise<FmTicketDetail> {
+  return apiClient<FmTicketDetail>(API_ENDPOINTS.fmTickets.ticket(id), {
+    method: "PATCH",
+    body: payload,
   });
 }
 

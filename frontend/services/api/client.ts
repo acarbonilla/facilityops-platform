@@ -60,6 +60,35 @@ function normalizeErrorResponse(value: unknown): ApiErrorResponse | undefined {
     return { message: value.detail };
   }
 
+  const validationEntries = Object.entries(value).filter(([, entryValue]) => {
+    if (Array.isArray(entryValue)) {
+      return entryValue.every((item) => typeof item === "string");
+    }
+
+    return typeof entryValue === "string";
+  });
+
+  if (validationEntries.length > 0) {
+    const errors = Object.fromEntries(
+      validationEntries.map(([key, entryValue]) => [
+        key,
+        Array.isArray(entryValue) ? entryValue : [entryValue],
+      ]),
+    );
+    const priorityMessage =
+      errors.non_field_errors?.[0] ??
+      validationEntries
+        .flatMap(([, entryValue]) =>
+          Array.isArray(entryValue) ? entryValue : [entryValue],
+        )
+        .find(Boolean);
+
+    return {
+      message: priorityMessage ?? "The backend rejected one or more fields.",
+      errors,
+    };
+  }
+
   return undefined;
 }
 

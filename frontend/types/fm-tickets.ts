@@ -39,6 +39,11 @@ export interface FmTicketListParams
   assignee?: string;
 }
 
+export interface FmTicketFormOption {
+  value: string;
+  label: string;
+}
+
 interface FmTicketBaseRecord {
   id: string;
   ticket_number: string;
@@ -111,4 +116,40 @@ export interface FmTicketStatusHistory {
   changed_by_email: string | null;
   changed_at: string;
   note: string;
+}
+
+export interface FmTicketCreatePayload {
+  tenant: string;
+  organization: string;
+  department?: string | null;
+  building: string;
+  floor?: string | null;
+  area?: string | null;
+  asset?: string | null;
+  title: string;
+  description: string;
+  category: FmTicketCategory;
+  priority: FmTicketPriority;
+  source: FmTicketSource;
+  due_at?: string | null;
+}
+
+export type FmTicketUpdatePayload = FmTicketCreatePayload;
+
+export interface FmTicketFormValues {
+  tenant: string;
+  organization: string;
+  department: string;
+  building: string;
+  floor: string;
+  area: string;
+  asset: string;
+  title: string;
+  description: string;
+  category: FmTicketCategory;
+  priority: FmTicketPriority;
+  source: FmTicketSource;
+  due_at: string;
+  status: FmTicketStatus;
+  assignee?: string;
 }

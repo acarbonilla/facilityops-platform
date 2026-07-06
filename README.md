@@ -123,7 +123,8 @@ npm run dev
 - The backend foundation includes tickets, comments, history, status history, RBAC enforcement, admin registration, and sample seed data
 - Frontend read-only routes are now available at `/fm-tickets` and `/fm-tickets/[id]`
 - The FM Ticketing frontend currently supports read-only list, detail, comments, and history views guarded by `fm_tickets.view`
-- Ticket create and edit flows remain deferred to `FO-026 - FM Ticketing Create/Edit Forms`
+- Create and edit routes are available at `/fm-tickets/new` and `/fm-tickets/[id]/edit` for authorized users
+- Assignment, status-change, comment-write, attachment, and AI workflows are still not implemented
 
 ## Current User UI
 

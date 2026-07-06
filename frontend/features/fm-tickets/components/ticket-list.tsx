@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { usePermissions } from "@/hooks/use-permissions";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
 import { getFmTickets } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
@@ -77,6 +78,9 @@ function buildFilterOptions(
 }
 
 export function TicketListScreen() {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("fm_tickets.create");
+  const canUpdate = hasPermission("fm_tickets.update");
   const [filters, setFilters] = useState<TicketFilterValues>(DEFAULT_FILTERS);
   const deferredSearch = useDeferredValue(filters.search.trim().toLowerCase());
 
@@ -170,13 +174,24 @@ export function TicketListScreen() {
     {
       header: "Actions",
       cell: (ticket) => (
-        <Link
-          className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          href={`/fm-tickets/${ticket.id}`}
-        >
-          View detail
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href={`/fm-tickets/${ticket.id}`}
+          >
+            View detail
+          </Link>
+          {canUpdate ? (
+            <Link
+              className="inline-flex items-center rounded-md border border-blue-300 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+              href={`/fm-tickets/${ticket.id}/edit`}
+            >
+              Edit
+            </Link>
+          ) : null}
+        </div>
       ),
+      className: "min-w-48 whitespace-normal",
     },
   ];
 
@@ -186,7 +201,7 @@ export function TicketListScreen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Read-only FM ticket list powered by the existing authenticated API client and permission guard. Create, edit, assignment, status-change, and comment-write controls are intentionally excluded."
+        description="FM ticket list powered by the existing authenticated API client and permission guard. Create and edit entry points are available for authorized users, while assignment, status-change, comments, and attachments remain out of scope."
         eyebrow="FM Ticketing"
         title="FM Tickets"
       >
@@ -195,6 +210,16 @@ export function TicketListScreen() {
           <DetailField label="Loaded rows" value={tickets.length} />
           <DetailField label="Total records" value={ticketsQuery.data?.count ?? 0} />
         </dl>
+        {canCreate ? (
+          <div className="mt-4">
+            <Link
+              className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href="/fm-tickets/new"
+            >
+              New Ticket
+            </Link>
+          </div>
+        ) : null}
       </PageHeader>
 
       <TicketFilters

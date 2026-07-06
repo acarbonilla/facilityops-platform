@@ -7,6 +7,7 @@ import { DetailField } from "@/components/common/detail-field";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { usePermissions } from "@/hooks/use-permissions";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
 import { getFmTicket } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
@@ -23,6 +24,8 @@ import {
 } from "./ticket-shared";
 
 export function TicketDetailScreen({ id }: { id: string }) {
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission("fm_tickets.update");
   const ticketQuery = useQuery({
     queryKey: fmTicketsQueryKeys.detail(id),
     queryFn: () => getFmTicket(id),
@@ -63,7 +66,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`Read-only FM ticket detail for ${ticket.ticket_number}. Create, edit, assignment, and status-change actions remain out of scope in this screen.`}
+        description={`FM ticket detail for ${ticket.ticket_number}. Assignment, status-change, comments, and attachments remain out of scope in this screen.`}
         eyebrow="FM Ticketing"
         title={ticket.title}
       >
@@ -74,6 +77,14 @@ export function TicketDetailScreen({ id }: { id: string }) {
           >
             Back to tickets
           </Link>
+          {canUpdate ? (
+            <Link
+              className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href={`/fm-tickets/${ticket.id}/edit`}
+            >
+              Edit ticket
+            </Link>
+          ) : null}
           <TicketStatusBadge status={ticket.status} />
           <TicketPriorityBadge priority={ticket.priority} />
         </div>
