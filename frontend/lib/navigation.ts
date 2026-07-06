@@ -26,9 +26,16 @@ export const APP_NAVIGATION: NavigationItem[] = [
     label: "Admin",
     href: "/admin",
     authenticatedOnly: true,
-    requiredPermissions: ["users.view", "roles.view", "roles.manage"],
+    requiredPermissions: ["users.view", "roles.view", "roles.manage", "settings.view"],
     permissionMode: "any",
     matchStrategy: "exact",
+  },
+  {
+    label: "Organization",
+    href: "/admin/organization",
+    authenticatedOnly: true,
+    requiredPermissions: ["settings.view"],
+    matchStrategy: "prefix",
   },
   {
     label: "Users",

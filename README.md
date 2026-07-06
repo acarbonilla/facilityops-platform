@@ -99,6 +99,14 @@ npm run dev
 - Unsupported operations: user list loading, detail, create, edit, role assignment, invitations, password reset, and SSO
 - User management remains separate from invitations and identity-provider workflows.
 
+## Organization Management
+
+- Route: `/admin/organization`
+- Uses the existing master-data foundation and services
+- Focuses on tenants, organizations, departments, buildings, floors, and areas
+- Reuses existing master-data create/edit routes for authorized users
+- Does not implement operational workflows, delete, bulk actions, or import/export
+
 ## Current User UI
 
 - Profile route: `/profile`

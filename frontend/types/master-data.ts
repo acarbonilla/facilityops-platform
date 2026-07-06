@@ -122,3 +122,29 @@ export interface AssetMutationPayload extends Omit<AssetFormValues, "floor" | "a
   floor: string | null;
   area: string | null;
 }
+
+export type OrganizationStructureResourceKey =
+  | "tenants"
+  | "organizations"
+  | "departments"
+  | "buildings"
+  | "floors"
+  | "areas";
+
+export interface OrganizationStructureNode {
+  id: string;
+  label: string;
+  code: string;
+  href: string;
+  resource: OrganizationStructureResourceKey;
+  children: OrganizationStructureNode[];
+}
+
+export interface OrganizationHierarchySummary {
+  tenants: number;
+  organizations: number;
+  departments: number;
+  buildings: number;
+  floors: number;
+  areas: number;
+}
