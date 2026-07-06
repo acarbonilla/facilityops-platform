@@ -6,11 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import { DataTableColumn } from "@/components/common/data-table";
 import { EmptyState } from "@/components/common/empty-state";
 import { PageHeader } from "@/components/common/page-header";
+import { AssetListScreen } from "@/features/assets/components/asset-list";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   getAreas,
   getAssetTypes,
-  getAssets,
   getBuildings,
   getDepartments,
   getFloors,
@@ -20,7 +20,6 @@ import {
 import { masterDataQueryKeys } from "@/services/api/query-keys";
 import type {
   Area,
-  Asset,
   AssetType,
   Building,
   Department,
@@ -612,109 +611,5 @@ export function AssetTypesReadScreen() {
 }
 
 export function AssetsReadScreen() {
-  const canManage = useMasterDataWriteActions();
-  const assetsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("assets", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getAssets(DEFAULT_MASTER_DATA_LIST_PARAMS),
-  });
-  const assetTypesQuery = useNameMapQuery("asset-types", () =>
-    getAssetTypes(DEFAULT_MASTER_DATA_LIST_PARAMS),
-  );
-  const buildingsQuery = useNameMapQuery("buildings", () =>
-    getBuildings(DEFAULT_MASTER_DATA_LIST_PARAMS),
-  );
-  const floorsQuery = useNameMapQuery("floors", () =>
-    getFloors(DEFAULT_MASTER_DATA_LIST_PARAMS),
-  );
-  const areasQuery = useNameMapQuery("areas", () =>
-    getAreas(DEFAULT_MASTER_DATA_LIST_PARAMS),
-  );
-
-  const columns: DataTableColumn<Asset>[] = [
-    {
-      header: "Name",
-      cell: (asset) => <CellStack primary={asset.name} secondary={asset.description} />,
-      className: "min-w-64",
-    },
-    { header: "Code", cell: (asset) => asset.code },
-    {
-      header: "Asset type",
-      cell: (asset) => resolveEntityName(asset.asset_type, assetTypesQuery.data ?? {}),
-    },
-    {
-      header: "Building",
-      cell: (asset) => resolveEntityName(asset.building, buildingsQuery.data ?? {}),
-    },
-    {
-      header: "Floor",
-      cell: (asset) =>
-        resolveEntityName(asset.floor, floorsQuery.data ?? {}, "Not assigned"),
-    },
-    {
-      header: "Area",
-      cell: (asset) =>
-        resolveEntityName(asset.area, areasQuery.data ?? {}, "Not assigned"),
-    },
-    {
-      header: "Serial number",
-      cell: (asset) => asset.serial_number || "Not provided",
-      className: "min-w-48",
-    },
-    {
-      header: "Status",
-      cell: (asset) => <StatusBadge isActive={asset.is_active} />,
-    },
-    ...(canManage
-      ? [
-          {
-            header: "Actions",
-            cell: (asset: Asset) => (
-              <ManageActionLink
-                href={`/master-data/assets/${asset.id}/edit`}
-                label="Edit"
-              />
-            ),
-          } satisfies DataTableColumn<Asset>,
-        ]
-      : []),
-  ];
-
-  const isLoading =
-    assetsQuery.isPending ||
-    assetTypesQuery.isPending ||
-    buildingsQuery.isPending ||
-    floorsQuery.isPending ||
-    areasQuery.isPending;
-  const isError =
-    assetsQuery.isError ||
-    assetTypesQuery.isError ||
-    buildingsQuery.isError ||
-    floorsQuery.isError ||
-    areasQuery.isError;
-
-  return (
-    <MasterDataListScreen
-      columns={columns}
-      count={assetsQuery.data?.count ?? 0}
-      description="Assets expose the seeded operational inventory linked to type and location master data."
-      emptyMessage="No asset records are currently available."
-      errorMessage={isError ? getFirstQueryErrorMessage([assetsQuery.error, assetTypesQuery.error, buildingsQuery.error, floorsQuery.error, areasQuery.error], "Asset records could not be loaded.") : null}
-      getRowKey={(asset) => asset.id}
-      isLoading={isLoading}
-      items={assetsQuery.data?.results ?? []}
-      onRetry={() => {
-        void assetsQuery.refetch();
-        void assetTypesQuery.refetch();
-        void buildingsQuery.refetch();
-        void floorsQuery.refetch();
-        void areasQuery.refetch();
-      }}
-      actions={
-        canManage ? (
-          <ManageActionLink href="/master-data/assets/new" label="New asset" />
-        ) : null
-      }
-      title="Assets"
-    />
-  );
+  return <AssetListScreen />;
 }

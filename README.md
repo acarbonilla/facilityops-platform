@@ -107,6 +107,16 @@ npm run dev
 - Reuses existing master-data create/edit routes for authorized users
 - Does not implement operational workflows, delete, bulk actions, or import/export
 
+## Asset Management UI
+
+- Primary routes: `/master-data/assets`, `/master-data/assets/new`, `/master-data/assets/[id]`, and `/master-data/assets/[id]/edit`
+- Admin alias: `/admin/assets`
+- Reuses the existing master-data asset service and types instead of introducing new backend models
+- Adds a dedicated asset detail screen, clearer location/context display, and links back to organization structure screens
+- Includes simple frontend filtering by name/code, asset type, building, and active status for the current loaded page only
+- Improves the asset create/edit form layout by grouping asset information, classification, and location fields
+- Does not implement maintenance workflows, ticketing, inspections, delete, bulk actions, import/export, or reporting
+
 ## Current User UI
 
 - Profile route: `/profile`

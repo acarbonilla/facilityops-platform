@@ -38,6 +38,13 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "prefix",
   },
   {
+    label: "Admin Assets",
+    href: "/admin/assets",
+    authenticatedOnly: true,
+    requiredPermissions: ["settings.view"],
+    matchStrategy: "prefix",
+  },
+  {
     label: "Users",
     href: "/admin/users",
     authenticatedOnly: true,

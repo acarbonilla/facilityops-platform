@@ -52,6 +52,7 @@ function AdminCard({
 export default function AdminPage() {
   const { hasPermission } = usePermissions();
   const canViewOrganization = hasPermission("settings.view");
+  const canViewAssets = hasPermission("settings.view");
   const canViewUsers = hasPermission("users.view");
   const canViewRoles = hasPermission("roles.view");
   const canManageRoles = hasPermission("roles.manage");
@@ -64,14 +65,18 @@ export default function AdminPage() {
       <AppShell>
         <div className="space-y-6">
           <PageHeader
-            description="Admin screens for organization structure, users, roles, and permissions. Backend authorization remains authoritative, and unsupported operations stay hidden until the backend exposes them."
+            description="Admin screens for organization structure, polished asset browsing, users, roles, and permissions. Backend authorization remains authoritative, and unsupported operations stay hidden until the backend exposes them."
             eyebrow="Admin"
             title="Admin"
           >
-            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
               <DetailField
                 label="Organization access"
                 value={canViewOrganization ? "Available" : "Unavailable"}
+              />
+              <DetailField
+                label="Asset access"
+                value={canViewAssets ? "Available" : "Unavailable"}
               />
               <DetailField
                 label="Users access"
@@ -92,12 +97,18 @@ export default function AdminPage() {
             </dl>
           </PageHeader>
 
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-5">
             <AdminCard
               description="Open the organization structure landing page built on master-data foundations."
               enabled={canViewOrganization}
               href="/admin/organization"
               title="Organization"
+            />
+            <AdminCard
+              description="Open the polished asset inventory view with detail links, filters, and organization context."
+              enabled={canViewAssets}
+              href="/admin/assets"
+              title="Assets"
             />
             <AdminCard
               description="Open the user-management foundation and review backend support status."
@@ -126,7 +137,7 @@ export default function AdminPage() {
 
           <EmptyState
             title="Scoped admin foundation"
-            message="This stage covers organization structure, users, roles, and permissions only. Invitations, password reset, SSO, audit logs, and business-module administration remain out of scope."
+            message="This stage covers organization structure, asset browsing, users, roles, and permissions only. Invitations, password reset, SSO, audit logs, and business-module administration remain out of scope."
           />
         </div>
       </AppShell>

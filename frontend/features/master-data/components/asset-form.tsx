@@ -30,6 +30,7 @@ import {
   TextAreaField,
   TextInputField,
 } from "./shared";
+import { AssetFormSection } from "@/features/assets/components/asset-form-section";
 
 export interface AssetFormProps extends MasterDataFormProps<AssetFormValues> {
   tenants: Tenant[];
@@ -77,20 +78,115 @@ export function AssetForm({
   const selectedFloor = useWatch({ control, name: "floor" });
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit(async (values) => {
-      await onSubmit(values);
-    })}>
-      <SelectField error={getFieldErrorMessage(errors.tenant?.message)} label="Tenant" options={buildRecordOptions(tenants)} {...register("tenant")} />
-      <SelectField error={getFieldErrorMessage(errors.organization?.message)} label="Organization" options={buildRecordOptions(filterOrganizationsByTenant(organizations, selectedTenant))} {...register("organization")} />
-      <SelectField error={getFieldErrorMessage(errors.building?.message)} label="Building" options={buildRecordOptions(filterBuildingsByOrganization(buildings, selectedOrganization))} {...register("building")} />
-      <SelectField error={getFieldErrorMessage(errors.floor?.message)} label="Floor" options={buildRecordOptions(filterFloorsByBuilding(floors, selectedBuilding))} placeholder="Optional floor" {...register("floor")} />
-      <SelectField error={getFieldErrorMessage(errors.area?.message)} label="Area" options={buildRecordOptions(filterAreasByFloor(areas, selectedFloor))} placeholder="Optional area" {...register("area")} />
-      <SelectField error={getFieldErrorMessage(errors.asset_type?.message)} label="Asset type" options={buildRecordOptions(filterAssetTypesByTenant(assetTypes, selectedTenant))} {...register("asset_type")} />
-      <TextInputField error={getFieldErrorMessage(errors.name?.message)} id="asset-name" inputProps={register("name")} label="Name" />
-      <TextInputField error={getFieldErrorMessage(errors.code?.message)} id="asset-code" inputProps={register("code")} label="Code" />
-      <TextInputField error={getFieldErrorMessage(errors.serial_number?.message)} id="asset-serial-number" inputProps={register("serial_number")} label="Serial number" />
-      <TextAreaField error={getFieldErrorMessage(errors.description?.message)} id="asset-description" label="Description" textAreaProps={register("description")} />
-      <SwitchField error={getFieldErrorMessage(errors.is_active?.message)} label="Active" {...register("is_active")} />
+    <form
+      className="space-y-5"
+      onSubmit={handleSubmit(async (values) => {
+        await onSubmit(values);
+      })}
+    >
+      <AssetFormSection
+        description="Core asset identity, labeling, and status fields."
+        title="Asset Information"
+      >
+        <TextInputField
+          description="Primary display name for the asset record."
+          error={getFieldErrorMessage(errors.name?.message)}
+          id="asset-name"
+          inputProps={register("name")}
+          label="Name"
+        />
+        <TextInputField
+          description="Short internal code used in lists and references."
+          error={getFieldErrorMessage(errors.code?.message)}
+          id="asset-code"
+          inputProps={register("code")}
+          label="Code"
+        />
+        <TextInputField
+          description="Optional manufacturer or internal serial reference."
+          error={getFieldErrorMessage(errors.serial_number?.message)}
+          id="asset-serial-number"
+          inputProps={register("serial_number")}
+          label="Serial number"
+        />
+        <SwitchField
+          error={getFieldErrorMessage(errors.is_active?.message)}
+          label="Active"
+          {...register("is_active")}
+        />
+        <div className="md:col-span-2">
+          <TextAreaField
+            description="Add operational context or notes for this asset."
+            error={getFieldErrorMessage(errors.description?.message)}
+            id="asset-description"
+            label="Description"
+            textAreaProps={register("description")}
+          />
+        </div>
+      </AssetFormSection>
+
+      <AssetFormSection
+        description="Categorize the asset using the existing asset-type master data."
+        title="Classification"
+      >
+        <SelectField
+          description="Asset types can be filtered by the selected tenant."
+          error={getFieldErrorMessage(errors.asset_type?.message)}
+          label="Asset type"
+          options={buildRecordOptions(
+            filterAssetTypesByTenant(assetTypes, selectedTenant),
+          )}
+          {...register("asset_type")}
+        />
+      </AssetFormSection>
+
+      <AssetFormSection
+        description="These fields reuse the existing organization structure and narrow progressively based on your selections."
+        title="Location"
+      >
+        <SelectField
+          description="Top-level tenant ownership for this asset."
+          error={getFieldErrorMessage(errors.tenant?.message)}
+          label="Tenant"
+          options={buildRecordOptions(tenants)}
+          {...register("tenant")}
+        />
+        <SelectField
+          description="Organizations are filtered by the selected tenant."
+          error={getFieldErrorMessage(errors.organization?.message)}
+          label="Organization"
+          options={buildRecordOptions(
+            filterOrganizationsByTenant(organizations, selectedTenant),
+          )}
+          {...register("organization")}
+        />
+        <SelectField
+          description="Buildings are filtered by the selected organization."
+          error={getFieldErrorMessage(errors.building?.message)}
+          label="Building"
+          options={buildRecordOptions(
+            filterBuildingsByOrganization(buildings, selectedOrganization),
+          )}
+          {...register("building")}
+        />
+        <SelectField
+          description="Optional floor assignment within the selected building."
+          error={getFieldErrorMessage(errors.floor?.message)}
+          label="Floor"
+          options={buildRecordOptions(filterFloorsByBuilding(floors, selectedBuilding))}
+          placeholder="Optional floor"
+          {...register("floor")}
+        />
+        <SelectField
+          description="Optional area assignment within the selected floor."
+          error={getFieldErrorMessage(errors.area?.message)}
+          label="Area"
+          options={buildRecordOptions(filterAreasByFloor(areas, selectedFloor))}
+          placeholder="Optional area"
+          {...register("area")}
+        />
+      </AssetFormSection>
+
       <FormActions cancelHref={cancelHref} isSubmitting={isSubmitting} submitLabel={submitLabel} />
     </form>
   );
