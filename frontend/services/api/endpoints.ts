@@ -7,6 +7,10 @@ export const API_ENDPOINTS = {
     me: "/auth/me/",
   },
   accessControl: {
+    roles: "/access-control/roles/",
+    role: (id: string) => `/access-control/roles/${id}/`,
+    permissions: "/access-control/permissions/",
+    permission: (id: string) => `/access-control/permissions/${id}/`,
     mePermissions: "/access-control/me/permissions/",
   },
   dashboard: {

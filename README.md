@@ -86,7 +86,10 @@ npm run dev
 - Frontend permissions are loaded from `/api/access-control/me/permissions/`.
 - The sidebar filters navigation items against the authenticated user's permissions.
 - Frontend route guards improve UX, but backend authorization remains the source of truth.
-- Placeholder routes exist only to validate the RBAC and navigation foundation.
+- Admin RBAC routes are available at `/admin`, `/admin/roles`, and `/admin/permissions`.
+- Roles screens are guarded by `roles.view`.
+- The permissions catalog currently requires `roles.manage` because the backend permissions endpoint enforces that permission.
+- User management comes later and is not part of the current admin UI scope.
 
 ## Current User UI
 
