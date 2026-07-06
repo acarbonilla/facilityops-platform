@@ -59,6 +59,7 @@ staticfiles/
 # Node.js, Next.js, and TypeScript
 node_modules/
 .next/
+.next-runtime/
 out/
 .nuxt/
 .cache/
