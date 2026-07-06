@@ -88,4 +88,5 @@ export const fmTicketsQueryKeys = {
   detail: (id: string) => ["fm-tickets", id] as const,
   comments: (id: string) => ["fm-tickets", id, "comments"] as const,
   history: (id: string) => ["fm-tickets", id, "history"] as const,
+  escalations: (id: string) => ["fm-tickets", id, "escalations"] as const,
 };

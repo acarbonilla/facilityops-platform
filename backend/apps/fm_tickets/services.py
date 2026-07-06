@@ -1,6 +1,17 @@
+from datetime import timedelta
+
 from django.utils import timezone
 
-from .models import FmTicket, FmTicketComment, FmTicketHistory, FmTicketStatusHistory
+from .models import (
+    FmTicket,
+    FmTicketComment,
+    FmTicketEscalation,
+    FmTicketHistory,
+    FmTicketStatusHistory,
+)
+
+
+SLA_AT_RISK_WINDOW = timedelta(hours=4)
 
 
 def record_ticket_history(
@@ -42,6 +53,46 @@ def record_ticket_status_history(
         created_by=changed_by_id,
         updated_by=changed_by_id,
     )
+
+
+def calculate_ticket_sla_status(ticket):
+    if not ticket.response_due_at and not ticket.resolution_due_at:
+        return FmTicket.SlaStatus.NOT_APPLICABLE
+
+    now = timezone.now()
+
+    if ticket.resolved_at:
+        if ticket.response_met is False or ticket.resolution_met is False:
+            return FmTicket.SlaStatus.MISSED
+        return FmTicket.SlaStatus.MET
+
+    if not ticket.first_responded_at and ticket.response_due_at:
+        if now > ticket.response_due_at:
+            return FmTicket.SlaStatus.BREACHED
+        if ticket.response_due_at - now <= SLA_AT_RISK_WINDOW:
+            return FmTicket.SlaStatus.AT_RISK
+        if ticket.status in {FmTicket.Status.DRAFT, FmTicket.Status.OPEN}:
+            return FmTicket.SlaStatus.NOT_STARTED
+        return FmTicket.SlaStatus.WITHIN_SLA
+
+    if ticket.resolution_due_at:
+        if now > ticket.resolution_due_at:
+            return FmTicket.SlaStatus.BREACHED
+        if ticket.resolution_due_at - now <= SLA_AT_RISK_WINDOW:
+            return FmTicket.SlaStatus.AT_RISK
+        return FmTicket.SlaStatus.WITHIN_SLA
+
+    if ticket.first_responded_at:
+        return FmTicket.SlaStatus.WITHIN_SLA
+
+    return FmTicket.SlaStatus.NOT_APPLICABLE
+
+
+def mark_ticket_first_response(*, ticket, responded_at=None):
+    if ticket.first_responded_at:
+        return False
+    ticket.first_responded_at = responded_at or timezone.now()
+    return True
 
 
 def _apply_status_timestamps(ticket, to_status):
@@ -111,6 +162,11 @@ def update_ticket(*, ticket, data, actor=None):
 
 
 def add_ticket_comment(*, ticket, author, body, is_internal=False):
+    if author.id != ticket.requester_id:
+        ticket.updated_by = str(author.id)
+        mark_ticket_first_response(ticket=ticket)
+        ticket.save()
+
     author_id = str(author.id)
     comment = FmTicketComment.objects.create(
         ticket=ticket,
@@ -135,6 +191,8 @@ def change_ticket_status(*, ticket, to_status, changed_by=None, note=""):
     if from_status == to_status:
         return ticket
 
+    if to_status not in {FmTicket.Status.DRAFT, FmTicket.Status.OPEN}:
+        mark_ticket_first_response(ticket=ticket)
     _apply_status_timestamps(ticket, to_status)
     ticket.status = to_status
     ticket.updated_by = str(changed_by.id) if changed_by else None
@@ -165,6 +223,7 @@ def assign_ticket(*, ticket, assigned_to, assigned_by=None, note=""):
     previous_assignee = ticket.assignee
     ticket.assignee = assigned_to
     ticket.updated_by = str(assigned_by.id) if assigned_by else None
+    mark_ticket_first_response(ticket=ticket)
 
     status_changed = ticket.status in {FmTicket.Status.DRAFT, FmTicket.Status.OPEN}
     previous_status = ticket.status
@@ -197,3 +256,72 @@ def assign_ticket(*, ticket, assigned_to, assigned_by=None, note=""):
 
     return ticket
 
+
+def resolve_ticket_escalation(*, escalation, resolved_by=None, record_history=True):
+    if not escalation.is_active and escalation.resolved_at:
+        return escalation
+
+    now = timezone.now()
+    resolved_by_id = str(resolved_by.id) if resolved_by else None
+    escalation.is_active = False
+    escalation.resolved_at = now
+    escalation.resolved_by = resolved_by
+    escalation.updated_by = resolved_by_id
+    escalation.save()
+
+    if record_history:
+        record_ticket_history(
+            ticket=escalation.ticket,
+            action="escalation_resolved",
+            description=f"Escalation {escalation.level} resolved.",
+            actor=resolved_by,
+            metadata={
+                "escalation_id": str(escalation.id),
+                "level": escalation.level,
+            },
+        )
+
+    return escalation
+
+
+def create_ticket_escalation(
+    *,
+    ticket,
+    escalated_by,
+    escalated_to=None,
+    reason,
+    level,
+):
+    active_escalations = ticket.escalations.filter(is_active=True)
+    for escalation in active_escalations:
+        resolve_ticket_escalation(
+            escalation=escalation,
+            resolved_by=escalated_by,
+            record_history=False,
+        )
+
+    escalated_by_id = str(escalated_by.id) if escalated_by else None
+    escalation = FmTicketEscalation.objects.create(
+        ticket=ticket,
+        escalated_by=escalated_by,
+        escalated_to=escalated_to or ticket.assignee,
+        reason=reason,
+        level=level,
+        created_by=escalated_by_id,
+        updated_by=escalated_by_id,
+    )
+    record_ticket_history(
+        ticket=ticket,
+        action="escalated",
+        description=f"Ticket escalated as {level}.",
+        actor=escalated_by,
+        metadata={
+            "escalation_id": str(escalation.id),
+            "level": level,
+            "reason": reason,
+            "escalated_to": (
+                str(escalation.escalated_to_id) if escalation.escalated_to_id else None
+            ),
+        },
+    )
+    return escalation

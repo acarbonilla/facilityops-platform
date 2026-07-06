@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -16,7 +19,13 @@ from apps.master_data.models import (
     Tenant,
 )
 
-from .models import FmTicket, FmTicketComment, FmTicketHistory, FmTicketStatusHistory
+from .models import (
+    FmTicket,
+    FmTicketComment,
+    FmTicketEscalation,
+    FmTicketHistory,
+    FmTicketStatusHistory,
+)
 
 
 User = get_user_model()
@@ -200,6 +209,40 @@ class FmTicketModelTests(FmTicketTestDataMixin, APITestCase):
         self.assertEqual(history.ticket, ticket)
         self.assertEqual(status_history.ticket, ticket)
 
+    def test_sla_and_escalation_models_store_foundation_data(self):
+        now = timezone.now()
+        ticket = FmTicket.objects.create(
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+            department=self.data["department"],
+            building=self.data["building"],
+            floor=self.data["floor"],
+            area=self.data["area"],
+            asset=self.data["asset"],
+            requester=self.user,
+            assignee=self.assignee,
+            title="Pump issue",
+            description="The water pump is noisy.",
+            category=FmTicket.Category.OTHER,
+            priority=FmTicket.Priority.HIGH,
+            source=FmTicket.Source.ADMIN,
+            response_due_at=now + timedelta(hours=8),
+            resolution_due_at=now + timedelta(days=1),
+            first_responded_at=now + timedelta(minutes=30),
+        )
+        escalation = FmTicketEscalation.objects.create(
+            ticket=ticket,
+            escalated_by=self.user,
+            escalated_to=self.assignee,
+            reason="Supervisor review required.",
+            level=FmTicketEscalation.Level.LEVEL_1,
+        )
+
+        self.assertTrue(ticket.response_met)
+        self.assertIsNone(ticket.resolution_met)
+        self.assertEqual(escalation.ticket, ticket)
+        self.assertTrue(escalation.is_active)
+
 
 class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
     def setUp(self):
@@ -223,6 +266,7 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
             "fm_tickets.update",
             "fm_tickets.assign",
             "fm_tickets.close",
+            "fm_tickets.manage",
         )
         self.assign_permissions(self.viewer, "fm_tickets.view")
         self.data = self.create_master_data()
@@ -240,6 +284,8 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
             category=FmTicket.Category.OTHER,
             priority=FmTicket.Priority.MEDIUM,
             source=FmTicket.Source.ADMIN,
+            response_due_at=timezone.now() + timedelta(hours=8),
+            resolution_due_at=timezone.now() + timedelta(days=1),
         )
 
     def test_ticket_list_requires_authentication(self):
@@ -321,6 +367,26 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
             1,
         )
 
+    def test_ticket_detail_includes_sla_and_escalation_data(self):
+        FmTicketEscalation.objects.create(
+            ticket=self.ticket,
+            escalated_by=self.user,
+            escalated_to=self.other_user,
+            reason="Needs higher priority review.",
+            level=FmTicketEscalation.Level.LEVEL_2,
+        )
+        self.client.force_authenticate(self.viewer)
+
+        response = self.client.get(reverse("fm-ticket-detail", args=[self.ticket.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["sla"]["sla_status"], FmTicket.SlaStatus.NOT_STARTED)
+        self.assertEqual(len(response.data["escalation_history"]), 1)
+        self.assertEqual(
+            response.data["escalation_history"][0]["level"],
+            FmTicketEscalation.Level.LEVEL_2,
+        )
+
     def test_comment_creation_works(self):
         self.client.force_authenticate(self.user)
 
@@ -343,6 +409,22 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
         response = self.client.get(reverse("fm-ticket-history", args=[self.ticket.id]))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_escalations_endpoint_returns_history(self):
+        FmTicketEscalation.objects.create(
+            ticket=self.ticket,
+            escalated_by=self.user,
+            escalated_to=self.other_user,
+            reason="Escalate for urgent handling.",
+            level=FmTicketEscalation.Level.LEVEL_1,
+        )
+        self.client.force_authenticate(self.viewer)
+
+        response = self.client.get(reverse("fm-ticket-escalations", args=[self.ticket.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["reason"], "Escalate for urgent handling.")
 
     def test_status_change_requires_close_permission_for_terminal_state(self):
         self.client.force_authenticate(self.viewer)
@@ -393,6 +475,43 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.assignee, self.other_user)
 
+    def test_escalate_endpoint_requires_manage_permission(self):
+        self.client.force_authenticate(self.viewer)
+
+        response = self.client.post(
+            reverse("fm-ticket-escalate", args=[self.ticket.id]),
+            {
+                "reason": "Need supervisor approval.",
+                "level": FmTicketEscalation.Level.MANAGEMENT,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_escalate_endpoint_creates_active_escalation(self):
+        self.client.force_authenticate(self.user)
+
+        response = self.client.post(
+            reverse("fm-ticket-escalate", args=[self.ticket.id]),
+            {
+                "escalated_to": str(self.other_user.id),
+                "reason": "Escalate to management for SLA visibility.",
+                "level": FmTicketEscalation.Level.MANAGEMENT,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(FmTicketEscalation.objects.filter(ticket=self.ticket).count(), 1)
+        escalation = FmTicketEscalation.objects.get(ticket=self.ticket)
+        self.assertTrue(escalation.is_active)
+        self.assertEqual(escalation.escalated_to, self.other_user)
+        self.assertEqual(
+            self.ticket.history_entries.filter(action="escalated").count(),
+            1,
+        )
+
 
 class FmTicketSeedCommandTests(FmTicketTestDataMixin, APITestCase):
     def setUp(self):
@@ -413,4 +532,13 @@ class FmTicketSeedCommandTests(FmTicketTestDataMixin, APITestCase):
         self.assertEqual(FmTicket.objects.count(), 2)
         self.assertGreaterEqual(FmTicketComment.objects.count(), 2)
         self.assertGreaterEqual(FmTicketHistory.objects.count(), 4)
+        self.assertGreaterEqual(FmTicketEscalation.objects.count(), 1)
 
+
+class SeedRbacCommandTests(APITestCase):
+    def test_seed_rbac_remains_idempotent(self):
+        call_command("seed_rbac")
+        call_command("seed_rbac")
+
+        self.assertEqual(Permission.objects.filter(code="fm_tickets.manage").count(), 1)
+        self.assertEqual(Role.objects.filter(code="system_admin").count(), 1)

@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import FmTicket, FmTicketComment, FmTicketHistory, FmTicketStatusHistory
+from .models import (
+    FmTicket,
+    FmTicketComment,
+    FmTicketEscalation,
+    FmTicketHistory,
+    FmTicketStatusHistory,
+)
 
 
 @admin.register(FmTicket)
@@ -16,6 +22,8 @@ class FmTicketAdmin(admin.ModelAdmin):
         "requester",
         "assignee",
         "reported_at",
+        "response_due_at",
+        "resolution_due_at",
     )
     search_fields = (
         "ticket_number",
@@ -36,6 +44,11 @@ class FmTicketAdmin(admin.ModelAdmin):
     readonly_fields = (
         "ticket_number",
         "reported_at",
+        "response_due_at",
+        "resolution_due_at",
+        "first_responded_at",
+        "response_met",
+        "resolution_met",
         "resolved_at",
         "closed_at",
         "created_at",
@@ -72,3 +85,24 @@ class FmTicketStatusHistoryAdmin(admin.ModelAdmin):
     list_filter = ("from_status", "to_status", "changed_at")
     readonly_fields = ("changed_at", "created_at", "updated_at")
 
+
+@admin.register(FmTicketEscalation)
+class FmTicketEscalationAdmin(admin.ModelAdmin):
+    list_display = (
+        "ticket",
+        "level",
+        "escalated_by",
+        "escalated_to",
+        "is_active",
+        "created_at",
+        "resolved_at",
+    )
+    search_fields = (
+        "ticket__ticket_number",
+        "ticket__title",
+        "escalated_by__email",
+        "escalated_to__email",
+        "reason",
+    )
+    list_filter = ("level", "is_active", "created_at")
+    readonly_fields = ("created_at", "updated_at", "resolved_at")

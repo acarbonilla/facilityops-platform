@@ -42,6 +42,13 @@ const FM_TICKET_SOURCE_VALUES = [
   "system",
 ] as const;
 
+const FM_TICKET_SLA_ESCALATION_LEVEL_VALUES = [
+  "level_1",
+  "level_2",
+  "level_3",
+  "management",
+] as const;
+
 export const fmTicketSchema = z.object({
   title: requiredString("Title"),
   description: requiredString("Description"),
@@ -68,6 +75,12 @@ export const fmTicketCommentSchema = z.object({
 export const fmTicketAssignmentSchema = z.object({
   assignee: requiredString("Assignee"),
   note: optionalString.optional(),
+});
+
+export const fmTicketEscalationSchema = z.object({
+  escalated_to: optionalString.optional(),
+  reason: z.string().trim().min(5, "Reason must be at least 5 characters."),
+  level: z.enum(FM_TICKET_SLA_ESCALATION_LEVEL_VALUES),
 });
 
 export const fmTicketStatusUpdateSchema = z.object({

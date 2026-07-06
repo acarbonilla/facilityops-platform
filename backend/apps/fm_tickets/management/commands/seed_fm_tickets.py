@@ -1,10 +1,19 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 
 from apps.master_data.models import Area, Asset, Building, Department, Floor, Organization, Tenant
 
 from apps.fm_tickets.models import FmTicket
-from apps.fm_tickets.services import add_ticket_comment, assign_ticket, change_ticket_status, create_ticket
+from apps.fm_tickets.services import (
+    add_ticket_comment,
+    assign_ticket,
+    change_ticket_status,
+    create_ticket,
+    create_ticket_escalation,
+)
 
 
 User = get_user_model()
@@ -72,6 +81,7 @@ class Command(BaseCommand):
 
         assignee = User.objects.exclude(id=requester.id).order_by("created_at").first()
         created_tickets = 0
+        now = timezone.now()
 
         ticket_definitions = [
             {
@@ -81,6 +91,7 @@ class Command(BaseCommand):
                 "priority": FmTicket.Priority.HIGH,
                 "status": FmTicket.Status.OPEN,
                 "source": FmTicket.Source.ADMIN,
+                "reported_at": now - timedelta(minutes=30),
                 "tenant": tenant,
                 "organization": organization,
                 "department": department,
@@ -88,6 +99,8 @@ class Command(BaseCommand):
                 "floor": floor,
                 "area": area,
                 "asset": asset,
+                "response_due_at": now + timedelta(hours=2),
+                "resolution_due_at": now + timedelta(days=1),
             },
             {
                 "title": "Restroom plumbing leak",
@@ -96,6 +109,7 @@ class Command(BaseCommand):
                 "priority": FmTicket.Priority.URGENT,
                 "status": FmTicket.Status.IN_PROGRESS,
                 "source": FmTicket.Source.WEB,
+                "reported_at": now - timedelta(hours=4),
                 "tenant": tenant,
                 "organization": organization,
                 "department": department,
@@ -103,6 +117,8 @@ class Command(BaseCommand):
                 "floor": floor,
                 "area": area,
                 "asset": None,
+                "response_due_at": now - timedelta(hours=1),
+                "resolution_due_at": now + timedelta(hours=6),
             },
         ]
 
@@ -136,6 +152,14 @@ class Command(BaseCommand):
                     to_status=initial_status,
                     changed_by=requester,
                     note="Seed status adjustment.",
+                )
+            if definition["title"] == "Restroom plumbing leak":
+                create_ticket_escalation(
+                    ticket=ticket,
+                    escalated_by=requester,
+                    escalated_to=assignee,
+                    reason="Urgent leak requires manager visibility.",
+                    level="level_1",
                 )
             created_tickets += 1
 

@@ -15,8 +15,11 @@ import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 import { TicketCommentForm } from "./ticket-comment-form";
 import { TicketComments } from "./ticket-comments";
 import { TicketAssignmentPanel } from "./ticket-assignment-panel";
+import { TicketEscalationForm } from "./ticket-escalation-form";
+import { TicketEscalationHistory } from "./ticket-escalation-history";
 import { TicketHistory } from "./ticket-history";
 import { TicketPriorityBadge } from "./ticket-priority-badge";
+import { TicketSlaPanel } from "./ticket-sla-panel";
 import { TicketStatusActions } from "./ticket-status-actions";
 import { TicketStatusBadge } from "./ticket-status-badge";
 import {
@@ -33,6 +36,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
   const canClose = hasPermission("fm_tickets.close");
   const canComment = canUpdate || canManage;
   const canRunStatusWorkflow = canUpdate || canClose || canManage;
+  const canEscalate = canManage;
   const ticketQuery = useQuery({
     queryKey: fmTicketsQueryKeys.detail(id),
     queryFn: () => getFmTicket(id),
@@ -73,7 +77,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`FM ticket detail for ${ticket.ticket_number}. Comments and status workflow are supported here, and assignment availability is shown in a dedicated panel without exposing unsupported assignee lookups.`}
+        description={`FM ticket detail for ${ticket.ticket_number}. Comments, status workflow, SLA status, and escalation history are supported here, while manual escalation remains permission-aware.`}
         eyebrow="FM Ticketing"
         title={ticket.title}
       >
@@ -144,6 +148,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
       </SectionCard>
 
       <TicketAssignmentPanel ticket={ticket} />
+      <TicketSlaPanel ticket={ticket} />
 
       <SectionCard title="Dates">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -153,6 +158,9 @@ export function TicketDetailScreen({ id }: { id: string }) {
           <DetailField label="Closed at" value={formatDateTime(ticket.closed_at)} />
         </dl>
       </SectionCard>
+
+      {canEscalate ? <TicketEscalationForm ticket={ticket} /> : null}
+      <TicketEscalationHistory ticketId={ticket.id} />
 
       <SectionCard title="System Metadata">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

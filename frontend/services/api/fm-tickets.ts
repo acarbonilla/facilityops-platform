@@ -9,6 +9,8 @@ import type {
   FmTicketCommentCreatePayload,
   FmTicketCreatePayload,
   FmTicketDetail,
+  FmTicketEscalation,
+  FmTicketEscalationPayload,
   FmTicketHistory,
   FmTicketListItem,
   FmTicketListParams,
@@ -83,6 +85,31 @@ export function getFmTicketHistory(
       method: "GET",
     },
   );
+}
+
+export function getFmTicketEscalations(
+  ticketId: string,
+): Promise<PaginatedResponse<FmTicketEscalation>> {
+  return apiClient<PaginatedResponse<FmTicketEscalation>>(
+    API_ENDPOINTS.fmTickets.escalations(ticketId),
+    {
+      method: "GET",
+    },
+  );
+}
+
+export function escalateFmTicket(
+  ticketId: string,
+  payload: FmTicketEscalationPayload,
+): Promise<FmTicketEscalation> {
+  return apiClient<FmTicketEscalation>(API_ENDPOINTS.fmTickets.escalate(ticketId), {
+    method: "POST",
+    body: {
+      escalated_to: payload.escalated_to ?? null,
+      reason: payload.reason,
+      level: payload.level,
+    },
+  });
 }
 
 export function assignFmTicket(

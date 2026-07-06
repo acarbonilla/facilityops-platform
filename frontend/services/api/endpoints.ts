@@ -39,6 +39,8 @@ export const API_ENDPOINTS = {
     ticket: (id: string) => `/fm-tickets/tickets/${id}/`,
     comments: (id: string) => `/fm-tickets/tickets/${id}/comments/`,
     history: (id: string) => `/fm-tickets/tickets/${id}/history/`,
+    escalations: (id: string) => `/fm-tickets/tickets/${id}/escalations/`,
+    escalate: (id: string) => `/fm-tickets/tickets/${id}/escalate/`,
     assign: (id: string) => `/fm-tickets/tickets/${id}/assign/`,
     changeStatus: (id: string) => `/fm-tickets/tickets/${id}/change-status/`,
   },

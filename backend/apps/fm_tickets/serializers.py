@@ -4,8 +4,20 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import FmTicket, FmTicketComment, FmTicketHistory, FmTicketStatusHistory
-from .services import add_ticket_comment, create_ticket, update_ticket
+from .models import (
+    FmTicket,
+    FmTicketComment,
+    FmTicketEscalation,
+    FmTicketHistory,
+    FmTicketStatusHistory,
+)
+from .services import (
+    add_ticket_comment,
+    calculate_ticket_sla_status,
+    create_ticket,
+    create_ticket_escalation,
+    update_ticket,
+)
 
 
 User = get_user_model()
@@ -87,17 +99,40 @@ class FmTicketDetailSerializer(FmTicketListSerializer):
     department_name = serializers.CharField(source="department.name", read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
+    sla = serializers.SerializerMethodField()
+    escalation_history = serializers.SerializerMethodField()
 
     class Meta(FmTicketListSerializer.Meta):
         fields = FmTicketListSerializer.Meta.fields + (
             "department",
             "department_name",
             "description",
+            "sla",
+            "escalation_history",
             "resolved_at",
             "closed_at",
             "created_at",
             "updated_at",
         )
+
+    def get_sla(self, obj):
+        return {
+            "response_due_at": obj.response_due_at,
+            "resolution_due_at": obj.resolution_due_at,
+            "first_responded_at": obj.first_responded_at,
+            "resolved_at": obj.resolved_at,
+            "response_met": obj.response_met,
+            "resolution_met": obj.resolution_met,
+            "sla_status": calculate_ticket_sla_status(obj),
+        }
+
+    def get_escalation_history(self, obj):
+        escalations = obj.escalations.select_related(
+            "escalated_by",
+            "escalated_to",
+            "resolved_by",
+        )
+        return FmTicketEscalationSerializer(escalations, many=True).data
 
 
 class FmTicketCreateSerializer(TicketValidationMixin, serializers.ModelSerializer):
@@ -230,6 +265,40 @@ class FmTicketStatusHistorySerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class FmTicketEscalationSerializer(serializers.ModelSerializer):
+    escalated_by_email = serializers.EmailField(
+        source="escalated_by.email",
+        read_only=True,
+    )
+    escalated_to_email = serializers.EmailField(
+        source="escalated_to.email",
+        read_only=True,
+    )
+    resolved_by_email = serializers.EmailField(
+        source="resolved_by.email",
+        read_only=True,
+    )
+
+    class Meta:
+        model = FmTicketEscalation
+        fields = (
+            "id",
+            "ticket",
+            "escalated_by",
+            "escalated_by_email",
+            "escalated_to",
+            "escalated_to_email",
+            "reason",
+            "level",
+            "created_at",
+            "is_active",
+            "resolved_at",
+            "resolved_by",
+            "resolved_by_email",
+        )
+        read_only_fields = fields
+
+
 class FmTicketAssignSerializer(serializers.Serializer):
     assignee = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     note = serializers.CharField(required=False, allow_blank=True)
@@ -238,3 +307,22 @@ class FmTicketAssignSerializer(serializers.Serializer):
 class FmTicketStatusChangeSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=FmTicket.Status.choices)
     note = serializers.CharField(required=False, allow_blank=True)
+
+
+class FmTicketEscalationCreateSerializer(serializers.Serializer):
+    escalated_to = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    reason = serializers.CharField()
+    level = serializers.ChoiceField(choices=FmTicketEscalation.Level.choices)
+
+    def create(self, validated_data):
+        return create_ticket_escalation(
+            ticket=self.context["ticket"],
+            escalated_by=self.context["request"].user,
+            escalated_to=validated_data.get("escalated_to"),
+            reason=validated_data["reason"],
+            level=validated_data["level"],
+        )

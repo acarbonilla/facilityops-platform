@@ -27,6 +27,21 @@ export type FmTicketSource =
   | "inspection"
   | "system";
 
+export type FmTicketSlaStatus =
+  | "not_started"
+  | "within_sla"
+  | "at_risk"
+  | "breached"
+  | "met"
+  | "missed"
+  | "not_applicable";
+
+export type FmTicketEscalationLevel =
+  | "level_1"
+  | "level_2"
+  | "level_3"
+  | "management";
+
 export const FM_TICKET_WORKFLOW_STATUSES: FmTicketStatus[] = [
   "open",
   "assigned",
@@ -84,10 +99,38 @@ interface FmTicketBaseRecord {
 
 export type FmTicketListItem = FmTicketBaseRecord;
 
+export interface FmTicketSla {
+  response_due_at: string | null;
+  resolution_due_at: string | null;
+  first_responded_at: string | null;
+  resolved_at: string | null;
+  response_met: boolean | null;
+  resolution_met: boolean | null;
+  sla_status: FmTicketSlaStatus;
+}
+
+export interface FmTicketEscalation {
+  id: string;
+  ticket: string;
+  escalated_by: string | null;
+  escalated_by_email: string | null;
+  escalated_to: string | null;
+  escalated_to_email: string | null;
+  reason: string;
+  level: FmTicketEscalationLevel;
+  created_at: string;
+  is_active: boolean;
+  resolved_at: string | null;
+  resolved_by: string | null;
+  resolved_by_email: string | null;
+}
+
 export interface FmTicketDetail extends FmTicketBaseRecord {
   department: string | null;
   department_name: string | null;
   description: string;
+  sla: FmTicketSla;
+  escalation_history: FmTicketEscalation[];
   resolved_at: string | null;
   closed_at: string | null;
   created_at: string;
@@ -153,6 +196,12 @@ export type FmTicketAssignmentState = "read_only" | "unavailable" | "ready";
 export interface FmTicketStatusUpdatePayload {
   to_status: FmTicketStatus;
   note?: string;
+}
+
+export interface FmTicketEscalationPayload {
+  escalated_to?: string;
+  reason: string;
+  level: FmTicketEscalationLevel;
 }
 
 export interface FmTicketStatusTransition {

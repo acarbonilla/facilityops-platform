@@ -120,14 +120,17 @@ npm run dev
 ## FM Ticketing Backend
 
 - Backend FM ticketing APIs are available under `/api/fm-tickets/`
-- The backend foundation includes tickets, comments, history, status history, RBAC enforcement, admin registration, and sample seed data
+- The backend foundation includes tickets, comments, history, status history, SLA tracking fields, escalation records, RBAC enforcement, admin registration, and sample seed data
 - Frontend read-only routes are now available at `/fm-tickets` and `/fm-tickets/[id]`
 - The FM Ticketing frontend currently supports read-only list, detail, comments, and history views guarded by `fm_tickets.view`
 - Create and edit routes are available at `/fm-tickets/new` and `/fm-tickets/[id]/edit` for authorized users
 - Comments and basic status updates are now supported on the ticket detail screen for authorized users
 - The ticket detail screen now verifies backend assignment support and shows the current assignee with permission-aware assignment status
 - Interactive assignment is intended for the ticket detail screen and uses the dedicated `/api/fm-tickets/tickets/{id}/assign/` backend action when a supported assignee list endpoint exists
-- Attachments, notifications, SLA, escalation, and AI workflows are still deferred
+- The ticket detail screen now shows a read-only SLA panel and escalation history for authorized viewers
+- Manual escalation is supported through `POST /api/fm-tickets/tickets/{id}/escalate/` for users with `fm_tickets.manage`
+- Notification sending and Celery-driven escalation automation are intentionally deferred
+- Attachments and AI workflows are still deferred
 
 ## Current User UI
 

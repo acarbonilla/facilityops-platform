@@ -13,6 +13,8 @@ from .serializers import (
     FmTicketCommentSerializer,
     FmTicketCreateSerializer,
     FmTicketDetailSerializer,
+    FmTicketEscalationCreateSerializer,
+    FmTicketEscalationSerializer,
     FmTicketHistorySerializer,
     FmTicketListSerializer,
     FmTicketStatusChangeSerializer,
@@ -82,7 +84,7 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         self.required_permission = None
         self.required_permissions_any = None
 
-        if self.action in ("list", "retrieve", "history"):
+        if self.action in ("list", "retrieve", "history", "escalations"):
             self.required_permission = "fm_tickets.view"
         elif self.action == "create":
             self.required_permission = "fm_tickets.create"
@@ -96,6 +98,8 @@ class FmTicketViewSet(viewsets.ModelViewSet):
             )
         elif self.action == "assign":
             self.required_permission = "fm_tickets.assign"
+        elif self.action == "escalate":
+            self.required_permission = "fm_tickets.manage"
         elif self.action == "change_status":
             target_status = self.request.data.get("status")
             if target_status in {
@@ -125,6 +129,10 @@ class FmTicketViewSet(viewsets.ModelViewSet):
             return FmTicketCommentSerializer
         if self.action == "history":
             return FmTicketHistorySerializer
+        if self.action == "escalations":
+            return FmTicketEscalationSerializer
+        if self.action == "escalate":
+            return FmTicketEscalationCreateSerializer
         return FmTicketDetailSerializer
 
     def create(self, request, *args, **kwargs):
@@ -175,6 +183,21 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         serializer = FmTicketHistorySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=["get"], url_path="escalations")
+    def escalations(self, request, pk=None):
+        ticket = self.get_object()
+        queryset = ticket.escalations.select_related(
+            "escalated_by",
+            "escalated_to",
+            "resolved_by",
+        )
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = FmTicketEscalationSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = FmTicketEscalationSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):
         ticket = self.get_object()
@@ -188,6 +211,18 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         )
         response_serializer = FmTicketDetailSerializer(ticket)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="escalate")
+    def escalate(self, request, pk=None):
+        ticket = self.get_object()
+        serializer = FmTicketEscalationCreateSerializer(
+            data=request.data,
+            context={"request": request, "ticket": ticket},
+        )
+        serializer.is_valid(raise_exception=True)
+        escalation = serializer.save()
+        response_serializer = FmTicketEscalationSerializer(escalation)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="change-status")
     def change_status(self, request, pk=None):

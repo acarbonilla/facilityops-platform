@@ -16,6 +16,15 @@ from apps.master_data.models import (
 
 
 class FmTicket(BaseModel):
+    class SlaStatus(models.TextChoices):
+        NOT_STARTED = "not_started", "Not Started"
+        WITHIN_SLA = "within_sla", "Within SLA"
+        AT_RISK = "at_risk", "At Risk"
+        BREACHED = "breached", "Breached"
+        MET = "met", "Met"
+        MISSED = "missed", "Missed"
+        NOT_APPLICABLE = "not_applicable", "Not Applicable"
+
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         OPEN = "open", "Open"
@@ -136,6 +145,11 @@ class FmTicket(BaseModel):
     )
     reported_at = models.DateTimeField(default=timezone.now, db_index=True)
     due_at = models.DateTimeField(null=True, blank=True)
+    response_due_at = models.DateTimeField(null=True, blank=True)
+    resolution_due_at = models.DateTimeField(null=True, blank=True)
+    first_responded_at = models.DateTimeField(null=True, blank=True)
+    response_met = models.BooleanField(null=True, blank=True)
+    resolution_met = models.BooleanField(null=True, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
@@ -199,6 +213,30 @@ class FmTicket(BaseModel):
         if self.due_at and self.due_at < reported_at:
             errors["due_at"] = "Due date must be after the reported date."
 
+        if self.response_due_at and self.response_due_at < reported_at:
+            errors["response_due_at"] = (
+                "Response due date must be after the reported date."
+            )
+
+        if self.resolution_due_at and self.resolution_due_at < reported_at:
+            errors["resolution_due_at"] = (
+                "Resolution due date must be after the reported date."
+            )
+
+        if (
+            self.response_due_at
+            and self.resolution_due_at
+            and self.resolution_due_at < self.response_due_at
+        ):
+            errors["resolution_due_at"] = (
+                "Resolution due date must be after the response due date."
+            )
+
+        if self.first_responded_at and self.first_responded_at < reported_at:
+            errors["first_responded_at"] = (
+                "First response timestamp must be after the reported date."
+            )
+
         if (
             self.status == self.Status.CLOSED
             and self.closed_at
@@ -224,11 +262,84 @@ class FmTicket(BaseModel):
             last_sequence = 0
         return f"{prefix}{last_sequence + 1:04d}"
 
+    @staticmethod
+    def _calculate_deadline_met(actual_at, due_at):
+        if not actual_at:
+            return None
+        if not due_at:
+            return True
+        return actual_at <= due_at
+
     def save(self, *args, **kwargs):
         if not self.ticket_number:
             self.ticket_number = self._generate_ticket_number()
+        self.response_met = self._calculate_deadline_met(
+            self.first_responded_at,
+            self.response_due_at,
+        )
+        self.resolution_met = self._calculate_deadline_met(
+            self.resolved_at,
+            self.resolution_due_at,
+        )
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class FmTicketEscalation(BaseModel):
+    class Level(models.TextChoices):
+        LEVEL_1 = "level_1", "Level 1"
+        LEVEL_2 = "level_2", "Level 2"
+        LEVEL_3 = "level_3", "Level 3"
+        MANAGEMENT = "management", "Management"
+
+    ticket = models.ForeignKey(
+        FmTicket,
+        on_delete=models.CASCADE,
+        related_name="escalations",
+    )
+    escalated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fm_ticket_escalations_created",
+    )
+    escalated_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fm_ticket_escalations_received",
+    )
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fm_ticket_escalations_resolved",
+    )
+    reason = models.TextField()
+    level = models.CharField(max_length=20, choices=Level.choices)
+    is_active = models.BooleanField(default=True, db_index=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def clean(self):
+        super().clean()
+
+        errors = {}
+        if self.resolved_at and self.is_active:
+            errors["is_active"] = "Resolved escalations cannot remain active."
+        if not self.is_active and not self.resolved_at:
+            errors["resolved_at"] = "Inactive escalations must include a resolved timestamp."
+
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
+        return f"{self.ticket} escalation {self.level}"
 
 
 class FmTicketComment(BaseModel):
