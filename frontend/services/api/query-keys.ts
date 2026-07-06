@@ -1,5 +1,6 @@
 import type { MasterDataListParams, MasterDataResourceKey } from "@/types/master-data";
 import type { PermissionListParams, RbacListParams } from "@/types/rbac";
+import type { UserListParams } from "@/types/users";
 
 function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
   if (!params) {
@@ -48,4 +49,21 @@ export const rbacQueryKeys = {
     ["rbac", "permissions", normalizeRbacParams(params)] as const,
   permission: (id: string) => ["rbac", "permission", id] as const,
   mePermissions: () => ["rbac", "me", "permissions"] as const,
+};
+
+function normalizeUserParams(params?: UserListParams): UserListParams | Record<string, never> {
+  if (!params) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined),
+  ) as UserListParams;
+}
+
+export const usersQueryKeys = {
+  all: ["users"] as const,
+  list: (params?: UserListParams) => ["users", normalizeUserParams(params)] as const,
+  detail: (id: string) => ["users", id] as const,
+  roles: (id: string) => ["users", id, "roles"] as const,
 };

@@ -51,22 +51,27 @@ function AdminCard({
 
 export default function AdminPage() {
   const { hasPermission } = usePermissions();
+  const canViewUsers = hasPermission("users.view");
   const canViewRoles = hasPermission("roles.view");
   const canManageRoles = hasPermission("roles.manage");
 
   return (
     <ProtectedPermissionRoute
       mode="any"
-      requiredPermissions={["roles.view", "roles.manage"]}
+      requiredPermissions={["users.view", "roles.view", "roles.manage"]}
     >
       <AppShell>
         <div className="space-y-6">
           <PageHeader
-            description="RBAC administration screens for reviewing roles and the permission catalog. Backend authorization remains authoritative, and user management is intentionally deferred to FO-021."
+            description="Admin screens for roles, permissions, and the user-management foundation. Backend authorization remains authoritative, and unsupported operations stay hidden until the backend exposes them."
             eyebrow="RBAC administration"
             title="Admin"
           >
-            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <DetailField
+                label="Users access"
+                value={canViewUsers ? "Available" : "Unavailable"}
+              />
               <DetailField
                 label="Roles access"
                 value={canViewRoles ? "Available" : "Unavailable"}
@@ -77,12 +82,18 @@ export default function AdminPage() {
               />
               <DetailField
                 label="User management"
-                value="Deferred to FO-021"
+                value="Read-only foundation"
               />
             </dl>
           </PageHeader>
 
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            <AdminCard
+              description="Open the user-management foundation and review backend support status."
+              enabled={canViewUsers}
+              href="/admin/users"
+              title="Users"
+            />
             <AdminCard
               description="View role metadata and current backend-backed role detail."
               enabled={canViewRoles}
@@ -96,11 +107,6 @@ export default function AdminPage() {
               title="Permissions"
             />
             <AdminCard
-              description="User administration is intentionally deferred to the next approved task."
-              enabled={false}
-              title="Users"
-            />
-            <AdminCard
               description="Audit-log workflows are not part of this foundation task."
               enabled={false}
               title="Audit Logs"
@@ -109,7 +115,7 @@ export default function AdminPage() {
 
           <EmptyState
             title="Scoped admin foundation"
-            message="This stage covers roles and permission visibility only. User-role assignment, invitations, audit logs, and business-module administration remain out of scope."
+            message="This stage covers roles, permissions, and the user-management foundation only. Invitations, password reset, SSO, audit logs, and business-module administration remain out of scope."
           />
         </div>
       </AppShell>

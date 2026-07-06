@@ -23,19 +23,19 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "exact",
   })),
   {
-    label: "Users",
-    href: "/users",
-    authenticatedOnly: true,
-    requiredPermissions: ["users.view"],
-    matchStrategy: "exact",
-  },
-  {
     label: "Admin",
     href: "/admin",
     authenticatedOnly: true,
-    requiredPermissions: ["roles.view", "roles.manage"],
+    requiredPermissions: ["users.view", "roles.view", "roles.manage"],
     permissionMode: "any",
     matchStrategy: "exact",
+  },
+  {
+    label: "Users",
+    href: "/admin/users",
+    authenticatedOnly: true,
+    requiredPermissions: ["users.view"],
+    matchStrategy: "prefix",
   },
   {
     label: "Roles",

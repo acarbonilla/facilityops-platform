@@ -91,6 +91,14 @@ npm run dev
 - The permissions catalog currently requires `roles.manage` because the backend permissions endpoint enforces that permission.
 - User management comes later and is not part of the current admin UI scope.
 
+## User Management UI
+
+- Users route: `/admin/users`
+- Permission requirement: `users.view`
+- Supported operations: admin navigation entry and backend-support discovery state
+- Unsupported operations: user list loading, detail, create, edit, role assignment, invitations, password reset, and SSO
+- User management remains separate from invitations and identity-provider workflows.
+
 ## Current User UI
 
 - Profile route: `/profile`
