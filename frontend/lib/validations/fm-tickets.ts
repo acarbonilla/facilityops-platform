@@ -65,6 +65,11 @@ export const fmTicketCommentSchema = z.object({
   is_internal: z.boolean().optional(),
 });
 
+export const fmTicketAssignmentSchema = z.object({
+  assignee: requiredString("Assignee"),
+  note: optionalString.optional(),
+});
+
 export const fmTicketStatusUpdateSchema = z.object({
   to_status: z.enum(FM_TICKET_STATUS_VALUES),
   note: optionalString,

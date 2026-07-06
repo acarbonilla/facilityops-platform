@@ -125,7 +125,9 @@ npm run dev
 - The FM Ticketing frontend currently supports read-only list, detail, comments, and history views guarded by `fm_tickets.view`
 - Create and edit routes are available at `/fm-tickets/new` and `/fm-tickets/[id]/edit` for authorized users
 - Comments and basic status updates are now supported on the ticket detail screen for authorized users
-- Assignment, attachments, notifications, SLA, escalation, and AI workflows are still not implemented
+- The ticket detail screen now verifies backend assignment support and shows the current assignee with permission-aware assignment status
+- Interactive assignment is intended for the ticket detail screen and uses the dedicated `/api/fm-tickets/tickets/{id}/assign/` backend action when a supported assignee list endpoint exists
+- Attachments, notifications, SLA, escalation, and AI workflows are still deferred
 
 ## Current User UI
 

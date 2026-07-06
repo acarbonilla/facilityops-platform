@@ -133,6 +133,23 @@ export interface FmTicketCommentCreatePayload {
   is_internal?: boolean;
 }
 
+export interface FmTicketAssignmentPayload {
+  assignee: string;
+  note?: string;
+}
+
+export type FmTicketAssignmentResponse = FmTicketDetail;
+
+export interface FmTicketAssigneeOption {
+  value: string;
+  label: string;
+  email: string;
+  is_active?: boolean;
+  is_technician?: boolean;
+}
+
+export type FmTicketAssignmentState = "read_only" | "unavailable" | "ready";
+
 export interface FmTicketStatusUpdatePayload {
   to_status: FmTicketStatus;
   note?: string;

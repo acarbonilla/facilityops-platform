@@ -3,6 +3,8 @@ import { API_ENDPOINTS } from "./endpoints";
 
 import type { PaginatedResponse } from "@/services/api/types";
 import type {
+  FmTicketAssignmentPayload,
+  FmTicketAssignmentResponse,
   FmTicketComment,
   FmTicketCommentCreatePayload,
   FmTicketCreatePayload,
@@ -79,6 +81,22 @@ export function getFmTicketHistory(
     API_ENDPOINTS.fmTickets.history(ticketId),
     {
       method: "GET",
+    },
+  );
+}
+
+export function assignFmTicket(
+  ticketId: string,
+  payload: FmTicketAssignmentPayload,
+): Promise<FmTicketAssignmentResponse> {
+  return apiClient<FmTicketAssignmentResponse>(
+    API_ENDPOINTS.fmTickets.assign(ticketId),
+    {
+      method: "POST",
+      body: {
+        assignee: payload.assignee,
+        note: payload.note ?? "",
+      },
     },
   );
 }

@@ -14,6 +14,7 @@ import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 
 import { TicketCommentForm } from "./ticket-comment-form";
 import { TicketComments } from "./ticket-comments";
+import { TicketAssignmentPanel } from "./ticket-assignment-panel";
 import { TicketHistory } from "./ticket-history";
 import { TicketPriorityBadge } from "./ticket-priority-badge";
 import { TicketStatusActions } from "./ticket-status-actions";
@@ -72,7 +73,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`FM ticket detail for ${ticket.ticket_number}. Comments and basic status workflow are supported here, while assignment, attachments, notifications, and automation remain out of scope.`}
+        description={`FM ticket detail for ${ticket.ticket_number}. Comments and status workflow are supported here, and assignment availability is shown in a dedicated panel without exposing unsupported assignee lookups.`}
         eyebrow="FM Ticketing"
         title={ticket.title}
       >
@@ -141,6 +142,8 @@ export function TicketDetailScreen({ id }: { id: string }) {
           <DetailField label="Assignee" value={formatPersonLabel(ticket.assignee_email)} />
         </dl>
       </SectionCard>
+
+      <TicketAssignmentPanel ticket={ticket} />
 
       <SectionCard title="Dates">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

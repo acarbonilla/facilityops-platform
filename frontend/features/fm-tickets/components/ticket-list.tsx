@@ -201,7 +201,7 @@ export function TicketListScreen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="FM ticket list powered by the existing authenticated API client and permission guard. Create and edit entry points are available for authorized users, while assignment, status-change, comments, and attachments remain out of scope."
+        description="FM ticket list powered by the existing authenticated API client and permission guard. Create and edit entry points are available for authorized users, assignee visibility is included on the list, and assignment remains detail-scoped."
         eyebrow="FM Ticketing"
         title="FM Tickets"
       >
