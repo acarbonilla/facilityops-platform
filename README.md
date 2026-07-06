@@ -121,8 +121,9 @@ npm run dev
 
 - Backend FM ticketing APIs are available under `/api/fm-tickets/`
 - The backend foundation includes tickets, comments, history, status history, RBAC enforcement, admin registration, and sample seed data
-- Frontend ticketing screens are not implemented yet
-- Next task: `FO-025 - FM Ticketing Frontend Read Screens`
+- Frontend read-only routes are now available at `/fm-tickets` and `/fm-tickets/[id]`
+- The FM Ticketing frontend currently supports read-only list, detail, comments, and history views guarded by `fm_tickets.view`
+- Ticket create and edit flows remain deferred to `FO-026 - FM Ticketing Create/Edit Forms`
 
 ## Current User UI
 

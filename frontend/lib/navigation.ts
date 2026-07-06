@@ -9,6 +9,13 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "exact",
   },
   {
+    label: "FM Ticketing",
+    href: "/fm-tickets",
+    authenticatedOnly: true,
+    requiredPermissions: ["fm_tickets.view"],
+    matchStrategy: "prefix",
+  },
+  {
     label: "Master Data",
     href: "/master-data",
     authenticatedOnly: true,

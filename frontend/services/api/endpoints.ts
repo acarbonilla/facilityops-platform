@@ -34,4 +34,10 @@ export const API_ENDPOINTS = {
     assets: "/master-data/assets/",
     asset: (id: string) => `/master-data/assets/${id}/`,
   },
+  fmTickets: {
+    tickets: "/fm-tickets/tickets/",
+    ticket: (id: string) => `/fm-tickets/tickets/${id}/`,
+    comments: (id: string) => `/fm-tickets/tickets/${id}/comments/`,
+    history: (id: string) => `/fm-tickets/tickets/${id}/history/`,
+  },
 } as const;
