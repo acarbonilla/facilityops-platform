@@ -199,8 +199,8 @@ class SeedRbacCommandTests(APITestCase):
         call_command("seed_rbac")
 
         self.assertEqual(Role.objects.count(), 5)
-        self.assertEqual(Permission.objects.count(), 8)
+        self.assertEqual(Permission.objects.count(), 14)
         self.assertEqual(
             RolePermission.objects.filter(role__code="system_admin").count(),
-            8,
+            14,
         )

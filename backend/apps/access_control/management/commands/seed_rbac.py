@@ -45,7 +45,46 @@ PERMISSION_DEFINITIONS = [
     ("settings", "manage", "Manage settings"),
     ("roles", "view", "View roles"),
     ("roles", "manage", "Manage roles"),
+    ("fm_tickets", "view", "View FM tickets"),
+    ("fm_tickets", "create", "Create FM tickets"),
+    ("fm_tickets", "update", "Update FM tickets"),
+    ("fm_tickets", "assign", "Assign FM tickets"),
+    ("fm_tickets", "close", "Close FM tickets"),
+    ("fm_tickets", "manage", "Manage FM tickets"),
 ]
+
+ROLE_PERMISSION_CODES = {
+    "system_admin": {
+        "users.view",
+        "users.create",
+        "users.update",
+        "users.delete",
+        "settings.view",
+        "settings.manage",
+        "roles.view",
+        "roles.manage",
+        "fm_tickets.view",
+        "fm_tickets.create",
+        "fm_tickets.update",
+        "fm_tickets.assign",
+        "fm_tickets.close",
+        "fm_tickets.manage",
+    },
+    "facility_manager": {
+        "fm_tickets.view",
+        "fm_tickets.create",
+        "fm_tickets.update",
+        "fm_tickets.assign",
+        "fm_tickets.close",
+    },
+    "technician": {
+        "fm_tickets.view",
+        "fm_tickets.update",
+    },
+    "viewer": {
+        "fm_tickets.view",
+    },
+}
 
 
 class Command(BaseCommand):
@@ -77,13 +116,21 @@ class Command(BaseCommand):
             )
             seeded_permissions.append(permission)
 
-        system_admin_role = Role.objects.get(code="system_admin")
-        for permission in seeded_permissions:
-            RolePermission.objects.update_or_create(
-                role=system_admin_role,
-                permission=permission,
-                defaults={"is_active": True},
-            )
+        permissions_by_code = {
+            permission.code: permission for permission in seeded_permissions
+        }
+        roles_by_code = {role.code: role for role in seeded_roles}
+        for role_code, permission_codes in ROLE_PERMISSION_CODES.items():
+            role = roles_by_code.get(role_code)
+            if role is None:
+                continue
+            for permission_code in permission_codes:
+                permission = permissions_by_code[permission_code]
+                RolePermission.objects.update_or_create(
+                    role=role,
+                    permission=permission,
+                    defaults={"is_active": True},
+                )
 
         self.stdout.write(
             self.style.SUCCESS(

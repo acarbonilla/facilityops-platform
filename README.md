@@ -117,6 +117,13 @@ npm run dev
 - Improves the asset create/edit form layout by grouping asset information, classification, and location fields
 - Does not implement maintenance workflows, ticketing, inspections, delete, bulk actions, import/export, or reporting
 
+## FM Ticketing Backend
+
+- Backend FM ticketing APIs are available under `/api/fm-tickets/`
+- The backend foundation includes tickets, comments, history, status history, RBAC enforcement, admin registration, and sample seed data
+- Frontend ticketing screens are not implemented yet
+- Next task: `FO-025 - FM Ticketing Frontend Read Screens`
+
 ## Current User UI
 
 - Profile route: `/profile`

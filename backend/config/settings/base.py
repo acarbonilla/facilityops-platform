@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.access_control",
     "apps.dashboard",
+    "apps.fm_tickets",
     "apps.master_data",
     "apps.core",
 ]
