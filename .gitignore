@@ -60,6 +60,7 @@ staticfiles/
 node_modules/
 .next/
 .next-dev/
+.next-dev-*/
 .next-runtime/
 out/
 .nuxt/
