@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 2 - Core Platform. FO-030 stabilizes the FM Ticketing module after FO-024 through FO-029, validates the current backend and frontend ticketing flows, and prepares the repository to proceed to the next business module.
+Phase 12A - Application Development, Stage 2 - Core Platform. FO-031 adds the Maintenance Work Order backend foundation after FM Ticketing stabilization, including backend models, migrations, seed data, RBAC permissions, workflow APIs, and test coverage for the new maintenance module.
 
 ## Backend Local Setup
 
@@ -133,6 +133,15 @@ npm run dev
 - Notification sending and Celery-driven escalation automation are intentionally deferred
 - Attachments and AI workflows are still deferred
 
+## Maintenance Backend
+
+- Backend maintenance work order APIs are available under `/api/maintenance/`
+- The backend foundation includes work orders, assignments, tasks, materials, labor entries, completion records, history, status history, SLA records, escalations, approval records, attachment metadata, and passive AI summary records
+- Supported workflow actions currently include create, list, detail, partial update, assignment, status change, completion, and history retrieval
+- Seed command: `python manage.py seed_maintenance`
+- RBAC permissions currently include `maintenance.view`, `maintenance.create`, `maintenance.update`, `maintenance.assign`, `maintenance.complete`, and `maintenance.manage`
+- FO-031 is backend-only and does not add maintenance frontend screens, notifications, file uploads, reporting, or AI automation
+
 ## Current User UI
 
 - Profile route: `/profile`
@@ -204,6 +213,7 @@ python manage.py check
 python manage.py migrate
 python manage.py seed_rbac
 python manage.py seed_master_data
+python manage.py seed_maintenance
 python -m pytest
 ```
 
@@ -325,4 +335,4 @@ celery-ok
 
 ## Next Task
 
-Stage 2 - Core Platform.
+Stage 2 - Core Platform. The next task should continue the maintenance module on the approved frontend or follow-on workflow scope rather than reopening FM Ticketing.

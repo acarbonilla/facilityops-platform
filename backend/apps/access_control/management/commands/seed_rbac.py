@@ -51,6 +51,12 @@ PERMISSION_DEFINITIONS = [
     ("fm_tickets", "assign", "Assign FM tickets"),
     ("fm_tickets", "close", "Close FM tickets"),
     ("fm_tickets", "manage", "Manage FM tickets"),
+    ("maintenance", "view", "View maintenance work orders"),
+    ("maintenance", "create", "Create maintenance work orders"),
+    ("maintenance", "update", "Update maintenance work orders"),
+    ("maintenance", "assign", "Assign maintenance work orders"),
+    ("maintenance", "complete", "Complete maintenance work orders"),
+    ("maintenance", "manage", "Manage maintenance work orders"),
 ]
 
 ROLE_PERMISSION_CODES = {
@@ -69,6 +75,12 @@ ROLE_PERMISSION_CODES = {
         "fm_tickets.assign",
         "fm_tickets.close",
         "fm_tickets.manage",
+        "maintenance.view",
+        "maintenance.create",
+        "maintenance.update",
+        "maintenance.assign",
+        "maintenance.complete",
+        "maintenance.manage",
     },
     "facility_manager": {
         "fm_tickets.view",
@@ -76,13 +88,21 @@ ROLE_PERMISSION_CODES = {
         "fm_tickets.update",
         "fm_tickets.assign",
         "fm_tickets.close",
+        "maintenance.view",
+        "maintenance.create",
+        "maintenance.update",
+        "maintenance.assign",
+        "maintenance.complete",
     },
     "technician": {
         "fm_tickets.view",
         "fm_tickets.update",
+        "maintenance.view",
+        "maintenance.update",
     },
     "viewer": {
         "fm_tickets.view",
+        "maintenance.view",
     },
 }
 

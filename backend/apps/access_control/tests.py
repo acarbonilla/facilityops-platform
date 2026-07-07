@@ -5,6 +5,11 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from .models import Permission, Role, RolePermission, UserRole
+from .management.commands.seed_rbac import (
+    PERMISSION_DEFINITIONS,
+    ROLE_DEFINITIONS,
+    ROLE_PERMISSION_CODES,
+)
 from .services import (
     get_user_permission_codes,
     get_user_roles,
@@ -198,9 +203,9 @@ class SeedRbacCommandTests(APITestCase):
         call_command("seed_rbac")
         call_command("seed_rbac")
 
-        self.assertEqual(Role.objects.count(), 5)
-        self.assertEqual(Permission.objects.count(), 14)
+        self.assertEqual(Role.objects.count(), len(ROLE_DEFINITIONS))
+        self.assertEqual(Permission.objects.count(), len(PERMISSION_DEFINITIONS))
         self.assertEqual(
             RolePermission.objects.filter(role__code="system_admin").count(),
-            14,
+            len(ROLE_PERMISSION_CODES["system_admin"]),
         )

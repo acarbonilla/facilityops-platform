@@ -9,5 +9,6 @@ Recent UI-focused documents:
 - `FO-023-Asset-Management-UI-Polish.md`
 - `FO-024-FM-Ticketing-Backend-Foundation.md`
 - `FO-030-FM-Ticketing-Module-QA-and-Stabilization.md`
+- `FO-031-Maintenance-Work-Order-Backend-Foundation.md`
 
 Older foundation documents remain in this same folder under their corresponding `FO-*` filenames.
