@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "next build",
-    "start": "next start",
+    "build": "node scripts/runtime.mjs build",
+    "start": "node scripts/runtime.mjs start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {

@@ -62,6 +62,8 @@ node_modules/
 .next-dev/
 .next-dev-*/
 .next-runtime/
+.next-runtime-*/
+.next-runtime-location
 out/
 .nuxt/
 .cache/

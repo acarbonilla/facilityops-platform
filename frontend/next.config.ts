@@ -8,6 +8,6 @@ export default function nextConfig(phase: string): NextConfig {
     distDir:
       phase === PHASE_DEVELOPMENT_SERVER
         ? process.env.NEXT_DEV_DIST_DIR || ".next-dev"
-        : ".next-runtime",
+        : process.env.NEXT_RUNTIME_DIST_DIR || ".next-runtime",
   };
 }
