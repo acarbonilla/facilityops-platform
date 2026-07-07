@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 1 - Foundation. FO-018 stabilizes the Stage 1 internal MVP, validates the backend and frontend foundations, and documents the remaining local-environment QA gaps before Stage 2.
+Phase 12A - Application Development, Stage 2 - Core Platform. FO-030 stabilizes the FM Ticketing module after FO-024 through FO-029, validates the current backend and frontend ticketing flows, and prepares the repository to proceed to the next business module.
 
 ## Backend Local Setup
 
@@ -129,6 +129,7 @@ npm run dev
 - Interactive assignment is intended for the ticket detail screen and uses the dedicated `/api/fm-tickets/tickets/{id}/assign/` backend action when a supported assignee list endpoint exists
 - The ticket detail screen now shows a read-only SLA panel and escalation history for authorized viewers
 - Manual escalation is supported through `POST /api/fm-tickets/tickets/{id}/escalate/` for users with `fm_tickets.manage`
+- FO-030 validated the current FM Ticketing backend flows, migrations, seeds, permissions, API contracts, and frontend static checks without requiring new module features
 - Notification sending and Celery-driven escalation automation are intentionally deferred
 - Attachments and AI workflows are still deferred
 
