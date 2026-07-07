@@ -6,6 +6,7 @@ urlpatterns = [
     path("dashboard/", include("apps.dashboard.urls")),
     path("fm-tickets/", include("apps.fm_tickets.urls")),
     path("health/", include("apps.core.urls")),
+    path("inspection/", include("apps.inspection.urls")),
     path("maintenance/", include("apps.maintenance.urls")),
     path("master-data/", include("apps.master_data.urls")),
 ]

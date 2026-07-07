@@ -22,6 +22,7 @@
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
 | Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
+| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, tenant-scoped workflows, corrective actions, AI hooks, seeds, and tests; frontend remains pending |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
@@ -40,6 +41,7 @@ facilityops-platform/
 |  |  |- core/
 |  |  |- dashboard/
 |  |  |- fm_tickets/
+|  |  |- inspection/
 |  |  |- maintenance/
 |  |  `- master_data/
 |  |- common/
@@ -61,7 +63,7 @@ facilityops-platform/
 ## Progress Coverage
 
 - Complete task coverage through FO-037 is present in code and in `docs/02-Development/`.
-- Stage 3 now includes complete FM Ticketing and Maintenance Work Order modules; FO-038 begins the 5S Inspection backend foundation.
+- FO-038 adds the first 5S Inspection backend implementation and keeps the module overall `In Progress` until frontend tasks land.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
 ## Foundation
@@ -439,6 +441,44 @@ Manages planned and corrective maintenance activities for assets, locations, tec
 - FO-036 adds priority-based SLA targets, overdue/breach detection, escalation deduplication and lifecycle APIs, Celery breach checking, list indicators/filters, and permission-aware SLA/escalation detail cards.
 - FO-037 validates integrated lifecycles, exact RBAC aliases, tenant isolation, query-count bounds, formatting, TypeScript, lint, and production build output; security and performance defects found during QA were corrected.
 - The core create/update contract still excludes new attachment upload and planning line-item persistence. The frontend exposes these as explicit capability limitations, documented as future backlog rather than incomplete hidden behavior.
+
+## 5S Inspection
+
+Status: In Progress
+
+### Purpose
+
+Manages 5S inspection scheduling, execution, scoring, findings, corrective actions, audit history, AI-analysis placeholders, and escalation-ready SLA records for tenant-scoped facility operations.
+
+### Backend
+
+- Apps: `apps.inspection`
+- Models: `Inspection`, `InspectionItem`, `InspectionFinding`, `InspectionAttachment`, `InspectionComment`, `InspectionAssignment`, `InspectionHistory`, `InspectionStatusHistory`, `InspectionAIAnalysis`, `InspectionCorrectiveAction`, `InspectionSLA`, `InspectionEscalation`
+- Serializers: inspection list/detail/create/update serializers, item, finding, attachment, comment, history, corrective-action, assignment, workflow, SLA, escalation, and AI-analysis serializers
+- ViewSets / Views: `InspectionViewSet`, `InspectionFindingViewSet`, `InspectionCorrectiveActionViewSet`
+- APIs: inspection list/create/retrieve/patch, nested items/findings/attachments/comments/history/corrective actions, AI-analysis get/create, assignment and workflow actions, plus finding and corrective-action CRUD endpoints
+- Services: inspection creation/update helpers, score recalculation, status-history recording, workflow validation, AI-analysis upsert hook, SLA recalculation, escalation checks, and tenant scoping
+- Permissions: `HasInspectionPermission` with `inspection.view`, `create`, `update`, `complete`, `verify`, `assign`, `view_ai`, `manage_corrective_action`, and `inspection.manage`
+- Admin: all inspection domain models are registered in `backend/apps/inspection/admin.py`
+- Tests: `backend/apps/inspection/tests/test_inspection.py`
+
+### Frontend
+
+- Routes: None yet
+- Module Folder: None yet
+- Pages: None yet
+- Components: None yet
+- Hooks: None yet
+- API Files: None yet
+- Types: None yet
+- RBAC Usage: backend enforcement is active; frontend guards are pending future tasks
+- Tests: No frontend inspection tests
+
+### Notes
+
+- FO-038 introduces the first inspection backend foundation and keeps the module `In Progress`.
+- The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
+- Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 
 ## Shared Services
 
