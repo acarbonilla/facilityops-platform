@@ -6,6 +6,7 @@ import type {
   InspectionAIAnalysis,
   InspectionAttachment,
   InspectionComment,
+  InspectionCreatePayload,
   InspectionCorrectiveAction,
   InspectionDetail,
   InspectionFinding,
@@ -13,6 +14,7 @@ import type {
   InspectionItem,
   InspectionListItem,
   InspectionListParams,
+  InspectionUpdatePayload,
 } from "@/types/inspection";
 
 function normalizeAiAnalysis(
@@ -40,6 +42,25 @@ export function getInspectionList(
 export function getInspectionDetail(id: string): Promise<InspectionDetail> {
   return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.inspection(id), {
     method: "GET",
+  });
+}
+
+export function createInspection(
+  payload: InspectionCreatePayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.inspections, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function updateInspection(
+  id: string,
+  payload: InspectionUpdatePayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.inspection(id), {
+    method: "PATCH",
+    body: payload,
   });
 }
 

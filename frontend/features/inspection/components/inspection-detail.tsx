@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useInspectionDetail } from "@/hooks/use-inspection-detail";
+import { usePermissions } from "@/hooks/use-permissions";
+import { readInspectionFormFlash } from "@/lib/inspection/form";
 import type {
   InspectionAttachment,
   InspectionComment,
@@ -444,7 +446,13 @@ function renderSummary(detail: InspectionDetail) {
 }
 
 export function InspectionDetailScreen({ id }: { id: string }) {
+  const { hasPermission, permissionsLoading } = usePermissions();
   const detailQuery = useInspectionDetail(id);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFlashMessage(readInspectionFormFlash());
+  }, []);
 
   if (detailQuery.isPending) {
     return <InspectionLoadingSkeleton cards={4} rows={10} />;
@@ -487,10 +495,26 @@ export function InspectionDetailScreen({ id }: { id: string }) {
           >
             Back to list
           </Link>
+          {!permissionsLoading &&
+          (hasPermission("inspection.update") ||
+            hasPermission("inspection.manage")) ? (
+            <Link
+              className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href={`/inspection/inspections/${id}/edit`}
+            >
+              Edit Inspection
+            </Link>
+          ) : null}
           <InspectionStatusBadge status={detail.status} />
           <InspectionPriorityBadge priority={detail.priority} />
         </div>
       </PageHeader>
+
+      {flashMessage ? (
+        <section className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          {flashMessage}
+        </section>
+      ) : null}
 
       {renderSummary(detail)}
 

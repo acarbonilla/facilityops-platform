@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useInspectionList } from "@/hooks/use-inspection-list";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   getAreas,
   getBuildings,
@@ -114,6 +115,7 @@ function buildQueryParams(
 }
 
 export function InspectionListScreen() {
+  const { hasPermission, permissionsLoading } = usePermissions();
   const [filters, setFilters] = useState<InspectionListFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(filters.search.trim());
@@ -218,10 +220,22 @@ export function InspectionListScreen() {
         eyebrow="5S Inspection"
         title="Inspections"
       >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <DetailField label="Visible rows" value={rows.length} />
-          <DetailField label="Current page" value={page} />
-          <DetailField label="Total records" value={listQuery.data?.count ?? 0} />
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <DetailField label="Visible rows" value={rows.length} />
+            <DetailField label="Current page" value={page} />
+            <DetailField label="Total records" value={listQuery.data?.count ?? 0} />
+          </div>
+          {!permissionsLoading &&
+          (hasPermission("inspection.create") ||
+            hasPermission("inspection.manage")) ? (
+            <Link
+              className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href="/inspection/inspections/new"
+            >
+              New Inspection
+            </Link>
+          ) : null}
         </div>
       </PageHeader>
 

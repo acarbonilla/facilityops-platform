@@ -238,3 +238,78 @@ export interface InspectionDetail extends InspectionListItem {
   sla: InspectionSLA | null;
   escalations: InspectionEscalation[];
 }
+
+export interface InspectionItemFormValues {
+  sequence: string;
+  checklist_item: string;
+  category: string;
+  expected_result: string;
+  max_score: string;
+  score: string;
+  is_pass: "" | "true" | "false";
+  observation: string;
+  notes: string;
+}
+
+export interface InspectionFormValues {
+  tenant: string;
+  organization: string;
+  department: string;
+  building: string;
+  floor: string;
+  area: string;
+  title: string;
+  inspection_type: InspectionType;
+  five_s_category: InspectionFiveSCategory;
+  inspection_template: string;
+  inspector: string;
+  supervisor: string;
+  priority: InspectionPriority;
+  scheduled_date: string;
+  remarks: string;
+  items: InspectionItemFormValues[];
+}
+
+export interface InspectionItemPayload {
+  sequence: number;
+  checklist_item: string;
+  category?: string;
+  expected_result?: string;
+  max_score?: string;
+  score?: string | null;
+  is_pass?: boolean | null;
+  observation?: string;
+  notes?: string;
+}
+
+export interface InspectionCreatePayload {
+  tenant: string;
+  organization: string;
+  department?: string | null;
+  building: string;
+  floor?: string | null;
+  area?: string | null;
+  title: string;
+  inspection_type: InspectionType;
+  five_s_category: InspectionFiveSCategory;
+  inspection_template?: string | null;
+  inspector?: string | null;
+  supervisor?: string | null;
+  priority: InspectionPriority;
+  scheduled_date?: string | null;
+  remarks?: string;
+  items?: InspectionItemPayload[];
+}
+
+export type InspectionUpdatePayload = InspectionCreatePayload;
+
+export interface InspectionFormOptions {
+  tenants: import("./master-data").Tenant[];
+  organizations: import("./master-data").Organization[];
+  departments: import("./master-data").Department[];
+  buildings: import("./master-data").Building[];
+  floors: import("./master-data").Floor[];
+  areas: import("./master-data").Area[];
+  supports_user_directory: boolean;
+  user_directory_note: string | null;
+}

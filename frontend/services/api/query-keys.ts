@@ -137,6 +137,7 @@ export const inspectionQueryKeys = {
   all: ["inspection"] as const,
   list: (params?: InspectionListParams) =>
     ["inspection", "list", normalizeInspectionParams(params)] as const,
+  formOptions: () => ["inspection", "form-options"] as const,
   detail: (id: string) => ["inspection", "detail", id] as const,
   items: (id: string) => ["inspection", "items", id] as const,
   findings: (id: string) => ["inspection", "findings", id] as const,
