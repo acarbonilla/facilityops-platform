@@ -1,5 +1,7 @@
 "use client";
 
+import { use } from "react";
+
 import { ProtectedPermissionRoute } from "@/components/auth/protected-permission-route";
 import { AppShell } from "@/components/layout/app-shell";
 import { MaintenanceDetailScreen } from "@/features/maintenance/components/maintenance-detail";
@@ -7,12 +9,14 @@ import { MaintenanceDetailScreen } from "@/features/maintenance/components/maint
 export default function MaintenanceWorkOrderDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = use(params);
+
   return (
     <ProtectedPermissionRoute requiredPermission="maintenance.view">
       <AppShell>
-        <MaintenanceDetailScreen id={params.id} />
+        <MaintenanceDetailScreen id={id} />
       </AppShell>
     </ProtectedPermissionRoute>
   );

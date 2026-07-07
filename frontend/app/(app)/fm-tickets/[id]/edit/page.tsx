@@ -1,11 +1,14 @@
 "use client";
 
+import { use } from "react";
+
 import { TicketEditPageContent } from "@/features/fm-tickets/components/ticket-form-pages";
 
 export default function EditFmTicketPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  return <TicketEditPageContent id={params.id} />;
+  const { id } = use(params);
+  return <TicketEditPageContent id={id} />;
 }
