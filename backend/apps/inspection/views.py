@@ -1,4 +1,5 @@
 from django.db.models import Case, Count, IntegerField, Prefetch, Q, Value, When
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -49,6 +50,13 @@ from .services.inspection_service import recalculate_inspection_sla
 from .tenant_scope import scope_queryset_to_user
 
 
+def soft_delete_instance(instance, user):
+    instance.is_deleted = True
+    instance.deleted_at = timezone.now()
+    instance.deleted_by = user.id
+    instance.save(update_fields=("is_deleted", "deleted_at", "deleted_by", "updated_at"))
+
+
 class InspectionViewSet(viewsets.ModelViewSet):
     queryset = Inspection.objects.select_related(
         "tenant",
@@ -62,7 +70,7 @@ class InspectionViewSet(viewsets.ModelViewSet):
     )
     permission_classes = [IsAuthenticated, HasInspectionPermission]
     pagination_class = StandardResultsSetPagination
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "put", "delete", "head", "options"]
     filter_fields = (
         "status",
         "priority",
@@ -82,12 +90,18 @@ class InspectionViewSet(viewsets.ModelViewSet):
         queryset = (
             super()
             .get_queryset()
+            .filter(is_deleted=False)
             .annotate(
                 item_count=Count("items", distinct=True),
-                finding_count=Count("findings", distinct=True),
+                finding_count=Count(
+                    "findings",
+                    filter=Q(findings__is_deleted=False),
+                    distinct=True,
+                ),
                 open_corrective_action_count=Count(
                     "corrective_actions",
                     filter=Q(
+                        corrective_actions__is_deleted=False,
                         corrective_actions__status__in=("open", "in_progress", "overdue")
                     ),
                     distinct=True,
@@ -118,7 +132,10 @@ class InspectionViewSet(viewsets.ModelViewSet):
         if self.action == "retrieve":
             queryset = queryset.prefetch_related(
                 Prefetch("items", queryset=InspectionItem.objects.order_by("sequence")),
-                Prefetch("findings", queryset=InspectionFinding.objects.select_related("item")),
+                Prefetch(
+                    "findings",
+                    queryset=InspectionFinding.objects.filter(is_deleted=False).select_related("item"),
+                ),
                 Prefetch(
                     "attachments",
                     queryset=InspectionAttachment.objects.select_related(
@@ -133,7 +150,13 @@ class InspectionViewSet(viewsets.ModelViewSet):
                 "assignments",
                 "history_entries",
                 "status_history_entries",
-                "corrective_actions",
+                Prefetch(
+                    "corrective_actions",
+                    queryset=InspectionCorrectiveAction.objects.filter(is_deleted=False).select_related(
+                        "assigned_to",
+                        "finding",
+                    ),
+                ),
                 "escalations",
             )
         queryset = apply_query_param_filters(
@@ -182,6 +205,8 @@ class InspectionViewSet(viewsets.ModelViewSet):
             self.required_permissions_any = ("inspection.create", "inspection.manage")
         elif self.action in ("partial_update", "update", "start", "cancel", "reopen"):
             self.required_permissions_any = ("inspection.update", "inspection.manage")
+        elif self.action == "destroy":
+            self.required_permissions_any = ("inspection.delete", "inspection.manage")
         elif self.action == "assign":
             self.required_permissions_any = ("inspection.assign", "inspection.manage")
         elif self.action == "complete":
@@ -244,6 +269,20 @@ class InspectionViewSet(viewsets.ModelViewSet):
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
+    def update(self, request, *args, **kwargs):
+        inspection = self.get_object()
+        serializer = self.get_serializer(inspection, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        inspection = serializer.save()
+        response_serializer = InspectionSerializer(
+            inspection,
+            context=self.get_serializer_context(),
+        )
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    def perform_destroy(self, instance):
+        soft_delete_instance(instance, self.request.user)
+
     @action(detail=True, methods=["get", "post"], url_path="items")
     def items(self, request, pk=None):
         inspection = self.get_object()
@@ -265,7 +304,7 @@ class InspectionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="findings")
     def findings(self, request, pk=None):
-        queryset = self.get_object().findings.select_related("item")
+        queryset = self.get_object().findings.filter(is_deleted=False).select_related("item")
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = InspectionFindingSerializer(page, many=True)
@@ -324,7 +363,7 @@ class InspectionViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="corrective-actions")
     def corrective_actions(self, request, pk=None):
-        queryset = self.get_object().corrective_actions.select_related(
+        queryset = self.get_object().corrective_actions.filter(is_deleted=False).select_related(
             "assigned_to",
             "finding",
         )
@@ -389,19 +428,23 @@ class InspectionFindingViewSet(viewsets.ModelViewSet):
     queryset = InspectionFinding.objects.select_related("inspection", "item")
     permission_classes = [IsAuthenticated, HasInspectionPermission]
     pagination_class = StandardResultsSetPagination
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "put", "delete", "head", "options"]
 
     def get_queryset(self):
         queryset = scope_queryset_to_user(
-            super().get_queryset(),
+            super().get_queryset().filter(is_deleted=False),
             self.request.user,
             tenant_field="inspection__tenant_id",
         )
         return apply_finding_filters(queryset, self.request.query_params)
 
     def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = None
         if self.action in ("list", "retrieve"):
             self.required_permissions_any = ("inspection.view", "inspection.manage")
+        elif self.action == "destroy":
+            self.required_permissions_any = ("inspection.delete", "inspection.manage")
         else:
             self.required_permissions_any = ("inspection.update", "inspection.manage")
         return super().get_permissions()
@@ -418,6 +461,9 @@ class InspectionFindingViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save(updated_by=str(self.request.user.id))
 
+    def perform_destroy(self, instance):
+        soft_delete_instance(instance, self.request.user)
+
 
 class InspectionCorrectiveActionViewSet(viewsets.ModelViewSet):
     queryset = InspectionCorrectiveAction.objects.select_related(
@@ -427,19 +473,23 @@ class InspectionCorrectiveActionViewSet(viewsets.ModelViewSet):
     )
     permission_classes = [IsAuthenticated, HasInspectionPermission]
     pagination_class = StandardResultsSetPagination
-    http_method_names = ["get", "post", "patch", "head", "options"]
+    http_method_names = ["get", "post", "patch", "put", "delete", "head", "options"]
 
     def get_queryset(self):
         queryset = scope_queryset_to_user(
-            super().get_queryset(),
+            super().get_queryset().filter(is_deleted=False),
             self.request.user,
             tenant_field="inspection__tenant_id",
         )
         return apply_corrective_action_filters(queryset, self.request.query_params)
 
     def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = None
         if self.action in ("list", "retrieve"):
             self.required_permissions_any = ("inspection.view", "inspection.manage")
+        elif self.action == "destroy":
+            self.required_permissions_any = ("inspection.delete", "inspection.manage")
         else:
             self.required_permissions_any = (
                 "inspection.manage_corrective_action",
@@ -449,3 +499,6 @@ class InspectionCorrectiveActionViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         return InspectionCorrectiveActionSerializer
+
+    def perform_destroy(self, instance):
+        soft_delete_instance(instance, self.request.user)

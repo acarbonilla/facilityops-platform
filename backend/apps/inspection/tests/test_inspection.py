@@ -27,6 +27,7 @@ class InspectionTestDataMixin:
             ("inspection.view", "inspection", "view", "View inspections"),
             ("inspection.create", "inspection", "create", "Create inspections"),
             ("inspection.update", "inspection", "update", "Update inspections"),
+            ("inspection.delete", "inspection", "delete", "Delete inspections"),
             ("inspection.complete", "inspection", "complete", "Complete inspections"),
             ("inspection.verify", "inspection", "verify", "Verify inspections"),
             ("inspection.assign", "inspection", "assign", "Assign inspections"),
@@ -131,6 +132,61 @@ class InspectionTestDataMixin:
             ],
         }
 
+    def create_inspection_update_payload(self, data, inspector_id, supervisor_id):
+        return {
+            "tenant": str(data["tenant"].id),
+            "organization": str(data["organization"].id),
+            "department": str(data["department"].id),
+            "building": str(data["building"].id),
+            "floor": str(data["floor"].id),
+            "area": str(data["area"].id),
+            "title": "Updated 5S inspection",
+            "inspection_type": Inspection.InspectionType.SPOT_CHECK,
+            "five_s_category": Inspection.FiveSCategory.SUSTAIN,
+            "inspection_template": "Weekly frontline walkthrough",
+            "inspector": str(inspector_id),
+            "supervisor": str(supervisor_id),
+            "priority": Inspection.Priority.CRITICAL,
+            "scheduled_date": (timezone.now() + timedelta(days=1)).isoformat(),
+            "remarks": "Updated from full PUT request.",
+        }
+
+    def create_finding_update_payload(self, inspection_id, item_id):
+        return {
+            "inspection": str(inspection_id),
+            "item": str(item_id),
+            "finding_type": InspectionFinding.FindingType.IMPROVEMENT,
+            "severity": InspectionFinding.Severity.HIGH,
+            "description": "Updated finding description.",
+            "root_cause": "Storage discipline drift.",
+            "recommendation": "Reinforce the weekly 5S check.",
+            "photo_path": "seed/finding-photo.jpg",
+            "status": InspectionFinding.Status.IN_PROGRESS,
+        }
+
+    def create_corrective_action_payload(self, inspection, finding, assigned_to):
+        return {
+            "inspection": str(inspection.id),
+            "finding": str(finding.id),
+            "assigned_to": str(assigned_to.id),
+            "due_date": (timezone.now() + timedelta(days=2)).isoformat(),
+            "status": InspectionCorrectiveAction.Status.OPEN,
+            "verification_status": InspectionCorrectiveAction.VerificationStatus.PENDING,
+            "notes": "Initial corrective action note.",
+        }
+
+    def create_corrective_action_update_payload(self, inspection, finding, assigned_to):
+        return {
+            "tenant": str(inspection.tenant_id),
+            "inspection": str(inspection.id),
+            "finding": str(finding.id),
+            "assigned_to": str(assigned_to.id),
+            "due_date": (timezone.now() + timedelta(days=3)).isoformat(),
+            "status": InspectionCorrectiveAction.Status.IN_PROGRESS,
+            "verification_status": InspectionCorrectiveAction.VerificationStatus.PENDING,
+            "notes": "Updated corrective action note.",
+        }
+
 
 class InspectionModelTests(InspectionTestDataMixin, APITestCase):
     def setUp(self):
@@ -210,6 +266,18 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             tenant=self.data["tenant"],
             organization=self.data["organization"],
         )
+        self.deleter = User.objects.create_user(
+            email="deleter@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
+        self.corrective_manager = User.objects.create_user(
+            email="corrective-manager@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
         self.other_tenant = Tenant.objects.create(name="Other Tenant", code="other-tenant")
         self.other_org = Organization.objects.create(
             tenant=self.other_tenant,
@@ -237,6 +305,11 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         )
         self.assign_permissions(self.viewer, "inspection.view")
         self.assign_permissions(self.updater, "inspection.update")
+        self.assign_permissions(self.deleter, "inspection.delete")
+        self.assign_permissions(
+            self.corrective_manager,
+            "inspection.manage_corrective_action",
+        )
 
         self.inspection = Inspection.objects.create(
             tenant=self.data["tenant"],
@@ -462,6 +535,194 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(comment_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(attachment_response.status_code, status.HTTP_201_CREATED)
 
+    def test_update_user_can_put_inspection(self):
+        self.client.force_authenticate(self.updater)
+
+        response = self.client.put(
+            reverse("inspection-detail", args=[self.inspection.id]),
+            self.create_inspection_update_payload(
+                self.data,
+                inspector_id=self.inspector.id,
+                supervisor_id=self.user.id,
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.title, "Updated 5S inspection")
+        self.assertEqual(self.inspection.priority, Inspection.Priority.CRITICAL)
+
+    def test_delete_user_can_soft_delete_inspection_and_hide_it(self):
+        self.client.force_authenticate(self.deleter)
+
+        response = self.client.delete(reverse("inspection-detail", args=[self.inspection.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.inspection.refresh_from_db()
+        self.assertTrue(self.inspection.is_deleted)
+        self.assertIsNotNone(self.inspection.deleted_at)
+        self.assertEqual(self.inspection.deleted_by, self.deleter.id)
+
+        self.client.force_authenticate(self.viewer)
+        list_response = self.client.get(reverse("inspection-list"))
+        retrieve_response = self.client.get(reverse("inspection-detail", args=[self.inspection.id]))
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["count"], 0)
+        self.assertEqual(retrieve_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_read_only_user_cannot_put_or_delete_inspection(self):
+        self.client.force_authenticate(self.viewer)
+
+        put_response = self.client.put(
+            reverse("inspection-detail", args=[self.inspection.id]),
+            self.create_inspection_update_payload(
+                self.data,
+                inspector_id=self.inspector.id,
+                supervisor_id=self.user.id,
+            ),
+            format="json",
+        )
+        delete_response = self.client.delete(
+            reverse("inspection-detail", args=[self.inspection.id])
+        )
+
+        self.assertEqual(put_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(delete_response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_update_user_can_put_finding(self):
+        self.client.force_authenticate(self.updater)
+
+        response = self.client.put(
+            reverse("inspection-finding-detail", args=[self.finding.id]),
+            self.create_finding_update_payload(self.inspection.id, self.item.id),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.finding.refresh_from_db()
+        self.assertEqual(self.finding.description, "Updated finding description.")
+        self.assertEqual(self.finding.status, InspectionFinding.Status.IN_PROGRESS)
+
+    def test_delete_user_and_manager_can_delete_finding(self):
+        managed_finding = InspectionFinding.objects.create(
+            inspection=self.inspection,
+            item=self.item,
+            finding_type=InspectionFinding.FindingType.OBSERVATION,
+            severity=InspectionFinding.Severity.LOW,
+            description="Secondary finding for manage delete.",
+        )
+
+        self.client.force_authenticate(self.deleter)
+        delete_response = self.client.delete(
+            reverse("inspection-finding-detail", args=[self.finding.id])
+        )
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.finding.refresh_from_db()
+        self.assertTrue(self.finding.is_deleted)
+        self.assertEqual(self.finding.deleted_by, self.deleter.id)
+
+        self.client.force_authenticate(self.user)
+        manage_delete_response = self.client.delete(
+            reverse("inspection-finding-detail", args=[managed_finding.id])
+        )
+        self.assertEqual(manage_delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        managed_finding.refresh_from_db()
+        self.assertTrue(managed_finding.is_deleted)
+        self.assertEqual(managed_finding.deleted_by, self.user.id)
+
+    def test_manage_corrective_action_user_can_put_corrective_action(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
+
+        self.client.force_authenticate(self.corrective_manager)
+        response = self.client.put(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id]),
+            self.create_corrective_action_update_payload(
+                self.inspection,
+                self.finding,
+                self.user,
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        corrective_action.refresh_from_db()
+        self.assertEqual(
+            corrective_action.status,
+            InspectionCorrectiveAction.Status.IN_PROGRESS,
+        )
+        self.assertEqual(corrective_action.assigned_to, self.user)
+
+    def test_delete_user_and_manager_can_delete_corrective_action(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
+        managed_corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.user,
+            due_date=timezone.now() + timedelta(days=2),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
+
+        self.client.force_authenticate(self.deleter)
+        delete_response = self.client.delete(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        corrective_action.refresh_from_db()
+        self.assertTrue(corrective_action.is_deleted)
+        self.assertEqual(corrective_action.deleted_by, self.deleter.id)
+
+        self.client.force_authenticate(self.user)
+        manage_delete_response = self.client.delete(
+            reverse(
+                "inspection-corrective-action-detail",
+                args=[managed_corrective_action.id],
+            )
+        )
+        self.assertEqual(manage_delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        managed_corrective_action.refresh_from_db()
+        self.assertTrue(managed_corrective_action.is_deleted)
+        self.assertEqual(managed_corrective_action.deleted_by, self.user.id)
+
+    def test_read_only_user_cannot_delete_finding_or_corrective_action(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
+
+        self.client.force_authenticate(self.viewer)
+        finding_response = self.client.delete(
+            reverse("inspection-finding-detail", args=[self.finding.id])
+        )
+        corrective_action_response = self.client.delete(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+
+        self.assertEqual(finding_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            corrective_action_response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
     def test_finding_and_corrective_action_crud_work(self):
         self.client.force_authenticate(self.user)
         finding_response = self.client.post(
@@ -511,6 +772,22 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             patch_response.data["status"],
             InspectionCorrectiveAction.Status.VERIFIED,
         )
+
+        put_finding_response = self.client.put(
+            reverse("inspection-finding-detail", args=[finding_response.data["id"]]),
+            {
+                "inspection": str(self.inspection.id),
+                "item": str(self.item.id),
+                "finding_type": InspectionFinding.FindingType.IMPROVEMENT,
+                "severity": InspectionFinding.Severity.MEDIUM,
+                "description": "Update created finding through full PUT.",
+                "root_cause": "Label drift.",
+                "recommendation": "Refresh shelf labels.",
+                "status": InspectionFinding.Status.RESOLVED,
+            },
+            format="json",
+        )
+        self.assertEqual(put_finding_response.status_code, status.HTTP_200_OK)
 
     def test_assign_start_complete_verify_workflow(self):
         self.client.force_authenticate(self.user)

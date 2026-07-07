@@ -22,7 +22,7 @@
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
 | Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
-| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, tenant-scoped workflows, corrective actions, AI hooks, seeds, and tests; frontend remains pending |
+| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, tenant-scoped workflows, corrective actions, AI hooks, seeds, tests, and FO-038B CRUD/RBAC alignment; frontend remains pending |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
@@ -64,6 +64,7 @@ facilityops-platform/
 
 - Complete task coverage through FO-037 is present in code and in `docs/02-Development/`.
 - FO-038 adds the first 5S Inspection backend implementation and keeps the module overall `In Progress` until frontend tasks land.
+- FO-038B aligns inspection, finding, and corrective-action `PUT`/`DELETE` behavior with seeded RBAC and hides soft-deleted records from standard reads.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
 ## Foundation
@@ -456,9 +457,9 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - Models: `Inspection`, `InspectionItem`, `InspectionFinding`, `InspectionAttachment`, `InspectionComment`, `InspectionAssignment`, `InspectionHistory`, `InspectionStatusHistory`, `InspectionAIAnalysis`, `InspectionCorrectiveAction`, `InspectionSLA`, `InspectionEscalation`
 - Serializers: inspection list/detail/create/update serializers, item, finding, attachment, comment, history, corrective-action, assignment, workflow, SLA, escalation, and AI-analysis serializers
 - ViewSets / Views: `InspectionViewSet`, `InspectionFindingViewSet`, `InspectionCorrectiveActionViewSet`
-- APIs: inspection list/create/retrieve/patch, nested items/findings/attachments/comments/history/corrective actions, AI-analysis get/create, assignment and workflow actions, plus finding and corrective-action CRUD endpoints
+- APIs: inspection list/create/retrieve/patch/put/delete, nested items/findings/attachments/comments/history/corrective actions, AI-analysis get/create, assignment and workflow actions, plus finding and corrective-action CRUD endpoints with put/delete support
 - Services: inspection creation/update helpers, score recalculation, status-history recording, workflow validation, AI-analysis upsert hook, SLA recalculation, escalation checks, and tenant scoping
-- Permissions: `HasInspectionPermission` with `inspection.view`, `create`, `update`, `complete`, `verify`, `assign`, `view_ai`, `manage_corrective_action`, and `inspection.manage`
+- Permissions: `HasInspectionPermission` with `inspection.view`, `create`, `update`, `delete`, `complete`, `verify`, `assign`, `view_ai`, `manage_corrective_action`, and `inspection.manage`
 - Admin: all inspection domain models are registered in `backend/apps/inspection/admin.py`
 - Tests: `backend/apps/inspection/tests/test_inspection.py`
 
@@ -478,6 +479,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 
 - FO-038 introduces the first inspection backend foundation and keeps the module `In Progress`.
 - FO-038A locks nested `items`, `comments`, and `attachments` writes behind `inspection.update` or `inspection.manage` while preserving read-only access for `inspection.view`.
+- FO-038B enables inspection, finding, and corrective-action `PUT` and soft-delete `DELETE` flows with RBAC-aligned permissions and default queryset filtering for deleted records.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 
