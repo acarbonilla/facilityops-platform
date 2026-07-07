@@ -22,7 +22,7 @@
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
 | Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
-| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, tenant-scoped workflows, corrective actions, AI hooks, seeds, tests, and FO-038B CRUD/RBAC alignment; frontend remains pending |
+| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, FO-038B aligns CRUD/RBAC, and FO-039 adds protected frontend read-only list/detail screens; create/edit and workflow UI remain pending |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
@@ -65,6 +65,7 @@ facilityops-platform/
 - Complete task coverage through FO-037 is present in code and in `docs/02-Development/`.
 - FO-038 adds the first 5S Inspection backend implementation and keeps the module overall `In Progress` until frontend tasks land.
 - FO-038B aligns inspection, finding, and corrective-action `PUT`/`DELETE` behavior with seeded RBAC and hides soft-deleted records from standard reads.
+- FO-039 adds protected frontend inspection list and detail routes with backend-driven search, filtering, sorting, pagination, and read-only nested data sections.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
 ## Foundation
@@ -465,14 +466,14 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 
 ### Frontend
 
-- Routes: None yet
-- Module Folder: None yet
-- Pages: None yet
-- Components: None yet
-- Hooks: None yet
-- API Files: None yet
-- Types: None yet
-- RBAC Usage: backend enforcement is active; frontend guards are pending future tasks
+- Routes: `/inspection/inspections`, `/inspection/inspections/[id]`
+- Module Folder: `frontend/app/(app)/inspection`, `frontend/features/inspection`
+- Pages: protected inspection list and detail routes
+- Components: inspection list/detail screens, filters, status and priority badges, loading skeleton, pagination
+- Hooks: `use-inspection-list`, `use-inspection-detail`
+- API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries
+- Types: `frontend/types/inspection.ts`
+- RBAC Usage: list and detail routes require `inspection.view` or `inspection.manage` using `ProtectedPermissionRoute` in `any` mode
 - Tests: No frontend inspection tests
 
 ### Notes
@@ -480,6 +481,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - FO-038 introduces the first inspection backend foundation and keeps the module `In Progress`.
 - FO-038A locks nested `items`, `comments`, and `attachments` writes behind `inspection.update` or `inspection.manage` while preserving read-only access for `inspection.view`.
 - FO-038B enables inspection, finding, and corrective-action `PUT` and soft-delete `DELETE` flows with RBAC-aligned permissions and default queryset filtering for deleted records.
+- FO-039 adds protected frontend read-only inspection list/detail screens, but create/edit forms and workflow actions remain explicitly out of scope.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 

@@ -2,6 +2,7 @@ import type { MasterDataListParams, MasterDataResourceKey } from "@/types/master
 import type { PermissionListParams, RbacListParams } from "@/types/rbac";
 import type { UserListParams } from "@/types/users";
 import type { FmTicketListParams } from "@/types/fm-tickets";
+import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 
 function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
@@ -118,4 +119,31 @@ export const maintenanceQueryKeys = {
     ["maintenance", "assignment-candidates", id] as const,
   sla: (id: string) => ["maintenance", "sla", id] as const,
   escalations: (id: string) => ["maintenance", "escalations", id] as const,
+};
+
+function normalizeInspectionParams(
+  params?: InspectionListParams,
+): InspectionListParams | Record<string, never> {
+  if (!params) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined),
+  ) as InspectionListParams;
+}
+
+export const inspectionQueryKeys = {
+  all: ["inspection"] as const,
+  list: (params?: InspectionListParams) =>
+    ["inspection", "list", normalizeInspectionParams(params)] as const,
+  detail: (id: string) => ["inspection", "detail", id] as const,
+  items: (id: string) => ["inspection", "items", id] as const,
+  findings: (id: string) => ["inspection", "findings", id] as const,
+  attachments: (id: string) => ["inspection", "attachments", id] as const,
+  comments: (id: string) => ["inspection", "comments", id] as const,
+  history: (id: string) => ["inspection", "history", id] as const,
+  correctiveActions: (id: string) =>
+    ["inspection", "corrective-actions", id] as const,
+  aiAnalysis: (id: string) => ["inspection", "ai-analysis", id] as const,
 };

@@ -71,4 +71,16 @@ export const API_ENDPOINTS = {
     cancel: (id: string) => `/maintenance/work-orders/${id}/cancel/`,
     reopen: (id: string) => `/maintenance/work-orders/${id}/reopen/`,
   },
+  inspection: {
+    inspections: "/inspection/inspections/",
+    inspection: (id: string) => `/inspection/inspections/${id}/`,
+    items: (id: string) => `/inspection/inspections/${id}/items/`,
+    findings: (id: string) => `/inspection/inspections/${id}/findings/`,
+    attachments: (id: string) => `/inspection/inspections/${id}/attachments/`,
+    comments: (id: string) => `/inspection/inspections/${id}/comments/`,
+    history: (id: string) => `/inspection/inspections/${id}/history/`,
+    correctiveActions: (id: string) =>
+      `/inspection/inspections/${id}/corrective-actions/`,
+    aiAnalysis: (id: string) => `/inspection/inspections/${id}/ai-analysis/`,
+  },
 } as const;
