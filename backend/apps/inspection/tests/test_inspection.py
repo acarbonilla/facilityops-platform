@@ -554,6 +554,14 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(self.inspection.priority, Inspection.Priority.CRITICAL)
 
     def test_delete_user_can_soft_delete_inspection_and_hide_it(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
         self.client.force_authenticate(self.deleter)
 
         response = self.client.delete(reverse("inspection-detail", args=[self.inspection.id]))
@@ -567,9 +575,23 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.client.force_authenticate(self.viewer)
         list_response = self.client.get(reverse("inspection-list"))
         retrieve_response = self.client.get(reverse("inspection-detail", args=[self.inspection.id]))
+        finding_list_response = self.client.get(reverse("inspection-finding-list"))
+        corrective_action_list_response = self.client.get(
+            reverse("inspection-corrective-action-list")
+        )
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(list_response.data["count"], 0)
         self.assertEqual(retrieve_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(finding_list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(finding_list_response.data["count"], 0)
+        self.assertEqual(
+            corrective_action_list_response.status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(corrective_action_list_response.data["count"], 0)
+
+        corrective_action.refresh_from_db()
+        self.assertFalse(corrective_action.is_deleted)
 
     def test_read_only_user_cannot_put_or_delete_inspection(self):
         self.client.force_authenticate(self.viewer)

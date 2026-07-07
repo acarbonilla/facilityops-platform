@@ -432,7 +432,10 @@ class InspectionFindingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = scope_queryset_to_user(
-            super().get_queryset().filter(is_deleted=False),
+            super().get_queryset().filter(
+                is_deleted=False,
+                inspection__is_deleted=False,
+            ),
             self.request.user,
             tenant_field="inspection__tenant_id",
         )
@@ -477,7 +480,10 @@ class InspectionCorrectiveActionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = scope_queryset_to_user(
-            super().get_queryset().filter(is_deleted=False),
+            super().get_queryset().filter(
+                is_deleted=False,
+                inspection__is_deleted=False,
+            ),
             self.request.user,
             tenant_field="inspection__tenant_id",
         )
