@@ -315,10 +315,19 @@ class WorkOrderListSerializer(serializers.ModelSerializer):
         source="organization.name",
         read_only=True,
     )
+    department_name = serializers.CharField(source="department.name", read_only=True)
     building_name = serializers.CharField(source="building.name", read_only=True)
+    floor_name = serializers.CharField(source="floor.name", read_only=True)
+    area_name = serializers.CharField(source="area.name", read_only=True)
     asset_name = serializers.CharField(source="asset.name", read_only=True)
+    asset_code = serializers.CharField(source="asset.code", read_only=True)
     requester_email = serializers.EmailField(source="requester.email", read_only=True)
     assignee_email = serializers.EmailField(source="assignee.email", read_only=True)
+    attachments_count = serializers.IntegerField(read_only=True)
+    created_by = serializers.UUIDField(read_only=True)
+    updated_by = serializers.UUIDField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = MaintenanceWorkOrder
@@ -329,10 +338,17 @@ class WorkOrderListSerializer(serializers.ModelSerializer):
             "tenant_name",
             "organization",
             "organization_name",
+            "department",
+            "department_name",
             "building",
             "building_name",
+            "floor",
+            "floor_name",
+            "area",
+            "area_name",
             "asset",
             "asset_name",
+            "asset_code",
             "title",
             "priority",
             "status",
@@ -342,13 +358,15 @@ class WorkOrderListSerializer(serializers.ModelSerializer):
             "assignee_email",
             "requested_at",
             "due_at",
+            "attachments_count",
+            "created_by",
+            "updated_by",
+            "created_at",
+            "updated_at",
         )
 
 
 class WorkOrderSerializer(WorkOrderListSerializer):
-    department_name = serializers.CharField(source="department.name", read_only=True)
-    floor_name = serializers.CharField(source="floor.name", read_only=True)
-    area_name = serializers.CharField(source="area.name", read_only=True)
     assignments = AssignmentSerializer(many=True, read_only=True)
     tasks = TaskSerializer(many=True, read_only=True)
     materials = MaterialSerializer(many=True, read_only=True)
@@ -364,17 +382,9 @@ class WorkOrderSerializer(WorkOrderListSerializer):
     attachments = AttachmentSerializer(many=True, read_only=True)
     ai_summary = AISummarySerializer(read_only=True)
     supervisor_approval = SupervisorApprovalSerializer(read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
 
     class Meta(WorkOrderListSerializer.Meta):
         fields = WorkOrderListSerializer.Meta.fields + (
-            "department",
-            "department_name",
-            "floor",
-            "floor_name",
-            "area",
-            "area_name",
             "description",
             "scheduled_start_at",
             "scheduled_end_at",

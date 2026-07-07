@@ -44,4 +44,10 @@ export const API_ENDPOINTS = {
     assign: (id: string) => `/fm-tickets/tickets/${id}/assign/`,
     changeStatus: (id: string) => `/fm-tickets/tickets/${id}/change-status/`,
   },
+  maintenance: {
+    dashboard: "/maintenance/work-orders/dashboard/",
+    workOrders: "/maintenance/work-orders/",
+    workOrder: (id: string) => `/maintenance/work-orders/${id}/`,
+    history: (id: string) => `/maintenance/work-orders/${id}/history/`,
+  },
 } as const;

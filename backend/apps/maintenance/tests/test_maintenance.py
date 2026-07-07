@@ -19,6 +19,7 @@ from apps.master_data.models import (
     Tenant,
 )
 from apps.maintenance.models import (
+    MaintenanceAttachment,
     MaintenanceAssignment,
     MaintenanceCompletion,
     MaintenanceHistory,
@@ -282,6 +283,32 @@ class MaintenanceApiTests(MaintenanceTestDataMixin, APITestCase):
             resolution_due_at=timezone.now() + timedelta(days=1),
             sla_status=MaintenanceSLA.Status.NOT_STARTED,
         )
+        self.overdue_work_order = MaintenanceWorkOrder.objects.create(
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+            department=self.data["department"],
+            building=self.data["building"],
+            floor=self.data["floor"],
+            area=self.data["area"],
+            asset=self.data["asset"],
+            requester=self.other_user,
+            assignee=self.other_user,
+            title="Critical pump outage",
+            description="Critical outage in the lobby pump room.",
+            priority=MaintenanceWorkOrder.Priority.CRITICAL,
+            status=MaintenanceWorkOrder.Status.ASSIGNED,
+            requested_at=timezone.now() - timedelta(days=2),
+            due_at=timezone.now() - timedelta(days=1),
+        )
+        MaintenanceAttachment.objects.create(
+            work_order=self.overdue_work_order,
+            uploaded_by=self.user,
+            file_name="pump-photo.jpg",
+            file_path="seed/pump-photo.jpg",
+            content_type="image/jpeg",
+            size_bytes=2048,
+            note="Inspection photo.",
+        )
 
     def test_work_order_list_requires_authentication(self):
         response = self.client.get(reverse("maintenance-work-order-list"))
@@ -296,7 +323,35 @@ class MaintenanceApiTests(MaintenanceTestDataMixin, APITestCase):
         self.client.force_authenticate(self.user)
         response = self.client.get(reverse("maintenance-work-order-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+
+    def test_work_order_list_supports_search_ordering_and_boolean_filters(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get(
+            reverse("maintenance-work-order-list"),
+            {
+                "search": "critical outage",
+                "ordering": "-priority",
+                "overdue": "true",
+                "has_attachments": "true",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], str(self.overdue_work_order.id))
+        self.assertEqual(response.data["results"][0]["attachments_count"], 1)
+
+    def test_dashboard_endpoint_returns_summary_metrics(self):
+        self.client.force_authenticate(self.user)
+        response = self.client.get(reverse("maintenance-work-order-dashboard"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["total_work_orders"], 2)
+        self.assertEqual(response.data["open"], 1)
+        self.assertEqual(response.data["assigned"], 1)
+        self.assertEqual(response.data["critical"], 1)
+        self.assertEqual(response.data["overdue"], 1)
 
     def test_work_order_create_requires_permission(self):
         self.client.force_authenticate(self.viewer)

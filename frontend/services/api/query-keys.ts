@@ -2,6 +2,7 @@ import type { MasterDataListParams, MasterDataResourceKey } from "@/types/master
 import type { PermissionListParams, RbacListParams } from "@/types/rbac";
 import type { UserListParams } from "@/types/users";
 import type { FmTicketListParams } from "@/types/fm-tickets";
+import type { MaintenanceListParams } from "@/types/maintenance";
 
 function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
   if (!params) {
@@ -89,4 +90,26 @@ export const fmTicketsQueryKeys = {
   comments: (id: string) => ["fm-tickets", id, "comments"] as const,
   history: (id: string) => ["fm-tickets", id, "history"] as const,
   escalations: (id: string) => ["fm-tickets", id, "escalations"] as const,
+};
+
+function normalizeMaintenanceParams(
+  params?: MaintenanceListParams,
+): MaintenanceListParams | Record<string, never> {
+  if (!params) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined),
+  ) as MaintenanceListParams;
+}
+
+export const maintenanceQueryKeys = {
+  all: ["maintenance"] as const,
+  dashboard: (params?: MaintenanceListParams) =>
+    ["maintenance", "dashboard", normalizeMaintenanceParams(params)] as const,
+  list: (params?: MaintenanceListParams) =>
+    ["maintenance", "list", normalizeMaintenanceParams(params)] as const,
+  detail: (id: string) => ["maintenance", "detail", id] as const,
+  history: (id: string) => ["maintenance", "history", id] as const,
 };

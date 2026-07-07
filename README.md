@@ -26,7 +26,7 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 2 - Core Platform. FO-031 adds the Maintenance Work Order backend foundation after FM Ticketing stabilization, including backend models, migrations, seed data, RBAC permissions, workflow APIs, and test coverage for the new maintenance module.
+Phase 12A - Application Development, Stage 2 - Core Platform. FO-032 adds the Maintenance Work Order frontend read screens after the FO-031 backend foundation, including a dashboard, server-driven list, detail screen, RBAC-aware navigation, and read-only visualization of assignment, SLA, attachment, AI summary, and history data.
 
 ## Backend Local Setup
 
@@ -142,6 +142,16 @@ npm run dev
 - RBAC permissions currently include `maintenance.view`, `maintenance.create`, `maintenance.update`, `maintenance.assign`, `maintenance.complete`, and `maintenance.manage`
 - FO-031 is backend-only and does not add maintenance frontend screens, notifications, file uploads, reporting, or AI automation
 
+## Maintenance Frontend
+
+- Maintenance dashboard route: `/maintenance`
+- Maintenance work order list route: `/maintenance/work-orders`
+- Maintenance work order detail route: `/maintenance/work-orders/[id]`
+- The frontend maintenance module now includes read-only dashboard metrics, server-side search and filtering, sorting, pagination, detail sections, SLA display, AI summary display, attachments metadata, and a combined history timeline
+- The list screen uses backend-driven search, ordering, overdue filtering, attachment filtering, and pagination instead of page-local approximations
+- The detail screen intentionally does not expose create, edit, approval, status-change, assignment-change, or delete actions during FO-032
+- Some detail labels such as category, maintenance type, cost rate, and QR code remain visibly unavailable until later backend tasks expose those fields
+
 ## Current User UI
 
 - Profile route: `/profile`
@@ -222,6 +232,7 @@ Frontend, from `frontend/`:
 ```text
 npm run lint
 npx tsc --noEmit
+npx next build --no-lint
 npm run dev
 ```
 
@@ -335,4 +346,4 @@ celery-ok
 
 ## Next Task
 
-Stage 2 - Core Platform. The next task should continue the maintenance module on the approved frontend or follow-on workflow scope rather than reopening FM Ticketing.
+Stage 2 - Core Platform. The next task should proceed to FO-033 Maintenance Work Order Create and Edit Forms rather than expanding FO-032 into workflow mutations.
