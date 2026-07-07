@@ -477,6 +477,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 ### Notes
 
 - FO-038 introduces the first inspection backend foundation and keeps the module `In Progress`.
+- FO-038A locks nested `items`, `comments`, and `attachments` writes behind `inspection.update` or `inspection.manage` while preserving read-only access for `inspection.view`.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 

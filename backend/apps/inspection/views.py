@@ -161,13 +161,21 @@ class InspectionViewSet(viewsets.ModelViewSet):
             "list",
             "retrieve",
             "history",
-            "items",
             "findings",
-            "attachments",
-            "comments",
             "corrective_actions",
         ):
             self.required_permissions_any = ("inspection.view", "inspection.manage")
+        elif self.action in ("items", "attachments", "comments"):
+            if self.request.method == "GET":
+                self.required_permissions_any = (
+                    "inspection.view",
+                    "inspection.manage",
+                )
+            else:
+                self.required_permissions_any = (
+                    "inspection.update",
+                    "inspection.manage",
+                )
         elif self.action == "ai_analysis":
             self.required_permissions_any = ("inspection.view_ai", "inspection.manage")
         elif self.action == "create":
@@ -441,4 +449,3 @@ class InspectionCorrectiveActionViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         return InspectionCorrectiveActionSerializer
-

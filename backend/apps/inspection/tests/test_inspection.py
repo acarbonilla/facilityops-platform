@@ -204,6 +204,12 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             tenant=self.data["tenant"],
             organization=self.data["organization"],
         )
+        self.updater = User.objects.create_user(
+            email="updater@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
         self.other_tenant = Tenant.objects.create(name="Other Tenant", code="other-tenant")
         self.other_org = Organization.objects.create(
             tenant=self.other_tenant,
@@ -230,6 +236,7 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             "inspection.manage",
         )
         self.assign_permissions(self.viewer, "inspection.view")
+        self.assign_permissions(self.updater, "inspection.update")
 
         self.inspection = Inspection.objects.create(
             tenant=self.data["tenant"],
@@ -363,6 +370,97 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(self.inspection.comments.count(), 1)
         self.assertEqual(self.inspection.attachments.count(), 1)
         self.assertEqual(str(self.inspection.score), "80.00")
+
+    def test_read_only_user_can_get_nested_items_comments_and_attachments(self):
+        self.client.force_authenticate(self.viewer)
+
+        items_response = self.client.get(reverse("inspection-items", args=[self.inspection.id]))
+        comments_response = self.client.get(
+            reverse("inspection-comments", args=[self.inspection.id])
+        )
+        attachments_response = self.client.get(
+            reverse("inspection-attachments", args=[self.inspection.id])
+        )
+
+        self.assertEqual(items_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(comments_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(attachments_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(items_response.data["count"], 1)
+        self.assertEqual(comments_response.data["count"], 0)
+        self.assertEqual(attachments_response.data["count"], 0)
+
+    def test_read_only_user_cannot_post_nested_items_comments_or_attachments(self):
+        self.client.force_authenticate(self.viewer)
+
+        item_response = self.client.post(
+            reverse("inspection-items", args=[self.inspection.id]),
+            {
+                "sequence": 2,
+                "checklist_item": "Check workstation labels",
+                "category": "Sort",
+                "expected_result": "Labels are visible.",
+                "max_score": "5.00",
+                "score": "4.00",
+                "is_pass": True,
+            },
+            format="json",
+        )
+        comment_response = self.client.post(
+            reverse("inspection-comments", args=[self.inspection.id]),
+            {"body": "Viewer should not be able to add this comment."},
+            format="json",
+        )
+        attachment_response = self.client.post(
+            reverse("inspection-attachments", args=[self.inspection.id]),
+            {
+                "file_name": "viewer-upload.txt",
+                "file_path": "seed/viewer-upload.txt",
+                "content_type": "text/plain",
+                "size_bytes": 32,
+            },
+            format="json",
+        )
+
+        self.assertEqual(item_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(comment_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(attachment_response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_update_user_can_post_nested_items_comments_and_attachments(self):
+        self.client.force_authenticate(self.updater)
+
+        item_response = self.client.post(
+            reverse("inspection-items", args=[self.inspection.id]),
+            {
+                "sequence": 2,
+                "checklist_item": "Check aisle markings",
+                "category": "Set In Order",
+                "expected_result": "Markings are intact.",
+                "max_score": "5.00",
+                "score": "4.00",
+                "is_pass": True,
+            },
+            format="json",
+        )
+        comment_response = self.client.post(
+            reverse("inspection-comments", args=[self.inspection.id]),
+            {"body": "Updater can add inspection notes.", "is_internal": True},
+            format="json",
+        )
+        attachment_response = self.client.post(
+            reverse("inspection-attachments", args=[self.inspection.id]),
+            {
+                "file_name": "updater-upload.txt",
+                "file_path": "seed/updater-upload.txt",
+                "content_type": "text/plain",
+                "size_bytes": 48,
+                "note": "Metadata added by update-capable user.",
+            },
+            format="json",
+        )
+
+        self.assertEqual(item_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(comment_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(attachment_response.status_code, status.HTTP_201_CREATED)
 
     def test_finding_and_corrective_action_crud_work(self):
         self.client.force_authenticate(self.user)
