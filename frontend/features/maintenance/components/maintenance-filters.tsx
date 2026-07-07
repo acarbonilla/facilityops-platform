@@ -24,6 +24,7 @@ const STATUS_OPTIONS: SelectOption[] = [
   { value: "on_hold", label: "On Hold" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "reopened", label: "Reopened" },
   { value: "closed", label: "Closed" },
 ];
 
@@ -32,6 +33,16 @@ const PRIORITY_OPTIONS: SelectOption[] = [
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
   { value: "critical", label: "Critical" },
+];
+
+const SLA_STATUS_OPTIONS: SelectOption[] = [
+  { value: "not_started", label: "Not Started" },
+  { value: "within_sla", label: "Within SLA" },
+  { value: "warning", label: "Warning" },
+  { value: "breached", label: "Breached" },
+  { value: "paused", label: "Paused" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
 const SORT_OPTIONS: SelectOption[] = [
@@ -100,6 +111,20 @@ export function MaintenanceFilters({
             value={values.search}
           />
         </FormField>
+
+        <SelectField
+          label="SLA status"
+          name="maintenance-sla-status"
+          onChange={(event) =>
+            onChange({
+              ...values,
+              slaStatus: event.target.value as MaintenanceListFilters["slaStatus"],
+            })
+          }
+          options={SLA_STATUS_OPTIONS}
+          placeholder="All SLA statuses"
+          value={values.slaStatus}
+        />
 
         <SelectField
           label="Status"
@@ -279,6 +304,18 @@ export function MaintenanceFilters({
             onChange({
               ...values,
               overdue: event.target.checked,
+            })
+          }
+        />
+        <SwitchField
+          checked={values.hasActiveEscalation}
+          description="Only show work orders with an open or acknowledged SLA escalation."
+          label="Active escalation"
+          name="maintenance-active-escalation"
+          onChange={(event) =>
+            onChange({
+              ...values,
+              hasActiveEscalation: event.target.checked,
             })
           }
         />

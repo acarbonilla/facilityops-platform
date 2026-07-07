@@ -10,6 +10,7 @@ const STATUS_STYLES: Record<MaintenanceWorkOrderStatus, string> = {
   on_hold: "border-orange-200 bg-orange-100 text-orange-800",
   completed: "border-emerald-200 bg-emerald-100 text-emerald-800",
   cancelled: "border-rose-200 bg-rose-100 text-rose-800",
+  reopened: "border-fuchsia-200 bg-fuchsia-100 text-fuchsia-800",
   closed: "border-violet-200 bg-violet-100 text-violet-800",
 };
 

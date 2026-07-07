@@ -6,7 +6,10 @@ import { MaintenanceListScreen } from "@/features/maintenance/components/mainten
 
 export default function MaintenanceWorkOrdersPage() {
   return (
-    <ProtectedPermissionRoute requiredPermission="maintenance.view">
+    <ProtectedPermissionRoute
+      mode="any"
+      requiredPermissions={["maintenance.view", "maintenance.work_order.view"]}
+    >
       <AppShell>
         <MaintenanceListScreen />
       </AppShell>

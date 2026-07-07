@@ -1,11 +1,5 @@
 from datetime import timedelta
 
-from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
-from django.utils import timezone
-
-from apps.master_data.models import Area, Asset, Building, Department, Floor, Organization, Tenant
-
 from apps.maintenance.models import (
     MaintenanceAISummary,
     MaintenanceAttachment,
@@ -16,13 +10,24 @@ from apps.maintenance.models import (
     MaintenanceTask,
     MaintenanceWorkOrder,
 )
-from apps.maintenance.services import (
-    assign_work_order,
-    change_status,
+from apps.maintenance.services import create_work_order
+from apps.maintenance.work_order_assignment_service import assign_work_order
+from apps.maintenance.work_order_workflow_service import (
     complete_work_order,
-    create_work_order,
+    start_work_order,
 )
-
+from apps.master_data.models import (
+    Area,
+    Asset,
+    Building,
+    Department,
+    Floor,
+    Organization,
+    Tenant,
+)
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -46,20 +51,32 @@ class Command(BaseCommand):
             area = asset.area
         else:
             tenant = Tenant.objects.first()
-            organization = Organization.objects.filter(tenant=tenant).first() if tenant else None
+            organization = (
+                Organization.objects.filter(tenant=tenant).first() if tenant else None
+            )
             building = (
-                Building.objects.filter(tenant=tenant, organization=organization).first()
+                Building.objects.filter(
+                    tenant=tenant, organization=organization
+                ).first()
                 if tenant and organization
                 else None
             )
-            floor = Floor.objects.filter(tenant=tenant, building=building).first() if tenant and building else None
+            floor = (
+                Floor.objects.filter(tenant=tenant, building=building).first()
+                if tenant and building
+                else None
+            )
             area = (
-                Area.objects.filter(tenant=tenant, building=building, floor=floor).first()
+                Area.objects.filter(
+                    tenant=tenant, building=building, floor=floor
+                ).first()
                 if tenant and building and floor
                 else None
             )
             asset = (
-                Asset.objects.filter(tenant=tenant, organization=organization, building=building).first()
+                Asset.objects.filter(
+                    tenant=tenant, organization=organization, building=building
+                ).first()
                 if tenant and organization and building
                 else None
             )
@@ -77,21 +94,30 @@ class Command(BaseCommand):
             organization=organization,
         ).first()
 
-        requester = User.objects.order_by("created_at").first()
+        requester = User.objects.filter(tenant=tenant).order_by("created_at").first()
         if requester is None:
             requester = User.objects.create_user(
                 email="maintenance.requester@example.com",
                 password="Password123!",
                 first_name="Maintenance",
                 last_name="Requester",
+                tenant=tenant,
+                organization=organization,
             )
-        assignee = User.objects.exclude(id=requester.id).order_by("created_at").first()
+        assignee = (
+            User.objects.filter(tenant=tenant)
+            .exclude(id=requester.id)
+            .order_by("created_at")
+            .first()
+        )
         if assignee is None:
             assignee = User.objects.create_user(
                 email="maintenance.tech@example.com",
                 password="Password123!",
                 first_name="Maintenance",
                 last_name="Technician",
+                tenant=tenant,
+                organization=organization,
             )
 
         now = timezone.now()
@@ -147,20 +173,27 @@ class Command(BaseCommand):
                 work_order=work_order,
                 assigned_to=assignee,
                 assigned_by=requester,
-                note="Seed maintenance assignment.",
+                notes="Seed maintenance assignment.",
+                enforce_permission=False,
             )
             if target_status == MaintenanceWorkOrder.Status.IN_PROGRESS:
-                change_status(
+                start_work_order(
                     work_order=work_order,
-                    to_status=target_status,
-                    changed_by=assignee,
+                    actor=assignee,
                     note="Seed status adjustment.",
                 )
             elif target_status == MaintenanceWorkOrder.Status.COMPLETED:
+                start_work_order(
+                    work_order=work_order,
+                    actor=assignee,
+                    note="Seed start before completion.",
+                )
                 complete_work_order(
                     work_order=work_order,
                     completed_by=assignee,
                     completion_notes="Seed completion notes.",
+                    actual_hours="2.50",
+                    completed_at=now,
                     resolution_summary="Seed preventive maintenance completed successfully.",
                     downtime_minutes=45,
                     follow_up_required=False,
@@ -172,10 +205,16 @@ class Command(BaseCommand):
                 title="Inspect equipment condition",
                 description="Perform the primary maintenance inspection step.",
                 sequence=1,
-                status=MaintenanceTask.Status.COMPLETED
-                if work_order.status == MaintenanceWorkOrder.Status.COMPLETED
-                else MaintenanceTask.Status.IN_PROGRESS,
-                completed_at=now if work_order.status == MaintenanceWorkOrder.Status.COMPLETED else None,
+                status=(
+                    MaintenanceTask.Status.COMPLETED
+                    if work_order.status == MaintenanceWorkOrder.Status.COMPLETED
+                    else MaintenanceTask.Status.IN_PROGRESS
+                ),
+                completed_at=(
+                    now
+                    if work_order.status == MaintenanceWorkOrder.Status.COMPLETED
+                    else None
+                ),
                 created_by=str(requester.id),
                 updated_by=str(requester.id),
             )
@@ -232,7 +271,11 @@ class Command(BaseCommand):
                 reason="Seed escalation visibility record.",
                 level=MaintenanceEscalation.Level.LEVEL_1,
                 is_active=work_order.status != MaintenanceWorkOrder.Status.COMPLETED,
-                resolved_at=now if work_order.status == MaintenanceWorkOrder.Status.COMPLETED else None,
+                resolved_at=(
+                    now
+                    if work_order.status == MaintenanceWorkOrder.Status.COMPLETED
+                    else None
+                ),
                 created_by=str(requester.id),
                 updated_by=str(requester.id),
             )

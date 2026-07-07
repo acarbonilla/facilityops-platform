@@ -211,11 +211,18 @@ export function buildMaintenanceTimeline(
     ...statusHistory.map((item) => ({
       id: `status-${item.id}`,
       type: "status" as const,
-      title: "Status changed",
+      title: `Workflow ${formatMaintenanceLabel(item.action)}`,
       description: `${formatMaintenanceLabel(item.from_status, "None")} to ${formatMaintenanceLabel(item.to_status)}`,
       actor: formatPersonLabel(item.changed_by_email, "System"),
       occurred_at: item.changed_at,
-      metadata: item.note ? { note: item.note } : undefined,
+      metadata:
+        item.reason || item.note
+          ? {
+              action: formatMaintenanceLabel(item.action),
+              reason: item.reason || "Not provided",
+              note: item.note || "Not provided",
+            }
+          : undefined,
     })),
     ...assignments.map((item) => ({
       id: `assignment-${item.id}`,

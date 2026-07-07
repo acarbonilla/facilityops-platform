@@ -1,14 +1,14 @@
 from django.core.exceptions import ValidationError
 
-
 WORK_ORDER_STATUS_TRANSITIONS = {
-    "draft": {"open", "cancelled"},
-    "open": {"assigned", "in_progress", "on_hold", "completed", "cancelled"},
-    "assigned": {"in_progress", "on_hold", "completed", "cancelled"},
+    "draft": {"open"},
+    "open": {"assigned", "cancelled"},
+    "assigned": {"in_progress", "cancelled"},
     "in_progress": {"on_hold", "completed", "cancelled"},
-    "on_hold": {"assigned", "in_progress", "completed", "cancelled"},
-    "completed": {"closed", "in_progress"},
-    "cancelled": {"closed"},
+    "on_hold": {"in_progress"},
+    "completed": {"reopened"},
+    "cancelled": {"reopened"},
+    "reopened": {"assigned"},
     "closed": set(),
 }
 
@@ -20,18 +20,17 @@ def validate_status_transition(from_status, to_status):
     allowed_statuses = WORK_ORDER_STATUS_TRANSITIONS.get(from_status, set())
     if to_status not in allowed_statuses:
         raise ValidationError(
-            {
-                "status": (
-                    f"Cannot change status from {from_status} to {to_status}."
-                )
-            }
+            {"status": (f"Cannot change status from {from_status} to {to_status}.")}
         )
 
 
 def collect_location_validation_errors(work_order):
     errors = {}
 
-    if work_order.organization_id and work_order.organization.tenant_id != work_order.tenant_id:
+    if (
+        work_order.organization_id
+        and work_order.organization.tenant_id != work_order.tenant_id
+    ):
         errors["organization"] = "Organization must belong to the selected tenant."
 
     if work_order.department_id:
@@ -46,9 +45,7 @@ def collect_location_validation_errors(work_order):
         if work_order.building.tenant_id != work_order.tenant_id:
             errors["building"] = "Building must belong to the selected tenant."
         if work_order.building.organization_id != work_order.organization_id:
-            errors["building"] = (
-                "Building must belong to the selected organization."
-            )
+            errors["building"] = "Building must belong to the selected organization."
 
     if work_order.floor_id:
         if work_order.floor.tenant_id != work_order.tenant_id:

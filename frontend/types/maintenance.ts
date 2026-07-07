@@ -6,6 +6,7 @@ export type MaintenanceWorkOrderStatus =
   | "on_hold"
   | "completed"
   | "cancelled"
+  | "reopened"
   | "closed";
 
 export type MaintenanceWorkOrderPriority =
@@ -14,6 +15,22 @@ export type MaintenanceWorkOrderPriority =
   | "high"
   | "critical";
 
+export type MaintenanceCategory =
+  | "preventive"
+  | "corrective"
+  | "emergency"
+  | "inspection"
+  | "installation"
+  | "other";
+
+export type MaintenanceType =
+  | "planned"
+  | "reactive"
+  | "preventive"
+  | "predictive"
+  | "breakdown"
+  | "other";
+
 export type MaintenanceSlaStatus =
   | "not_started"
   | "within_sla"
@@ -21,7 +38,11 @@ export type MaintenanceSlaStatus =
   | "breached"
   | "met"
   | "missed"
-  | "not_applicable";
+  | "not_applicable"
+  | "warning"
+  | "paused"
+  | "completed"
+  | "cancelled";
 
 export type MaintenanceTimelineEventType =
   | "history"
@@ -58,6 +79,9 @@ export interface MaintenanceListParams
   assignee_email?: string;
   requester_email?: string;
   overdue?: boolean;
+  is_overdue?: boolean;
+  sla_status?: MaintenanceSlaStatus;
+  has_active_escalation?: boolean;
   has_attachments?: boolean;
   created_from?: string;
   created_to?: string;
@@ -79,6 +103,8 @@ export interface MaintenanceListFilters {
   assigneeEmail: string;
   requesterEmail: string;
   overdue: boolean;
+  slaStatus: MaintenanceSlaStatus | "";
+  hasActiveEscalation: boolean;
   hasAttachments: boolean;
   createdFrom: string;
   createdTo: string;
@@ -114,6 +140,9 @@ export interface MaintenanceWorkOrderListItem {
   requested_at: string;
   due_at: string | null;
   attachments_count: number;
+  sla_status: MaintenanceSlaStatus;
+  sla_is_overdue: boolean;
+  has_active_escalation: boolean;
   created_by: string | null;
   updated_by: string | null;
   created_at: string;
@@ -123,11 +152,28 @@ export interface MaintenanceWorkOrderListItem {
 export interface MaintenanceAssignment {
   id: string;
   work_order: string;
+  tenant: string | null;
   assigned_to: string | null;
   assigned_to_email: string | null;
+  supervisor: string | null;
+  supervisor_email: string | null;
+  previous_assigned_to: string | null;
+  previous_assigned_to_email: string | null;
+  previous_supervisor: string | null;
+  previous_supervisor_email: string | null;
   assigned_by: string | null;
   assigned_by_email: string | null;
+  assignment_type: "technician" | "supervisor" | "combined" | "unassigned";
+  assignment_status:
+    | "assigned"
+    | "reassigned"
+    | "unassigned"
+    | "accepted"
+    | "declined"
+    | "completed";
+  reason: string;
   note: string;
+  notes: string;
   assigned_at: string;
   is_active: boolean;
   unassigned_at: string | null;
@@ -191,13 +237,24 @@ export interface MaintenanceAiSummary {
 export interface MaintenanceSla {
   id: string;
   work_order: string;
+  tenant: string | null;
+  priority: MaintenanceWorkOrderPriority;
+  response_target_minutes: number;
+  completion_target_minutes: number;
   response_due_at: string | null;
   resolution_due_at: string | null;
+  completion_due_at: string | null;
   first_responded_at: string | null;
+  responded_at: string | null;
   resolved_at: string | null;
+  completed_at: string | null;
   response_met: boolean | null;
   resolution_met: boolean | null;
+  response_breached: boolean;
+  completion_breached: boolean;
   sla_status: MaintenanceSlaStatus;
+  is_overdue: boolean;
+  last_recalculated_at: string | null;
 }
 
 export interface MaintenanceStatusHistory {
@@ -208,21 +265,50 @@ export interface MaintenanceStatusHistory {
   changed_by: string | null;
   changed_by_email: string | null;
   changed_at: string;
+  action:
+    | "submit"
+    | "assign"
+    | "start"
+    | "hold"
+    | "resume"
+    | "complete"
+    | "cancel"
+    | "reopen"
+    | "system";
+  reason: string;
   note: string;
 }
 
 export interface MaintenanceEscalation {
   id: string;
   work_order: string;
+  tenant: string | null;
+  sla: string | null;
   escalated_by: string | null;
   escalated_by_email: string | null;
   escalated_to: string | null;
   escalated_to_email: string | null;
   reason: string;
+  escalation_type:
+    | "response_warning"
+    | "response_breach"
+    | "completion_warning"
+    | "completion_breach";
   level: string;
+  status: "open" | "acknowledged" | "resolved" | "cancelled";
+  acknowledged_by: string | null;
+  acknowledged_by_email: string | null;
+  acknowledged_at: string | null;
+  resolved_by: string | null;
+  resolved_by_email: string | null;
   is_active: boolean;
   resolved_at: string | null;
+  notes: string;
   created_at: string;
+}
+
+export interface MaintenanceEscalationActionPayload {
+  notes?: string;
 }
 
 export interface MaintenanceCompletion {
@@ -232,6 +318,7 @@ export interface MaintenanceCompletion {
   completed_by_email: string | null;
   completion_notes: string;
   resolution_summary: string;
+  actual_hours: string | null;
   downtime_minutes: number | null;
   follow_up_required: boolean;
   completed_at: string;
@@ -288,4 +375,162 @@ export interface MaintenanceTimelineEvent {
   actor: string;
   occurred_at: string;
   metadata?: Record<string, unknown>;
+}
+
+export interface MaintenanceTaskFormValues {
+  title: string;
+  description: string;
+  assigned_technician: string;
+  estimated_hours: string;
+  sequence: string;
+  required: boolean;
+}
+
+export interface MaintenanceMaterialFormValues {
+  name: string;
+  quantity: string;
+  unit: string;
+  estimated_cost: string;
+  notes: string;
+}
+
+export interface MaintenanceLaborFormValues {
+  technician: string;
+  estimated_hours: string;
+  rate: string;
+  notes: string;
+}
+
+export interface MaintenanceWorkOrderFormValues {
+  tenant: string;
+  organization: string;
+  department: string;
+  requested_by: string;
+  title: string;
+  description: string;
+  category: MaintenanceCategory;
+  maintenance_type: MaintenanceType;
+  priority: MaintenanceWorkOrderPriority;
+  notes: string;
+  asset: string;
+  building: string;
+  floor: string;
+  area: string;
+  location_description: string;
+  requested_at: string;
+  due_at: string;
+  estimated_start_at: string;
+  estimated_completion_at: string;
+  estimated_hours: string;
+  assigned_technician: string;
+  supervisor: string;
+  assignment_team: string;
+  tasks: MaintenanceTaskFormValues[];
+  materials: MaintenanceMaterialFormValues[];
+  labor: MaintenanceLaborFormValues[];
+}
+
+export interface MaintenanceWorkOrderCreatePayload {
+  tenant: string;
+  organization: string;
+  department?: string | null;
+  building: string;
+  floor?: string | null;
+  area?: string | null;
+  asset: string;
+  title: string;
+  description: string;
+  priority: MaintenanceWorkOrderPriority;
+  scheduled_start_at?: string | null;
+  scheduled_end_at?: string | null;
+  due_at?: string | null;
+}
+
+export interface MaintenanceWorkOrderUpdatePayload
+  extends MaintenanceWorkOrderCreatePayload {
+  cancellation_reason?: string;
+}
+
+export interface MaintenanceFormOptions {
+  tenants: import("./master-data").Tenant[];
+  organizations: import("./master-data").Organization[];
+  departments: import("./master-data").Department[];
+  buildings: import("./master-data").Building[];
+  floors: import("./master-data").Floor[];
+  areas: import("./master-data").Area[];
+  assets: import("./master-data").Asset[];
+  supports_attachments: boolean;
+  supports_save_draft: boolean;
+  supports_assignment_persistence: boolean;
+  supports_task_persistence: boolean;
+  supports_material_persistence: boolean;
+  supports_labor_persistence: boolean;
+  supports_requester_selection: boolean;
+}
+
+export interface MaintenanceWorkflowAction {
+  key:
+    | "submit"
+    | "start"
+    | "hold"
+    | "resume"
+    | "complete"
+    | "cancel"
+    | "reopen";
+  label: string;
+  description: string;
+  to_status: MaintenanceWorkOrderStatus;
+  permission: string;
+  requiresDialog: boolean;
+}
+
+export interface MaintenanceAssignPayload {
+  assigned_to: string;
+  supervisor?: string | null;
+  notes?: string;
+}
+
+export interface MaintenanceReassignPayload extends MaintenanceAssignPayload {
+  reason: string;
+}
+
+export interface MaintenanceUnassignPayload {
+  reason: string;
+  notes?: string;
+}
+
+export interface MaintenanceAssignmentCandidate {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  roles: string[];
+}
+
+export interface MaintenanceSimpleWorkflowPayload {
+  note?: string;
+}
+
+export interface MaintenanceHoldPayload {
+  reason: string;
+  notes?: string;
+}
+
+export interface MaintenanceCompletePayload {
+  completion_notes: string;
+  actual_hours: string;
+  completed_at?: string;
+  resolution_summary?: string;
+  downtime_minutes?: number;
+  follow_up_required?: boolean;
+}
+
+export interface MaintenanceCancelPayload {
+  reason: string;
+  notes?: string;
+}
+
+export interface MaintenanceReopenPayload {
+  reason: string;
+  notes?: string;
 }

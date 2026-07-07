@@ -1,10 +1,9 @@
 from datetime import datetime, time
 
+from apps.master_data.services import apply_query_param_filters
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
-
-from apps.master_data.services import apply_query_param_filters
 
 
 def _parse_bool(value):
@@ -69,8 +68,9 @@ def apply_maintenance_search(queryset, search_term):
 
 
 def apply_maintenance_boolean_filters(queryset, params):
-    overdue = _parse_bool(params.get("overdue"))
+    overdue = _parse_bool(params.get("is_overdue", params.get("overdue")))
     has_attachments = _parse_bool(params.get("has_attachments"))
+    has_active_escalation = _parse_bool(params.get("has_active_escalation"))
 
     if overdue is True:
         queryset = queryset.filter(due_at__lt=timezone.now()).exclude(
@@ -86,6 +86,15 @@ def apply_maintenance_boolean_filters(queryset, params):
         queryset = queryset.filter(attachments__isnull=False)
     elif has_attachments is False:
         queryset = queryset.filter(attachments__isnull=True)
+
+    if has_active_escalation is True:
+        queryset = queryset.filter(escalations__status__in=("open", "acknowledged"))
+    elif has_active_escalation is False:
+        queryset = queryset.exclude(escalations__status__in=("open", "acknowledged"))
+
+    sla_status = params.get("sla_status")
+    if sla_status:
+        queryset = queryset.filter(sla_record__sla_status=sla_status)
 
     return queryset
 

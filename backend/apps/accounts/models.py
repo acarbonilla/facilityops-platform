@@ -1,8 +1,8 @@
+from apps.core.models import TimeStampedModel, UUIDModel
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
-
-from apps.core.models import TimeStampedModel, UUIDModel
 
 
 class UserManager(BaseUserManager):
@@ -36,6 +36,20 @@ class User(UUIDModel, TimeStampedModel, AbstractUser):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
+    tenant = models.ForeignKey(
+        "master_data.Tenant",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
+    organization = models.ForeignKey(
+        "master_data.Organization",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
@@ -45,6 +59,17 @@ class User(UUIDModel, TimeStampedModel, AbstractUser):
     class Meta:
         verbose_name = "user"
         verbose_name_plural = "users"
+
+    def clean(self):
+        super().clean()
+        if (
+            self.tenant_id
+            and self.organization_id
+            and self.organization.tenant_id != self.tenant_id
+        ):
+            raise ValidationError(
+                {"organization": "Organization must belong to the selected tenant."}
+            )
 
     def save(self, *args, **kwargs):
         if self.email:

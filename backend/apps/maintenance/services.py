@@ -1,16 +1,15 @@
 from datetime import timedelta
 
+from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 
 from .models import (
-    MaintenanceAssignment,
     MaintenanceCompletion,
     MaintenanceHistory,
-    MaintenanceSLA,
     MaintenanceStatusHistory,
     MaintenanceWorkOrder,
 )
-
+from .tenant_scope import user_can_access_tenant
 
 SLA_AT_RISK_WINDOW = timedelta(hours=4)
 DEFAULT_RESPONSE_SLA = timedelta(hours=4)
@@ -42,6 +41,8 @@ def record_status_history(
     from_status,
     to_status,
     changed_by=None,
+    action=MaintenanceStatusHistory.Action.SYSTEM,
+    reason="",
     note="",
 ):
     changed_by_id = str(changed_by.id) if changed_by else None
@@ -51,6 +52,8 @@ def record_status_history(
         to_status=to_status,
         changed_by=changed_by,
         changed_at=timezone.now(),
+        action=action,
+        reason=reason,
         note=note,
         created_by=changed_by_id,
         updated_by=changed_by_id,
@@ -66,65 +69,9 @@ def _calculate_deadline_met(actual_at, due_at):
 
 
 def calculate_sla(work_order):
-    resolution_due_at = work_order.due_at
-    defaults = {
-        "response_due_at": work_order.requested_at + DEFAULT_RESPONSE_SLA,
-        "resolution_due_at": resolution_due_at,
-    }
-    sla, _ = MaintenanceSLA.objects.get_or_create(
-        work_order=work_order,
-        defaults=defaults,
-    )
+    from .work_order_sla_service import recalculate_work_order_sla
 
-    if not sla.response_due_at:
-        sla.response_due_at = defaults["response_due_at"]
-    if not sla.resolution_due_at:
-        sla.resolution_due_at = resolution_due_at
-
-    sla.resolved_at = work_order.completed_at or work_order.closed_at
-    sla.response_met = _calculate_deadline_met(
-        sla.first_responded_at,
-        sla.response_due_at,
-    )
-    sla.resolution_met = _calculate_deadline_met(
-        sla.resolved_at,
-        sla.resolution_due_at,
-    )
-
-    if not sla.response_due_at and not sla.resolution_due_at:
-        sla.sla_status = MaintenanceSLA.Status.NOT_APPLICABLE
-    else:
-        now = timezone.now()
-        if sla.resolved_at:
-            if sla.response_met is False or sla.resolution_met is False:
-                sla.sla_status = MaintenanceSLA.Status.MISSED
-            else:
-                sla.sla_status = MaintenanceSLA.Status.MET
-        elif not sla.first_responded_at and sla.response_due_at:
-            if now > sla.response_due_at:
-                sla.sla_status = MaintenanceSLA.Status.BREACHED
-            elif sla.response_due_at - now <= SLA_AT_RISK_WINDOW:
-                sla.sla_status = MaintenanceSLA.Status.AT_RISK
-            elif work_order.status in {
-                MaintenanceWorkOrder.Status.DRAFT,
-                MaintenanceWorkOrder.Status.OPEN,
-            }:
-                sla.sla_status = MaintenanceSLA.Status.NOT_STARTED
-            else:
-                sla.sla_status = MaintenanceSLA.Status.WITHIN_SLA
-        elif sla.resolution_due_at:
-            if now > sla.resolution_due_at:
-                sla.sla_status = MaintenanceSLA.Status.BREACHED
-            elif sla.resolution_due_at - now <= SLA_AT_RISK_WINDOW:
-                sla.sla_status = MaintenanceSLA.Status.AT_RISK
-            else:
-                sla.sla_status = MaintenanceSLA.Status.WITHIN_SLA
-        else:
-            sla.sla_status = MaintenanceSLA.Status.WITHIN_SLA
-
-    sla.updated_by = work_order.updated_by
-    sla.save()
-    return sla
+    return recalculate_work_order_sla(work_order=work_order)
 
 
 def _mark_first_response(*, work_order, responded_at=None):
@@ -149,11 +96,14 @@ def _apply_status_timestamps(work_order, to_status):
     elif to_status == MaintenanceWorkOrder.Status.CLOSED:
         work_order.completed_at = work_order.completed_at or now
         work_order.closed_at = now
-    elif to_status == MaintenanceWorkOrder.Status.CANCELLED:
-        work_order.closed_at = now
+    elif to_status == MaintenanceWorkOrder.Status.REOPENED:
+        work_order.closed_at = None
+        work_order.completed_at = None
 
 
 def create_work_order(*, requester, data):
+    if not user_can_access_tenant(requester, data["tenant"].id):
+        raise PermissionDenied("You cannot create work orders for another tenant.")
     requester_id = str(requester.id)
     work_order = MaintenanceWorkOrder.objects.create(
         requester=requester,
@@ -174,12 +124,16 @@ def create_work_order(*, requester, data):
         from_status=None,
         to_status=work_order.status,
         changed_by=requester,
+        action=MaintenanceStatusHistory.Action.SYSTEM,
         note="Initial work order status.",
     )
     return work_order
 
 
 def update_work_order(*, work_order, data, actor=None):
+    target_tenant = data.get("tenant", work_order.tenant)
+    if actor and not user_can_access_tenant(actor, target_tenant.id):
+        raise PermissionDenied("You cannot move work orders to another tenant.")
     changes = {}
 
     for field, value in data.items():
@@ -205,68 +159,6 @@ def update_work_order(*, work_order, data, actor=None):
         actor=actor,
         metadata={"changes": changes},
     )
-    return work_order
-
-
-def assign_work_order(*, work_order, assigned_to, assigned_by=None, note=""):
-    assignment_time = timezone.now()
-    actor_id = str(assigned_by.id) if assigned_by else None
-
-    work_order.assignments.filter(is_active=True).update(
-        is_active=False,
-        unassigned_at=assignment_time,
-        updated_by=actor_id,
-    )
-
-    previous_assignee = work_order.assignee
-    previous_status = work_order.status
-    status_changed = work_order.status in {
-        MaintenanceWorkOrder.Status.DRAFT,
-        MaintenanceWorkOrder.Status.OPEN,
-    }
-
-    work_order.assignee = assigned_to
-    work_order.updated_by = actor_id
-    if status_changed:
-        work_order.status = MaintenanceWorkOrder.Status.ASSIGNED
-    work_order.save()
-
-    assignment = MaintenanceAssignment.objects.create(
-        work_order=work_order,
-        assigned_to=assigned_to,
-        assigned_by=assigned_by,
-        note=note,
-        assigned_at=assignment_time,
-        created_by=actor_id,
-        updated_by=actor_id,
-    )
-    _mark_first_response(work_order=work_order, responded_at=assignment_time)
-    calculate_sla(work_order)
-
-    record_history(
-        work_order=work_order,
-        action="assigned",
-        description=f"Work order assigned to {assigned_to.email}.",
-        actor=assigned_by,
-        metadata={
-            "assignment_id": str(assignment.id),
-            "previous_assignee": (
-                str(previous_assignee.id) if previous_assignee else None
-            ),
-            "new_assignee": str(assigned_to.id),
-            "note": note,
-        },
-    )
-
-    if status_changed:
-        record_status_history(
-            work_order=work_order,
-            from_status=previous_status,
-            to_status=work_order.status,
-            changed_by=assigned_by,
-            note=note or "Status updated during assignment.",
-        )
-
     return work_order
 
 
@@ -301,6 +193,8 @@ def change_status(
         from_status=from_status,
         to_status=to_status,
         changed_by=changed_by,
+        action=MaintenanceStatusHistory.Action.SYSTEM,
+        reason=cancellation_reason,
         note=note,
     )
     record_history(

@@ -1,13 +1,14 @@
 from datetime import timedelta
 
-from django.db.models import Case, Count, IntegerField, Value, When
+from common.pagination import StandardResultsSetPagination
+from django.contrib.auth import get_user_model
+from django.db.models import Case, Count, IntegerField, Prefetch, Q, Value, When
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
-from common.pagination import StandardResultsSetPagination
 
 from .filters import (
     apply_maintenance_boolean_filters,
@@ -17,19 +18,44 @@ from .filters import (
     apply_maintenance_search,
     apply_query_param_filters,
 )
-from .models import MaintenanceWorkOrder
+from .models import (
+    MaintenanceAssignment,
+    MaintenanceAttachment,
+    MaintenanceEscalation,
+    MaintenanceLabor,
+    MaintenanceStatusHistory,
+    MaintenanceTask,
+    MaintenanceWorkOrder,
+)
 from .permissions import HasMaintenancePermission
 from .serializers import (
+    EscalationSerializer,
     HistorySerializer,
+    MaintenanceAssignmentCandidateSerializer,
+    MaintenanceAssignmentHistorySerializer,
+    MaintenanceEscalationAcknowledgeSerializer,
+    MaintenanceEscalationResolveSerializer,
+    MaintenanceReassignSerializer,
+    MaintenanceSLARecalculateSerializer,
+    MaintenanceUnassignSerializer,
+    SLASerializer,
     WorkOrderAssignSerializer,
+    WorkOrderCancelSerializer,
     WorkOrderCompleteSerializer,
     WorkOrderCreateSerializer,
+    WorkOrderHoldSerializer,
     WorkOrderListSerializer,
+    WorkOrderReopenSerializer,
+    WorkOrderResumeSerializer,
     WorkOrderSerializer,
-    WorkOrderStatusSerializer,
+    WorkOrderStartSerializer,
+    WorkOrderSubmitSerializer,
     WorkOrderUpdateSerializer,
 )
-from .services import change_status
+from .tenant_scope import scope_work_orders_to_user
+from .work_order_sla_service import recalculate_work_order_sla
+
+User = get_user_model()
 
 
 class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
@@ -47,14 +73,6 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
         "completion_record",
         "ai_summary",
         "supervisor_approval",
-    ).prefetch_related(
-        "assignments",
-        "tasks",
-        "materials",
-        "labor_entries",
-        "status_history_entries",
-        "escalations",
-        "attachments",
     )
     permission_classes = [IsAuthenticated, HasMaintenancePermission]
     pagination_class = StandardResultsSetPagination
@@ -79,11 +97,18 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
             .get_queryset()
             .annotate(
                 attachments_count=Count("attachments", distinct=True),
+                active_escalation_count=Count(
+                    "escalations",
+                    filter=Q(escalations__status__in=("open", "acknowledged")),
+                    distinct=True,
+                ),
                 priority_rank=Case(
                     When(priority=MaintenanceWorkOrder.Priority.LOW, then=Value(1)),
                     When(priority=MaintenanceWorkOrder.Priority.MEDIUM, then=Value(2)),
                     When(priority=MaintenanceWorkOrder.Priority.HIGH, then=Value(3)),
-                    When(priority=MaintenanceWorkOrder.Priority.CRITICAL, then=Value(4)),
+                    When(
+                        priority=MaintenanceWorkOrder.Priority.CRITICAL, then=Value(4)
+                    ),
                     default=Value(0),
                     output_field=IntegerField(),
                 ),
@@ -98,13 +123,61 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
                     When(status=MaintenanceWorkOrder.Status.ON_HOLD, then=Value(5)),
                     When(status=MaintenanceWorkOrder.Status.COMPLETED, then=Value(6)),
                     When(status=MaintenanceWorkOrder.Status.CANCELLED, then=Value(7)),
-                    When(status=MaintenanceWorkOrder.Status.CLOSED, then=Value(8)),
+                    When(status=MaintenanceWorkOrder.Status.REOPENED, then=Value(8)),
+                    When(status=MaintenanceWorkOrder.Status.CLOSED, then=Value(9)),
                     default=Value(0),
                     output_field=IntegerField(),
                 ),
             )
             .distinct()
         )
+        queryset = scope_work_orders_to_user(queryset, self.request.user)
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "assignments",
+                    queryset=MaintenanceAssignment.objects.select_related(
+                        "tenant",
+                        "assigned_to",
+                        "supervisor",
+                        "previous_assigned_to",
+                        "previous_supervisor",
+                        "assigned_by",
+                    ),
+                ),
+                Prefetch(
+                    "tasks",
+                    queryset=MaintenanceTask.objects.select_related("assigned_to"),
+                ),
+                "materials",
+                Prefetch(
+                    "labor_entries",
+                    queryset=MaintenanceLabor.objects.select_related("performed_by"),
+                ),
+                Prefetch(
+                    "status_history_entries",
+                    queryset=MaintenanceStatusHistory.objects.select_related(
+                        "changed_by"
+                    ),
+                ),
+                Prefetch(
+                    "escalations",
+                    queryset=MaintenanceEscalation.objects.select_related(
+                        "tenant",
+                        "sla",
+                        "escalated_by",
+                        "escalated_to",
+                        "acknowledged_by",
+                        "resolved_by",
+                    ),
+                ),
+                Prefetch(
+                    "attachments",
+                    queryset=MaintenanceAttachment.objects.select_related(
+                        "uploaded_by"
+                    ),
+                ),
+            )
         queryset = apply_query_param_filters(
             queryset,
             self.request.query_params,
@@ -137,33 +210,81 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
         self.required_permissions_any = None
 
         if self.action in ("list", "retrieve", "history", "dashboard"):
-            self.required_permission = "maintenance.view"
-        elif self.action == "create":
-            self.required_permission = "maintenance.create"
-        elif self.action in ("partial_update", "update"):
-            self.required_permission = "maintenance.update"
-        elif self.action == "assign":
-            self.required_permission = "maintenance.assign"
-        elif self.action == "complete":
             self.required_permissions_any = (
-                "maintenance.complete",
+                "maintenance.work_order.view",
+                "maintenance.view",
                 "maintenance.manage",
             )
-        elif self.action == "change_status":
-            target_status = self.request.data.get("status")
-            if target_status in {
-                MaintenanceWorkOrder.Status.COMPLETED,
-                MaintenanceWorkOrder.Status.CLOSED,
-            }:
-                self.required_permissions_any = (
-                    "maintenance.complete",
-                    "maintenance.manage",
-                )
-            else:
-                self.required_permissions_any = (
-                    "maintenance.update",
-                    "maintenance.manage",
-                )
+        elif self.action == "assignments":
+            self.required_permissions_any = (
+                "maintenance.work_order.view_assignment",
+                "maintenance.view_assignment",
+                "maintenance.manage",
+            )
+        elif self.action == "sla":
+            self.required_permissions_any = (
+                "maintenance.work_order.view_sla",
+                "maintenance.view_sla",
+                "maintenance.manage",
+            )
+        elif self.action == "recalculate_sla":
+            self.required_permissions_any = (
+                "maintenance.work_order.recalculate_sla",
+                "maintenance.recalculate_sla",
+                "maintenance.manage",
+            )
+        elif self.action == "escalations":
+            self.required_permissions_any = (
+                "maintenance.work_order.view_escalation",
+                "maintenance.view_escalation",
+                "maintenance.manage",
+            )
+        elif self.action in ("acknowledge_escalation", "resolve_escalation"):
+            action_code = self.action.removesuffix("_escalation") + "_escalation"
+            self.required_permissions_any = (
+                f"maintenance.work_order.{action_code}",
+                f"maintenance.{action_code}",
+                "maintenance.manage",
+            )
+        elif self.action == "assignment_candidates":
+            self.required_permissions_any = (
+                "maintenance.work_order.view_assignment",
+                "maintenance.view_assignment",
+                "maintenance.work_order.assign",
+                "maintenance.assign",
+                "maintenance.work_order.reassign",
+                "maintenance.reassign",
+                "maintenance.manage",
+            )
+        elif self.action == "create":
+            self.required_permissions_any = (
+                "maintenance.work_order.create",
+                "maintenance.create",
+                "maintenance.manage",
+            )
+        elif self.action in ("partial_update", "update"):
+            self.required_permissions_any = (
+                "maintenance.work_order.update",
+                "maintenance.update",
+                "maintenance.manage",
+            )
+        elif self.action in {
+            "submit",
+            "assign",
+            "reassign",
+            "unassign",
+            "start",
+            "hold",
+            "resume",
+            "complete",
+            "cancel",
+            "reopen",
+        }:
+            self.required_permissions_any = (
+                f"maintenance.work_order.{self.action}",
+                f"maintenance.{self.action}",
+                "maintenance.manage",
+            )
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -173,12 +294,40 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
             return WorkOrderCreateSerializer
         if self.action in ("partial_update", "update"):
             return WorkOrderUpdateSerializer
+        if self.action == "submit":
+            return WorkOrderSubmitSerializer
         if self.action == "assign":
             return WorkOrderAssignSerializer
-        if self.action == "change_status":
-            return WorkOrderStatusSerializer
+        if self.action == "reassign":
+            return MaintenanceReassignSerializer
+        if self.action == "unassign":
+            return MaintenanceUnassignSerializer
+        if self.action == "assignments":
+            return MaintenanceAssignmentHistorySerializer
+        if self.action == "assignment_candidates":
+            return MaintenanceAssignmentCandidateSerializer
+        if self.action == "sla":
+            return SLASerializer
+        if self.action == "recalculate_sla":
+            return MaintenanceSLARecalculateSerializer
+        if self.action == "escalations":
+            return EscalationSerializer
+        if self.action == "acknowledge_escalation":
+            return MaintenanceEscalationAcknowledgeSerializer
+        if self.action == "resolve_escalation":
+            return MaintenanceEscalationResolveSerializer
+        if self.action == "start":
+            return WorkOrderStartSerializer
+        if self.action == "hold":
+            return WorkOrderHoldSerializer
+        if self.action == "resume":
+            return WorkOrderResumeSerializer
         if self.action == "complete":
             return WorkOrderCompleteSerializer
+        if self.action == "cancel":
+            return WorkOrderCancelSerializer
+        if self.action == "reopen":
+            return WorkOrderReopenSerializer
         if self.action == "history":
             return HistorySerializer
         return WorkOrderSerializer
@@ -258,53 +407,147 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):
         work_order = self.get_object()
-        serializer = self.get_serializer(
-            data=request.data,
-            context={"request": request, "work_order": work_order},
-        )
-        serializer.is_valid(raise_exception=True)
-        work_order = serializer.save()
-        response_serializer = WorkOrderSerializer(
-            work_order,
-            context=self.get_serializer_context(),
-        )
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return self._run_workflow_action(request, work_order)
 
-    @action(detail=True, methods=["post"], url_path="status")
-    def change_status(self, request, pk=None):
+    @action(detail=True, methods=["post"], url_path="reassign")
+    def reassign(self, request, pk=None):
+        return self._run_workflow_action(request, self.get_object())
+
+    @action(detail=True, methods=["post"], url_path="unassign")
+    def unassign(self, request, pk=None):
+        return self._run_workflow_action(request, self.get_object())
+
+    @action(detail=True, methods=["get"], url_path="assignments")
+    def assignments(self, request, pk=None):
+        queryset = self.get_object().assignments.select_related(
+            "tenant",
+            "assigned_to",
+            "supervisor",
+            "previous_assigned_to",
+            "previous_supervisor",
+            "assigned_by",
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="assignment-candidates")
+    def assignment_candidates(self, request, pk=None):
+        work_order = self.get_object()
+        queryset = (
+            User.objects.filter(
+                is_active=True,
+                tenant=work_order.tenant,
+            )
+            .prefetch_related("user_roles__role")
+            .order_by("first_name", "last_name", "email")
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="sla")
+    def sla(self, request, pk=None):
+        sla = recalculate_work_order_sla(work_order=self.get_object())
+        return Response(self.get_serializer(sla).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="sla/recalculate")
+    def recalculate_sla(self, request, pk=None):
         work_order = self.get_object()
         serializer = self.get_serializer(
             data=request.data,
             context={"request": request, "work_order": work_order},
         )
         serializer.is_valid(raise_exception=True)
-        work_order = change_status(
-            work_order=work_order,
-            to_status=serializer.validated_data["status"],
-            changed_by=request.user,
-            note=serializer.validated_data.get("note", ""),
-            cancellation_reason=serializer.validated_data.get(
-                "cancellation_reason",
-                "",
-            ),
+        sla = serializer.save()
+        return Response(SLASerializer(sla).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="escalations")
+    def escalations(self, request, pk=None):
+        queryset = self.get_object().escalations.select_related(
+            "tenant",
+            "sla",
+            "escalated_by",
+            "escalated_to",
+            "acknowledged_by",
+            "resolved_by",
         )
+        return Response(self.get_serializer(queryset, many=True).data)
+
+    def _run_escalation_action(self, request, escalation_id):
+        work_order = self.get_object()
+        escalation = get_object_or_404(
+            MaintenanceEscalation,
+            pk=escalation_id,
+            work_order=work_order,
+            tenant=work_order.tenant,
+        )
+        serializer = self.get_serializer(
+            data=request.data,
+            context={"request": request, "escalation": escalation},
+        )
+        serializer.is_valid(raise_exception=True)
+        escalation = serializer.save()
+        return Response(EscalationSerializer(escalation).data)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"escalations/(?P<escalation_id>[^/.]+)/acknowledge",
+    )
+    def acknowledge_escalation(self, request, pk=None, escalation_id=None):
+        return self._run_escalation_action(request, escalation_id)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"escalations/(?P<escalation_id>[^/.]+)/resolve",
+    )
+    def resolve_escalation(self, request, pk=None, escalation_id=None):
+        return self._run_escalation_action(request, escalation_id)
+
+    def _run_workflow_action(self, request, work_order):
+        serializer = self.get_serializer(
+            data=request.data,
+            context={"request": request, "work_order": work_order},
+        )
+        serializer.is_valid(raise_exception=True)
+        updated_work_order = serializer.save()
         response_serializer = WorkOrderSerializer(
-            work_order,
+            updated_work_order,
             context=self.get_serializer_context(),
         )
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="submit")
+    def submit(self, request, pk=None):
+        work_order = self.get_object()
+        return self._run_workflow_action(request, work_order)
+
+    @action(detail=True, methods=["post"], url_path="start")
+    def start(self, request, pk=None):
+        work_order = self.get_object()
+        return self._run_workflow_action(request, work_order)
+
+    @action(detail=True, methods=["post"], url_path="hold")
+    def hold(self, request, pk=None):
+        work_order = self.get_object()
+        return self._run_workflow_action(request, work_order)
+
+    @action(detail=True, methods=["post"], url_path="resume")
+    def resume(self, request, pk=None):
+        work_order = self.get_object()
+        return self._run_workflow_action(request, work_order)
 
     @action(detail=True, methods=["post"], url_path="complete")
     def complete(self, request, pk=None):
         work_order = self.get_object()
-        serializer = self.get_serializer(
-            data=request.data,
-            context={"request": request, "work_order": work_order},
-        )
-        serializer.is_valid(raise_exception=True)
-        work_order = serializer.save()
-        response_serializer = WorkOrderSerializer(
-            work_order,
-            context=self.get_serializer_context(),
-        )
-        return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return self._run_workflow_action(request, work_order)
+
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        work_order = self.get_object()
+        return self._run_workflow_action(request, work_order)
+
+    @action(detail=True, methods=["post"], url_path="reopen")
+    def reopen(self, request, pk=None):
+        work_order = self.get_object()
+        return self._run_workflow_action(request, work_order)

@@ -49,5 +49,26 @@ export const API_ENDPOINTS = {
     workOrders: "/maintenance/work-orders/",
     workOrder: (id: string) => `/maintenance/work-orders/${id}/`,
     history: (id: string) => `/maintenance/work-orders/${id}/history/`,
+    submit: (id: string) => `/maintenance/work-orders/${id}/submit/`,
+    assign: (id: string) => `/maintenance/work-orders/${id}/assign/`,
+    reassign: (id: string) => `/maintenance/work-orders/${id}/reassign/`,
+    unassign: (id: string) => `/maintenance/work-orders/${id}/unassign/`,
+    assignments: (id: string) => `/maintenance/work-orders/${id}/assignments/`,
+    assignmentCandidates: (id: string) =>
+      `/maintenance/work-orders/${id}/assignment-candidates/`,
+    sla: (id: string) => `/maintenance/work-orders/${id}/sla/`,
+    recalculateSla: (id: string) =>
+      `/maintenance/work-orders/${id}/sla/recalculate/`,
+    escalations: (id: string) => `/maintenance/work-orders/${id}/escalations/`,
+    acknowledgeEscalation: (workOrderId: string, escalationId: string) =>
+      `/maintenance/work-orders/${workOrderId}/escalations/${escalationId}/acknowledge/`,
+    resolveEscalation: (workOrderId: string, escalationId: string) =>
+      `/maintenance/work-orders/${workOrderId}/escalations/${escalationId}/resolve/`,
+    start: (id: string) => `/maintenance/work-orders/${id}/start/`,
+    hold: (id: string) => `/maintenance/work-orders/${id}/hold/`,
+    resume: (id: string) => `/maintenance/work-orders/${id}/resume/`,
+    complete: (id: string) => `/maintenance/work-orders/${id}/complete/`,
+    cancel: (id: string) => `/maintenance/work-orders/${id}/cancel/`,
+    reopen: (id: string) => `/maintenance/work-orders/${id}/reopen/`,
   },
 } as const;

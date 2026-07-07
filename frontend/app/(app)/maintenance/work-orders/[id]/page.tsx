@@ -14,7 +14,10 @@ export default function MaintenanceWorkOrderDetailPage({
   const { id } = use(params);
 
   return (
-    <ProtectedPermissionRoute requiredPermission="maintenance.view">
+    <ProtectedPermissionRoute
+      mode="any"
+      requiredPermissions={["maintenance.view", "maintenance.work_order.view"]}
+    >
       <AppShell>
         <MaintenanceDetailScreen id={id} />
       </AppShell>

@@ -21,7 +21,14 @@ class LoginView(APIView):
         user_data = UserSerializer(serializer.validated_data["user"]).data
         response_user = {
             key: user_data[key]
-            for key in ("id", "email", "first_name", "last_name")
+            for key in (
+                "id",
+                "email",
+                "first_name",
+                "last_name",
+                "tenant",
+                "organization",
+            )
         }
         return Response(
             {

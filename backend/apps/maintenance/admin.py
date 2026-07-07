@@ -16,7 +16,6 @@ from .models import (
     MaintenanceWorkOrder,
 )
 
-
 AUDIT_READONLY_FIELDS = (
     "created_at",
     "updated_at",
@@ -72,7 +71,9 @@ class MaintenanceAssignmentAdmin(admin.ModelAdmin):
     list_display = (
         "work_order",
         "assigned_to",
+        "supervisor",
         "assigned_by",
+        "assignment_status",
         "is_active",
         "assigned_at",
         "unassigned_at",
@@ -80,16 +81,24 @@ class MaintenanceAssignmentAdmin(admin.ModelAdmin):
     search_fields = (
         "work_order__work_order_number",
         "assigned_to__email",
+        "supervisor__email",
         "assigned_by__email",
         "note",
     )
-    list_filter = ("is_active", "assigned_at")
+    list_filter = ("assignment_status", "assignment_type", "is_active", "assigned_at")
     readonly_fields = ("assigned_at", "unassigned_at") + AUDIT_READONLY_FIELDS
 
 
 @admin.register(MaintenanceTask)
 class MaintenanceTaskAdmin(admin.ModelAdmin):
-    list_display = ("work_order", "sequence", "title", "status", "assigned_to", "completed_at")
+    list_display = (
+        "work_order",
+        "sequence",
+        "title",
+        "status",
+        "assigned_to",
+        "completed_at",
+    )
     search_fields = ("work_order__work_order_number", "title", "assigned_to__email")
     list_filter = ("status", "completed_at")
     readonly_fields = ("completed_at",) + AUDIT_READONLY_FIELDS
@@ -106,7 +115,11 @@ class MaintenanceMaterialAdmin(admin.ModelAdmin):
 @admin.register(MaintenanceLabor)
 class MaintenanceLaborAdmin(admin.ModelAdmin):
     list_display = ("work_order", "performed_by", "hours", "labor_date")
-    search_fields = ("work_order__work_order_number", "performed_by__email", "description")
+    search_fields = (
+        "work_order__work_order_number",
+        "performed_by__email",
+        "description",
+    )
     list_filter = ("labor_date",)
     readonly_fields = AUDIT_READONLY_FIELDS
 
@@ -137,7 +150,13 @@ class MaintenanceSupervisorApprovalAdmin(admin.ModelAdmin):
 
 @admin.register(MaintenanceCompletion)
 class MaintenanceCompletionAdmin(admin.ModelAdmin):
-    list_display = ("work_order", "completed_by", "completed_at", "follow_up_required")
+    list_display = (
+        "work_order",
+        "completed_by",
+        "actual_hours",
+        "completed_at",
+        "follow_up_required",
+    )
     search_fields = (
         "work_order__work_order_number",
         "completed_by__email",
@@ -163,13 +182,21 @@ class MaintenanceHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(MaintenanceStatusHistory)
 class MaintenanceStatusHistoryAdmin(admin.ModelAdmin):
-    list_display = ("work_order", "from_status", "to_status", "changed_by", "changed_at")
+    list_display = (
+        "work_order",
+        "action",
+        "from_status",
+        "to_status",
+        "changed_by",
+        "changed_at",
+    )
     search_fields = (
         "work_order__work_order_number",
         "changed_by__email",
+        "reason",
         "note",
     )
-    list_filter = ("from_status", "to_status", "changed_at")
+    list_filter = ("action", "from_status", "to_status", "changed_at")
     readonly_fields = ("changed_at",) + AUDIT_READONLY_FIELDS
 
 
@@ -178,6 +205,8 @@ class MaintenanceEscalationAdmin(admin.ModelAdmin):
     list_display = (
         "work_order",
         "level",
+        "escalation_type",
+        "status",
         "escalated_by",
         "escalated_to",
         "is_active",
@@ -190,7 +219,7 @@ class MaintenanceEscalationAdmin(admin.ModelAdmin):
         "escalated_to__email",
         "reason",
     )
-    list_filter = ("level", "is_active", "created_at")
+    list_filter = ("level", "status", "escalation_type", "is_active", "created_at")
     readonly_fields = ("resolved_at",) + AUDIT_READONLY_FIELDS
 
 
@@ -199,11 +228,19 @@ class MaintenanceSLAAdmin(admin.ModelAdmin):
     list_display = (
         "work_order",
         "sla_status",
+        "priority",
         "response_due_at",
         "resolution_due_at",
         "response_met",
         "resolution_met",
+        "response_breached",
+        "completion_breached",
     )
     search_fields = ("work_order__work_order_number",)
-    list_filter = ("sla_status", "response_met", "resolution_met")
+    list_filter = (
+        "sla_status",
+        "priority",
+        "response_breached",
+        "completion_breached",
+    )
     readonly_fields = AUDIT_READONLY_FIELDS

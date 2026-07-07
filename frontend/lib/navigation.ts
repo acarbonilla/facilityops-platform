@@ -19,7 +19,8 @@ export const APP_NAVIGATION: NavigationItem[] = [
     label: "Maintenance",
     href: "/maintenance",
     authenticatedOnly: true,
-    requiredPermissions: ["maintenance.view"],
+    requiredPermissions: ["maintenance.view", "maintenance.work_order.view"],
+    permissionMode: "any",
     matchStrategy: "prefix",
   },
   {

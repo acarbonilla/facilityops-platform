@@ -6,7 +6,10 @@ import { MaintenanceDashboardScreen } from "@/features/maintenance/components/ma
 
 export default function MaintenanceDashboardPage() {
   return (
-    <ProtectedPermissionRoute requiredPermission="maintenance.view">
+    <ProtectedPermissionRoute
+      mode="any"
+      requiredPermissions={["maintenance.view", "maintenance.work_order.view"]}
+    >
       <AppShell>
         <MaintenanceDashboardScreen />
       </AppShell>

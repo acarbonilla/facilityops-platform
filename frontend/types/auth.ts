@@ -10,6 +10,8 @@ export interface AuthUser {
   email: string;
   first_name: string;
   last_name: string;
+  tenant: string | null;
+  organization: string | null;
   is_staff: boolean;
 }
 

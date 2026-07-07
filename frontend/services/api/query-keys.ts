@@ -110,6 +110,12 @@ export const maintenanceQueryKeys = {
     ["maintenance", "dashboard", normalizeMaintenanceParams(params)] as const,
   list: (params?: MaintenanceListParams) =>
     ["maintenance", "list", normalizeMaintenanceParams(params)] as const,
+  formOptions: () => ["maintenance", "form-options"] as const,
   detail: (id: string) => ["maintenance", "detail", id] as const,
   history: (id: string) => ["maintenance", "history", id] as const,
+  assignments: (id: string) => ["maintenance", "assignments", id] as const,
+  assignmentCandidates: (id: string) =>
+    ["maintenance", "assignment-candidates", id] as const,
+  sla: (id: string) => ["maintenance", "sla", id] as const,
+  escalations: (id: string) => ["maintenance", "escalations", id] as const,
 };

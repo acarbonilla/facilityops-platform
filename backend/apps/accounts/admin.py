@@ -11,6 +11,8 @@ class UserAdmin(DjangoUserAdmin):
         "email",
         "first_name",
         "last_name",
+        "tenant",
+        "organization",
         "is_active",
         "is_staff",
         "is_superuser",
@@ -19,7 +21,10 @@ class UserAdmin(DjangoUserAdmin):
     readonly_fields = ("date_joined", "last_login", "created_at", "updated_at")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Personal info", {"fields": ("first_name", "last_name")}),
+        (
+            "Personal info",
+            {"fields": ("first_name", "last_name", "tenant", "organization")},
+        ),
         (
             "Permissions",
             {
@@ -46,6 +51,8 @@ class UserAdmin(DjangoUserAdmin):
                     "password2",
                     "first_name",
                     "last_name",
+                    "tenant",
+                    "organization",
                     "is_active",
                     "is_staff",
                     "is_superuser",

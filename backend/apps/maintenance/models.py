@@ -1,10 +1,5 @@
 from decimal import Decimal
 
-from django.conf import settings
-from django.core.exceptions import ValidationError
-from django.db import models
-from django.utils import timezone
-
 from apps.core.models import BaseModel
 from apps.master_data.models import (
     Area,
@@ -15,6 +10,10 @@ from apps.master_data.models import (
     Organization,
     Tenant,
 )
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.db import models
+from django.utils import timezone
 
 from .validators import collect_location_validation_errors
 
@@ -28,6 +27,7 @@ class MaintenanceWorkOrder(BaseModel):
         ON_HOLD = "on_hold", "On Hold"
         COMPLETED = "completed", "Completed"
         CANCELLED = "cancelled", "Cancelled"
+        REOPENED = "reopened", "Reopened"
         CLOSED = "closed", "Closed"
 
     class Priority(models.TextChoices):
@@ -198,6 +198,27 @@ class MaintenanceWorkOrder(BaseModel):
 
 
 class MaintenanceAssignment(BaseModel):
+    class AssignmentType(models.TextChoices):
+        TECHNICIAN = "technician", "Technician"
+        SUPERVISOR = "supervisor", "Supervisor"
+        COMBINED = "combined", "Technician and Supervisor"
+        UNASSIGNED = "unassigned", "Unassigned"
+
+    class AssignmentStatus(models.TextChoices):
+        ASSIGNED = "assigned", "Assigned"
+        REASSIGNED = "reassigned", "Reassigned"
+        UNASSIGNED = "unassigned", "Unassigned"
+        ACCEPTED = "accepted", "Accepted"
+        DECLINED = "declined", "Declined"
+        COMPLETED = "completed", "Completed"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="maintenance_assignments",
+    )
     work_order = models.ForeignKey(
         MaintenanceWorkOrder,
         on_delete=models.CASCADE,
@@ -217,6 +238,39 @@ class MaintenanceAssignment(BaseModel):
         blank=True,
         related_name="maintenance_assignments_created",
     )
+    supervisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="maintenance_supervision_assignments",
+    )
+    previous_assigned_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="previous_maintenance_assignments",
+    )
+    previous_supervisor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="previous_maintenance_supervision_assignments",
+    )
+    assignment_type = models.CharField(
+        max_length=24,
+        choices=AssignmentType.choices,
+        default=AssignmentType.TECHNICIAN,
+    )
+    assignment_status = models.CharField(
+        max_length=24,
+        choices=AssignmentStatus.choices,
+        default=AssignmentStatus.ASSIGNED,
+        db_index=True,
+    )
+    reason = models.TextField(blank=True)
     note = models.TextField(blank=True)
     assigned_at = models.DateTimeField(default=timezone.now, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
@@ -229,8 +283,20 @@ class MaintenanceAssignment(BaseModel):
         super().clean()
 
         errors = {}
+        if self.tenant_id and self.work_order_id:
+            work_order_tenant_id = self.work_order.tenant_id
+            if self.tenant_id != work_order_tenant_id:
+                errors["tenant"] = "Assignment tenant must match the work order tenant."
+        if (
+            self.assigned_to_id
+            and self.supervisor_id
+            and self.assigned_to_id == self.supervisor_id
+        ):
+            errors["supervisor"] = "Technician and supervisor must be different users."
         if self.unassigned_at and self.is_active:
-            errors["is_active"] = "Inactive timestamp is only valid for inactive assignments."
+            errors["is_active"] = (
+                "Inactive timestamp is only valid for inactive assignments."
+            )
         if not self.is_active and not self.unassigned_at:
             errors["unassigned_at"] = (
                 "Inactive assignments must include an unassigned timestamp."
@@ -303,7 +369,9 @@ class MaintenanceMaterial(BaseModel):
         related_name="materials",
     )
     name = models.CharField(max_length=150)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("1.00"))
+    quantity = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("1.00")
+    )
     unit = models.CharField(max_length=50, default="unit")
     notes = models.TextField(blank=True)
 
@@ -431,6 +499,12 @@ class MaintenanceCompletion(BaseModel):
     )
     completion_notes = models.TextField(blank=True)
     resolution_summary = models.TextField(blank=True)
+    actual_hours = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     downtime_minutes = models.PositiveIntegerField(null=True, blank=True)
     follow_up_required = models.BooleanField(default=False)
     completed_at = models.DateTimeField(default=timezone.now, db_index=True)
@@ -464,6 +538,17 @@ class MaintenanceHistory(BaseModel):
 
 
 class MaintenanceStatusHistory(BaseModel):
+    class Action(models.TextChoices):
+        SUBMIT = "submit", "Submit"
+        ASSIGN = "assign", "Assign"
+        START = "start", "Start"
+        HOLD = "hold", "Hold"
+        RESUME = "resume", "Resume"
+        COMPLETE = "complete", "Complete"
+        CANCEL = "cancel", "Cancel"
+        REOPEN = "reopen", "Reopen"
+        SYSTEM = "system", "System"
+
     work_order = models.ForeignKey(
         MaintenanceWorkOrder,
         on_delete=models.CASCADE,
@@ -487,6 +572,12 @@ class MaintenanceStatusHistory(BaseModel):
         related_name="maintenance_status_changes",
     )
     changed_at = models.DateTimeField(default=timezone.now, db_index=True)
+    action = models.CharField(
+        max_length=20,
+        choices=Action.choices,
+        default=Action.SYSTEM,
+    )
+    reason = models.TextField(blank=True)
     note = models.TextField(blank=True)
 
     class Meta:
@@ -503,9 +594,36 @@ class MaintenanceEscalation(BaseModel):
         LEVEL_3 = "level_3", "Level 3"
         MANAGEMENT = "management", "Management"
 
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        ACKNOWLEDGED = "acknowledged", "Acknowledged"
+        RESOLVED = "resolved", "Resolved"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class EscalationType(models.TextChoices):
+        RESPONSE_WARNING = "response_warning", "Response Warning"
+        RESPONSE_BREACH = "response_breach", "Response Breach"
+        COMPLETION_WARNING = "completion_warning", "Completion Warning"
+        COMPLETION_BREACH = "completion_breach", "Completion Breach"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="maintenance_escalations",
+    )
+
     work_order = models.ForeignKey(
         MaintenanceWorkOrder,
         on_delete=models.CASCADE,
+        related_name="escalations",
+    )
+    sla = models.ForeignKey(
+        "MaintenanceSLA",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="escalations",
     )
     escalated_by = models.ForeignKey(
@@ -529,8 +647,29 @@ class MaintenanceEscalation(BaseModel):
         blank=True,
         related_name="maintenance_escalations_resolved",
     )
+    acknowledged_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="maintenance_escalations_acknowledged",
+    )
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
     reason = models.TextField()
+    escalation_type = models.CharField(
+        max_length=32,
+        choices=EscalationType.choices,
+        default=EscalationType.COMPLETION_BREACH,
+        db_index=True,
+    )
     level = models.CharField(max_length=20, choices=Level.choices)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.OPEN,
+        db_index=True,
+    )
+    notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True, db_index=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
 
@@ -541,6 +680,18 @@ class MaintenanceEscalation(BaseModel):
         super().clean()
 
         errors = {}
+        if (
+            self.tenant_id
+            and self.work_order_id
+            and self.tenant_id != self.work_order.tenant_id
+        ):
+            errors["tenant"] = "Escalation tenant must match the work order tenant."
+        if (
+            self.sla_id
+            and self.work_order_id
+            and self.sla.work_order_id != self.work_order_id
+        ):
+            errors["sla"] = "Escalation SLA must belong to the work order."
         if self.resolved_at and self.is_active:
             errors["is_active"] = "Resolved escalations cannot remain active."
         if not self.is_active and not self.resolved_at:
@@ -563,23 +714,45 @@ class MaintenanceSLA(BaseModel):
         MET = "met", "Met"
         MISSED = "missed", "Missed"
         NOT_APPLICABLE = "not_applicable", "Not Applicable"
+        WARNING = "warning", "Warning"
+        PAUSED = "paused", "Paused"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="maintenance_sla_records",
+    )
 
     work_order = models.OneToOneField(
         MaintenanceWorkOrder,
         on_delete=models.CASCADE,
         related_name="sla_record",
     )
+    priority = models.CharField(
+        max_length=20,
+        choices=MaintenanceWorkOrder.Priority.choices,
+        default=MaintenanceWorkOrder.Priority.MEDIUM,
+    )
+    response_target_minutes = models.PositiveIntegerField(default=240)
+    completion_target_minutes = models.PositiveIntegerField(default=1440)
     response_due_at = models.DateTimeField(null=True, blank=True)
     resolution_due_at = models.DateTimeField(null=True, blank=True)
     first_responded_at = models.DateTimeField(null=True, blank=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
     response_met = models.BooleanField(null=True, blank=True)
     resolution_met = models.BooleanField(null=True, blank=True)
+    response_breached = models.BooleanField(default=False)
+    completion_breached = models.BooleanField(default=False)
     sla_status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.NOT_APPLICABLE,
     )
+    last_recalculated_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"SLA for {self.work_order}"

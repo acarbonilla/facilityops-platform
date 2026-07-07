@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useMaintenanceList } from "@/hooks/use-maintenance-list";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   getAreas,
   getBuildings,
@@ -31,6 +32,11 @@ import { MaintenanceLoadingSkeleton } from "./maintenance-loading-skeleton";
 import { MaintenancePagination } from "./maintenance-pagination";
 import { MaintenancePriorityBadge } from "./maintenance-priority-badge";
 import { MaintenanceStatusBadge } from "./maintenance-status-badge";
+import {
+  MaintenanceEscalationBadge,
+  MaintenanceOverdueBadge,
+  MaintenanceSLAStatusBadge,
+} from "./maintenance-sla-badges";
 
 const DEFAULT_FILTERS: MaintenanceListFilters = {
   search: "",
@@ -43,6 +49,8 @@ const DEFAULT_FILTERS: MaintenanceListFilters = {
   assigneeEmail: "",
   requesterEmail: "",
   overdue: false,
+  slaStatus: "",
+  hasActiveEscalation: false,
   hasAttachments: false,
   createdFrom: "",
   createdTo: "",
@@ -74,7 +82,9 @@ function buildQueryParams(
     area: filters.area || undefined,
     assignee_email: filters.assigneeEmail || undefined,
     requester_email: filters.requesterEmail || undefined,
-    overdue: filters.overdue ? true : undefined,
+    is_overdue: filters.overdue ? true : undefined,
+    sla_status: filters.slaStatus || undefined,
+    has_active_escalation: filters.hasActiveEscalation ? true : undefined,
     has_attachments: filters.hasAttachments ? true : undefined,
     created_from: filters.createdFrom || undefined,
     created_to: filters.createdTo || undefined,
@@ -83,6 +93,7 @@ function buildQueryParams(
 }
 
 export function MaintenanceListScreen() {
+  const { hasPermission, permissionsLoading } = usePermissions();
   const [filters, setFilters] = useState<MaintenanceListFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(filters.search.trim());
@@ -153,6 +164,16 @@ export function MaintenanceListScreen() {
       cell: (item) => <MaintenanceStatusBadge status={item.status} />,
     },
     {
+      header: "SLA",
+      cell: (item) => (
+        <div className="flex min-w-32 flex-col items-start gap-1.5">
+          <MaintenanceSLAStatusBadge status={item.sla_status} />
+          {item.sla_is_overdue ? <MaintenanceOverdueBadge /> : null}
+          {item.has_active_escalation ? <MaintenanceEscalationBadge /> : null}
+        </div>
+      ),
+    },
+    {
       header: "Assigned To",
       cell: (item) => formatPersonLabel(item.assignee_email),
       className: "min-w-48 whitespace-normal",
@@ -193,11 +214,23 @@ export function MaintenanceListScreen() {
         eyebrow="Maintenance"
         title="Maintenance Work Orders"
       >
-        <dl className="grid gap-4 sm:grid-cols-3">
-          <DetailField label="Visible rows" value={rows.length} />
-          <DetailField label="Current page" value={page} />
-          <DetailField label="Total records" value={listQuery.data?.count ?? 0} />
-        </dl>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <dl className="grid gap-4 sm:grid-cols-3">
+            <DetailField label="Visible rows" value={rows.length} />
+            <DetailField label="Current page" value={page} />
+            <DetailField label="Total records" value={listQuery.data?.count ?? 0} />
+          </dl>
+          {!permissionsLoading &&
+          (hasPermission("maintenance.create") ||
+            hasPermission("maintenance.work_order.create")) ? (
+            <Link
+              className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href="/maintenance/work-orders/new"
+            >
+              New Work Order
+            </Link>
+          ) : null}
+        </div>
       </PageHeader>
 
       <MaintenanceFilters

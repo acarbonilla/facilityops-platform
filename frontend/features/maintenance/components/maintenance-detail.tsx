@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 import { DataTable, type DataTableColumn } from "@/components/common/data-table";
 import { EmptyState } from "@/components/common/empty-state";
@@ -8,10 +9,11 @@ import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useMaintenanceDetail } from "@/hooks/use-maintenance-detail";
 import { useMaintenanceHistory } from "@/hooks/use-maintenance-history";
+import { usePermissions } from "@/hooks/use-permissions";
+import { readMaintenanceFormFlash } from "@/lib/maintenance/form";
 import {
   buildMaintenanceTimeline,
   calculateTaskCompletionPercent,
-  formatDate,
   formatDateTime,
   formatDurationHours,
   formatFileSize,
@@ -19,8 +21,6 @@ import {
   formatMaintenanceError,
   formatMaintenanceLabel,
   formatPersonLabel,
-  formatRemainingTime,
-  formatResponseTime,
 } from "@/lib/maintenance/display";
 import type {
   MaintenanceAttachment,
@@ -30,9 +30,16 @@ import type {
 } from "@/types/maintenance";
 
 import { MaintenanceHistoryTimeline } from "./maintenance-history-timeline";
+import { MaintenanceAssignmentCard } from "./maintenance-assignment-card";
+import { MaintenanceEscalationCard } from "./maintenance-escalation-card";
+import { MaintenanceSLACard } from "./maintenance-sla-card";
 import { MaintenanceLoadingSkeleton } from "./maintenance-loading-skeleton";
 import { MaintenancePriorityBadge } from "./maintenance-priority-badge";
 import { MaintenanceStatusBadge } from "./maintenance-status-badge";
+import {
+  MaintenanceStatusTimeline,
+  MaintenanceWorkflowActions,
+} from "./maintenance-workflow-actions";
 import { MetadataList, SectionCard, UnavailableValue } from "./maintenance-shared";
 
 function renderDisabledAction(label: string) {
@@ -48,8 +55,14 @@ function renderDisabledAction(label: string) {
 }
 
 export function MaintenanceDetailScreen({ id }: { id: string }) {
+  const { hasPermission, permissionsLoading } = usePermissions();
   const detailQuery = useMaintenanceDetail(id);
   const historyQuery = useMaintenanceHistory(id);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFlashMessage(readMaintenanceFormFlash());
+  }, []);
 
   if (detailQuery.isPending || historyQuery.isPending) {
     return <MaintenanceLoadingSkeleton cards={4} rows={10} />;
@@ -106,7 +119,6 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
     workOrder.escalations,
     workOrder.completion_record,
   );
-  const latestAssignment = workOrder.assignments[0] ?? null;
 
   const taskColumns: DataTableColumn<MaintenanceTask>[] = [
     {
@@ -219,8 +231,13 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
+      {flashMessage ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+          {flashMessage}
+        </div>
+      ) : null}
       <PageHeader
-        description={`Maintenance work order detail for ${workOrder.work_order_number}. This screen is read-only and surfaces assignment, task, materials, labor, SLA, AI summary, and history data from the backend foundation.`}
+        description={`Maintenance work order detail for ${workOrder.work_order_number}. This screen surfaces workflow actions, assignment context, tasks, materials, labor, SLA, AI summary, and backend history.`}
         eyebrow="Maintenance"
         title={workOrder.title}
       >
@@ -237,10 +254,22 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
           >
             Back to list
           </Link>
+          {!permissionsLoading &&
+          (hasPermission("maintenance.update") ||
+            hasPermission("maintenance.work_order.update")) ? (
+            <Link
+              className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href={`/maintenance/work-orders/${id}/edit`}
+            >
+              Edit work order
+            </Link>
+          ) : null}
           <MaintenanceStatusBadge status={workOrder.status} />
           <MaintenancePriorityBadge priority={workOrder.priority} />
         </div>
       </PageHeader>
+
+      <MaintenanceWorkflowActions workOrder={workOrder} />
 
       <SectionCard title="Header" description="Primary work order identity and ownership.">
         <MetadataList
@@ -322,38 +351,7 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
         />
       </SectionCard>
 
-      <SectionCard title="Assignment" description="Current assignee and response targets.">
-        <MetadataList
-          items={[
-            {
-              label: "Assigned Technician",
-              value: formatPersonLabel(workOrder.assignee_email),
-            },
-            {
-              label: "Supervisor",
-              value: formatPersonLabel(
-                workOrder.supervisor_approval?.approved_by_email,
-                "Not assigned",
-              ),
-            },
-            {
-              label: "Assignment Date",
-              value: formatDateTime(latestAssignment?.assigned_at),
-            },
-            {
-              label: "Response Time",
-              value: formatResponseTime(
-                workOrder.requested_at,
-                workOrder.sla?.first_responded_at,
-              ),
-            },
-            {
-              label: "Completion Target",
-              value: formatDateTime(workOrder.sla?.resolution_due_at),
-            },
-          ]}
-        />
-      </SectionCard>
+      <MaintenanceAssignmentCard workOrder={workOrder} />
 
       <SectionCard title="Tasks" description="Maintenance tasks returned directly by the backend detail endpoint.">
         {workOrder.tasks.length === 0 ? (
@@ -443,42 +441,9 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
         />
       </SectionCard>
 
-      <SectionCard title="SLA" description="Response and completion expectations from the maintenance SLA record.">
-        <MetadataList
-          items={[
-            {
-              label: "Target Response",
-              value: formatDateTime(workOrder.sla?.response_due_at),
-            },
-            {
-              label: "Actual Response",
-              value: formatDateTime(workOrder.sla?.first_responded_at),
-            },
-            {
-              label: "Target Completion",
-              value: formatDateTime(workOrder.sla?.resolution_due_at),
-            },
-            {
-              label: "Actual Completion",
-              value: formatDateTime(workOrder.sla?.resolved_at || workOrder.completed_at),
-            },
-            {
-              label: "Remaining Time",
-              value: formatRemainingTime(
-                workOrder.sla?.resolution_due_at,
-                workOrder.sla?.resolved_at || workOrder.completed_at,
-              ),
-            },
-            {
-              label: "SLA Status",
-              value: workOrder.sla
-                ? formatMaintenanceLabel(workOrder.sla.sla_status)
-                : "Not available",
-            },
-          ]}
-        />
-      </SectionCard>
+      <MaintenanceSLACard workOrder={workOrder} />
 
+      <MaintenanceStatusTimeline statusHistory={workOrder.status_history} />
       <MaintenanceHistoryTimeline events={timelineEvents} />
 
       <SectionCard title="Audit" description="Audit metadata currently exposed by the backend foundation.">
@@ -553,27 +518,7 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
         )}
       </SectionCard>
 
-      <SectionCard title="Escalations" description="Escalation records returned with the work order detail.">
-        {workOrder.escalations.length === 0 ? (
-          <EmptyState
-            title="No escalations"
-            message="The backend has not recorded escalation history for this work order."
-          />
-        ) : (
-          <MetadataList
-            items={workOrder.escalations.map((item) => ({
-              label: `${formatMaintenanceLabel(item.level)} - ${formatDate(item.created_at)}`,
-              value: (
-                <span className="font-normal text-slate-700">
-                  {item.reason}
-                  {" | "}
-                  {formatPersonLabel(item.escalated_to_email, "No target")}
-                </span>
-              ),
-            }))}
-          />
-        )}
-      </SectionCard>
+      <MaintenanceEscalationCard workOrder={workOrder} />
     </div>
   );
 }
