@@ -471,11 +471,11 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - Routes: `/inspection/inspections`, `/inspection/inspections/[id]`, `/inspection/inspections/new`, `/inspection/inspections/[id]/edit`
 - Module Folder: `frontend/app/(app)/inspection`, `frontend/features/inspection`
 - Pages: protected inspection list, detail, create, and edit routes
-- Components: inspection list/detail screens, create/edit form pages, inspection form, filters, status and priority badges, loading skeleton, pagination, workflow actions card, and status timeline
-- Hooks: `use-inspection-list`, `use-inspection-detail`, `useCreateInspection`, `useUpdateInspection`, `useInspectionFormOptions`, `useInspectionFormDefaults`, and dedicated workflow mutation hooks for assign/start/complete/verify/cancel/reopen
-- API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries, inspection workflow helpers, and inspection form validation/mapping helpers
+- Components: inspection list/detail screens, create/edit form pages, inspection form, filters, status and priority badges, loading skeleton, pagination, workflow actions card, status timeline, and findings/corrective-action management dialogs
+- Hooks: `use-inspection-list`, `use-inspection-detail`, `useCreateInspection`, `useUpdateInspection`, `useInspectionFormOptions`, `useInspectionFormDefaults`, dedicated workflow mutation hooks for assign/start/complete/verify/cancel/reopen, and findings/corrective-action CRUD mutation hooks
+- API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries, inspection workflow helpers, findings/corrective-action mapping helpers, and inspection form validation/mapping helpers
 - Types: `frontend/types/inspection.ts`
-- RBAC Usage: list/detail routes require `inspection.view` or `inspection.manage`; create requires `inspection.create` or `inspection.manage`; edit requires `inspection.update` or `inspection.manage`; workflow actions require `inspection.assign`, `inspection.update`, `inspection.complete`, `inspection.verify`, or `inspection.manage` based on action
+- RBAC Usage: list/detail routes require `inspection.view` or `inspection.manage`; create requires `inspection.create` or `inspection.manage`; edit requires `inspection.update` or `inspection.manage`; workflow actions require `inspection.assign`, `inspection.update`, `inspection.complete`, `inspection.verify`, or `inspection.manage` based on action; finding create/edit requires `inspection.update` or `inspection.manage`; finding delete requires `inspection.delete` or `inspection.manage`; corrective-action create/edit requires `inspection.manage_corrective_action` or `inspection.manage`; corrective-action delete requires `inspection.delete` or `inspection.manage`
 - Tests: No frontend inspection tests
 
 ### Notes
@@ -486,9 +486,11 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - FO-039 adds protected frontend read-only inspection list/detail screens.
 - FO-040 adds create/edit inspection forms with nested checklist item persistence.
 - FO-041 adds frontend inspection lifecycle workflow actions, cache invalidation, permission-aware dialogs, and backend-driven status timeline rendering.
+- FO-042 adds frontend CRUD management for findings and corrective actions directly from inspection detail, including dialog forms, delete confirmations, and cache invalidation.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 - Inspector and supervisor assignment still uses raw UUID entry in the workflow dialog because the frontend does not yet have a supported user-directory list API.
+- Corrective-action assignee entry also remains a raw UUID field until the frontend has a supported user-directory picker.
 
 ## Shared Services
 

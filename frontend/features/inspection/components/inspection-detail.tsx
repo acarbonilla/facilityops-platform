@@ -22,6 +22,7 @@ import type {
 } from "@/types/inspection";
 
 import { InspectionLoadingSkeleton } from "./inspection-loading-skeleton";
+import { InspectionFindingsActions } from "./inspection-findings-actions";
 import { InspectionPriorityBadge } from "./inspection-priority-badge";
 import { InspectionStatusBadge } from "./inspection-status-badge";
 import {
@@ -547,6 +548,8 @@ export function InspectionDetailScreen({ id }: { id: string }) {
         rows={detail.findings}
         title="Findings"
       />
+
+      <InspectionFindingsActions inspection={detail} />
 
       <DataSection
         caption="Inspection corrective actions"

@@ -8,9 +8,13 @@ import type {
   InspectionAssignPayload,
   InspectionCancelPayload,
   InspectionComment,
+  InspectionCorrectiveActionCreatePayload,
+  InspectionCorrectiveActionUpdatePayload,
   InspectionCreatePayload,
   InspectionCorrectiveAction,
   InspectionDetail,
+  InspectionFindingCreatePayload,
+  InspectionFindingUpdatePayload,
   InspectionFinding,
   InspectionHistory,
   InspectionItem,
@@ -203,5 +207,61 @@ export function reopenInspection(
   return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.reopen(id), {
     method: "POST",
     body: payload,
+  });
+}
+
+export function createInspectionFinding(
+  payload: InspectionFindingCreatePayload,
+): Promise<InspectionFinding> {
+  return apiClient<InspectionFinding>(API_ENDPOINTS.inspection.findingsCollection, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function updateInspectionFinding(
+  id: string,
+  payload: InspectionFindingUpdatePayload,
+): Promise<InspectionFinding> {
+  return apiClient<InspectionFinding>(API_ENDPOINTS.inspection.finding(id), {
+    method: "PATCH",
+    body: payload,
+  });
+}
+
+export function deleteInspectionFinding(id: string): Promise<void> {
+  return apiClient<void>(API_ENDPOINTS.inspection.finding(id), {
+    method: "DELETE",
+  });
+}
+
+export function createInspectionCorrectiveAction(
+  payload: InspectionCorrectiveActionCreatePayload,
+): Promise<InspectionCorrectiveAction> {
+  return apiClient<InspectionCorrectiveAction>(
+    API_ENDPOINTS.inspection.correctiveActionsCollection,
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function updateInspectionCorrectiveAction(
+  id: string,
+  payload: InspectionCorrectiveActionUpdatePayload,
+): Promise<InspectionCorrectiveAction> {
+  return apiClient<InspectionCorrectiveAction>(
+    API_ENDPOINTS.inspection.correctiveAction(id),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export function deleteInspectionCorrectiveAction(id: string): Promise<void> {
+  return apiClient<void>(API_ENDPOINTS.inspection.correctiveAction(id), {
+    method: "DELETE",
   });
 }
