@@ -24,6 +24,10 @@ import type {
 import { InspectionLoadingSkeleton } from "./inspection-loading-skeleton";
 import { InspectionPriorityBadge } from "./inspection-priority-badge";
 import { InspectionStatusBadge } from "./inspection-status-badge";
+import {
+  InspectionStatusTimeline,
+  InspectionWorkflowActions,
+} from "./inspection-workflow-actions";
 
 function formatDateTime(value?: string | null) {
   if (!value) {
@@ -484,7 +488,7 @@ export function InspectionDetailScreen({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`Read-only inspection detail for ${detail.inspection_number}. This page surfaces checklist items, findings, corrective actions, attachments, comments, history, SLA, escalations, and any AI metadata already present in the backend response.`}
+        description={`Inspection detail for ${detail.inspection_number}. This page surfaces lifecycle actions, checklist items, findings, corrective actions, attachments, comments, history, SLA, escalations, and any AI metadata already present in the backend response.`}
         eyebrow="5S Inspection"
         title={detail.title}
       >
@@ -517,6 +521,10 @@ export function InspectionDetailScreen({ id }: { id: string }) {
       ) : null}
 
       {renderSummary(detail)}
+
+      <InspectionWorkflowActions inspection={detail} />
+
+      <InspectionStatusTimeline statusHistory={detail.status_history} />
 
       <DataSection
         caption="Inspection checklist items"

@@ -22,7 +22,7 @@
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
 | Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
-| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, FO-038B aligns CRUD/RBAC, FO-039 adds protected read screens, and FO-040 adds create/edit forms; workflow UI remains pending |
+| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, FO-038B aligns CRUD/RBAC, FO-039 adds protected read screens, FO-040 adds create/edit forms, and FO-041 adds lifecycle workflow UI with status timeline rendering |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
@@ -67,6 +67,7 @@ facilityops-platform/
 - FO-038B aligns inspection, finding, and corrective-action `PUT`/`DELETE` behavior with seeded RBAC and hides soft-deleted records from standard reads.
 - FO-039 adds protected frontend inspection list and detail routes with backend-driven search, filtering, sorting, pagination, and read-only nested data sections.
 - FO-040 adds protected frontend inspection create and edit routes, nested checklist form persistence, permission-gated list/detail actions, and detail-page success flash messaging.
+- FO-041 adds permission-aware inspection lifecycle actions, workflow dialogs, and backend status-history timeline rendering on inspection detail.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
 ## Foundation
@@ -470,11 +471,11 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - Routes: `/inspection/inspections`, `/inspection/inspections/[id]`, `/inspection/inspections/new`, `/inspection/inspections/[id]/edit`
 - Module Folder: `frontend/app/(app)/inspection`, `frontend/features/inspection`
 - Pages: protected inspection list, detail, create, and edit routes
-- Components: inspection list/detail screens, create/edit form pages, inspection form, filters, status and priority badges, loading skeleton, pagination
-- Hooks: `use-inspection-list`, `use-inspection-detail`, `useCreateInspection`, `useUpdateInspection`, `useInspectionFormOptions`, `useInspectionFormDefaults`
-- API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries, inspection form validation and mapping helpers
+- Components: inspection list/detail screens, create/edit form pages, inspection form, filters, status and priority badges, loading skeleton, pagination, workflow actions card, and status timeline
+- Hooks: `use-inspection-list`, `use-inspection-detail`, `useCreateInspection`, `useUpdateInspection`, `useInspectionFormOptions`, `useInspectionFormDefaults`, and dedicated workflow mutation hooks for assign/start/complete/verify/cancel/reopen
+- API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries, inspection workflow helpers, and inspection form validation/mapping helpers
 - Types: `frontend/types/inspection.ts`
-- RBAC Usage: list/detail routes require `inspection.view` or `inspection.manage`; create requires `inspection.create` or `inspection.manage`; edit requires `inspection.update` or `inspection.manage`
+- RBAC Usage: list/detail routes require `inspection.view` or `inspection.manage`; create requires `inspection.create` or `inspection.manage`; edit requires `inspection.update` or `inspection.manage`; workflow actions require `inspection.assign`, `inspection.update`, `inspection.complete`, `inspection.verify`, or `inspection.manage` based on action
 - Tests: No frontend inspection tests
 
 ### Notes
@@ -483,9 +484,11 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - FO-038A locks nested `items`, `comments`, and `attachments` writes behind `inspection.update` or `inspection.manage` while preserving read-only access for `inspection.view`.
 - FO-038B enables inspection, finding, and corrective-action `PUT` and soft-delete `DELETE` flows with RBAC-aligned permissions and default queryset filtering for deleted records.
 - FO-039 adds protected frontend read-only inspection list/detail screens.
-- FO-040 adds create/edit inspection forms with nested checklist item persistence, but workflow actions remain explicitly out of scope.
+- FO-040 adds create/edit inspection forms with nested checklist item persistence.
+- FO-041 adds frontend inspection lifecycle workflow actions, cache invalidation, permission-aware dialogs, and backend-driven status timeline rendering.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
+- Inspector and supervisor assignment still uses raw UUID entry in the workflow dialog because the frontend does not yet have a supported user-directory list API.
 
 ## Shared Services
 

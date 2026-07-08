@@ -118,6 +118,26 @@ export interface InspectionHistory {
   created_at: string;
 }
 
+export interface InspectionStatusHistory {
+  id: string;
+  inspection: string;
+  from_status: InspectionStatus | null;
+  to_status: InspectionStatus;
+  changed_by: string | null;
+  changed_by_email: string | null;
+  changed_at: string;
+  action:
+    | "schedule"
+    | "start"
+    | "complete"
+    | "verify"
+    | "cancel"
+    | "reopen"
+    | "system";
+  reason: string;
+  note: string;
+}
+
 export interface InspectionCorrectiveAction {
   id: string;
   tenant: string | null;
@@ -233,6 +253,7 @@ export interface InspectionDetail extends InspectionListItem {
   attachments: InspectionAttachment[];
   comments: InspectionComment[];
   history: InspectionHistory[];
+  status_history: InspectionStatusHistory[];
   corrective_actions: InspectionCorrectiveAction[];
   ai_analysis: InspectionAIAnalysis | null;
   sla: InspectionSLA | null;
@@ -302,6 +323,32 @@ export interface InspectionCreatePayload {
 }
 
 export type InspectionUpdatePayload = InspectionCreatePayload;
+
+export interface InspectionWorkflowAction {
+  key: "assign" | "start" | "complete" | "verify" | "cancel" | "reopen";
+  label: string;
+  description: string;
+  to_status: InspectionStatus;
+  permission: import("./rbac").PermissionCode;
+  requiresDialog: boolean;
+}
+
+export interface InspectionSimpleWorkflowPayload {
+  note?: string;
+}
+
+export interface InspectionAssignPayload extends InspectionSimpleWorkflowPayload {
+  inspector?: string | null;
+  supervisor?: string | null;
+}
+
+export interface InspectionCancelPayload extends InspectionSimpleWorkflowPayload {
+  reason: string;
+}
+
+export interface InspectionReopenPayload extends InspectionSimpleWorkflowPayload {
+  reason: string;
+}
 
 export interface InspectionFormOptions {
   tenants: import("./master-data").Tenant[];

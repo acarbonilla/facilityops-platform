@@ -5,6 +5,8 @@ import type { PaginatedResponse } from "@/services/api/types";
 import type {
   InspectionAIAnalysis,
   InspectionAttachment,
+  InspectionAssignPayload,
+  InspectionCancelPayload,
   InspectionComment,
   InspectionCreatePayload,
   InspectionCorrectiveAction,
@@ -14,6 +16,8 @@ import type {
   InspectionItem,
   InspectionListItem,
   InspectionListParams,
+  InspectionReopenPayload,
+  InspectionSimpleWorkflowPayload,
   InspectionUpdatePayload,
 } from "@/types/inspection";
 
@@ -140,4 +144,64 @@ export async function getInspectionAIAnalysis(
     },
   );
   return normalizeAiAnalysis(payload);
+}
+
+export function assignInspection(
+  id: string,
+  payload: InspectionAssignPayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.assign(id), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function startInspection(
+  id: string,
+  payload?: InspectionSimpleWorkflowPayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.start(id), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function completeInspection(
+  id: string,
+  payload?: InspectionSimpleWorkflowPayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.complete(id), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function verifyInspection(
+  id: string,
+  payload?: InspectionSimpleWorkflowPayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.verify(id), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function cancelInspection(
+  id: string,
+  payload: InspectionCancelPayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.cancel(id), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function reopenInspection(
+  id: string,
+  payload: InspectionReopenPayload,
+): Promise<InspectionDetail> {
+  return apiClient<InspectionDetail>(API_ENDPOINTS.inspection.reopen(id), {
+    method: "POST",
+    body: payload,
+  });
 }
