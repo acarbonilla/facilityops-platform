@@ -100,6 +100,10 @@ export function InspectionAIAnalysis({
   const canView = canManage || hasPermission("inspection.view_ai");
   const canSave = canManage || hasPermission("inspection.update");
   const aiAnalysis = inspection.ai_analysis;
+  const aiAnalysisExists = inspection.ai_analysis_exists;
+  const canEditExisting = canManage || (hasPermission("inspection.update") && canView);
+  const canCreateNew = canManage || (hasPermission("inspection.update") && !aiAnalysisExists);
+  const canStartEditing = aiAnalysis ? canEditExisting : canCreateNew;
 
   const defaultValues = useMemo(
     () =>
@@ -185,7 +189,7 @@ export function InspectionAIAnalysis({
       {!permissionsLoading && (canView || canSave) ? (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-3">
-            {canSave && !isEditing ? (
+            {canStartEditing && !isEditing ? (
               <button
                 className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
                 onClick={handleStartEditing}
@@ -205,7 +209,15 @@ export function InspectionAIAnalysis({
             ) : null}
           </div>
 
-          {isEditing && canSave ? (
+          {!canView && canSave && aiAnalysisExists ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+              An AI analysis record already exists for this inspection. You need
+              AI review permission or inspection manage access to review and
+              update the stored analysis safely.
+            </div>
+          ) : null}
+
+          {isEditing && canStartEditing ? (
             <form
               className="space-y-4"
               onSubmit={handleSubmit(async (values) => {

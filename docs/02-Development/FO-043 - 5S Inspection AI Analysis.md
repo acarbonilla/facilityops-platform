@@ -76,9 +76,11 @@ Explicitly excluded:
 
 - Users with `inspection.view_ai` can read stored AI analysis through the dedicated endpoint
 - Users with only `inspection.view_ai` cannot create or overwrite AI analysis
-- Users with `inspection.update` can save AI analysis
+- Users with `inspection.update` can create the first AI-analysis record when none exists
+- Users with only `inspection.update` cannot overwrite an existing AI-analysis record they are not allowed to view
 - Users with `inspection.manage` can read and save AI analysis
 - Inspection detail still requires `inspection.view` or `inspection.manage`, but nested AI-analysis data is only serialized for users with AI-read permission
+- Inspection detail exposes a safe `ai_analysis_exists` flag so update-only users can avoid a blind overwrite path in the frontend
 
 ## Notes
 

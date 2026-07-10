@@ -3,6 +3,7 @@ import copy
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from apps.access_control.services import user_has_permission
 
@@ -314,11 +315,24 @@ class InspectionAISerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        inspection = self.context["inspection"]
+        request = self.context["request"]
+        existing_ai_analysis = getattr(inspection, "ai_analysis", None)
         summary = (attrs.get("summary") or "").strip()
         analysis = (attrs.get("analysis") or "").strip()
         recommendation_summary = (attrs.get("recommendation_summary") or "").strip()
         model_name = (attrs.get("model_name") or "").strip() or "manual"
         payload = attrs.get("payload")
+
+        if existing_ai_analysis and not any(
+            [
+                user_has_permission(request.user, "inspection.view_ai"),
+                user_has_permission(request.user, "inspection.manage"),
+            ]
+        ):
+            raise PermissionDenied(
+                "You do not have permission to overwrite an existing AI analysis record."
+            )
 
         if not any([summary, analysis, recommendation_summary]):
             raise serializers.ValidationError(
@@ -476,6 +490,7 @@ class InspectionDetailSerializer(InspectionListSerializer):
     )
     corrective_actions = InspectionCorrectiveActionSerializer(many=True, read_only=True)
     ai_analysis = serializers.SerializerMethodField()
+    ai_analysis_exists = serializers.SerializerMethodField()
     sla = InspectionSLASerializer(source="sla_record", read_only=True)
     escalations = InspectionEscalationSerializer(many=True, read_only=True)
     calculated_score = serializers.SerializerMethodField()
@@ -494,6 +509,7 @@ class InspectionDetailSerializer(InspectionListSerializer):
             "status_history",
             "corrective_actions",
             "ai_analysis",
+            "ai_analysis_exists",
             "sla",
             "escalations",
         )
@@ -519,6 +535,9 @@ class InspectionDetailSerializer(InspectionListSerializer):
             ai_analysis,
             context=self.context,
         ).data
+
+    def get_ai_analysis_exists(self, obj):
+        return bool(getattr(obj, "ai_analysis", None))
 
 
 class InspectionSerializer(InspectionDetailSerializer):

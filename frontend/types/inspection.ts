@@ -289,6 +289,7 @@ export interface InspectionDetail extends InspectionListItem {
   status_history: InspectionStatusHistory[];
   corrective_actions: InspectionCorrectiveAction[];
   ai_analysis: InspectionAIAnalysis | null;
+  ai_analysis_exists: boolean;
   sla: InspectionSLA | null;
   escalations: InspectionEscalation[];
 }

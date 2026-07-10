@@ -279,6 +279,12 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             tenant=self.data["tenant"],
             organization=self.data["organization"],
         )
+        self.ai_editor = User.objects.create_user(
+            email="ai-editor@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
         self.updater = User.objects.create_user(
             email="updater@example.com",
             password="Password123!",
@@ -324,6 +330,11 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         )
         self.assign_permissions(self.viewer, "inspection.view")
         self.assign_permissions(self.ai_viewer, "inspection.view_ai")
+        self.assign_permissions(
+            self.ai_editor,
+            "inspection.view_ai",
+            "inspection.update",
+        )
         self.assign_permissions(self.updater, "inspection.update")
         self.assign_permissions(self.deleter, "inspection.delete")
         self.assign_permissions(
@@ -992,7 +1003,7 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             InspectionAIAnalysis.objects.filter(inspection=self.inspection).exists()
         )
 
-    def test_ai_analysis_update_user_can_post(self):
+    def test_ai_analysis_update_user_can_create_when_no_record_exists(self):
         self.client.force_authenticate(self.updater)
         response = self.client.post(
             reverse("inspection-ai-analysis", args=[self.inspection.id]),
@@ -1003,6 +1014,32 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
         self.assertEqual(ai_analysis.model_name, "manual")
+
+    def test_ai_analysis_update_user_cannot_overwrite_existing_hidden_record(self):
+        existing = InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Existing summary.",
+            analysis="Existing analysis.",
+            recommendation_summary="Existing recommendations.",
+            payload={"risk": "medium"},
+            model_name="manual",
+            source_notes="Existing review.",
+        )
+
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary="Updated summary.",
+                analysis="Updated analysis.",
+                recommendation_summary="Updated recommendations.",
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        existing.refresh_from_db()
+        self.assertEqual(existing.summary, "Existing summary.")
 
     def test_ai_analysis_manage_user_can_get_and_post(self):
         self.client.force_authenticate(self.user)
@@ -1051,8 +1088,8 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             self.inspection.history_entries.filter(action="ai_analysis_updated").exists()
         )
 
-    def test_ai_analysis_second_post_updates_existing_record(self):
-        self.client.force_authenticate(self.user)
+    def test_ai_analysis_view_ai_and_update_user_can_update(self):
+        self.client.force_authenticate(self.ai_editor)
         first_response = self.client.post(
             reverse("inspection-ai-analysis", args=[self.inspection.id]),
             self.create_ai_analysis_payload(summary="First summary."),
@@ -1076,6 +1113,32 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
         self.assertEqual(ai_analysis.summary, "Updated summary.")
         self.assertEqual(ai_analysis.payload, {"risk": "high"})
+
+    def test_ai_analysis_manage_user_can_update(self):
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Existing summary.",
+            analysis="Existing analysis.",
+            recommendation_summary="Existing recommendations.",
+            payload={"risk": "medium"},
+            model_name="manual",
+            source_notes="Existing review.",
+        )
+
+        self.client.force_authenticate(self.user)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary="Manage updated summary.",
+                analysis="Manage updated analysis.",
+                recommendation_summary="Manage updated recommendations.",
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.summary, "Manage updated summary.")
 
     def test_build_inspection_ai_context_returns_structured_context(self):
         InspectionItem.objects.create(
@@ -1152,6 +1215,7 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIsNone(response.data["ai_analysis"])
+        self.assertTrue(response.data["ai_analysis_exists"])
 
     def test_history_endpoint_returns_entries(self):
         InspectionHistory.objects.create(

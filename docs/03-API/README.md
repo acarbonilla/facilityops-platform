@@ -76,6 +76,7 @@ Base path: `/api/inspection/`
 - `POST /api/inspection/inspections/{id}/ai-analysis/`
   - Permissions: `inspection.update` or `inspection.manage`
   - Upserts the stored AI-analysis record; at least one of `summary`, `analysis`, or `recommendation_summary` is required
+  - Users without `inspection.view_ai` may create the first record, but cannot overwrite an existing stored record they are not allowed to view
 
 ### Workflow endpoints
 
