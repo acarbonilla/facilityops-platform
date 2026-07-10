@@ -411,7 +411,13 @@ class InspectionViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         inspection = serializer.save()
-        return Response(InspectionSerializer(inspection).data, status=status.HTTP_200_OK)
+        return Response(
+            InspectionSerializer(
+                inspection,
+                context=self.get_serializer_context(),
+            ).data,
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):

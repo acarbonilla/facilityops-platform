@@ -1100,6 +1100,82 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.inspection.refresh_from_db()
         self.assertEqual(self.inspection.status, Inspection.Status.VERIFIED)
 
+    def test_start_workflow_hides_ai_analysis_without_ai_view_permission(self):
+        self.inspection.status = Inspection.Status.SCHEDULED
+        self.inspection.save(update_fields=("status", "updated_at"))
+        ai_analysis = InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Restricted workflow summary.",
+            analysis="Restricted workflow analysis.",
+            recommendation_summary="Restricted workflow recommendations.",
+            payload={"risk": "high"},
+            model_name="manual",
+            source_notes="Stored before workflow action.",
+        )
+        original_values = {
+            "summary": ai_analysis.summary,
+            "analysis": ai_analysis.analysis,
+            "recommendation_summary": ai_analysis.recommendation_summary,
+            "payload": ai_analysis.payload,
+            "model_name": ai_analysis.model_name,
+            "source_notes": ai_analysis.source_notes,
+            "generated_at": ai_analysis.generated_at,
+            "updated_at": ai_analysis.updated_at,
+        }
+        self.client.force_authenticate(self.updater)
+
+        response = self.client.post(
+            reverse("inspection-start", args=[self.inspection.id]),
+            {"note": "Start without AI-view permission."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], Inspection.Status.IN_PROGRESS)
+        self.assertIsNone(response.data["ai_analysis"])
+        self.assertTrue(response.data["ai_analysis_exists"])
+        ai_analysis.refresh_from_db()
+        self.assertEqual(
+            {
+                "summary": ai_analysis.summary,
+                "analysis": ai_analysis.analysis,
+                "recommendation_summary": ai_analysis.recommendation_summary,
+                "payload": ai_analysis.payload,
+                "model_name": ai_analysis.model_name,
+                "source_notes": ai_analysis.source_notes,
+                "generated_at": ai_analysis.generated_at,
+                "updated_at": ai_analysis.updated_at,
+            },
+            original_values,
+        )
+
+    def test_start_workflow_includes_ai_analysis_with_ai_view_permission(self):
+        self.inspection.status = Inspection.Status.SCHEDULED
+        self.inspection.save(update_fields=("status", "updated_at"))
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Visible workflow summary.",
+            analysis="Visible workflow analysis.",
+            recommendation_summary="Visible workflow recommendations.",
+            payload={"risk": "low"},
+            model_name="manual",
+            source_notes="Visible stored review.",
+        )
+        self.client.force_authenticate(self.ai_editor)
+
+        response = self.client.post(
+            reverse("inspection-start", args=[self.inspection.id]),
+            {"note": "Start with AI-view permission."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], Inspection.Status.IN_PROGRESS)
+        self.assertEqual(
+            response.data["ai_analysis"]["summary"],
+            "Visible workflow summary.",
+        )
+
     def test_ai_analysis_view_ai_user_can_get(self):
         InspectionAIAnalysis.objects.create(
             inspection=self.inspection,
