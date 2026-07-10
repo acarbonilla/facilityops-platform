@@ -16,6 +16,7 @@ from apps.inspection.models import (
     InspectionHistory,
     InspectionItem,
 )
+from apps.inspection.services.inspection_ai_service import build_inspection_ai_context
 from apps.master_data.models import Area, Building, Department, Floor, Organization, Tenant
 
 User = get_user_model()
@@ -187,6 +188,18 @@ class InspectionTestDataMixin:
             "notes": "Updated corrective action note.",
         }
 
+    def create_ai_analysis_payload(self, **overrides):
+        payload = {
+            "summary": "Area is mostly compliant.",
+            "analysis": "One dust issue and one labeling issue found.",
+            "recommendation_summary": "Clean cabinet and relabel shelves.",
+            "payload": {"risk": "medium"},
+            "model_name": "manual-review",
+            "source_notes": "Stored review from inspection team.",
+        }
+        payload.update(overrides)
+        return payload
+
 
 class InspectionModelTests(InspectionTestDataMixin, APITestCase):
     def setUp(self):
@@ -260,6 +273,12 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             tenant=self.data["tenant"],
             organization=self.data["organization"],
         )
+        self.ai_viewer = User.objects.create_user(
+            email="ai-viewer@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
         self.updater = User.objects.create_user(
             email="updater@example.com",
             password="Password123!",
@@ -304,6 +323,7 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             "inspection.manage",
         )
         self.assign_permissions(self.viewer, "inspection.view")
+        self.assign_permissions(self.ai_viewer, "inspection.view_ai")
         self.assign_permissions(self.updater, "inspection.update")
         self.assign_permissions(self.deleter, "inspection.delete")
         self.assign_permissions(
@@ -941,28 +961,197 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.inspection.refresh_from_db()
         self.assertEqual(self.inspection.status, Inspection.Status.VERIFIED)
 
-    def test_ai_analysis_requires_view_ai_permission(self):
-        self.client.force_authenticate(self.viewer)
-        denied = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
-        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+    def test_ai_analysis_view_ai_user_can_get(self):
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Stored AI summary.",
+            analysis="Stored AI analysis.",
+            recommendation_summary="Stored AI recommendations.",
+            payload={"risk": "low"},
+            model_name="manual",
+            source_notes="Stored review.",
+        )
 
-        self.client.force_authenticate(self.user)
-        create_response = self.client.post(
+        self.client.force_authenticate(self.ai_viewer)
+        response = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["summary"], "Stored AI summary.")
+        self.assertIn("context_preview", response.data)
+
+    def test_ai_analysis_view_ai_user_cannot_post(self):
+        self.client.force_authenticate(self.ai_viewer)
+        response = self.client.post(
             reverse("inspection-ai-analysis", args=[self.inspection.id]),
-            {
-                "summary": "Area is mostly compliant.",
-                "analysis": "One dust issue and one labeling issue found.",
-                "recommendation_summary": "Clean cabinet and relabel shelves.",
-                "payload": {"risk": "medium"},
-                "model_name": "test-model",
-                "source_notes": "Synthetic test analysis.",
-            },
+            self.create_ai_analysis_payload(),
             format="json",
         )
-        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
             InspectionAIAnalysis.objects.filter(inspection=self.inspection).exists()
         )
+
+    def test_ai_analysis_update_user_can_post(self):
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(model_name=""),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.model_name, "manual")
+
+    def test_ai_analysis_manage_user_can_get_and_post(self):
+        self.client.force_authenticate(self.user)
+        get_response = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(get_response.data, {})
+
+        post_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(),
+            format="json",
+        )
+        self.assertEqual(post_response.status_code, status.HTTP_201_CREATED)
+
+    def test_ai_analysis_empty_post_is_rejected(self):
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary=" ",
+                analysis=" ",
+                recommendation_summary=" ",
+                payload={},
+                model_name=" ",
+                source_notes=" ",
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("non_field_errors", response.data)
+
+    def test_ai_analysis_valid_post_creates_record_and_history(self):
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(model_name=" "),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.summary, "Area is mostly compliant.")
+        self.assertEqual(ai_analysis.model_name, "manual")
+        self.assertTrue(
+            self.inspection.history_entries.filter(action="ai_analysis_updated").exists()
+        )
+
+    def test_ai_analysis_second_post_updates_existing_record(self):
+        self.client.force_authenticate(self.user)
+        first_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(summary="First summary."),
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        second_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary="Updated summary.",
+                analysis="Updated analysis.",
+                recommendation_summary="Updated recommendations.",
+                payload={"risk": "high"},
+            ),
+            format="json",
+        )
+
+        self.assertEqual(second_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(InspectionAIAnalysis.objects.filter(inspection=self.inspection).count(), 1)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.summary, "Updated summary.")
+        self.assertEqual(ai_analysis.payload, {"risk": "high"})
+
+    def test_build_inspection_ai_context_returns_structured_context(self):
+        InspectionItem.objects.create(
+            inspection=self.inspection,
+            sequence=2,
+            checklist_item="Check aisle markings",
+            category="Set In Order",
+            expected_result="Aisle markings are visible.",
+            max_score="5.00",
+            score="2.00",
+            is_pass=False,
+            observation="Paint is fading near the rack.",
+            notes="Needs repainting.",
+        )
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            inspection=self.inspection,
+            tenant=self.inspection.tenant,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=2),
+            status=InspectionCorrectiveAction.Status.OPEN,
+            verification_status=InspectionCorrectiveAction.VerificationStatus.PENDING,
+            notes="Repaint aisle markings.",
+        )
+
+        context = build_inspection_ai_context(inspection=self.inspection)
+
+        self.assertEqual(context["inspection"]["inspection_number"], self.inspection.inspection_number)
+        self.assertEqual(context["location"]["building_name"], self.data["building"].name)
+        self.assertEqual(len(context["checklist"]), 2)
+        self.assertEqual(context["checklist"][1]["checklist_item"], "Check aisle markings")
+        self.assertEqual(context["findings"][0]["description"], self.finding.description)
+        self.assertEqual(len(context["corrective_actions"]), 1)
+        self.assertEqual(
+            context["corrective_actions"][0]["verification_status"],
+            corrective_action.verification_status,
+        )
+        self.assertEqual(context["summary_counts"]["checklist_item_count"], 2)
+        self.assertEqual(context["summary_counts"]["failed_item_count"], 1)
+        self.assertEqual(context["summary_counts"]["finding_count"], 1)
+        self.assertEqual(context["summary_counts"]["open_corrective_action_count"], 1)
+
+    def test_ai_analysis_tenant_scoping_remains_enforced(self):
+        self.assign_permissions(
+            self.outsider,
+            "inspection.view_ai",
+            "inspection.update",
+        )
+        self.client.force_authenticate(self.outsider)
+
+        get_response = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
+        post_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(),
+            format="json",
+        )
+
+        self.assertEqual(get_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(post_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_inspection_detail_hides_ai_analysis_without_view_ai_permission(self):
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Restricted AI summary.",
+            analysis="Restricted AI analysis.",
+            recommendation_summary="Restricted recommendations.",
+            payload={"risk": "medium"},
+            model_name="manual",
+            source_notes="Restricted review.",
+        )
+
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(reverse("inspection-detail", args=[self.inspection.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["ai_analysis"])
 
     def test_history_endpoint_returns_entries(self):
         InspectionHistory.objects.create(

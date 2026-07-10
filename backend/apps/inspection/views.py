@@ -200,7 +200,16 @@ class InspectionViewSet(viewsets.ModelViewSet):
                     "inspection.manage",
                 )
         elif self.action == "ai_analysis":
-            self.required_permissions_any = ("inspection.view_ai", "inspection.manage")
+            if self.request.method == "GET":
+                self.required_permissions_any = (
+                    "inspection.view_ai",
+                    "inspection.manage",
+                )
+            else:
+                self.required_permissions_any = (
+                    "inspection.update",
+                    "inspection.manage",
+                )
         elif self.action == "create":
             self.required_permissions_any = ("inspection.create", "inspection.manage")
         elif self.action in ("partial_update", "update", "start", "cancel", "reopen"):
@@ -378,7 +387,10 @@ class InspectionViewSet(viewsets.ModelViewSet):
         inspection = self.get_object()
         if request.method == "GET":
             recalculate_inspection_sla(inspection=inspection)
-            serializer = InspectionAISerializer(getattr(inspection, "ai_analysis", None))
+            serializer = InspectionAISerializer(
+                getattr(inspection, "ai_analysis", None),
+                context=self.get_serializer_context(),
+            )
             return Response(serializer.data if serializer.instance else {}, status=status.HTTP_200_OK)
 
         serializer = self.get_serializer(
@@ -387,7 +399,13 @@ class InspectionViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         ai_analysis = serializer.save()
-        return Response(InspectionAISerializer(ai_analysis).data, status=status.HTTP_201_CREATED)
+        return Response(
+            InspectionAISerializer(
+                ai_analysis,
+                context=self.get_serializer_context(),
+            ).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def _run_action(self, request, serializer_class):
         inspection = self.get_object()

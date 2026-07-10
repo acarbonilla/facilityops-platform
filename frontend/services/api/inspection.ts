@@ -6,6 +6,7 @@ import type {
   InspectionAIAnalysis,
   InspectionAttachment,
   InspectionAssignPayload,
+  InspectionAIAnalysisPayload,
   InspectionCancelPayload,
   InspectionComment,
   InspectionCorrectiveActionCreatePayload,
@@ -148,6 +149,26 @@ export async function getInspectionAIAnalysis(
     },
   );
   return normalizeAiAnalysis(payload);
+}
+
+export async function saveInspectionAIAnalysis(
+  id: string,
+  payload: InspectionAIAnalysisPayload,
+): Promise<InspectionAIAnalysis> {
+  const response = await apiClient<InspectionAIAnalysis | Record<string, never>>(
+    API_ENDPOINTS.inspection.aiAnalysis(id),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+
+  const normalized = normalizeAiAnalysis(response);
+  if (!normalized) {
+    throw new Error("The backend did not return a saved AI analysis record.");
+  }
+
+  return normalized;
 }
 
 export function assignInspection(

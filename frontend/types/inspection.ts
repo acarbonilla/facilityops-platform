@@ -197,6 +197,7 @@ export interface InspectionAIAnalysis {
   model_name: string;
   source_notes: string;
   generated_at: string;
+  context_preview?: Record<string, unknown> | null;
 }
 
 export interface InspectionSLA {
@@ -346,6 +347,15 @@ export interface InspectionCorrectiveActionFormValues {
   notes: string;
 }
 
+export interface InspectionAIAnalysisFormValues {
+  summary: string;
+  analysis: string;
+  recommendation_summary: string;
+  model_name: string;
+  source_notes: string;
+  payload_json: string;
+}
+
 export interface InspectionItemPayload {
   sequence: number;
   checklist_item: string;
@@ -406,6 +416,15 @@ export interface InspectionCorrectiveActionCreatePayload {
 
 export type InspectionCorrectiveActionUpdatePayload =
   InspectionCorrectiveActionCreatePayload;
+
+export interface InspectionAIAnalysisPayload {
+  summary: string;
+  analysis: string;
+  recommendation_summary: string;
+  model_name: string;
+  source_notes: string;
+  payload: Record<string, unknown>;
+}
 
 export interface InspectionWorkflowAction {
   key: "assign" | "start" | "complete" | "verify" | "cancel" | "reopen";

@@ -22,6 +22,7 @@ import type {
 } from "@/types/inspection";
 
 import { InspectionLoadingSkeleton } from "./inspection-loading-skeleton";
+import { InspectionAIAnalysis } from "./inspection-ai-analysis";
 import { InspectionFindingsActions } from "./inspection-findings-actions";
 import { InspectionPriorityBadge } from "./inspection-priority-badge";
 import { InspectionStatusBadge } from "./inspection-status-badge";
@@ -643,42 +644,7 @@ export function InspectionDetailScreen({ id }: { id: string }) {
         title="Escalations"
       />
 
-      <SectionCard
-        title="AI Analysis"
-        description="Read-only AI analysis metadata already stored in the backend foundation."
-      >
-        {detail.ai_analysis ? (
-          <MetadataList
-            items={[
-              { label: "Model", value: detail.ai_analysis.model_name || "Not recorded" },
-              {
-                label: "Generated At",
-                value: formatDateTime(detail.ai_analysis.generated_at),
-              },
-              { label: "Summary", value: detail.ai_analysis.summary || "No summary recorded." },
-              {
-                label: "Analysis",
-                value: detail.ai_analysis.analysis || "No analysis recorded.",
-              },
-              {
-                label: "Recommendation Summary",
-                value:
-                  detail.ai_analysis.recommendation_summary ||
-                  "No recommendation summary recorded.",
-              },
-              {
-                label: "Source Notes",
-                value: detail.ai_analysis.source_notes || "No source notes recorded.",
-              },
-            ]}
-          />
-        ) : (
-          <EmptyState
-            title="No AI analysis"
-            message="No AI analysis record is currently stored for this inspection."
-          />
-        )}
-      </SectionCard>
+      <InspectionAIAnalysis inspection={detail} />
     </div>
   );
 }
