@@ -15,6 +15,7 @@ from apps.inspection.models import (
     InspectionFinding,
     InspectionHistory,
     InspectionItem,
+    InspectionSLA,
 )
 from apps.inspection.services.inspection_ai_service import build_inspection_ai_context
 from apps.master_data.models import Area, Building, Department, Floor, Organization, Tenant
@@ -989,6 +990,36 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["summary"], "Stored AI summary.")
         self.assertIn("context_preview", response.data)
+
+    def test_ai_analysis_get_does_not_create_or_update_inspection_sla(self):
+        self.client.force_authenticate(self.ai_viewer)
+        url = reverse("inspection-ai-analysis", args=[self.inspection.id])
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(InspectionSLA.objects.filter(inspection=self.inspection).exists())
+
+        last_recalculated_at = timezone.now() - timedelta(days=1)
+        sla = InspectionSLA.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            target_minutes=17,
+            warning_minutes=3,
+            sla_status=InspectionSLA.Status.NOT_STARTED,
+            last_recalculated_at=last_recalculated_at,
+        )
+        original_updated_at = sla.updated_at
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        sla.refresh_from_db()
+        self.assertEqual(sla.target_minutes, 17)
+        self.assertEqual(sla.warning_minutes, 3)
+        self.assertEqual(sla.sla_status, InspectionSLA.Status.NOT_STARTED)
+        self.assertEqual(sla.last_recalculated_at, last_recalculated_at)
+        self.assertEqual(sla.updated_at, original_updated_at)
 
     def test_ai_analysis_view_ai_user_cannot_post(self):
         self.client.force_authenticate(self.ai_viewer)

@@ -46,7 +46,6 @@ from .serializers import (
     InspectionUpdateSerializer,
     InspectionVerifySerializer,
 )
-from .services.inspection_service import recalculate_inspection_sla
 from .tenant_scope import scope_queryset_to_user
 
 
@@ -386,7 +385,6 @@ class InspectionViewSet(viewsets.ModelViewSet):
     def ai_analysis(self, request, pk=None):
         inspection = self.get_object()
         if request.method == "GET":
-            recalculate_inspection_sla(inspection=inspection)
             serializer = InspectionAISerializer(
                 getattr(inspection, "ai_analysis", None),
                 context=self.get_serializer_context(),
