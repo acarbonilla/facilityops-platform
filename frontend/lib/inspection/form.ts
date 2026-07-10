@@ -101,6 +101,9 @@ function mapInspectionItemToPayload(
 
   if (normalizedScore !== null) {
     payload.score = normalizedScore;
+  }
+
+  if (normalizedPass !== null) {
     payload.is_pass = normalizedPass;
   }
 
