@@ -673,6 +673,16 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertTrue(self.inspection.is_deleted)
         self.assertIsNotNone(self.inspection.deleted_at)
         self.assertEqual(self.inspection.deleted_by, self.deleter.id)
+        self.assertEqual(self.inspection.updated_by, self.deleter.id)
+        deletion_history = InspectionHistory.objects.get(
+            inspection=self.inspection,
+            action="inspection_deleted",
+        )
+        self.assertEqual(deletion_history.actor, self.deleter)
+        self.assertEqual(
+            deletion_history.metadata["inspection_id"],
+            str(self.inspection.id),
+        )
 
         self.client.force_authenticate(self.viewer)
         list_response = self.client.get(reverse("inspection-list"))
@@ -680,6 +690,12 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         finding_list_response = self.client.get(reverse("inspection-finding-list"))
         corrective_action_list_response = self.client.get(
             reverse("inspection-corrective-action-list")
+        )
+        nested_finding_list_response = self.client.get(
+            reverse("inspection-findings", args=[self.inspection.id])
+        )
+        nested_corrective_action_list_response = self.client.get(
+            reverse("inspection-corrective-actions", args=[self.inspection.id])
         )
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(list_response.data["count"], 0)
@@ -691,6 +707,14 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             status.HTTP_200_OK,
         )
         self.assertEqual(corrective_action_list_response.data["count"], 0)
+        self.assertEqual(
+            nested_finding_list_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertEqual(
+            nested_corrective_action_list_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
 
         corrective_action.refresh_from_db()
         self.assertFalse(corrective_action.is_deleted)
@@ -729,6 +753,14 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(self.finding.status, InspectionFinding.Status.IN_PROGRESS)
 
     def test_delete_user_and_manager_can_delete_finding(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
         managed_finding = InspectionFinding.objects.create(
             inspection=self.inspection,
             item=self.item,
@@ -744,7 +776,35 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         self.finding.refresh_from_db()
         self.assertTrue(self.finding.is_deleted)
+        self.assertIsNotNone(self.finding.deleted_at)
         self.assertEqual(self.finding.deleted_by, self.deleter.id)
+        self.assertEqual(self.finding.updated_by, self.deleter.id)
+        deletion_history = InspectionHistory.objects.get(
+            inspection=self.inspection,
+            action="finding_deleted",
+        )
+        self.assertEqual(deletion_history.actor, self.deleter)
+        self.assertEqual(
+            deletion_history.metadata["finding_id"],
+            str(self.finding.id),
+        )
+
+        self.client.force_authenticate(self.viewer)
+        finding_response = self.client.get(
+            reverse("inspection-finding-detail", args=[self.finding.id])
+        )
+        corrective_action_response = self.client.get(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+        nested_corrective_action_response = self.client.get(
+            reverse("inspection-corrective-actions", args=[self.inspection.id])
+        )
+        self.assertEqual(finding_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(corrective_action_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(nested_corrective_action_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(nested_corrective_action_response.data["count"], 0)
+        corrective_action.refresh_from_db()
+        self.assertFalse(corrective_action.is_deleted)
 
         self.client.force_authenticate(self.user)
         manage_delete_response = self.client.delete(
@@ -809,7 +869,24 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         corrective_action.refresh_from_db()
         self.assertTrue(corrective_action.is_deleted)
+        self.assertIsNotNone(corrective_action.deleted_at)
         self.assertEqual(corrective_action.deleted_by, self.deleter.id)
+        self.assertEqual(corrective_action.updated_by, self.deleter.id)
+        deletion_history = InspectionHistory.objects.get(
+            inspection=self.inspection,
+            action="corrective_action_deleted",
+        )
+        self.assertEqual(deletion_history.actor, self.deleter)
+        self.assertEqual(
+            deletion_history.metadata["corrective_action_id"],
+            str(corrective_action.id),
+        )
+
+        self.client.force_authenticate(self.viewer)
+        retrieve_response = self.client.get(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+        self.assertEqual(retrieve_response.status_code, status.HTTP_404_NOT_FOUND)
 
         self.client.force_authenticate(self.user)
         manage_delete_response = self.client.delete(
@@ -845,6 +922,56 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(
             corrective_action_response.status_code,
             status.HTTP_403_FORBIDDEN,
+        )
+        self.finding.refresh_from_db()
+        corrective_action.refresh_from_db()
+        self.assertFalse(self.finding.is_deleted)
+        self.assertFalse(corrective_action.is_deleted)
+        self.assertFalse(
+            self.inspection.history_entries.filter(
+                action__in=("finding_deleted", "corrective_action_deleted")
+            ).exists()
+        )
+
+    def test_cross_tenant_user_cannot_delete_inspection_resources(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
+        self.assign_permissions(self.outsider, "inspection.delete")
+        self.client.force_authenticate(self.outsider)
+
+        inspection_response = self.client.delete(
+            reverse("inspection-detail", args=[self.inspection.id])
+        )
+        finding_response = self.client.delete(
+            reverse("inspection-finding-detail", args=[self.finding.id])
+        )
+        corrective_action_response = self.client.delete(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+
+        self.assertEqual(inspection_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(finding_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(corrective_action_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.inspection.refresh_from_db()
+        self.finding.refresh_from_db()
+        corrective_action.refresh_from_db()
+        self.assertFalse(self.inspection.is_deleted)
+        self.assertFalse(self.finding.is_deleted)
+        self.assertFalse(corrective_action.is_deleted)
+        self.assertFalse(
+            self.inspection.history_entries.filter(
+                action__in=(
+                    "inspection_deleted",
+                    "finding_deleted",
+                    "corrective_action_deleted",
+                )
+            ).exists()
         )
 
     def test_finding_and_corrective_action_crud_work(self):
