@@ -58,7 +58,12 @@ class InspectionValidationMixin:
         if not inspection.status:
             inspection.status = Inspection.Status.DRAFT
 
-        if not self.instance and request and not inspection.inspector_id:
+        if (
+            not self.instance
+            and request
+            and not inspection.inspector_id
+            and getattr(request.user, "tenant_id", None) == inspection.tenant_id
+        ):
             inspection.inspector = request.user
 
         try:

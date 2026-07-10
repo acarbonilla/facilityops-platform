@@ -368,7 +368,7 @@ export interface InspectionCreatePayload {
   title: string;
   inspection_type: InspectionType;
   five_s_category: InspectionFiveSCategory;
-  inspection_template?: string | null;
+  inspection_template?: string;
   inspector?: string | null;
   supervisor?: string | null;
   priority: InspectionPriority;

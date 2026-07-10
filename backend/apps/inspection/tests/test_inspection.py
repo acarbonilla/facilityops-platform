@@ -367,6 +367,76 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(inspection.history_entries.count(), 1)
         self.assertEqual(inspection.status_history_entries.count(), 1)
 
+    def test_inspection_create_allows_no_checklist_items(self):
+        self.client.force_authenticate(self.user)
+        payload = self.create_inspection_payload(self.data)
+        payload["items"] = []
+
+        response = self.client.post(
+            reverse("inspection-list"),
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        inspection = Inspection.objects.get(id=response.data["id"])
+        self.assertEqual(inspection.items.count(), 0)
+
+    def test_inspection_create_allows_partial_checklist_item_payload(self):
+        self.client.force_authenticate(self.user)
+        payload = self.create_inspection_payload(self.data)
+        payload["items"] = [
+            {
+                "sequence": 1,
+                "checklist_item": "Check labels",
+                "max_score": "5.00",
+                "category": "",
+                "expected_result": "",
+                "observation": "",
+                "notes": "",
+            }
+        ]
+
+        response = self.client.post(
+            reverse("inspection-list"),
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        inspection = Inspection.objects.get(id=response.data["id"])
+        item = inspection.items.get(sequence=1)
+        self.assertEqual(item.checklist_item, "Check labels")
+        self.assertEqual(item.category, "")
+        self.assertEqual(item.expected_result, "")
+        self.assertIsNone(item.score)
+        self.assertIsNone(item.is_pass)
+
+    def test_inspection_create_does_not_auto_assign_cross_tenant_system_admin(self):
+        global_manager = User.objects.create_user(
+            email="global-manager@example.com",
+            password="Password123!",
+            tenant=self.other_tenant,
+            organization=self.other_org,
+        )
+        self.assign_permissions(global_manager, "inspection.create")
+        system_admin_role = Role.objects.create(
+            name="System Admin",
+            code="system_admin",
+        )
+        UserRole.objects.create(user=global_manager, role=system_admin_role)
+
+        self.client.force_authenticate(global_manager)
+        response = self.client.post(
+            reverse("inspection-list"),
+            self.create_inspection_payload(self.data),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        inspection = Inspection.objects.get(id=response.data["id"])
+        self.assertIsNone(inspection.inspector)
+
     def test_inspection_list_supports_search_filter_and_tenant_scope(self):
         cross_tenant_inspection = Inspection.objects.create(
             tenant=self.other_tenant,

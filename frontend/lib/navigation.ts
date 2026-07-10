@@ -24,6 +24,14 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "prefix",
   },
   {
+    label: "5S Inspection",
+    href: "/inspection/inspections",
+    authenticatedOnly: true,
+    requiredPermissions: ["inspection.view", "inspection.manage"],
+    permissionMode: "any",
+    matchStrategy: "prefix",
+  },
+  {
     label: "Master Data",
     href: "/master-data",
     authenticatedOnly: true,

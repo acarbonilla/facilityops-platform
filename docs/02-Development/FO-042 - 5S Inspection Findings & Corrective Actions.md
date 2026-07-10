@@ -19,6 +19,27 @@ Explicitly excluded:
 - Workflow status actions
 - File upload implementation
 
+## FO-042A Stabilization
+
+FO-042A applies a small frontend/backend compatibility follow-up without starting FO-043.
+
+Delivered:
+
+- Added the `5S Inspection` sidebar entry for `/inspection/inspections` with `inspection.view` or `inspection.manage`
+- Verified locally that all six inspection form-options master-data endpoints accept unfiltered `GET` requests with `page_size=100`
+- Identified the failure mode as nullable query filters being serialized into backend requests instead of being omitted
+- Hardened shared frontend query handling so `null` and `undefined` query params, including array entries, are removed before requests are sent
+- Fixed inspection create payload mapping so a blank `inspection_template` is omitted instead of being sent as `null`
+- Fixed inspection checklist payload handling so the default scaffold row is omitted unless the user enters meaningful content
+- Fixed checklist item payload mapping so blank optional fields are omitted instead of being sent as explicit empty/null values
+- Guarded create-time inspector auto-assignment so users creating for another tenant do not get attached as a cross-tenant inspector
+
+Notes:
+
+- No inspection-specific form-options endpoint needed a mandatory parent filter once nullable query values were stripped
+- Backend validation rules for checklist items were not loosened; the frontend now avoids sending placeholder rows and blank optional values
+- Backend create behavior changed only to stop auto-assigning a cross-tenant requester as inspector during create
+
 ## Delivered
 
 ### API wiring
@@ -100,17 +121,21 @@ Corrective actions:
 
 ## Validation
 
-Validation was run from `frontend`:
+Validation was run from `frontend` and `backend`:
 
 - `npm run lint` - passed
 - `npm run build` - passed
+- `.\.venv\Scripts\python.exe manage.py test apps.inspection.tests.test_inspection.InspectionApiTests.test_inspection_create_sets_history_and_nested_items apps.inspection.tests.test_inspection.InspectionApiTests.test_inspection_create_allows_no_checklist_items apps.inspection.tests.test_inspection.InspectionApiTests.test_inspection_create_allows_partial_checklist_item_payload apps.inspection.tests.test_inspection.InspectionApiTests.test_inspection_create_does_not_auto_assign_cross_tenant_system_admin --keepdb` - passed
 
 Notes:
 
 - Initial sandboxed runs failed with a Windows `EPERM` path-resolution error under `C:\Users\dc`, so the required commands were rerun outside the sandbox.
-- The build script temporarily rewrote `frontend/tsconfig.json` and `frontend/next-env.d.ts` with a timestamped runtime path. Those generated changes were reverted after validation.
-- Manual smoke testing was not executed in this terminal session.
+- The build script temporarily rewrote `frontend/tsconfig.json` and `frontend/next-env.d.ts` with a timestamped runtime path. Pre-build snapshots were restored after validation so no generated config edits remain from the build run.
+- Automated validation now covers:
+  - inspection creation without checklist items
+  - inspection creation with a complete checklist item
+  - inspection creation with a partially completed checklist item whose optional fields remain blank
 
 ## Result
 
-FO-042 is complete for the approved frontend findings and corrective-actions scope. Inspection detail now supports CRUD management for both related records with RBAC-aware controls and post-mutation refresh behavior, without extending into FO-043 AI work.
+FO-042 remains complete for the approved findings and corrective-actions scope, and FO-042A closes the follow-up navigation and create-page stability issues by aligning frontend payload/query serialization with the existing backend contracts, suppressing placeholder checklist item submission, and preventing invalid cross-tenant inspector defaults, without extending into FO-043 AI work.

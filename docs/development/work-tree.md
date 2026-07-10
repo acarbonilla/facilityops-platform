@@ -22,7 +22,7 @@
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
 | Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
-| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, FO-038B aligns CRUD/RBAC, FO-039 adds protected read screens, FO-040 adds create/edit forms, and FO-041 adds lifecycle workflow UI with status timeline rendering |
+| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, FO-038B aligns CRUD/RBAC, FO-039 adds protected read screens, FO-040 adds create/edit forms, FO-041 adds lifecycle workflow UI with status timeline rendering, and FO-042A restores sidebar discoverability plus hardens create-page payload compatibility |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
@@ -68,6 +68,7 @@ facilityops-platform/
 - FO-039 adds protected frontend inspection list and detail routes with backend-driven search, filtering, sorting, pagination, and read-only nested data sections.
 - FO-040 adds protected frontend inspection create and edit routes, nested checklist form persistence, permission-gated list/detail actions, and detail-page success flash messaging.
 - FO-041 adds permission-aware inspection lifecycle actions, workflow dialogs, and backend status-history timeline rendering on inspection detail.
+- FO-042A adds the inspection sidebar entry, hardens frontend query serialization so nullable filters are omitted before master-data form-options requests hit the backend, suppresses placeholder checklist item submission during create, and keeps cross-tenant inspector auto-defaulting from violating backend tenant validation.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
 ## Foundation
@@ -487,6 +488,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - FO-040 adds create/edit inspection forms with nested checklist item persistence.
 - FO-041 adds frontend inspection lifecycle workflow actions, cache invalidation, permission-aware dialogs, and backend-driven status timeline rendering.
 - FO-042 adds frontend CRUD management for findings and corrective actions directly from inspection detail, including dialog forms, delete confirmations, and cache invalidation.
+- FO-042A restores inspection discoverability in app navigation and fixes the create-page load crash by preventing `null` and `undefined` query params from reaching backend master-data filters.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 - Inspector and supervisor assignment still uses raw UUID entry in the workflow dialog because the frontend does not yet have a supported user-directory list API.
