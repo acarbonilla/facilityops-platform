@@ -28,6 +28,7 @@
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
 | Testing | Needs Review | Strong backend coverage; no dedicated frontend unit or component test harness |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
+| Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
 ## Repository Work Tree
 
@@ -70,6 +71,7 @@ facilityops-platform/
 - FO-041 adds permission-aware inspection lifecycle actions, workflow dialogs, and backend status-history timeline rendering on inspection detail.
 - FO-042A adds the inspection sidebar entry, hardens frontend query serialization so nullable filters are omitted before master-data form-options requests hit the backend, suppresses placeholder checklist item submission during create, and keeps cross-tenant inspector auto-defaulting from violating backend tenant validation.
 - FO-043 separates AI-analysis read/write permissions, adds deterministic inspection context preparation, and delivers advisory frontend AI-analysis review/edit UI without connecting an external AI provider.
+- FO-DOC-001 establishes the permanent developer handbook under `docs/04-Developer-Handbook/`, adds `docs/development/project-status.md`, and defines repository-level process ownership, QA expectations, merge workflow, and documentation standards.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
 ## Foundation

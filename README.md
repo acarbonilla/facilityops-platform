@@ -26,7 +26,14 @@ facilityops-platform/
 
 ## Current Development Stage
 
-Phase 12A - Application Development, Stage 2 - Core Platform. FO-032 adds the Maintenance Work Order frontend read screens after the FO-031 backend foundation, including a dashboard, server-driven list, detail screen, RBAC-aware navigation, and read-only visualization of assignment, SLA, attachment, AI summary, and history data.
+Phase 12A - Application Development, Stage 2 - Core Platform. Core platform modules through FO-043 are documented in the repository progress trackers, and the permanent developer handbook now defines the engineering workflow, review process, QA expectations, and repository governance baseline.
+
+## Engineering Documentation
+
+- Developer handbook: [docs/04-Developer-Handbook/README.md](docs/04-Developer-Handbook/README.md)
+- Project status: [docs/development/project-status.md](docs/development/project-status.md)
+- Work tree: [docs/development/work-tree.md](docs/development/work-tree.md)
+- Progress map: [docs/development/progress-map.md](docs/development/progress-map.md)
 
 ## Backend Local Setup
 
