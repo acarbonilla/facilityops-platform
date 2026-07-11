@@ -74,6 +74,10 @@ export const API_ENDPOINTS = {
   inspection: {
     inspections: "/inspection/inspections/",
     inspection: (id: string) => `/inspection/inspections/${id}/`,
+    findingsCollection: "/inspection/findings/",
+    finding: (id: string) => `/inspection/findings/${id}/`,
+    correctiveActionsCollection: "/inspection/corrective-actions/",
+    correctiveAction: (id: string) => `/inspection/corrective-actions/${id}/`,
     items: (id: string) => `/inspection/inspections/${id}/items/`,
     findings: (id: string) => `/inspection/inspections/${id}/findings/`,
     attachments: (id: string) => `/inspection/inspections/${id}/attachments/`,
@@ -82,5 +86,11 @@ export const API_ENDPOINTS = {
     correctiveActions: (id: string) =>
       `/inspection/inspections/${id}/corrective-actions/`,
     aiAnalysis: (id: string) => `/inspection/inspections/${id}/ai-analysis/`,
+    assign: (id: string) => `/inspection/inspections/${id}/assign/`,
+    start: (id: string) => `/inspection/inspections/${id}/start/`,
+    complete: (id: string) => `/inspection/inspections/${id}/complete/`,
+    verify: (id: string) => `/inspection/inspections/${id}/verify/`,
+    cancel: (id: string) => `/inspection/inspections/${id}/cancel/`,
+    reopen: (id: string) => `/inspection/inspections/${id}/reopen/`,
   },
 } as const;

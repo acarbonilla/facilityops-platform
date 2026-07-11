@@ -15,7 +15,9 @@ from apps.inspection.models import (
     InspectionFinding,
     InspectionHistory,
     InspectionItem,
+    InspectionSLA,
 )
+from apps.inspection.services.inspection_ai_service import build_inspection_ai_context
 from apps.master_data.models import Area, Building, Department, Floor, Organization, Tenant
 
 User = get_user_model()
@@ -187,6 +189,18 @@ class InspectionTestDataMixin:
             "notes": "Updated corrective action note.",
         }
 
+    def create_ai_analysis_payload(self, **overrides):
+        payload = {
+            "summary": "Area is mostly compliant.",
+            "analysis": "One dust issue and one labeling issue found.",
+            "recommendation_summary": "Clean cabinet and relabel shelves.",
+            "payload": {"risk": "medium"},
+            "model_name": "manual-review",
+            "source_notes": "Stored review from inspection team.",
+        }
+        payload.update(overrides)
+        return payload
+
 
 class InspectionModelTests(InspectionTestDataMixin, APITestCase):
     def setUp(self):
@@ -260,6 +274,18 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             tenant=self.data["tenant"],
             organization=self.data["organization"],
         )
+        self.ai_viewer = User.objects.create_user(
+            email="ai-viewer@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
+        self.ai_editor = User.objects.create_user(
+            email="ai-editor@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
         self.updater = User.objects.create_user(
             email="updater@example.com",
             password="Password123!",
@@ -304,6 +330,12 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             "inspection.manage",
         )
         self.assign_permissions(self.viewer, "inspection.view")
+        self.assign_permissions(self.ai_viewer, "inspection.view_ai")
+        self.assign_permissions(
+            self.ai_editor,
+            "inspection.view_ai",
+            "inspection.update",
+        )
         self.assign_permissions(self.updater, "inspection.update")
         self.assign_permissions(self.deleter, "inspection.delete")
         self.assign_permissions(
@@ -366,6 +398,76 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(inspection.items.count(), 1)
         self.assertEqual(inspection.history_entries.count(), 1)
         self.assertEqual(inspection.status_history_entries.count(), 1)
+
+    def test_inspection_create_allows_no_checklist_items(self):
+        self.client.force_authenticate(self.user)
+        payload = self.create_inspection_payload(self.data)
+        payload["items"] = []
+
+        response = self.client.post(
+            reverse("inspection-list"),
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        inspection = Inspection.objects.get(id=response.data["id"])
+        self.assertEqual(inspection.items.count(), 0)
+
+    def test_inspection_create_allows_partial_checklist_item_payload(self):
+        self.client.force_authenticate(self.user)
+        payload = self.create_inspection_payload(self.data)
+        payload["items"] = [
+            {
+                "sequence": 1,
+                "checklist_item": "Check labels",
+                "max_score": "5.00",
+                "category": "",
+                "expected_result": "",
+                "observation": "",
+                "notes": "",
+            }
+        ]
+
+        response = self.client.post(
+            reverse("inspection-list"),
+            payload,
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        inspection = Inspection.objects.get(id=response.data["id"])
+        item = inspection.items.get(sequence=1)
+        self.assertEqual(item.checklist_item, "Check labels")
+        self.assertEqual(item.category, "")
+        self.assertEqual(item.expected_result, "")
+        self.assertIsNone(item.score)
+        self.assertIsNone(item.is_pass)
+
+    def test_inspection_create_does_not_auto_assign_cross_tenant_system_admin(self):
+        global_manager = User.objects.create_user(
+            email="global-manager@example.com",
+            password="Password123!",
+            tenant=self.other_tenant,
+            organization=self.other_org,
+        )
+        self.assign_permissions(global_manager, "inspection.create")
+        system_admin_role = Role.objects.create(
+            name="System Admin",
+            code="system_admin",
+        )
+        UserRole.objects.create(user=global_manager, role=system_admin_role)
+
+        self.client.force_authenticate(global_manager)
+        response = self.client.post(
+            reverse("inspection-list"),
+            self.create_inspection_payload(self.data),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        inspection = Inspection.objects.get(id=response.data["id"])
+        self.assertIsNone(inspection.inspector)
 
     def test_inspection_list_supports_search_filter_and_tenant_scope(self):
         cross_tenant_inspection = Inspection.objects.create(
@@ -571,6 +673,16 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertTrue(self.inspection.is_deleted)
         self.assertIsNotNone(self.inspection.deleted_at)
         self.assertEqual(self.inspection.deleted_by, self.deleter.id)
+        self.assertEqual(self.inspection.updated_by, self.deleter.id)
+        deletion_history = InspectionHistory.objects.get(
+            inspection=self.inspection,
+            action="inspection_deleted",
+        )
+        self.assertEqual(deletion_history.actor, self.deleter)
+        self.assertEqual(
+            deletion_history.metadata["inspection_id"],
+            str(self.inspection.id),
+        )
 
         self.client.force_authenticate(self.viewer)
         list_response = self.client.get(reverse("inspection-list"))
@@ -578,6 +690,12 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         finding_list_response = self.client.get(reverse("inspection-finding-list"))
         corrective_action_list_response = self.client.get(
             reverse("inspection-corrective-action-list")
+        )
+        nested_finding_list_response = self.client.get(
+            reverse("inspection-findings", args=[self.inspection.id])
+        )
+        nested_corrective_action_list_response = self.client.get(
+            reverse("inspection-corrective-actions", args=[self.inspection.id])
         )
         self.assertEqual(list_response.status_code, status.HTTP_200_OK)
         self.assertEqual(list_response.data["count"], 0)
@@ -589,6 +707,14 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
             status.HTTP_200_OK,
         )
         self.assertEqual(corrective_action_list_response.data["count"], 0)
+        self.assertEqual(
+            nested_finding_list_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertEqual(
+            nested_corrective_action_list_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
 
         corrective_action.refresh_from_db()
         self.assertFalse(corrective_action.is_deleted)
@@ -627,6 +753,14 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(self.finding.status, InspectionFinding.Status.IN_PROGRESS)
 
     def test_delete_user_and_manager_can_delete_finding(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
         managed_finding = InspectionFinding.objects.create(
             inspection=self.inspection,
             item=self.item,
@@ -642,7 +776,35 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         self.finding.refresh_from_db()
         self.assertTrue(self.finding.is_deleted)
+        self.assertIsNotNone(self.finding.deleted_at)
         self.assertEqual(self.finding.deleted_by, self.deleter.id)
+        self.assertEqual(self.finding.updated_by, self.deleter.id)
+        deletion_history = InspectionHistory.objects.get(
+            inspection=self.inspection,
+            action="finding_deleted",
+        )
+        self.assertEqual(deletion_history.actor, self.deleter)
+        self.assertEqual(
+            deletion_history.metadata["finding_id"],
+            str(self.finding.id),
+        )
+
+        self.client.force_authenticate(self.viewer)
+        finding_response = self.client.get(
+            reverse("inspection-finding-detail", args=[self.finding.id])
+        )
+        corrective_action_response = self.client.get(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+        nested_corrective_action_response = self.client.get(
+            reverse("inspection-corrective-actions", args=[self.inspection.id])
+        )
+        self.assertEqual(finding_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(corrective_action_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(nested_corrective_action_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(nested_corrective_action_response.data["count"], 0)
+        corrective_action.refresh_from_db()
+        self.assertFalse(corrective_action.is_deleted)
 
         self.client.force_authenticate(self.user)
         manage_delete_response = self.client.delete(
@@ -707,7 +869,24 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         corrective_action.refresh_from_db()
         self.assertTrue(corrective_action.is_deleted)
+        self.assertIsNotNone(corrective_action.deleted_at)
         self.assertEqual(corrective_action.deleted_by, self.deleter.id)
+        self.assertEqual(corrective_action.updated_by, self.deleter.id)
+        deletion_history = InspectionHistory.objects.get(
+            inspection=self.inspection,
+            action="corrective_action_deleted",
+        )
+        self.assertEqual(deletion_history.actor, self.deleter)
+        self.assertEqual(
+            deletion_history.metadata["corrective_action_id"],
+            str(corrective_action.id),
+        )
+
+        self.client.force_authenticate(self.viewer)
+        retrieve_response = self.client.get(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+        self.assertEqual(retrieve_response.status_code, status.HTTP_404_NOT_FOUND)
 
         self.client.force_authenticate(self.user)
         manage_delete_response = self.client.delete(
@@ -743,6 +922,56 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(
             corrective_action_response.status_code,
             status.HTTP_403_FORBIDDEN,
+        )
+        self.finding.refresh_from_db()
+        corrective_action.refresh_from_db()
+        self.assertFalse(self.finding.is_deleted)
+        self.assertFalse(corrective_action.is_deleted)
+        self.assertFalse(
+            self.inspection.history_entries.filter(
+                action__in=("finding_deleted", "corrective_action_deleted")
+            ).exists()
+        )
+
+    def test_cross_tenant_user_cannot_delete_inspection_resources(self):
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=1),
+            status=InspectionCorrectiveAction.Status.OPEN,
+        )
+        self.assign_permissions(self.outsider, "inspection.delete")
+        self.client.force_authenticate(self.outsider)
+
+        inspection_response = self.client.delete(
+            reverse("inspection-detail", args=[self.inspection.id])
+        )
+        finding_response = self.client.delete(
+            reverse("inspection-finding-detail", args=[self.finding.id])
+        )
+        corrective_action_response = self.client.delete(
+            reverse("inspection-corrective-action-detail", args=[corrective_action.id])
+        )
+
+        self.assertEqual(inspection_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(finding_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(corrective_action_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.inspection.refresh_from_db()
+        self.finding.refresh_from_db()
+        corrective_action.refresh_from_db()
+        self.assertFalse(self.inspection.is_deleted)
+        self.assertFalse(self.finding.is_deleted)
+        self.assertFalse(corrective_action.is_deleted)
+        self.assertFalse(
+            self.inspection.history_entries.filter(
+                action__in=(
+                    "inspection_deleted",
+                    "finding_deleted",
+                    "corrective_action_deleted",
+                )
+            ).exists()
         )
 
     def test_finding_and_corrective_action_crud_work(self):
@@ -871,28 +1100,356 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.inspection.refresh_from_db()
         self.assertEqual(self.inspection.status, Inspection.Status.VERIFIED)
 
-    def test_ai_analysis_requires_view_ai_permission(self):
-        self.client.force_authenticate(self.viewer)
-        denied = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
-        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+    def test_start_workflow_hides_ai_analysis_without_ai_view_permission(self):
+        self.inspection.status = Inspection.Status.SCHEDULED
+        self.inspection.save(update_fields=("status", "updated_at"))
+        ai_analysis = InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Restricted workflow summary.",
+            analysis="Restricted workflow analysis.",
+            recommendation_summary="Restricted workflow recommendations.",
+            payload={"risk": "high"},
+            model_name="manual",
+            source_notes="Stored before workflow action.",
+        )
+        original_values = {
+            "summary": ai_analysis.summary,
+            "analysis": ai_analysis.analysis,
+            "recommendation_summary": ai_analysis.recommendation_summary,
+            "payload": ai_analysis.payload,
+            "model_name": ai_analysis.model_name,
+            "source_notes": ai_analysis.source_notes,
+            "generated_at": ai_analysis.generated_at,
+            "updated_at": ai_analysis.updated_at,
+        }
+        self.client.force_authenticate(self.updater)
 
-        self.client.force_authenticate(self.user)
-        create_response = self.client.post(
-            reverse("inspection-ai-analysis", args=[self.inspection.id]),
-            {
-                "summary": "Area is mostly compliant.",
-                "analysis": "One dust issue and one labeling issue found.",
-                "recommendation_summary": "Clean cabinet and relabel shelves.",
-                "payload": {"risk": "medium"},
-                "model_name": "test-model",
-                "source_notes": "Synthetic test analysis.",
-            },
+        response = self.client.post(
+            reverse("inspection-start", args=[self.inspection.id]),
+            {"note": "Start without AI-view permission."},
             format="json",
         )
-        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], Inspection.Status.IN_PROGRESS)
+        self.assertIsNone(response.data["ai_analysis"])
+        self.assertTrue(response.data["ai_analysis_exists"])
+        ai_analysis.refresh_from_db()
+        self.assertEqual(
+            {
+                "summary": ai_analysis.summary,
+                "analysis": ai_analysis.analysis,
+                "recommendation_summary": ai_analysis.recommendation_summary,
+                "payload": ai_analysis.payload,
+                "model_name": ai_analysis.model_name,
+                "source_notes": ai_analysis.source_notes,
+                "generated_at": ai_analysis.generated_at,
+                "updated_at": ai_analysis.updated_at,
+            },
+            original_values,
+        )
+
+    def test_start_workflow_includes_ai_analysis_with_ai_view_permission(self):
+        self.inspection.status = Inspection.Status.SCHEDULED
+        self.inspection.save(update_fields=("status", "updated_at"))
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Visible workflow summary.",
+            analysis="Visible workflow analysis.",
+            recommendation_summary="Visible workflow recommendations.",
+            payload={"risk": "low"},
+            model_name="manual",
+            source_notes="Visible stored review.",
+        )
+        self.client.force_authenticate(self.ai_editor)
+
+        response = self.client.post(
+            reverse("inspection-start", args=[self.inspection.id]),
+            {"note": "Start with AI-view permission."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], Inspection.Status.IN_PROGRESS)
+        self.assertEqual(
+            response.data["ai_analysis"]["summary"],
+            "Visible workflow summary.",
+        )
+
+    def test_ai_analysis_view_ai_user_can_get(self):
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Stored AI summary.",
+            analysis="Stored AI analysis.",
+            recommendation_summary="Stored AI recommendations.",
+            payload={"risk": "low"},
+            model_name="manual",
+            source_notes="Stored review.",
+        )
+
+        self.client.force_authenticate(self.ai_viewer)
+        response = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["summary"], "Stored AI summary.")
+        self.assertIn("context_preview", response.data)
+
+    def test_ai_analysis_get_does_not_create_or_update_inspection_sla(self):
+        self.client.force_authenticate(self.ai_viewer)
+        url = reverse("inspection-ai-analysis", args=[self.inspection.id])
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(InspectionSLA.objects.filter(inspection=self.inspection).exists())
+
+        last_recalculated_at = timezone.now() - timedelta(days=1)
+        sla = InspectionSLA.objects.create(
+            tenant=self.data["tenant"],
+            inspection=self.inspection,
+            target_minutes=17,
+            warning_minutes=3,
+            sla_status=InspectionSLA.Status.NOT_STARTED,
+            last_recalculated_at=last_recalculated_at,
+        )
+        original_updated_at = sla.updated_at
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        sla.refresh_from_db()
+        self.assertEqual(sla.target_minutes, 17)
+        self.assertEqual(sla.warning_minutes, 3)
+        self.assertEqual(sla.sla_status, InspectionSLA.Status.NOT_STARTED)
+        self.assertEqual(sla.last_recalculated_at, last_recalculated_at)
+        self.assertEqual(sla.updated_at, original_updated_at)
+
+    def test_ai_analysis_view_ai_user_cannot_post(self):
+        self.client.force_authenticate(self.ai_viewer)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
             InspectionAIAnalysis.objects.filter(inspection=self.inspection).exists()
         )
+
+    def test_ai_analysis_update_user_can_create_when_no_record_exists(self):
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(model_name=""),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.model_name, "manual")
+
+    def test_ai_analysis_update_user_cannot_overwrite_existing_hidden_record(self):
+        existing = InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Existing summary.",
+            analysis="Existing analysis.",
+            recommendation_summary="Existing recommendations.",
+            payload={"risk": "medium"},
+            model_name="manual",
+            source_notes="Existing review.",
+        )
+
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary="Updated summary.",
+                analysis="Updated analysis.",
+                recommendation_summary="Updated recommendations.",
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        existing.refresh_from_db()
+        self.assertEqual(existing.summary, "Existing summary.")
+
+    def test_ai_analysis_manage_user_can_get_and_post(self):
+        self.client.force_authenticate(self.user)
+        get_response = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(get_response.data, {})
+
+        post_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(),
+            format="json",
+        )
+        self.assertEqual(post_response.status_code, status.HTTP_201_CREATED)
+
+    def test_ai_analysis_empty_post_is_rejected(self):
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary=" ",
+                analysis=" ",
+                recommendation_summary=" ",
+                payload={},
+                model_name=" ",
+                source_notes=" ",
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("non_field_errors", response.data)
+
+    def test_ai_analysis_valid_post_creates_record_and_history(self):
+        self.client.force_authenticate(self.updater)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(model_name=" "),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.summary, "Area is mostly compliant.")
+        self.assertEqual(ai_analysis.model_name, "manual")
+        self.assertTrue(
+            self.inspection.history_entries.filter(action="ai_analysis_updated").exists()
+        )
+
+    def test_ai_analysis_view_ai_and_update_user_can_update(self):
+        self.client.force_authenticate(self.ai_editor)
+        first_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(summary="First summary."),
+            format="json",
+        )
+        self.assertEqual(first_response.status_code, status.HTTP_201_CREATED)
+
+        second_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary="Updated summary.",
+                analysis="Updated analysis.",
+                recommendation_summary="Updated recommendations.",
+                payload={"risk": "high"},
+            ),
+            format="json",
+        )
+
+        self.assertEqual(second_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(InspectionAIAnalysis.objects.filter(inspection=self.inspection).count(), 1)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.summary, "Updated summary.")
+        self.assertEqual(ai_analysis.payload, {"risk": "high"})
+
+    def test_ai_analysis_manage_user_can_update(self):
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Existing summary.",
+            analysis="Existing analysis.",
+            recommendation_summary="Existing recommendations.",
+            payload={"risk": "medium"},
+            model_name="manual",
+            source_notes="Existing review.",
+        )
+
+        self.client.force_authenticate(self.user)
+        response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(
+                summary="Manage updated summary.",
+                analysis="Manage updated analysis.",
+                recommendation_summary="Manage updated recommendations.",
+            ),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ai_analysis = InspectionAIAnalysis.objects.get(inspection=self.inspection)
+        self.assertEqual(ai_analysis.summary, "Manage updated summary.")
+
+    def test_build_inspection_ai_context_returns_structured_context(self):
+        InspectionItem.objects.create(
+            inspection=self.inspection,
+            sequence=2,
+            checklist_item="Check aisle markings",
+            category="Set In Order",
+            expected_result="Aisle markings are visible.",
+            max_score="5.00",
+            score="2.00",
+            is_pass=False,
+            observation="Paint is fading near the rack.",
+            notes="Needs repainting.",
+        )
+        corrective_action = InspectionCorrectiveAction.objects.create(
+            inspection=self.inspection,
+            tenant=self.inspection.tenant,
+            finding=self.finding,
+            assigned_to=self.inspector,
+            due_date=timezone.now() + timedelta(days=2),
+            status=InspectionCorrectiveAction.Status.OPEN,
+            verification_status=InspectionCorrectiveAction.VerificationStatus.PENDING,
+            notes="Repaint aisle markings.",
+        )
+
+        context = build_inspection_ai_context(inspection=self.inspection)
+
+        self.assertEqual(context["inspection"]["inspection_number"], self.inspection.inspection_number)
+        self.assertEqual(context["location"]["building_name"], self.data["building"].name)
+        self.assertEqual(len(context["checklist"]), 2)
+        self.assertEqual(context["checklist"][1]["checklist_item"], "Check aisle markings")
+        self.assertEqual(context["findings"][0]["description"], self.finding.description)
+        self.assertEqual(len(context["corrective_actions"]), 1)
+        self.assertEqual(
+            context["corrective_actions"][0]["verification_status"],
+            corrective_action.verification_status,
+        )
+        self.assertEqual(context["summary_counts"]["checklist_item_count"], 2)
+        self.assertEqual(context["summary_counts"]["failed_item_count"], 1)
+        self.assertEqual(context["summary_counts"]["finding_count"], 1)
+        self.assertEqual(context["summary_counts"]["open_corrective_action_count"], 1)
+
+    def test_ai_analysis_tenant_scoping_remains_enforced(self):
+        self.assign_permissions(
+            self.outsider,
+            "inspection.view_ai",
+            "inspection.update",
+        )
+        self.client.force_authenticate(self.outsider)
+
+        get_response = self.client.get(reverse("inspection-ai-analysis", args=[self.inspection.id]))
+        post_response = self.client.post(
+            reverse("inspection-ai-analysis", args=[self.inspection.id]),
+            self.create_ai_analysis_payload(),
+            format="json",
+        )
+
+        self.assertEqual(get_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(post_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_inspection_detail_hides_ai_analysis_without_view_ai_permission(self):
+        InspectionAIAnalysis.objects.create(
+            inspection=self.inspection,
+            summary="Restricted AI summary.",
+            analysis="Restricted AI analysis.",
+            recommendation_summary="Restricted recommendations.",
+            payload={"risk": "medium"},
+            model_name="manual",
+            source_notes="Restricted review.",
+        )
+
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(reverse("inspection-detail", args=[self.inspection.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["ai_analysis"])
+        self.assertTrue(response.data["ai_analysis_exists"])
 
     def test_history_endpoint_returns_entries(self):
         InspectionHistory.objects.create(

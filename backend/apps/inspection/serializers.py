@@ -3,6 +3,9 @@ import copy
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
+
+from apps.access_control.services import user_has_permission
 
 from .models import (
     Inspection,
@@ -18,7 +21,10 @@ from .models import (
     InspectionSLA,
     InspectionStatusHistory,
 )
-from .services.inspection_ai_service import upsert_ai_analysis
+from .services.inspection_ai_service import (
+    build_inspection_ai_context,
+    upsert_ai_analysis,
+)
 from .services.inspection_scoring_service import calculate_inspection_score
 from .services.inspection_service import (
     add_inspection_attachment,
@@ -58,7 +64,12 @@ class InspectionValidationMixin:
         if not inspection.status:
             inspection.status = Inspection.Status.DRAFT
 
-        if not self.instance and request and not inspection.inspector_id:
+        if (
+            not self.instance
+            and request
+            and not inspection.inspector_id
+            and getattr(request.user, "tenant_id", None) == inspection.tenant_id
+        ):
             inspection.inspector = request.user
 
         try:
@@ -281,6 +292,8 @@ class InspectionCorrectiveActionSerializer(serializers.ModelSerializer):
 
 
 class InspectionAISerializer(serializers.ModelSerializer):
+    context_preview = serializers.SerializerMethodField()
+
     class Meta:
         model = InspectionAIAnalysis
         fields = (
@@ -293,8 +306,56 @@ class InspectionAISerializer(serializers.ModelSerializer):
             "model_name",
             "source_notes",
             "generated_at",
+            "context_preview",
         )
-        read_only_fields = ("inspection", "generated_at")
+        read_only_fields = ("inspection", "generated_at", "context_preview")
+
+    def get_context_preview(self, obj):
+        return build_inspection_ai_context(inspection=obj.inspection)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        inspection = self.context["inspection"]
+        request = self.context["request"]
+        existing_ai_analysis = getattr(inspection, "ai_analysis", None)
+        summary = (attrs.get("summary") or "").strip()
+        analysis = (attrs.get("analysis") or "").strip()
+        recommendation_summary = (attrs.get("recommendation_summary") or "").strip()
+        model_name = (attrs.get("model_name") or "").strip() or "manual"
+        payload = attrs.get("payload")
+
+        if existing_ai_analysis and not any(
+            [
+                user_has_permission(request.user, "inspection.view_ai"),
+                user_has_permission(request.user, "inspection.manage"),
+            ]
+        ):
+            raise PermissionDenied(
+                "You do not have permission to overwrite an existing AI analysis record."
+            )
+
+        if not any([summary, analysis, recommendation_summary]):
+            raise serializers.ValidationError(
+                {
+                    "non_field_errors": [
+                        "At least one of summary, analysis, or recommendation summary is required."
+                    ]
+                }
+            )
+
+        if payload is not None and not isinstance(payload, dict):
+            raise serializers.ValidationError(
+                {"payload": ["Payload must be a JSON object."]}
+            )
+
+        attrs["summary"] = summary
+        attrs["analysis"] = analysis
+        attrs["recommendation_summary"] = recommendation_summary
+        attrs["source_notes"] = (attrs.get("source_notes") or "").strip()
+        attrs["model_name"] = model_name
+        if payload is None:
+            attrs["payload"] = {}
+        return attrs
 
     def create(self, validated_data):
         return upsert_ai_analysis(
@@ -428,7 +489,8 @@ class InspectionDetailSerializer(InspectionListSerializer):
         read_only=True,
     )
     corrective_actions = InspectionCorrectiveActionSerializer(many=True, read_only=True)
-    ai_analysis = InspectionAISerializer(read_only=True)
+    ai_analysis = serializers.SerializerMethodField()
+    ai_analysis_exists = serializers.SerializerMethodField()
     sla = InspectionSLASerializer(source="sla_record", read_only=True)
     escalations = InspectionEscalationSerializer(many=True, read_only=True)
     calculated_score = serializers.SerializerMethodField()
@@ -447,12 +509,35 @@ class InspectionDetailSerializer(InspectionListSerializer):
             "status_history",
             "corrective_actions",
             "ai_analysis",
+            "ai_analysis_exists",
             "sla",
             "escalations",
         )
 
     def get_calculated_score(self, obj):
         return calculate_inspection_score(obj)
+
+    def get_ai_analysis(self, obj):
+        request = self.context.get("request")
+        if request and not any(
+            [
+                user_has_permission(request.user, "inspection.view_ai"),
+                user_has_permission(request.user, "inspection.manage"),
+            ]
+        ):
+            return None
+
+        ai_analysis = getattr(obj, "ai_analysis", None)
+        if not ai_analysis:
+            return None
+
+        return InspectionAISerializer(
+            ai_analysis,
+            context=self.context,
+        ).data
+
+    def get_ai_analysis_exists(self, obj):
+        return bool(getattr(obj, "ai_analysis", None))
 
 
 class InspectionSerializer(InspectionDetailSerializer):

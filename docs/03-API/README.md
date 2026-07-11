@@ -70,8 +70,13 @@ Base path: `/api/inspection/`
   - Read permissions: `inspection.view` or `inspection.manage`
 - `GET /api/inspection/inspections/{id}/corrective-actions/`
   - Read permissions: `inspection.view` or `inspection.manage`
-- `GET|POST /api/inspection/inspections/{id}/ai-analysis/`
+- `GET /api/inspection/inspections/{id}/ai-analysis/`
   - Permissions: `inspection.view_ai` or `inspection.manage`
+  - Returns the stored AI-analysis record when one exists; responses may include a read-only `context_preview`
+- `POST /api/inspection/inspections/{id}/ai-analysis/`
+  - Permissions: `inspection.update` or `inspection.manage`
+  - Upserts the stored AI-analysis record; at least one of `summary`, `analysis`, or `recommendation_summary` is required
+  - Users without `inspection.view_ai` may create the first record, but cannot overwrite an existing stored record they are not allowed to view
 
 ### Workflow endpoints
 

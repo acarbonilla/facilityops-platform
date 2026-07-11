@@ -46,15 +46,19 @@ function normalizeDateTime(value: string): string | null {
 }
 
 function inspectionItemHasContent(item: InspectionItemFormValues) {
+  const normalizedSequence = item.sequence.trim();
+  const normalizedMaxScore = item.max_score.trim();
+
   return Boolean(
-    item.sequence.trim() ||
-      item.checklist_item.trim() ||
+    item.checklist_item.trim() ||
       item.category.trim() ||
       item.expected_result.trim() ||
-      item.max_score.trim() ||
       item.score.trim() ||
+      item.is_pass ||
       item.observation.trim() ||
-      item.notes.trim(),
+      item.notes.trim() ||
+      (normalizedSequence && normalizedSequence !== "1") ||
+      (normalizedMaxScore && normalizedMaxScore !== "5.00"),
   );
 }
 
@@ -73,20 +77,45 @@ function normalizePassValue(value: InspectionItemFormValues["is_pass"]) {
 function mapInspectionItemToPayload(
   item: InspectionItemFormValues,
 ): InspectionItemPayload {
+  const normalizedChecklistItem = item.checklist_item.trim();
+  const normalizedCategory = item.category.trim();
+  const normalizedExpectedResult = item.expected_result.trim();
   const normalizedScore = normalizeOptionalValue(item.score);
   const normalizedPass = normalizePassValue(item.is_pass);
+  const normalizedObservation = item.observation.trim();
+  const normalizedNotes = item.notes.trim();
 
-  return {
+  const payload: InspectionItemPayload = {
     sequence: Number(item.sequence.trim() || "1"),
-    checklist_item: item.checklist_item.trim(),
-    category: item.category.trim(),
-    expected_result: item.expected_result.trim(),
+    checklist_item: normalizedChecklistItem,
     max_score: normalizeOptionalValue(item.max_score) ?? "5.00",
-    score: normalizedScore,
-    is_pass: normalizedScore !== null ? normalizedPass : null,
-    observation: item.observation.trim(),
-    notes: item.notes.trim(),
   };
+
+  if (normalizedCategory) {
+    payload.category = normalizedCategory;
+  }
+
+  if (normalizedExpectedResult) {
+    payload.expected_result = normalizedExpectedResult;
+  }
+
+  if (normalizedScore !== null) {
+    payload.score = normalizedScore;
+  }
+
+  if (normalizedPass !== null) {
+    payload.is_pass = normalizedPass;
+  }
+
+  if (normalizedObservation) {
+    payload.observation = normalizedObservation;
+  }
+
+  if (normalizedNotes) {
+    payload.notes = normalizedNotes;
+  }
+
+  return payload;
 }
 
 export function createEmptyInspectionItem(
@@ -131,6 +160,7 @@ export function mapInspectionFormValuesToCreatePayload(
   values: InspectionFormValues,
 ): InspectionCreatePayload {
   const sanitizedValues = sanitizeInspectionFormValues(values);
+  const normalizedInspectionTemplate = sanitizedValues.inspection_template.trim();
 
   return {
     tenant: sanitizedValues.tenant,
@@ -142,9 +172,10 @@ export function mapInspectionFormValuesToCreatePayload(
     title: sanitizedValues.title,
     inspection_type: sanitizedValues.inspection_type,
     five_s_category: sanitizedValues.five_s_category,
-    inspection_template: normalizeOptionalValue(
-      sanitizedValues.inspection_template,
-    ),
+    inspection_template:
+      normalizedInspectionTemplate.length > 0
+        ? normalizedInspectionTemplate
+        : undefined,
     inspector: normalizeOptionalValue(sanitizedValues.inspector),
     supervisor: normalizeOptionalValue(sanitizedValues.supervisor),
     priority: sanitizedValues.priority,

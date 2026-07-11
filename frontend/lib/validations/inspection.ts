@@ -46,15 +46,19 @@ function parseNumber(value: string) {
 }
 
 function itemHasContent(item: z.infer<typeof inspectionItemSchema>) {
+  const normalizedSequence = item.sequence.trim();
+  const normalizedMaxScore = item.max_score.trim();
+
   return Boolean(
-    item.sequence ||
-      item.checklist_item ||
+    item.checklist_item ||
       item.category ||
       item.expected_result ||
-      item.max_score ||
       item.score ||
+      item.is_pass ||
       item.observation ||
-      item.notes,
+      item.notes ||
+      (normalizedSequence && normalizedSequence !== "1") ||
+      (normalizedMaxScore && normalizedMaxScore !== "5.00"),
   );
 }
 

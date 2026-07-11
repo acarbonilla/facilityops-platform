@@ -660,6 +660,9 @@ class MaintenanceApiTests(MaintenanceTestDataMixin, APITestCase):
         replacement = User.objects.create_user(
             email="replacement@example.com", password="Password123!"
         )
+        replacement.tenant = self.data["tenant"]
+        replacement.organization = self.data["organization"]
+        replacement.save(update_fields=("tenant", "organization", "updated_at"))
         self.client.force_authenticate(self.user)
         assign_response = self.client.post(
             reverse("maintenance-work-order-assign", args=[self.work_order.id]),

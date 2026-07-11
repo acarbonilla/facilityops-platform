@@ -118,6 +118,69 @@ def _status_history_action(to_status):
     return action_map.get(to_status, "system")
 
 
+def _soft_delete_resource(*, resource, inspection, actor, resource_type, description):
+    validate_actor_can_access_tenant(
+        actor,
+        inspection.tenant_id,
+        message="You cannot delete inspection resources for another tenant.",
+    )
+    actor_id = str(actor.id) if actor else None
+    resource.is_deleted = True
+    resource.deleted_at = timezone.now()
+    resource.deleted_by = actor_id
+    resource.updated_by = actor_id
+    resource.save(
+        update_fields=(
+            "is_deleted",
+            "deleted_at",
+            "deleted_by",
+            "updated_by",
+            "updated_at",
+        )
+    )
+    record_history(
+        inspection=inspection,
+        action=f"{resource_type}_deleted",
+        description=description,
+        actor=actor,
+        metadata={f"{resource_type}_id": str(resource.id)},
+    )
+    return resource
+
+
+@transaction.atomic
+def soft_delete_inspection(*, inspection, actor):
+    return _soft_delete_resource(
+        resource=inspection,
+        inspection=inspection,
+        actor=actor,
+        resource_type="inspection",
+        description="Inspection deleted.",
+    )
+
+
+@transaction.atomic
+def soft_delete_inspection_finding(*, finding, actor):
+    return _soft_delete_resource(
+        resource=finding,
+        inspection=finding.inspection,
+        actor=actor,
+        resource_type="finding",
+        description="Inspection finding deleted.",
+    )
+
+
+@transaction.atomic
+def soft_delete_inspection_corrective_action(*, corrective_action, actor):
+    return _soft_delete_resource(
+        resource=corrective_action,
+        inspection=corrective_action.inspection,
+        actor=actor,
+        resource_type="corrective_action",
+        description="Inspection corrective action deleted.",
+    )
+
+
 @transaction.atomic
 def create_inspection(*, actor, data, items_data=None):
     validate_actor_can_access_tenant(

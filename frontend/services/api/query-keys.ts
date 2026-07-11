@@ -5,14 +5,22 @@ import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 
-function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
+function stripNilParams<T extends object>(
+  params?: T,
+): T | Record<string, never> {
   if (!params) {
     return {};
   }
 
   return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined),
-  ) as MasterDataListParams;
+    Object.entries(params as Record<string, unknown>).filter(
+      ([, value]) => value !== undefined && value !== null,
+    ),
+  ) as T;
+}
+
+function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
+  return stripNilParams(params) as MasterDataListParams;
 }
 
 export const masterDataQueryKeys = {
@@ -34,13 +42,7 @@ export const dashboardQueryKeys = {
 function normalizeRbacParams<T extends RbacListParams | PermissionListParams>(
   params?: T,
 ): T | Record<string, never> {
-  if (!params) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined),
-  ) as T;
+  return stripNilParams(params) as T | Record<string, never>;
 }
 
 export const rbacQueryKeys = {
@@ -55,13 +57,7 @@ export const rbacQueryKeys = {
 };
 
 function normalizeUserParams(params?: UserListParams): UserListParams | Record<string, never> {
-  if (!params) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined),
-  ) as UserListParams;
+  return stripNilParams(params) as UserListParams;
 }
 
 export const usersQueryKeys = {
@@ -74,13 +70,7 @@ export const usersQueryKeys = {
 function normalizeFmTicketParams(
   params?: FmTicketListParams,
 ): FmTicketListParams | Record<string, never> {
-  if (!params) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined),
-  ) as FmTicketListParams;
+  return stripNilParams(params) as FmTicketListParams;
 }
 
 export const fmTicketsQueryKeys = {
@@ -96,13 +86,7 @@ export const fmTicketsQueryKeys = {
 function normalizeMaintenanceParams(
   params?: MaintenanceListParams,
 ): MaintenanceListParams | Record<string, never> {
-  if (!params) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined),
-  ) as MaintenanceListParams;
+  return stripNilParams(params) as MaintenanceListParams;
 }
 
 export const maintenanceQueryKeys = {
@@ -124,13 +108,7 @@ export const maintenanceQueryKeys = {
 function normalizeInspectionParams(
   params?: InspectionListParams,
 ): InspectionListParams | Record<string, never> {
-  if (!params) {
-    return {};
-  }
-
-  return Object.fromEntries(
-    Object.entries(params).filter(([, value]) => value !== undefined),
-  ) as InspectionListParams;
+  return stripNilParams(params) as InspectionListParams;
 }
 
 export const inspectionQueryKeys = {

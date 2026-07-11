@@ -22,6 +22,38 @@ export type InspectionFiveSCategory =
   | "standardize"
   | "sustain";
 
+export type InspectionFindingType =
+  | "non_conformance"
+  | "observation"
+  | "improvement"
+  | "hazard";
+
+export type InspectionFindingSeverity =
+  | "low"
+  | "medium"
+  | "high"
+  | "critical";
+
+export type InspectionFindingStatus =
+  | "open"
+  | "in_progress"
+  | "resolved"
+  | "verified";
+
+export type InspectionCorrectiveActionStatus =
+  | "open"
+  | "in_progress"
+  | "completed"
+  | "verified"
+  | "cancelled"
+  | "overdue";
+
+export type InspectionCorrectiveActionVerificationStatus =
+  | "pending"
+  | "verified"
+  | "rejected"
+  | "not_required";
+
 export interface InspectionListParams
   extends Record<string, string | number | boolean | undefined> {
   page?: number;
@@ -71,14 +103,14 @@ export interface InspectionFinding {
   inspection: string;
   inspection_number: string;
   item: string | null;
-  finding_type: string;
-  severity: string;
+  finding_type: InspectionFindingType;
+  severity: InspectionFindingSeverity;
   description: string;
   root_cause: string;
   recommendation: string;
   ai_recommendation: string;
   photo_path: string;
-  status: string;
+  status: InspectionFindingStatus;
   created_at: string;
   updated_at: string;
 }
@@ -118,6 +150,26 @@ export interface InspectionHistory {
   created_at: string;
 }
 
+export interface InspectionStatusHistory {
+  id: string;
+  inspection: string;
+  from_status: InspectionStatus | null;
+  to_status: InspectionStatus;
+  changed_by: string | null;
+  changed_by_email: string | null;
+  changed_at: string;
+  action:
+    | "schedule"
+    | "start"
+    | "complete"
+    | "verify"
+    | "cancel"
+    | "reopen"
+    | "system";
+  reason: string;
+  note: string;
+}
+
 export interface InspectionCorrectiveAction {
   id: string;
   tenant: string | null;
@@ -127,9 +179,9 @@ export interface InspectionCorrectiveAction {
   assigned_to: string | null;
   assigned_to_email: string | null;
   due_date: string;
-  status: string;
+  status: InspectionCorrectiveActionStatus;
   completion_date: string | null;
-  verification_status: string;
+  verification_status: InspectionCorrectiveActionVerificationStatus;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -145,6 +197,7 @@ export interface InspectionAIAnalysis {
   model_name: string;
   source_notes: string;
   generated_at: string;
+  context_preview?: Record<string, unknown> | null;
 }
 
 export interface InspectionSLA {
@@ -233,8 +286,10 @@ export interface InspectionDetail extends InspectionListItem {
   attachments: InspectionAttachment[];
   comments: InspectionComment[];
   history: InspectionHistory[];
+  status_history: InspectionStatusHistory[];
   corrective_actions: InspectionCorrectiveAction[];
   ai_analysis: InspectionAIAnalysis | null;
+  ai_analysis_exists: boolean;
   sla: InspectionSLA | null;
   escalations: InspectionEscalation[];
 }
@@ -270,6 +325,38 @@ export interface InspectionFormValues {
   items: InspectionItemFormValues[];
 }
 
+export interface InspectionFindingFormValues {
+  inspection: string;
+  item: string;
+  finding_type: InspectionFindingType;
+  severity: InspectionFindingSeverity;
+  description: string;
+  root_cause: string;
+  recommendation: string;
+  ai_recommendation: string;
+  photo_path: string;
+  status: InspectionFindingStatus;
+}
+
+export interface InspectionCorrectiveActionFormValues {
+  inspection: string;
+  finding: string;
+  assigned_to: string;
+  due_date: string;
+  status: InspectionCorrectiveActionStatus;
+  verification_status: InspectionCorrectiveActionVerificationStatus;
+  notes: string;
+}
+
+export interface InspectionAIAnalysisFormValues {
+  summary: string;
+  analysis: string;
+  recommendation_summary: string;
+  model_name: string;
+  source_notes: string;
+  payload_json: string;
+}
+
 export interface InspectionItemPayload {
   sequence: number;
   checklist_item: string;
@@ -292,7 +379,7 @@ export interface InspectionCreatePayload {
   title: string;
   inspection_type: InspectionType;
   five_s_category: InspectionFiveSCategory;
-  inspection_template?: string | null;
+  inspection_template?: string;
   inspector?: string | null;
   supervisor?: string | null;
   priority: InspectionPriority;
@@ -302,6 +389,69 @@ export interface InspectionCreatePayload {
 }
 
 export type InspectionUpdatePayload = InspectionCreatePayload;
+
+export interface InspectionFindingCreatePayload {
+  inspection: string;
+  item?: string | null;
+  finding_type: InspectionFindingType;
+  severity: InspectionFindingSeverity;
+  description: string;
+  root_cause?: string;
+  recommendation?: string;
+  ai_recommendation?: string;
+  photo_path?: string;
+  status: InspectionFindingStatus;
+}
+
+export type InspectionFindingUpdatePayload = InspectionFindingCreatePayload;
+
+export interface InspectionCorrectiveActionCreatePayload {
+  inspection: string;
+  finding?: string | null;
+  assigned_to?: string | null;
+  due_date?: string | null;
+  status: InspectionCorrectiveActionStatus;
+  verification_status: InspectionCorrectiveActionVerificationStatus;
+  notes?: string;
+}
+
+export type InspectionCorrectiveActionUpdatePayload =
+  InspectionCorrectiveActionCreatePayload;
+
+export interface InspectionAIAnalysisPayload {
+  summary: string;
+  analysis: string;
+  recommendation_summary: string;
+  model_name: string;
+  source_notes: string;
+  payload: Record<string, unknown>;
+}
+
+export interface InspectionWorkflowAction {
+  key: "assign" | "start" | "complete" | "verify" | "cancel" | "reopen";
+  label: string;
+  description: string;
+  to_status: InspectionStatus;
+  permission: import("./rbac").PermissionCode;
+  requiresDialog: boolean;
+}
+
+export interface InspectionSimpleWorkflowPayload {
+  note?: string;
+}
+
+export interface InspectionAssignPayload extends InspectionSimpleWorkflowPayload {
+  inspector?: string | null;
+  supervisor?: string | null;
+}
+
+export interface InspectionCancelPayload extends InspectionSimpleWorkflowPayload {
+  reason: string;
+}
+
+export interface InspectionReopenPayload extends InspectionSimpleWorkflowPayload {
+  reason: string;
+}
 
 export interface InspectionFormOptions {
   tenants: import("./master-data").Tenant[];

@@ -6,16 +6,15 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api";
 
 type ApiClientQueryValue = string | number | boolean;
+type ApiClientQueryItem = ApiClientQueryValue | null | undefined;
 
 export interface ApiClientOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   accessToken?: string;
   query?: Record<
     string,
-    | ApiClientQueryValue
-    | ApiClientQueryValue[]
-    | null
-    | undefined
+    | ApiClientQueryItem
+    | ApiClientQueryItem[]
   >;
 }
 
@@ -39,6 +38,9 @@ function resolveApiUrl(
 
       const values = Array.isArray(value) ? value : [value];
       for (const item of values) {
+        if (item === null || item === undefined) {
+          continue;
+        }
         url.searchParams.append(key, String(item));
       }
     }
