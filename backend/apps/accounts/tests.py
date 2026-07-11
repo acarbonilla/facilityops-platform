@@ -431,6 +431,7 @@ class UserManagementEndpointTests(APITestCase):
         self.assertIn(str(self.same_tenant_user.id), ids)
         self.assertNotIn(str(inactive.id), ids)
         self.assertNotIn(str(self.cross_tenant_user.id), ids)
+        self.assertTrue(all(item["is_active"] for item in results))
         self.assertEqual(
             set(results[0]),
             {
@@ -438,10 +439,42 @@ class UserManagementEndpointTests(APITestCase):
                 "email",
                 "first_name",
                 "last_name",
+                "display_name",
                 "tenant",
                 "organization",
+                "is_active",
             },
         )
+
+    def test_directory_display_name_uses_trimmed_full_name(self):
+        self.same_tenant_user.first_name = "Same"
+        self.same_tenant_user.last_name = "User"
+        self.same_tenant_user.save(update_fields=("first_name", "last_name"))
+        self._authenticate()
+
+        response = self.client.get(reverse("user-directory"))
+
+        result = next(
+            item
+            for item in self._results(response)
+            if item["id"] == str(self.same_tenant_user.id)
+        )
+        self.assertEqual(result["display_name"], "Same User")
+
+    def test_directory_display_name_falls_back_to_email(self):
+        self.same_tenant_user.first_name = ""
+        self.same_tenant_user.last_name = ""
+        self.same_tenant_user.save(update_fields=("first_name", "last_name"))
+        self._authenticate()
+
+        response = self.client.get(reverse("user-directory"))
+
+        result = next(
+            item
+            for item in self._results(response)
+            if item["id"] == str(self.same_tenant_user.id)
+        )
+        self.assertEqual(result["display_name"], self.same_tenant_user.email)
 
     def test_list_supports_search_filtering_and_ordering(self):
         self._authenticate()

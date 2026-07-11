@@ -22,7 +22,7 @@ Domain operations live in `apps.accounts.services`: tenant scoping, user creatio
 | DELETE | `/api/users/{id}/` | Deactivate a user | `users.delete` |
 | GET | `/api/users/directory/` | List active assignment-safe users | `users.view` |
 
-List and detail responses contain `id`, `email`, `first_name`, `last_name`, `tenant`, `organization`, `is_active`, `is_staff`, `created_at`, and `updated_at`. The directory response is intentionally limited to `id`, `email`, `first_name`, `last_name`, `tenant`, and `organization`.
+List and detail responses contain `id`, `email`, `first_name`, `last_name`, `tenant`, `organization`, `is_active`, `is_staff`, `created_at`, and `updated_at`. The active-user-only directory response is intentionally limited to `id`, `email`, `first_name`, `last_name`, `display_name`, `tenant`, `organization`, and `is_active`. `display_name` uses the trimmed full name and falls back to email when both name fields are blank.
 
 ## Query Support
 
@@ -54,7 +54,7 @@ Validation results:
 
 - `python manage.py check` - passed.
 - `python manage.py makemigrations --check --dry-run` - no changes detected.
-- `python manage.py test apps.accounts` - 24 tests passed.
+- `python manage.py test apps.accounts` - 26 tests passed after the FO-045A directory contract correction.
 - `python manage.py test --parallel 4` - 184 tests passed.
 - `git diff --check` - passed.
 

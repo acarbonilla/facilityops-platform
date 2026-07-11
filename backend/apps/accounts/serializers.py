@@ -85,6 +85,8 @@ class UserWriteSerializer(serializers.ModelSerializer):
 
 
 class UserDirectorySerializer(serializers.ModelSerializer):
+    display_name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = (
@@ -92,10 +94,16 @@ class UserDirectorySerializer(serializers.ModelSerializer):
             "email",
             "first_name",
             "last_name",
+            "display_name",
             "tenant",
             "organization",
+            "is_active",
         )
         read_only_fields = fields
+
+    def get_display_name(self, obj):
+        full_name = obj.get_full_name().strip()
+        return full_name or obj.email
 
 
 class LoginSerializer(serializers.Serializer):
