@@ -109,6 +109,7 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     search_fields = ("email", "first_name", "last_name")
     ordering_fields = (
+        "id",
         "email",
         "first_name",
         "last_name",

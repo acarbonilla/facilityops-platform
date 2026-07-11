@@ -1,3 +1,4 @@
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
@@ -33,6 +34,15 @@ def _validate_target_tenant(actor, tenant):
         )
 
 
+def _validate_actor_can_manage_user(actor, user):
+    if has_global_user_scope(actor):
+        return
+    if not actor.tenant_id or user.tenant_id != actor.tenant_id:
+        raise ValidationError(
+            {"tenant": "You cannot manage users in another tenant."}
+        )
+
+
 def _validate_organization(tenant, organization):
     if organization and (
         tenant is None or organization.tenant_id != tenant.id
@@ -54,6 +64,14 @@ def _validate_staff_change(actor, requested_is_staff, current_is_staff=False):
         raise ValidationError(
             {"is_staff": "Only system administrators may change staff status."}
         )
+
+
+def _set_validated_password(user, password):
+    try:
+        validate_password(password, user=user)
+    except DjangoValidationError as exc:
+        raise ValidationError({"password": exc.messages}) from exc
+    user.set_password(password)
 
 
 def _save_validated(user):
@@ -78,7 +96,7 @@ def create_user(*, actor, validated_data):
     _validate_staff_change(actor, data.get("is_staff", False))
 
     user = User(**data)
-    user.set_password(password)
+    _set_validated_password(user, password)
     _save_validated(user)
     return user
 
@@ -87,6 +105,7 @@ def create_user(*, actor, validated_data):
 def update_user(*, actor, user, validated_data):
     data = dict(validated_data)
     password = data.pop("password", None)
+    _validate_actor_can_manage_user(actor, user)
     tenant = data.get("tenant", user.tenant)
     organization = data.get("organization", user.organization)
 
@@ -105,13 +124,14 @@ def update_user(*, actor, user, validated_data):
     for field, value in data.items():
         setattr(user, field, value)
     if password is not None:
-        user.set_password(password)
+        _set_validated_password(user, password)
     _save_validated(user)
     return user
 
 
 @transaction.atomic
 def deactivate_user(*, actor, user):
+    _validate_actor_can_manage_user(actor, user)
     if user.pk == actor.pk:
         raise ValidationError(
             {"is_active": "You cannot deactivate your own account."}

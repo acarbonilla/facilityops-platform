@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from apps.access_control.models import (
@@ -11,6 +12,8 @@ from apps.access_control.models import (
     UserRole,
 )
 from apps.master_data.models import Organization, Tenant
+
+from .services import deactivate_user, has_global_user_scope, update_user
 
 
 User = get_user_model()
@@ -207,10 +210,115 @@ class UserManagementEndpointTests(APITestCase):
     def _results(self, response):
         return response.data["results"]
 
-    def test_unauthenticated_user_receives_401(self):
-        response = self.client.get(reverse("user-list"))
+    def test_authentication_and_action_permission_boundaries(self):
+        list_url = reverse("user-list")
+        detail_url = reverse("user-detail", args=(self.same_tenant_user.id,))
+        directory_url = reverse("user-directory")
+        unauthenticated_requests = (
+            self.client.get(list_url),
+            self.client.post(list_url, {}, format="json"),
+            self.client.get(detail_url),
+            self.client.put(detail_url, {}, format="json"),
+            self.client.patch(detail_url, {}, format="json"),
+            self.client.delete(detail_url),
+            self.client.get(directory_url),
+        )
+        for response in unauthenticated_requests:
+            self.assertEqual(
+                response.status_code,
+                status.HTTP_401_UNAUTHORIZED,
+            )
 
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        actors = {}
+        for permission_code in (
+            "users.view",
+            "users.create",
+            "users.update",
+            "users.delete",
+        ):
+            action = permission_code.split(".")[1]
+            actor = User.objects.create_user(
+                email=f"{action}-only@example.com",
+                password=self.password,
+                tenant=self.tenant,
+                organization=self.organization,
+            )
+            self._assign_permissions(actor, permission_code)
+            actors[action] = actor
+
+        self._authenticate(actors["view"])
+        self.assertEqual(
+            self.client.get(list_url).status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(
+            self.client.get(detail_url).status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(
+            self.client.get(directory_url).status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(
+            self.client.post(list_url, {}, format="json").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.patch(
+                detail_url,
+                {"password": "N3w-Password!Safe"},
+                format="json",
+            ).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.delete(detail_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self._authenticate(actors["create"])
+        self.assertEqual(
+            self.client.patch(detail_url, {}, format="json").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.delete(detail_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self._authenticate(actors["update"])
+        self.assertEqual(
+            self.client.delete(detail_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.patch(
+                detail_url,
+                {"is_active": False},
+                format="json",
+            ).status_code,
+            status.HTTP_200_OK,
+        )
+        self.same_tenant_user.is_active = True
+        self.same_tenant_user.save(update_fields=("is_active",))
+
+        self._authenticate(actors["delete"])
+        self.assertEqual(
+            self.client.patch(detail_url, {}, format="json").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        deletable = User.objects.create_user(
+            email="delete-permission-target@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        self.assertEqual(
+            self.client.delete(
+                reverse("user-detail", args=(deletable.id,))
+            ).status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
 
     def test_authorized_user_lists_only_same_tenant_users(self):
         self._authenticate()
@@ -221,6 +329,21 @@ class UserManagementEndpointTests(APITestCase):
         ids = {item["id"] for item in self._results(response)}
         self.assertIn(str(self.same_tenant_user.id), ids)
         self.assertNotIn(str(self.cross_tenant_user.id), ids)
+        forbidden_fields = {
+            "password",
+            "groups",
+            "user_permissions",
+            "last_login",
+            "is_superuser",
+        }
+        self.assertTrue(
+            forbidden_fields.isdisjoint(self._results(response)[0])
+        )
+        detail_response = self.client.get(
+            reverse("user-detail", args=(self.same_tenant_user.id,))
+        )
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(forbidden_fields.isdisjoint(detail_response.data))
 
     def test_cross_tenant_detail_returns_404(self):
         self._authenticate()
@@ -236,13 +359,37 @@ class UserManagementEndpointTests(APITestCase):
             email="tenantless@example.com",
             password=self.password,
         )
-        self._assign_permissions(tenantless, "users.view")
+        self._assign_permissions(
+            tenantless,
+            "users.view",
+            "users.create",
+        )
         self._authenticate(tenantless)
 
         response = self.client.get(reverse("user-list"))
+        directory_response = self.client.get(reverse("user-directory"))
+        create_response = self.client.post(
+            reverse("user-list"),
+            {
+                "email": "tenantless-created@example.com",
+                "password": "T3nantless!Safe-Password",
+            },
+            format="json",
+        )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(self._results(response), [])
+        self.assertEqual(directory_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self._results(directory_response), [])
+        self.assertEqual(
+            create_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertFalse(
+            User.objects.filter(
+                email="tenantless-created@example.com"
+            ).exists()
+        )
 
     def test_superuser_lists_users_across_tenants(self):
         superuser = User.objects.create_superuser(
@@ -268,10 +415,16 @@ class UserManagementEndpointTests(APITestCase):
             is_system_role=True,
         )
         UserRole.objects.create(user=system_admin, role=role)
-        RolePermission.objects.create(
-            role=role,
-            permission=self._permission("users.view"),
-        )
+        for permission_code in (
+            "users.view",
+            "users.create",
+            "users.update",
+            "users.delete",
+        ):
+            RolePermission.objects.create(
+                role=role,
+                permission=self._permission(permission_code),
+            )
         self._authenticate(system_admin)
 
         response = self.client.get(reverse("user-list"))
@@ -279,6 +432,42 @@ class UserManagementEndpointTests(APITestCase):
         ids = {item["id"] for item in self._results(response)}
         self.assertIn(str(self.same_tenant_user.id), ids)
         self.assertIn(str(self.cross_tenant_user.id), ids)
+        update_response = self.client.patch(
+            reverse("user-detail", args=(self.cross_tenant_user.id,)),
+            {"first_name": "Globally managed", "is_staff": True},
+            format="json",
+        )
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.cross_tenant_user.refresh_from_db()
+        self.assertTrue(self.cross_tenant_user.is_staff)
+
+        create_response = self.client.post(
+            reverse("user-list"),
+            {
+                "email": "global-created@example.com",
+                "tenant": str(self.other_tenant.id),
+                "organization": str(self.other_organization.id),
+                "password": "Gl0bal-Created!Safe",
+            },
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn("password", create_response.data)
+        self.assertEqual(
+            self.client.delete(
+                reverse("user-detail", args=(create_response.data["id"],))
+            ).status_code,
+            status.HTTP_204_NO_CONTENT,
+        )
+
+        system_admin.is_active = False
+        system_admin.save(update_fields=("is_active",))
+        self.assertFalse(has_global_user_scope(system_admin))
+        self._authenticate(system_admin)
+        self.assertEqual(
+            self.client.get(reverse("user-list")).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
 
     def test_authorized_admin_creates_user_with_hashed_password(self):
         self._authenticate()
@@ -300,6 +489,29 @@ class UserManagementEndpointTests(APITestCase):
         self.assertTrue(created.check_password(payload["password"]))
         self.assertNotEqual(created.password, payload["password"])
         self.assertNotIn("password", response.data)
+        duplicate_response = self.client.post(
+            reverse("user-list"),
+            payload,
+            format="json",
+        )
+        self.assertEqual(
+            duplicate_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        for invalid_password in ("", None, "short"):
+            invalid_response = self.client.post(
+                reverse("user-list"),
+                {
+                    "email": f"invalid-{invalid_password}@example.com",
+                    "password": invalid_password,
+                },
+                format="json",
+            )
+            self.assertEqual(
+                invalid_response.status_code,
+                status.HTTP_400_BAD_REQUEST,
+            )
+            self.assertIn("password", invalid_response.data)
 
     def test_cross_tenant_creation_is_rejected(self):
         self._authenticate()
@@ -336,6 +548,12 @@ class UserManagementEndpointTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("organization", response.data)
+        with self.assertRaises(ValidationError):
+            update_user(
+                actor=self.admin,
+                user=self.same_tenant_user,
+                validated_data={"email": self.admin.email},
+            )
 
     def test_authorized_update_and_password_replacement_succeed(self):
         self._authenticate()
@@ -364,6 +582,27 @@ class UserManagementEndpointTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        delete_response = self.client.delete(
+            reverse("user-detail", args=(self.cross_tenant_user.id,))
+        )
+        self.assertEqual(
+            delete_response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.cross_tenant_user.refresh_from_db()
+        self.assertEqual(self.cross_tenant_user.first_name, "")
+        self.assertTrue(self.cross_tenant_user.is_active)
+        with self.assertRaises(ValidationError):
+            update_user(
+                actor=self.admin,
+                user=self.cross_tenant_user,
+                validated_data={"tenant": self.tenant},
+            )
+        with self.assertRaises(ValidationError):
+            deactivate_user(actor=self.admin, user=self.cross_tenant_user)
+        self.cross_tenant_user.refresh_from_db()
+        self.assertEqual(self.cross_tenant_user.tenant, self.other_tenant)
+        self.assertTrue(self.cross_tenant_user.is_active)
 
     def test_regular_admin_cannot_change_staff_status(self):
         self._authenticate()
@@ -375,8 +614,21 @@ class UserManagementEndpointTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        move_response = self.client.patch(
+            reverse("user-detail", args=(self.same_tenant_user.id,)),
+            {
+                "tenant": str(self.other_tenant.id),
+                "organization": str(self.other_organization.id),
+            },
+            format="json",
+        )
+        self.assertEqual(
+            move_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
         self.same_tenant_user.refresh_from_db()
         self.assertFalse(self.same_tenant_user.is_staff)
+        self.assertEqual(self.same_tenant_user.tenant, self.tenant)
 
     def test_delete_deactivates_without_removing_user(self):
         self._authenticate()
@@ -432,6 +684,7 @@ class UserManagementEndpointTests(APITestCase):
         self.assertNotIn(str(inactive.id), ids)
         self.assertNotIn(str(self.cross_tenant_user.id), ids)
         self.assertTrue(all(item["is_active"] for item in results))
+        self.assertTrue(all("password" not in item for item in results))
         self.assertEqual(
             set(results[0]),
             {
@@ -444,6 +697,21 @@ class UserManagementEndpointTests(APITestCase):
                 "organization",
                 "is_active",
             },
+        )
+        filtered_response = self.client.get(
+            reverse("user-directory"),
+            {
+                "search": "Same",
+                "organization": str(self.organization.id),
+                "is_active": "true",
+                "ordering": "id",
+            },
+        )
+        self.assertEqual(filtered_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(self._results(filtered_response)), 1)
+        self.assertEqual(
+            self._results(filtered_response)[0]["id"],
+            str(self.same_tenant_user.id),
         )
 
     def test_directory_display_name_uses_trimmed_full_name(self):
