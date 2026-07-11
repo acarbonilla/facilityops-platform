@@ -96,14 +96,14 @@ npm run dev
 - Admin RBAC routes are available at `/admin`, `/admin/roles`, and `/admin/permissions`.
 - Roles screens are guarded by `roles.view`.
 - The permissions catalog currently requires `roles.manage` because the backend permissions endpoint enforces that permission.
-- User management comes later and is not part of the current admin UI scope.
+- User Management is implemented through FO-049 with backend-authoritative RBAC and tenant isolation.
 
 ## User Management UI
 
 - Users route: `/admin/users`
 - Permission requirement: `users.view`
-- Supported operations: admin navigation entry and backend-support discovery state
-- Unsupported operations: user list loading, detail, create, edit, role assignment, invitations, password reset, and SSO
+- Supported operations: tenant-scoped list, detail, create, edit, activation/deactivation, role assignment, and assignment-safe directory reads
+- Out-of-scope operations: invitations, password-reset email, SSO, bulk import, and role-definition editing
 - User management remains separate from invitations and identity-provider workflows.
 
 ## Organization Management
@@ -353,4 +353,4 @@ celery-ok
 
 ## Next Task
 
-Stage 3 - Business Modules. The 5S Inspection module is complete through FO-044. The `agent/inspection-module` branch is ready to merge into `main` via PR #30 after final review.
+Stage 3 - Business Modules. User Management is complete through FO-049 on `feature/user-management`. Draft PR #32 is ready for Sol's separate final cumulative review; it remains unmerged.

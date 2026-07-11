@@ -159,9 +159,9 @@ Repository hygiene:
 ## Limitations
 
 - No dedicated frontend component or browser-test harness exists yet, so validation is limited to helper tests plus lint, typecheck, build, and backend compatibility checks.
-- Role assignment remains out of scope for FO-046 and stays pending for FO-047.
-- Cross-module user-assignment pickers remain out of scope for FO-048.
-- Any broader user-management milestone should remain in progress until FO-049 is complete.
+- Role assignment was subsequently completed by FO-047.
+- Cross-module assignment-safe user pickers were subsequently completed by FO-048/FO-048B.
+- FO-049 completes cumulative User Management QA; component/browser automation remains the principal frontend testing limitation.
 
 ## Result
 

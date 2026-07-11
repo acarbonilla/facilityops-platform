@@ -17,7 +17,7 @@
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
 | Dashboard | Complete | Foundation metrics backend and frontend dashboard shell |
-| User Management | In Progress | Frontend admin placeholder exists, dedicated backend user-management API does not |
+| User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
@@ -26,7 +26,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Needs Review | Backend: 168 tests pass across all apps including 42 inspection tests; Frontend: `npm run test` runs 10 checklist payload mapping tests via `tsx`; no component or integration harness exists yet |
+| Testing | Complete | Backend: 204 tests pass; Frontend: 43 helper tests, ESLint, TypeScript, and production build pass; no component/integration harness exists yet |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -72,6 +72,7 @@ facilityops-platform/
 - FO-042A adds the inspection sidebar entry, hardens frontend query serialization so nullable filters are omitted before master-data form-options requests hit the backend, suppresses placeholder checklist item submission during create, and keeps cross-tenant inspector auto-defaulting from violating backend tenant validation.
 - FO-043 separates AI-analysis read/write permissions, adds deterministic inspection context preparation, and delivers advisory frontend AI-analysis review/edit UI without connecting an external AI provider.
 - FO-044 completes 5S Inspection module QA and stabilization: four defects corrected (checklist pass/fail preservation, AI-analysis GET mutation, inspection soft-delete centralization, maintenance reassignment test tenant isolation), 168 backend tests pass, 10 frontend checklist mapping tests pass via formally configured `npm run test`, ESLint, TypeScript, and production build clean.
+- FO-045 through FO-049 complete User Management CRUD, tenant/security hardening, role assignment, assignment-safe directory/pickers, and cumulative QA; the current full suite passes 204 backend and 43 frontend helper tests.
 - FO-DOC-001 establishes the permanent developer handbook under `docs/04-Developer-Handbook/`, adds `docs/development/project-status.md`, and defines repository-level process ownership, QA expectations, merge workflow, and documentation standards.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
@@ -262,40 +263,40 @@ Provides a simple authenticated dashboard for foundation metrics and quick navig
 
 ## User Management
 
-Status: In Progress
+Status: Complete
 
 ### Purpose
 
-Tracks the current admin-facing user-management surface and its gap against the missing backend CRUD and role-assignment APIs.
+Provides tenant-scoped user administration, role assignment, and assignment-safe directory access with cumulative QA through FO-049.
 
 ### Backend
 
-- Apps: `apps.accounts` for the user model only
+- Apps: `apps.accounts`, `apps.access_control`
 - Models: `User`
-- Serializers: `UserSerializer`
-- ViewSets / Views: `CurrentUserView` only; no admin user-management endpoints
-- APIs: current user endpoint only at `/api/auth/me/`
-- Services: None for admin user management
-- Permissions: backend user-management permission codes exist in RBAC data, but no user CRUD views are exposed
+- Serializers: dedicated read, write, directory, and role-assignment serializers
+- ViewSets / Views: authenticated `UserViewSet` plus existing authentication views
+- APIs: user list/create/detail/update/deactivate, active directory, and per-user role read/replacement
+- Services: tenant-scoped create, update, deactivation, and atomic role replacement
+- Permissions: action-specific `users.*`, `roles.*`, and least-privilege `users.directory`
 - Admin: `UserAdmin`
-- Tests: `backend/apps/accounts/tests.py` covers auth endpoints and user model, not admin user CRUD
+- Tests: 63 focused accounts/access-control tests; 204 full backend tests
 
 ### Frontend
 
-- Routes: `/users`, `/admin/users`
+- Routes: `/admin/users`, `/admin/users/new`, `/admin/users/[id]`, `/admin/users/[id]/edit`
 - Module Folder: `frontend/features/admin/users`
-- Pages: admin users page and alias users page
-- Components: `UserManagementScreen`
-- Hooks: `use-permissions` indirectly through shared guards
+- Pages: protected list, create, detail, and edit pages
+- Components: user list/detail/form/deactivation/role dialogs plus shared directory picker
+- Hooks: `use-users` and existing auth/permission hooks
 - API Files: `services/api/users.ts`
 - Types: `types/users.ts`
 - RBAC Usage: route is guarded by `users.view`
-- Tests: No dedicated frontend tests
+- Tests: helper-level user, role, directory, Inspection payload, and Maintenance compatibility coverage within the 43-test frontend suite
 
 ### Notes
 
-- `services/api/users.ts` explicitly reports all admin user-management capabilities as unsupported and all endpoints as `null`.
-- FO-021 is complete for the current placeholder UI scope, but the module remains `In Progress` because backend list, detail, create, update, and role assignment APIs do not exist yet.
+- FO-045 through FO-049 are complete. Backend authorization remains authoritative; frontend guards are advisory.
+- Invitations, password-reset email, SSO, bulk import, and role-definition editing remain out of scope.
 
 ## Organization Management
 
@@ -457,40 +458,40 @@ Manages planned and corrective maintenance activities for assets, locations, tec
 
 ## User Management
 
-Status: In Progress
+Status: Complete
 
 ### Purpose
 
-Tracks the current admin-facing user-management surface and its gap against the missing backend CRUD and role-assignment APIs.
+Provides tenant-scoped user administration, role assignment, and assignment-safe directory access with cumulative QA through FO-049.
 
 ### Backend
 
-- Apps: `apps.accounts` for the user model only
+- Apps: `apps.accounts`, `apps.access_control`
 - Models: `User`
-- Serializers: `UserSerializer`
-- ViewSets / Views: `CurrentUserView` only; no admin user-management endpoints
-- APIs: current user endpoint only at `/api/auth/me/`
-- Services: None for admin user management
-- Permissions: backend user-management permission codes exist in RBAC data, but no user CRUD views are exposed
+- Serializers: dedicated read, write, directory, and role-assignment serializers
+- ViewSets / Views: authenticated `UserViewSet` plus existing authentication views
+- APIs: user list/create/detail/update/deactivate, active directory, and per-user role read/replacement
+- Services: tenant-scoped create, update, deactivation, and atomic role replacement
+- Permissions: action-specific `users.*`, `roles.*`, and least-privilege `users.directory`
 - Admin: `UserAdmin`
-- Tests: `backend/apps/accounts/tests.py` covers auth endpoints and user model, not admin user CRUD
+- Tests: 63 focused accounts/access-control tests; 204 full backend tests
 
 ### Frontend
 
-- Routes: `/users`, `/admin/users`
+- Routes: `/admin/users`, `/admin/users/new`, `/admin/users/[id]`, `/admin/users/[id]/edit`
 - Module Folder: `frontend/features/admin/users`
-- Pages: admin users page and alias users page
-- Components: `UserManagementScreen`
-- Hooks: `use-permissions` indirectly through shared guards
+- Pages: protected list, create, detail, and edit pages
+- Components: user list/detail/form/deactivation/role dialogs plus shared directory picker
+- Hooks: `use-users` and existing auth/permission hooks
 - API Files: `services/api/users.ts`
 - Types: `types/users.ts`
 - RBAC Usage: route is guarded by `users.view`
-- Tests: No dedicated frontend tests
+- Tests: helper-level user, role, directory, Inspection payload, and Maintenance compatibility coverage within the 43-test frontend suite
 
 ### Notes
 
-- `services/api/users.ts` explicitly reports all admin user-management capabilities as unsupported and all endpoints as `null`.
-- FO-021 is complete for the current placeholder UI scope, but the module remains `In Progress` because backend list, detail, create, update, and role assignment APIs do not exist yet.
+- FO-045 through FO-049 are complete. Backend authorization remains authoritative; frontend guards are advisory.
+- Invitations, password-reset email, SSO, bulk import, and role-definition editing remain out of scope.
 
 ## Organization Management
 
@@ -676,7 +677,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries, inspection workflow helpers, AI-analysis mapping/validation helpers, findings/corrective-action mapping helpers, and inspection form validation/mapping helpers
 - Types: `frontend/types/inspection.ts`
 - RBAC Usage: list/detail routes require `inspection.view` or `inspection.manage`; create requires `inspection.create` or `inspection.manage`; edit requires `inspection.update` or `inspection.manage`; workflow actions require `inspection.assign`, `inspection.update`, `inspection.complete`, `inspection.verify`, or `inspection.manage` based on action; finding create/edit requires `inspection.update` or `inspection.manage`; finding delete requires `inspection.delete` or `inspection.manage`; corrective-action create/edit requires `inspection.manage_corrective_action` or `inspection.manage`; corrective-action delete requires `inspection.delete` or `inspection.manage`
-- Tests: `frontend/lib/inspection/form.test.ts` — 10 checklist pass/fail payload mapping tests run via `npm run test` (Node.js built-in test runner with `tsx`)
+- Tests: Inspection helper coverage is part of the 43-test frontend suite run via `npm run test` (Node.js built-in runner with `tsx`)
 
 ### Notes
 
@@ -692,8 +693,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - FO-044 is the QA and stabilization pass for the full inspection module. Four defects were corrected: checklist pass/fail values not preserved on edit, workflow AI-analysis responses mutated on GET, inspection soft-delete not centralized, and maintenance reassignment test failing after tenant-isolation hardening. All 168 backend tests pass and all 10 frontend checklist mapping tests pass. The `npm run test` script and `tsx` devDependency are now formally part of `frontend/package.json`.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
-- Inspector and supervisor assignment still uses raw UUID entry in the workflow dialog because the frontend does not yet have a supported user-directory list API.
-- Corrective-action assignee entry also remains a raw UUID field until the frontend has a supported user-directory picker.
+- FO-048 adds the assignment-safe directory picker to Inspection inspector, supervisor, workflow assignment, and corrective-action owner fields while retaining exact payload keys and permissions.
 
 ## Shared Services
 
@@ -827,20 +827,20 @@ Tracks the current verification footprint across backend and frontend so progres
 
 ### Frontend
 
-- Routes: all feature routes rely on lint, TypeScript, and integrated manual validation rather than route-specific tests
-- Module Folder: `frontend/lib/inspection/` contains `form.test.ts`
+- Routes: all feature routes rely on lint, TypeScript, build validation, and code-level manual review rather than route-specific browser tests
+- Module Folder: helper tests exist under `frontend/lib/inspection/`, `frontend/lib/maintenance/`, and `frontend/lib/users/`
 - Pages: no automated page tests
 - Components: no automated component tests
 - Hooks: no automated hook tests
 - API Files: no automated frontend API-client tests
 - Types: validated through TypeScript compilation
 - RBAC Usage: verified through implementation review and integrated behavior, not frontend test code
-- Tests: `frontend/lib/inspection/form.test.ts` — 10 checklist pass/fail payload mapping tests run via `npm run test` (Node.js built-in test runner with `tsx`)
+- Tests: Inspection helper coverage is part of the 43-test frontend suite run via `npm run test` (Node.js built-in runner with `tsx`)
 
 ### Notes
 
-- Backend testing is in good shape for the current stage (168 tests passing).
-- Frontend lib-level tests now run via `npm run test` (10 tests). No component, integration, or browser harness exists yet.
+- Backend testing is in good shape for the current stage (204 tests passing).
+- Frontend helper-level tests run via `npm run test` (43 tests). No component, integration, or browser harness exists yet.
 
 ## Configuration
 
