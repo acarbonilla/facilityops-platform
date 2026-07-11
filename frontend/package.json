@@ -7,7 +7,7 @@
     "build": "node scripts/runtime.mjs build",
     "start": "node scripts/runtime.mjs start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "test": "node --import tsx --test lib/inspection/form.test.ts"
+    "test": "node --import tsx --test lib/inspection/form.test.ts lib/users/form.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

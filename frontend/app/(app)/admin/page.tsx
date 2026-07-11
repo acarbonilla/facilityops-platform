@@ -92,7 +92,7 @@ export default function AdminPage() {
               />
               <DetailField
                 label="User management"
-                value="Read-only foundation"
+                value="CRUD screens available"
               />
             </dl>
           </PageHeader>
@@ -111,7 +111,7 @@ export default function AdminPage() {
               title="Assets"
             />
             <AdminCard
-              description="Open the user-management foundation and review backend support status."
+              description="Open the user list, detail, create, edit, and deactivation workflows."
               enabled={canViewUsers}
               href="/admin/users"
               title="Users"
