@@ -22,11 +22,11 @@
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
 | Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
-| 5S Inspection | In Progress | FO-038 adds the inspection backend foundation, FO-038B aligns CRUD/RBAC, FO-039 adds protected read screens, FO-040 adds create/edit forms, FO-041 adds lifecycle workflow UI with status timeline rendering, FO-042A restores sidebar discoverability plus hardens create-page payload compatibility, and FO-043 adds stored AI-analysis review with structured context |
+| 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Needs Review | Strong backend coverage; no dedicated frontend unit or component test harness |
+| Testing | Needs Review | Backend: 168 tests pass across all apps including 42 inspection tests; Frontend: `npm run test` runs 10 checklist payload mapping tests via `tsx`; no component or integration harness exists yet |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -71,6 +71,7 @@ facilityops-platform/
 - FO-041 adds permission-aware inspection lifecycle actions, workflow dialogs, and backend status-history timeline rendering on inspection detail.
 - FO-042A adds the inspection sidebar entry, hardens frontend query serialization so nullable filters are omitted before master-data form-options requests hit the backend, suppresses placeholder checklist item submission during create, and keeps cross-tenant inspector auto-defaulting from violating backend tenant validation.
 - FO-043 separates AI-analysis read/write permissions, adds deterministic inspection context preparation, and delivers advisory frontend AI-analysis review/edit UI without connecting an external AI provider.
+- FO-044 completes 5S Inspection module QA and stabilization: four defects corrected (checklist pass/fail preservation, AI-analysis GET mutation, inspection soft-delete centralization, maintenance reassignment test tenant isolation), 168 backend tests pass, 10 frontend checklist mapping tests pass via formally configured `npm run test`, ESLint, TypeScript, and production build clean.
 - FO-DOC-001 establishes the permanent developer handbook under `docs/04-Developer-Handbook/`, adds `docs/development/project-status.md`, and defines repository-level process ownership, QA expectations, merge workflow, and documentation standards.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
@@ -445,6 +446,201 @@ Manages planned and corrective maintenance activities for assets, locations, tec
 - FO-032 frontend read surfaces are implemented in code, including dashboard, list, detail, filters, pagination, tasks, materials, labor, attachment metadata, SLA, AI summary, and history.
 - FO-033 create/edit work-order pages, client validation, permission-gated actions, and backend create/update integration are now implemented.
 - FO-034 dedicated maintenance status workflow actions are now implemented across backend and frontend, including `submit`, `assign`, `start`, `hold`, `resume`, `complete`, `cancel`, and `reopen`, plus backend status history action/reason tracking and frontend workflow dialogs.
+- Types: `types/dashboard.ts`
+- RBAC Usage: authenticated route; no separate permission code beyond login state
+- Tests: No dedicated frontend tests
+
+### Notes
+
+- This module covers FO-017.
+- Metrics currently focus on setup completeness, not ticket or maintenance operations.
+
+## User Management
+
+Status: In Progress
+
+### Purpose
+
+Tracks the current admin-facing user-management surface and its gap against the missing backend CRUD and role-assignment APIs.
+
+### Backend
+
+- Apps: `apps.accounts` for the user model only
+- Models: `User`
+- Serializers: `UserSerializer`
+- ViewSets / Views: `CurrentUserView` only; no admin user-management endpoints
+- APIs: current user endpoint only at `/api/auth/me/`
+- Services: None for admin user management
+- Permissions: backend user-management permission codes exist in RBAC data, but no user CRUD views are exposed
+- Admin: `UserAdmin`
+- Tests: `backend/apps/accounts/tests.py` covers auth endpoints and user model, not admin user CRUD
+
+### Frontend
+
+- Routes: `/users`, `/admin/users`
+- Module Folder: `frontend/features/admin/users`
+- Pages: admin users page and alias users page
+- Components: `UserManagementScreen`
+- Hooks: `use-permissions` indirectly through shared guards
+- API Files: `services/api/users.ts`
+- Types: `types/users.ts`
+- RBAC Usage: route is guarded by `users.view`
+- Tests: No dedicated frontend tests
+
+### Notes
+
+- `services/api/users.ts` explicitly reports all admin user-management capabilities as unsupported and all endpoints as `null`.
+- FO-021 is complete for the current placeholder UI scope, but the module remains `In Progress` because backend list, detail, create, update, and role assignment APIs do not exist yet.
+
+## Organization Management
+
+Status: Complete
+
+### Purpose
+
+Provides an admin-oriented structure view across tenants, organizations, departments, buildings, floors, and areas using the master-data backend rather than a separate organization app.
+
+### Backend
+
+- Apps: reuses `apps.master_data`
+- Models: `Tenant`, `Organization`, `Department`, `Building`, `Floor`, `Area`
+- Serializers: corresponding master-data serializers
+- ViewSets / Views: master-data viewsets
+- APIs: master-data endpoints for the six structure resources
+- Services: `apply_query_param_filters`
+- Permissions: `settings.view` for read and `settings.manage` for create/edit
+- Admin: handled by master-data admin registrations
+- Tests: `backend/apps/master_data/tests.py`
+
+### Frontend
+
+- Routes: `/admin/organization`, `/admin/organization/tenants`, `/organizations`, `/departments`, `/buildings`, `/floors`, `/areas`
+- Module Folder: `frontend/features/admin/organization`
+- Pages: organization landing page plus per-resource admin alias pages
+- Components: `OrganizationManagementScreen`, `OrganizationStructureCard`, `OrganizationHierarchy`
+- Hooks: No dedicated hooks; screen composes TanStack Query calls to master-data APIs
+- API Files: `services/api/master-data.ts`
+- Types: `types/master-data.ts`
+- RBAC Usage: route is guarded by `settings.view`; create links rely on `settings.manage`
+- Tests: No dedicated frontend tests
+
+### Notes
+
+- This module covers FO-022.
+- The admin organization area is an orchestration layer over master data, not a separate domain backend.
+
+## Asset Management
+
+Status: Complete
+
+### Purpose
+
+Supports asset listing, detail, create, edit, and admin alias screens using the master-data asset model and frontend asset-focused presentation components.
+
+### Backend
+
+- Apps: reuses `apps.master_data`
+- Models: `Asset`, `AssetType`, plus related location and organization models
+- Serializers: `AssetSerializer`, `AssetTypeSerializer`
+- ViewSets / Views: `AssetViewSet`, `AssetTypeViewSet`
+- APIs: `/api/master-data/assets/`, `/api/master-data/asset-types/`
+- Services: `apply_query_param_filters`
+- Permissions: `settings.view` for read and `settings.manage` for write
+- Admin: `AssetAdmin`, `AssetTypeAdmin`
+- Tests: `backend/apps/master_data/tests.py`
+
+### Frontend
+
+- Routes: `/master-data/assets`, `/master-data/assets/new`, `/master-data/assets/[id]`, `/master-data/assets/[id]/edit`, `/admin/assets`
+- Module Folder: `frontend/features/assets`, `frontend/features/master-data`, `frontend/components/master-data`
+- Pages: asset list, detail, create, edit, and admin alias page
+- Components: `AssetList`, `AssetDetail`, `AssetFilters`, `AssetFormSection`, `AssetLocationBreadcrumb`, shared asset form pages
+- Hooks: No dedicated asset hook; asset screens use shared master-data API calls
+- API Files: `services/api/master-data.ts`
+- Types: `types/master-data.ts`
+- RBAC Usage: read uses `settings.view`; create and edit use `settings.manage`
+- Tests: No dedicated frontend tests
+
+### Notes
+
+- This module covers FO-023.
+- Asset management still excludes inspections, bulk actions, delete, and reporting.
+
+## FM Ticketing
+
+Status: Complete
+
+### Purpose
+
+Manages facility-management tickets, including read, create, edit, comments, history, assignment, status workflow, and escalation support.
+
+### Backend
+
+- Apps: `apps.fm_tickets`
+- Models: `FmTicket`, `FmTicketEscalation`, `FmTicketComment`, `FmTicketHistory`, `FmTicketStatusHistory`
+- Serializers: list, detail, create, update, comment, history, escalation, assignment, and status-change serializers
+- ViewSets / Views: `FmTicketViewSet`
+- APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`
+- Services: ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
+- Permissions: `HasTicketPermission` with `fm_tickets.view`, `create`, `update`, `assign`, `close`, and `manage`
+- Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`
+- Tests: `backend/apps/fm_tickets/tests.py`
+
+### Frontend
+
+- Routes: `/fm-tickets`, `/fm-tickets/new`, `/fm-tickets/[id]`, `/fm-tickets/[id]/edit`
+- Module Folder: `frontend/features/fm-tickets`
+- Pages: list, detail, create, and edit pages
+- Components: `TicketListScreen`, `TicketDetailScreen`, `TicketFormPage`, `TicketForm`, `TicketComments`, `TicketCommentForm`, `TicketHistory`, `TicketAssignmentPanel`, `TicketStatusActions`, `TicketSlaPanel`, `TicketEscalationForm`, `TicketEscalationHistory`, badge and shared display components
+- Hooks: No dedicated FM ticket hook layer; feature components use queries and mutations directly
+- API Files: `services/api/fm-tickets.ts`
+- Types: `types/fm-tickets.ts`
+- RBAC Usage: view, create, update, assign, manage, and close permissions drive route access and action visibility
+- Tests: No dedicated frontend tests
+
+### Notes
+
+- This module covers FO-024 through FO-030.
+- Notification automation and attachment or AI workflows are still deferred.
+
+## Maintenance Work Order
+
+Status: Complete
+
+### Purpose
+
+Manages planned and corrective maintenance activities for assets, locations, technicians, materials, labor, SLA tracking, AI summaries, and work order history.
+
+### Backend
+
+- Apps: `apps.maintenance`
+- Models: `MaintenanceWorkOrder`, `MaintenanceAssignment`, `MaintenanceTask`, `MaintenanceMaterial`, `MaintenanceLabor`, `MaintenanceAttachment`, `MaintenanceAISummary`, `MaintenanceSupervisorApproval`, `MaintenanceCompletion`, `MaintenanceHistory`, `MaintenanceStatusHistory`, `MaintenanceEscalation`, `MaintenanceSLA`
+- Serializers: list, detail, create, update, assignment, status-change, completion, history, SLA, attachment, task, material, labor, AI summary, approval, escalation serializers
+- ViewSets / Views: `MaintenanceWorkOrderViewSet`
+- APIs: work-order list/create/retrieve/patch, dashboard/history, dedicated status actions, assignment/reassignment/unassignment/history/candidates, SLA retrieve/recalculate, and escalation history/acknowledge/resolve
+- Services: work-order create/update helpers, status and assignment workflow services, priority-based SLA calculation, escalation detection/lifecycle, completion validation, and history recording
+- Permissions: `HasMaintenancePermission` with maintenance CRUD/status permissions plus assignment and SLA/escalation `maintenance.work_order.*` permissions
+- Admin: all maintenance domain models are registered in `backend/apps/maintenance/admin.py`
+- Tests: `backend/apps/maintenance/tests/test_maintenance.py`
+
+### Frontend
+
+- Routes: `/maintenance`, `/maintenance/work-orders`, `/maintenance/work-orders/[id]`, `/maintenance/work-orders/new`, `/maintenance/work-orders/[id]/edit`
+- Module Folder: `frontend/features/maintenance`, `frontend/lib/maintenance`
+- Pages: dashboard, list, detail, create, and edit pages
+- Components: maintenance dashboard/list/detail/form components, status and assignment workflows, SLA/overdue/escalation badges, `MaintenanceSLACard`, `MaintenanceEscalationCard`, escalation timeline/actions, filters, pagination, and shared sections
+- Hooks: maintenance dashboard/list/detail/history/form hooks, status and assignment workflow hooks, plus SLA recalculation and escalation lifecycle hooks
+- API Files: `services/api/maintenance.ts`
+- Types: `types/maintenance.ts`
+- RBAC Usage: frontend and backend accept exact `maintenance.work_order.*` permissions with legacy `maintenance.*` compatibility and `maintenance.manage` override
+- Tests: No dedicated frontend tests
+
+### Notes
+
+- FO-031 backend foundation is implemented.
+- FO-032 frontend read surfaces are implemented in code, including dashboard, list, detail, filters, pagination, tasks, materials, labor, attachment metadata, SLA, AI summary, and history.
+- FO-033 create/edit work-order pages, client validation, permission-gated actions, and backend create/update integration are now implemented.
+- FO-034 dedicated maintenance status workflow actions are now implemented across backend and frontend, including `submit`, `assign`, `start`, `hold`, `resume`, `complete`, `cancel`, and `reopen`, plus backend status history action/reason tracking and frontend workflow dialogs.
 - FO-035 adds the dedicated technician/supervisor assignment service, assignment history endpoints and model fields, assignment RBAC, candidate selectors, assignment dialogs, and assignment history timeline.
 - FO-036 adds priority-based SLA targets, overdue/breach detection, escalation deduplication and lifecycle APIs, Celery breach checking, list indicators/filters, and permission-aware SLA/escalation detail cards.
 - FO-037 validates integrated lifecycles, exact RBAC aliases, tenant isolation, query-count bounds, formatting, TypeScript, lint, and production build output; security and performance defects found during QA were corrected.
@@ -452,7 +648,7 @@ Manages planned and corrective maintenance activities for assets, locations, tec
 
 ## 5S Inspection
 
-Status: In Progress
+Status: Complete
 
 ### Purpose
 
@@ -480,7 +676,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - API Files: `frontend/services/api/inspection.ts`, inspection endpoint and query-key entries, inspection workflow helpers, AI-analysis mapping/validation helpers, findings/corrective-action mapping helpers, and inspection form validation/mapping helpers
 - Types: `frontend/types/inspection.ts`
 - RBAC Usage: list/detail routes require `inspection.view` or `inspection.manage`; create requires `inspection.create` or `inspection.manage`; edit requires `inspection.update` or `inspection.manage`; workflow actions require `inspection.assign`, `inspection.update`, `inspection.complete`, `inspection.verify`, or `inspection.manage` based on action; finding create/edit requires `inspection.update` or `inspection.manage`; finding delete requires `inspection.delete` or `inspection.manage`; corrective-action create/edit requires `inspection.manage_corrective_action` or `inspection.manage`; corrective-action delete requires `inspection.delete` or `inspection.manage`
-- Tests: No frontend inspection tests
+- Tests: `frontend/lib/inspection/form.test.ts` — 10 checklist pass/fail payload mapping tests run via `npm run test` (Node.js built-in test runner with `tsx`)
 
 ### Notes
 
@@ -493,6 +689,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - FO-042 adds frontend CRUD management for findings and corrective actions directly from inspection detail, including dialog forms, delete confirmations, and cache invalidation.
 - FO-042A restores inspection discoverability in app navigation and fixes the create-page load crash by preventing `null` and `undefined` query params from reaching backend master-data filters.
 - FO-043 adds stored AI-analysis review/edit UI, structured inspection context previews, empty-submission rejection, and method-correct AI-analysis permissions.
+- FO-044 is the QA and stabilization pass for the full inspection module. Four defects were corrected: checklist pass/fail values not preserved on edit, workflow AI-analysis responses mutated on GET, inspection soft-delete not centralized, and maintenance reassignment test failing after tenant-isolation hardening. All 168 backend tests pass and all 10 frontend checklist mapping tests pass. The `npm run test` script and `tsx` devDependency are now formally part of `frontend/package.json`.
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 - Inspector and supervisor assignment still uses raw UUID entry in the workflow dialog because the frontend does not yet have a supported user-directory list API.
@@ -562,7 +759,7 @@ Provides a consistent frontend HTTP client, endpoint catalog, query-key factory,
 - Pages: None directly
 - Components: None directly
 - Hooks: query hooks depend on this layer
-- API Files: `client.ts`, `endpoints.ts`, `query-keys.ts`, `types.ts`, and feature API files for auth, dashboard, master-data, rbac, users, fm-tickets, maintenance, and health
+- API Files: `client.ts`, `endpoints.ts`, `query-keys.ts`, `types.ts`, and feature API files for auth, dashboard, master-data, rbac, users, fm-tickets, maintenance, health, and inspection
 - Types: `services/api/types.ts` plus feature type files in `frontend/types`
 - RBAC Usage: auth headers, token refresh flow, and permission lookups all use this layer
 - Tests: No dedicated frontend tests
@@ -597,12 +794,12 @@ Holds reusable visual building blocks for auth, layout, forms, tables, detail vi
 - Routes: used by nearly every route under `app/(app)` and `app/(auth)`
 - Module Folder: `frontend/components`, plus feature-specific component folders
 - Pages: all app pages compose these components
-- Components: common fields and states, layout shell, auth guards, profile summary, master-data shared screens, dashboard cards, FM ticket components, maintenance components, admin screens
-- Hooks: `use-auth`, `use-permissions`, maintenance hooks
+- Components: common fields and states, layout shell, auth guards, profile summary, master-data shared screens, dashboard cards, FM ticket components, maintenance components, inspection components, admin screens
+- Hooks: `use-auth`, `use-permissions`, maintenance hooks, inspection mutation hooks
 - API Files: consumed indirectly by presentation components
 - Types: shared across all feature type files
 - RBAC Usage: auth guards and sidebar navigation are componentized here
-- Tests: No dedicated frontend tests
+- Tests: No dedicated component tests
 
 ### Notes
 
@@ -618,32 +815,32 @@ Tracks the current verification footprint across backend and frontend so progres
 
 ### Backend
 
-- Apps: `apps.accounts`, `apps.access_control`, `apps.core`, `apps.dashboard`, `apps.fm_tickets`, `apps.maintenance`, `apps.master_data`
+- Apps: `apps.accounts`, `apps.access_control`, `apps.core`, `apps.dashboard`, `apps.fm_tickets`, `apps.inspection`, `apps.maintenance`, `apps.master_data`
 - Models: exercised through app-level test suites
 - Serializers: exercised through API and model tests
 - ViewSets / Views: exercised through API tests in each backend app
-- APIs: auth, RBAC, dashboard, health, master-data, FM ticketing, maintenance
+- APIs: auth, RBAC, dashboard, health, master-data, FM ticketing, maintenance, inspection
 - Services: covered mainly through API and model tests, plus seed-command tests
 - Permissions: covered through endpoint authorization tests
 - Admin: not deeply tested
-- Tests: `backend/apps/*/tests.py`, `backend/apps/maintenance/tests/test_maintenance.py`, `backend/pytest.ini`
+- Tests: `backend/apps/*/tests.py`, `backend/apps/maintenance/tests/test_maintenance.py`, `backend/apps/inspection/tests/test_inspection.py`, `backend/pytest.ini` — 168 total tests
 
 ### Frontend
 
 - Routes: all feature routes rely on lint, TypeScript, and integrated manual validation rather than route-specific tests
-- Module Folder: no dedicated `__tests__`, `*.test.*`, or `*.spec.*` files are present under `frontend/`
+- Module Folder: `frontend/lib/inspection/` contains `form.test.ts`
 - Pages: no automated page tests
 - Components: no automated component tests
 - Hooks: no automated hook tests
 - API Files: no automated frontend API-client tests
 - Types: validated through TypeScript compilation
 - RBAC Usage: verified through implementation review and integrated behavior, not frontend test code
-- Tests: none beyond lint and type-check workflows described in task docs
+- Tests: `frontend/lib/inspection/form.test.ts` — 10 checklist pass/fail payload mapping tests run via `npm run test` (Node.js built-in test runner with `tsx`)
 
 ### Notes
 
-- Backend testing is in good shape for the current stage.
-- Frontend testing needs review because the repository currently has no dedicated unit, integration, or browser test harness.
+- Backend testing is in good shape for the current stage (168 tests passing).
+- Frontend lib-level tests now run via `npm run test` (10 tests). No component, integration, or browser harness exists yet.
 
 ## Configuration
 
@@ -652,6 +849,7 @@ Status: Complete
 ### Purpose
 
 Defines environment settings, app registration, database and async configuration, frontend build tooling, and local-development defaults.
+
 
 ### Backend
 

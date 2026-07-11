@@ -52,6 +52,7 @@
 - FO-042A
 - FO-043
 - FO-043A
+- FO-044
 
 ## Completed Governance Task
 
@@ -59,23 +60,22 @@
 
 ## Current Task
 
-- FO-044 - 5S Inspection Module QA & Stabilization
+- None — FO-044 is complete. Branch `agent/inspection-module` is ready for final review and merge into `main`.
 
 ## Next Milestone
 
-- Complete Inspection module QA, perform final Sol review, then merge
-  `agent/inspection-module` into `main`.
+- Merge `agent/inspection-module` into `main` after PR #30 final review.
 
 ## Known Issues
 
-- Frontend testing still lacks a dedicated unit or component harness.
+- Frontend test coverage is limited to lib-level payload mapping tests (`npm run test`); no component or integration test harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 
 ## Last Reviewed Commit
 
-- `8ed4310`
+- `34f6e0d`
 
 ## Last Merge
 
