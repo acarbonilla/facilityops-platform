@@ -16,9 +16,22 @@ export function getUserDisplayName(
     .join(" ") || user.email;
 }
 
-export function normalizeNullableUuid(value: string): string | null {
-  const normalized = value.trim();
+export function normalizeNullableUuid(value?: string | null): string | null {
+  const normalized = value?.trim() ?? "";
   return normalized || null;
+}
+
+export function normalizeUserFormSubmission(
+  values: UserFormValues,
+  currentUser: Pick<AuthUser, "tenant"> | null,
+  initialValues: Pick<UserFormValues, "is_staff">,
+  mayManageStaff: boolean,
+): UserFormValues {
+  return {
+    ...values,
+    tenant: currentUser?.tenant ?? values.tenant ?? "",
+    is_staff: mayManageStaff ? values.is_staff : initialValues.is_staff,
+  };
 }
 
 export function buildUserFormDefaults(

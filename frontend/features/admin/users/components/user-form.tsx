@@ -8,7 +8,10 @@ import { FormActions } from "@/components/common/form-actions";
 import { SelectField, type SelectOption } from "@/components/common/select-field";
 import { SwitchField } from "@/components/common/switch-field";
 import { TextInputField } from "@/features/master-data/components/shared";
-import { canManageStaffStatus } from "@/lib/users/form";
+import {
+  canManageStaffStatus,
+  normalizeUserFormSubmission,
+} from "@/lib/users/form";
 import { createUserFormSchema } from "@/lib/validations/users";
 import { ApiError } from "@/services/api/types";
 import type { AuthUser } from "@/types/auth";
@@ -119,10 +122,14 @@ export function UserForm({
       onSubmit={handleSubmit(async (values) => {
         setFormError(null);
         try {
-          await onSubmit({
-            ...values,
-            is_staff: mayManageStaff ? values.is_staff : initialValues.is_staff,
-          });
+          await onSubmit(
+            normalizeUserFormSubmission(
+              values,
+              currentUser,
+              initialValues,
+              mayManageStaff,
+            ),
+          );
         } catch (error) {
           if (error instanceof ApiError) {
             const nonFieldMessages: string[] = [];

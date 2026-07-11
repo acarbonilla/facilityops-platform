@@ -106,6 +106,8 @@ Behavior delivered:
 - empty edit passwords are omitted from the PATCH payload
 - password confirmation mismatch is rejected client-side
 - empty tenant and organization values normalize to `null`
+- disabled tenant selectors do not control the submitted tenant value for tenant-bound administrators
+- tenant-bound submissions explicitly preserve the authenticated tenant even if the disabled form control omits the tenant field
 - organization options are filtered by the selected tenant
 - organization is cleared when a tenant change makes the existing organization invalid
 - tenant-bound administrators default to their tenant and are not encouraged to switch tenants
@@ -128,6 +130,9 @@ Covered helper and validation tests:
 
 - create payload includes password and normalizes empty tenant and organization to `null`
 - edit payload omits an empty password
+- UUID normalization safely handles `undefined`, `null`, empty, whitespace-only, and trimmed UUID input
+- tenant-bound submissions preserve the authenticated tenant when the disabled tenant control omits or conflicts with form data
+- globally scoped administrators preserve their selected tenant value on submit
 - password-confirmation mismatch fails frontend validation
 - display-name fallback uses email when names are blank
 - permission helpers hide create, edit, and deactivate actions without the required permissions

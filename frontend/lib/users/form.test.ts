@@ -8,6 +8,8 @@ import {
   getUserDisplayName,
   mapUserCreatePayload,
   mapUserUpdatePayload,
+  normalizeNullableUuid,
+  normalizeUserFormSubmission,
 } from "./form";
 
 const values = {
@@ -33,6 +35,71 @@ test("create payload includes password and normalizes optional UUIDs", () => {
     is_active: true,
     is_staff: false,
   });
+});
+
+test("normalizeNullableUuid returns null for undefined", () => {
+  assert.equal(normalizeNullableUuid(undefined), null);
+});
+
+test("normalizeNullableUuid returns null for null", () => {
+  assert.equal(normalizeNullableUuid(null), null);
+});
+
+test("normalizeNullableUuid returns null for an empty string", () => {
+  assert.equal(normalizeNullableUuid(""), null);
+});
+
+test("normalizeNullableUuid returns null for whitespace-only input", () => {
+  assert.equal(normalizeNullableUuid("   \t  "), null);
+});
+
+test("normalizeNullableUuid preserves a valid UUID after trimming", () => {
+  assert.equal(
+    normalizeNullableUuid("  9a57228d-4d79-4f42-9bc8-eb6b6fb2d326  "),
+    "9a57228d-4d79-4f42-9bc8-eb6b6fb2d326",
+  );
+});
+
+test("tenant-bound submission uses current tenant when tenant is missing", () => {
+  const submitted = normalizeUserFormSubmission(
+    {
+      ...values,
+      tenant: undefined as unknown as string,
+    },
+    { tenant: "tenant-a" },
+    { is_staff: false },
+    true,
+  );
+
+  assert.equal(submitted.tenant, "tenant-a");
+});
+
+test("tenant-bound submission cannot override the authenticated tenant", () => {
+  const submitted = normalizeUserFormSubmission(
+    {
+      ...values,
+      tenant: "tenant-b",
+    },
+    { tenant: "tenant-a" },
+    { is_staff: false },
+    true,
+  );
+
+  assert.equal(submitted.tenant, "tenant-a");
+});
+
+test("global administrator submission preserves the selected tenant", () => {
+  const submitted = normalizeUserFormSubmission(
+    {
+      ...values,
+      tenant: "tenant-b",
+    },
+    { tenant: null },
+    { is_staff: false },
+    true,
+  );
+
+  assert.equal(submitted.tenant, "tenant-b");
 });
 
 test("edit payload omits an empty password", () => {
