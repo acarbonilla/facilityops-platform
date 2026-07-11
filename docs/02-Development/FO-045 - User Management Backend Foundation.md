@@ -20,7 +20,7 @@ Domain operations live in `apps.accounts.services`: tenant scoping, user creatio
 | PATCH | `/api/users/{id}/` | Partially update a user | `users.update` |
 | PUT | `/api/users/{id}/` | Replace writable user fields | `users.update` |
 | DELETE | `/api/users/{id}/` | Deactivate a user | `users.delete` |
-| GET | `/api/users/directory/` | List active assignment-safe users | `users.view` |
+| GET | `/api/users/directory/` | List active assignment-safe users | `users.directory` |
 
 List and detail responses contain `id`, `email`, `first_name`, `last_name`, `tenant`, `organization`, `is_active`, `is_staff`, `created_at`, and `updated_at`. The active-user-only directory response is intentionally limited to `id`, `email`, `first_name`, `last_name`, `display_name`, `tenant`, `organization`, and `is_active`. `display_name` uses the trimmed full name and falls back to email when both name fields are blank.
 
@@ -46,7 +46,9 @@ List and detail responses contain `id`, `email`, `first_name`, `last_name`, `ten
 - An authenticated user cannot deactivate their own account with either `DELETE` or `PATCH`.
 - Passwords are accepted only on writes, validated with Django's configured password validators, stored as hashes through `set_password()`, and never serialized.
 
-The implementation reuses the existing `users.view`, `users.create`, `users.update`, and `users.delete` permission definitions and `HasPermissionCode` checks. Each action requires its specific code even for globally scoped system administrators. The repository does not define `users.manage`, so no aggregate permission is implied. No new permission seed or migration is required.
+The implementation uses distinct `users.view`, `users.directory`, `users.create`, `users.update`, and `users.delete` permission definitions with `HasPermissionCode` checks. Each action requires its specific code even for globally scoped system administrators. The repository does not define `users.manage`, so no aggregate permission is implied. The assignment-safe `users.directory` capability does not imply any administrative user access.
+
+The existing RBAC seed grants `users.directory` to `system_admin`, because it is the seeded user-administration role, and to `facility_manager`, because that role owns maintenance assignment, inspection assignment, and corrective-action owner selection workflows. The operational role does not receive `users.view`. No other seeded role currently owns an assignment workflow requiring user selection.
 
 ## FO-045B Security Review
 

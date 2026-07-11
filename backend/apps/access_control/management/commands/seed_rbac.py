@@ -38,6 +38,7 @@ ROLE_DEFINITIONS = [
 
 PERMISSION_DEFINITIONS = [
     ("users", "view", "View users"),
+    ("users", "directory", "View assignment-safe user directory"),
     ("users", "create", "Create users"),
     ("users", "update", "Update users"),
     ("users", "delete", "Delete users"),
@@ -113,6 +114,7 @@ PERMISSION_DEFINITIONS = [
 ROLE_PERMISSION_CODES = {
     "system_admin": {
         "users.view",
+        "users.directory",
         "users.create",
         "users.update",
         "users.delete",
@@ -177,6 +179,7 @@ ROLE_PERMISSION_CODES = {
         "inspection.manage",
     },
     "facility_manager": {
+        "users.directory",
         "fm_tickets.view",
         "fm_tickets.create",
         "fm_tickets.update",

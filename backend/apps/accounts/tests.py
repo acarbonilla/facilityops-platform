@@ -180,6 +180,7 @@ class UserManagementEndpointTests(APITestCase):
         self._assign_permissions(
             self.admin,
             "users.view",
+            "users.directory",
             "users.create",
             "users.update",
             "users.delete",
@@ -237,6 +238,7 @@ class UserManagementEndpointTests(APITestCase):
         actors = {}
         for permission_code in (
             "users.view",
+            "users.directory",
             "users.create",
             "users.update",
             "users.delete",
@@ -262,7 +264,7 @@ class UserManagementEndpointTests(APITestCase):
         )
         self.assertEqual(
             self.client.get(directory_url).status_code,
-            status.HTTP_200_OK,
+            status.HTTP_403_FORBIDDEN,
         )
         self.assertEqual(
             self.client.post(list_url, {}, format="json").status_code,
@@ -278,6 +280,46 @@ class UserManagementEndpointTests(APITestCase):
         )
         self.assertEqual(
             self.client.delete(detail_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+        self._authenticate(actors["directory"])
+        self.assertEqual(
+            self.client.get(directory_url).status_code,
+            status.HTTP_200_OK,
+        )
+        self.assertEqual(
+            self.client.get(list_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.get(detail_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.post(list_url, {}, format="json").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.patch(detail_url, {}, format="json").status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.delete(detail_url).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.get(
+                reverse("user-roles", args=(self.same_tenant_user.id,))
+            ).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(
+            self.client.put(
+                reverse("user-roles", args=(self.same_tenant_user.id,)),
+                {"role_ids": []},
+                format="json",
+            ).status_code,
             status.HTTP_403_FORBIDDEN,
         )
 
@@ -350,6 +392,21 @@ class UserManagementEndpointTests(APITestCase):
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
         self.assertTrue(forbidden_fields.isdisjoint(detail_response.data))
 
+    def test_assignment_permissions_do_not_bypass_directory_permission(self):
+        for permission_code in ("maintenance.assign", "inspection.assign"):
+            actor = User.objects.create_user(
+                email=f"{permission_code.replace('.', '-')}@example.com",
+                password=self.password,
+                tenant=self.tenant,
+                organization=self.organization,
+            )
+            self._assign_permissions(actor, permission_code)
+            self._authenticate(actor)
+
+            response = self.client.get(reverse("user-directory"))
+
+            self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_cross_tenant_detail_returns_404(self):
         self._authenticate()
 
@@ -367,6 +424,7 @@ class UserManagementEndpointTests(APITestCase):
         self._assign_permissions(
             tenantless,
             "users.view",
+            "users.directory",
             "users.create",
         )
         self._authenticate(tenantless)
@@ -628,6 +686,7 @@ class UserRoleAssignmentWorkflowTests(APITestCase):
             "system_admin",
             permissions=(
                 "users.view",
+                "users.directory",
                 "users.create",
                 "users.update",
                 "users.delete",
@@ -694,6 +753,7 @@ class UserRoleAssignmentWorkflowTests(APITestCase):
             "user_admin",
             permissions=(
                 "users.view",
+                "users.directory",
                 "users.create",
                 "users.update",
                 "users.delete",

@@ -132,7 +132,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_by_action = {
         "list": "users.view",
         "retrieve": "users.view",
-        "directory": "users.view",
+        "directory": "users.directory",
         "create": "users.create",
         "update": "users.update",
         "partial_update": "users.update",
