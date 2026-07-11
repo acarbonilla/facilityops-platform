@@ -11,6 +11,31 @@ export interface UserRecord {
   updated_at: string;
 }
 
+export interface UserAssignedRole {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  is_system_role: boolean;
+}
+
+export interface UserRoleAssignmentUser {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+}
+
+export interface UserRoleAssignmentResponse {
+  user: UserRoleAssignmentUser;
+  assigned_roles: UserAssignedRole[];
+  available_roles: UserAssignedRole[];
+}
+
+export interface ReplaceUserRolesPayload {
+  role_ids: string[];
+}
+
 export interface UserDirectoryItem {
   id: string;
   email: string;

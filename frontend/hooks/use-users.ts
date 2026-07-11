@@ -9,13 +9,17 @@ import {
   deactivateUser,
   getUser,
   getUserDirectory,
+  getUserRoleAssignments,
   getUsers,
+  replaceUserRoleAssignments,
   updateUser,
 } from "@/services/api/users";
 import type {
+  ReplaceUserRolesPayload,
   UserCreatePayload,
   UserDirectoryParams,
   UserListParams,
+  UserRoleAssignmentResponse,
   UserUpdatePayload,
 } from "@/types/users";
 
@@ -38,6 +42,14 @@ export function useUserDirectory(params?: UserDirectoryParams) {
   return useQuery({
     queryKey: usersQueryKeys.directory(params),
     queryFn: () => getUserDirectory(params),
+  });
+}
+
+export function useUserRoleAssignments(id: string, enabled = true) {
+  return useQuery({
+    queryKey: usersQueryKeys.roles(id),
+    queryFn: () => getUserRoleAssignments(id),
+    enabled: Boolean(id) && enabled,
   });
 }
 
@@ -76,6 +88,20 @@ export function useDeactivateUser() {
       await queryClient.invalidateQueries({ queryKey: usersQueryKeys.all });
       await queryClient.invalidateQueries({
         queryKey: usersQueryKeys.detail(id),
+      });
+    },
+  });
+}
+
+export function useReplaceUserRoleAssignments(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ReplaceUserRolesPayload) =>
+      replaceUserRoleAssignments(id, payload),
+    onSuccess: async (response: UserRoleAssignmentResponse) => {
+      queryClient.setQueryData(usersQueryKeys.roles(id), response);
+      await queryClient.invalidateQueries({
+        queryKey: usersQueryKeys.roles(id),
       });
     },
   });

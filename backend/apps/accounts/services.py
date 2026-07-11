@@ -1,9 +1,14 @@
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import (
+    NotAuthenticated,
+    PermissionDenied,
+    ValidationError,
+)
 
-from apps.access_control.services import get_user_roles
+from apps.access_control.models import Role, UserRole
+from apps.access_control.services import get_user_roles, user_has_permission
 
 from .models import User
 
@@ -40,6 +45,93 @@ def _validate_actor_can_manage_user(actor, user):
     if not actor.tenant_id or user.tenant_id != actor.tenant_id:
         raise ValidationError(
             {"tenant": "You cannot manage users in another tenant."}
+        )
+
+
+def _validate_authenticated_active_actor(actor):
+    if not getattr(actor, "is_authenticated", False):
+        raise NotAuthenticated()
+    if not actor.is_active:
+        raise PermissionDenied("Inactive users may not manage role assignments.")
+
+
+def _validate_actor_permission(actor, permission_code):
+    if not user_has_permission(actor, permission_code):
+        raise PermissionDenied(
+            "You do not have permission to perform this action."
+        )
+
+
+def _get_manageable_roles(actor):
+    queryset = Role.objects.filter(is_active=True).order_by("name")
+    if has_global_user_scope(actor):
+        return queryset
+    return queryset.filter(is_system_role=False)
+
+
+def _validate_requested_role_ids(actor, role_ids):
+    normalized_role_ids = list(dict.fromkeys(str(role_id) for role_id in role_ids))
+    if len(normalized_role_ids) != len(role_ids):
+        raise ValidationError({"role_ids": ["Duplicate role IDs are not allowed."]})
+
+    all_roles = {
+        str(role.id): role
+        for role in Role.objects.filter(id__in=normalized_role_ids)
+    }
+    if len(all_roles) != len(normalized_role_ids):
+        raise ValidationError({"role_ids": ["One or more roles do not exist."]})
+
+    inactive_roles = [role.name for role in all_roles.values() if not role.is_active]
+    if inactive_roles:
+        raise ValidationError(
+            {"role_ids": ["Only active roles may be assigned."]}
+        )
+
+    if not has_global_user_scope(actor):
+        restricted_roles = [
+            role.name for role in all_roles.values() if role.is_system_role
+        ]
+        if restricted_roles:
+            raise ValidationError(
+                {
+                    "role_ids": [
+                        "Only global administrators may manage system roles."
+                    ]
+                }
+            )
+
+    manageable_roles = list(
+        _get_manageable_roles(actor).filter(id__in=normalized_role_ids)
+    )
+    manageable_role_ids = {str(role.id) for role in manageable_roles}
+    if manageable_role_ids != set(normalized_role_ids):
+        raise ValidationError(
+            {"role_ids": ["One or more roles cannot be managed by this actor."]}
+        )
+
+    return manageable_roles
+
+
+def _validate_self_system_admin_removal(actor, user, role_ids):
+    if actor.pk != user.pk or actor.is_superuser:
+        return
+
+    active_system_admin_assignments = UserRole.objects.filter(
+        user=user,
+        is_active=True,
+        role__is_active=True,
+        role__code="system_admin",
+    )
+    if not active_system_admin_assignments.exists():
+        return
+
+    if not any(role.code == "system_admin" for role in role_ids):
+        raise ValidationError(
+            {
+                "role_ids": [
+                    "You cannot remove your own final active system_admin role."
+                ]
+            }
         )
 
 
@@ -140,3 +232,71 @@ def deactivate_user(*, actor, user):
         user.is_active = False
         user.save(update_fields=("is_active", "updated_at"))
     return user
+
+
+def get_user_role_assignment_data(*, actor, user):
+    _validate_authenticated_active_actor(actor)
+    _validate_actor_permission(actor, "users.view")
+    _validate_actor_permission(actor, "roles.view")
+    _validate_actor_can_manage_user(actor, user)
+
+    assigned_roles = Role.objects.filter(
+        is_active=True,
+        user_roles__user=user,
+        user_roles__is_active=True,
+    ).order_by("name")
+    if not has_global_user_scope(actor):
+        assigned_roles = assigned_roles.filter(is_system_role=False)
+
+    available_roles = Role.objects.none()
+    if user_has_permission(actor, "roles.manage"):
+        available_roles = _get_manageable_roles(actor)
+
+    return {
+        "user": user,
+        "assigned_roles": assigned_roles,
+        "available_roles": available_roles,
+    }
+
+
+@transaction.atomic
+def replace_user_role_assignments(*, actor, user, role_ids):
+    _validate_authenticated_active_actor(actor)
+    _validate_actor_permission(actor, "roles.manage")
+    _validate_actor_can_manage_user(actor, user)
+
+    manageable_roles = _validate_requested_role_ids(actor, role_ids)
+    _validate_self_system_admin_removal(actor, user, manageable_roles)
+
+    manageable_role_ids = {role.id for role in _get_manageable_roles(actor)}
+    requested_roles_by_id = {role.id: role for role in manageable_roles}
+
+    existing_assignments = {
+        assignment.role_id: assignment
+        for assignment in UserRole.objects.select_related("role").filter(
+            user=user,
+            role_id__in=manageable_role_ids,
+        )
+    }
+
+    active_assignments = {
+        role_id: assignment
+        for role_id, assignment in existing_assignments.items()
+        if assignment.is_active
+    }
+
+    for role in manageable_roles:
+        assignment = existing_assignments.get(role.id)
+        if assignment is None:
+            UserRole.objects.create(user=user, role=role, is_active=True)
+            continue
+        if not assignment.is_active:
+            assignment.is_active = True
+            assignment.save(update_fields=("is_active", "updated_at"))
+
+    for role_id, assignment in active_assignments.items():
+        if role_id not in requested_roles_by_id:
+            assignment.is_active = False
+            assignment.save(update_fields=("is_active", "updated_at"))
+
+    return get_user_role_assignment_data(actor=actor, user=user)

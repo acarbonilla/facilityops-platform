@@ -9,14 +9,25 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
-import { useDeactivateUser, useUser, useUserFormOptions } from "@/hooks/use-users";
+import {
+  useDeactivateUser,
+  useReplaceUserRoleAssignments,
+  useUser,
+  useUserFormOptions,
+  useUserRoleAssignments,
+} from "@/hooks/use-users";
 import {
   getUserActionPermissions,
   getUserDisplayName,
   readUserFormFlash,
 } from "@/lib/users/form";
+import {
+  filterVisibleAssignableRoles,
+  getUserRoleSectionAccess,
+} from "@/lib/users/roles";
 
 import { UserDeactivateDialog } from "./user-deactivate-dialog";
+import { UserRoleAssignmentDialog } from "./user-role-assignment-dialog";
 import {
   buildNameMap,
   formatUserDate,
@@ -39,12 +50,19 @@ function Breadcrumbs({ label }: { label: string }) {
 
 export function UserDetailScreen({ id }: { id: string }) {
   const { user: currentUser } = useAuth();
-  const { permissions } = usePermissions();
+  const { permissions, refreshPermissions } = usePermissions();
   const [success, setSuccess] = useState<string | null>(null);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [manageRolesOpen, setManageRolesOpen] = useState(false);
   const detailQuery = useUser(id);
   const optionsQuery = useUserFormOptions();
   const deactivateMutation = useDeactivateUser();
+  const roleSectionAccess = getUserRoleSectionAccess(permissions, currentUser);
+  const roleAssignmentsQuery = useUserRoleAssignments(
+    id,
+    roleSectionAccess.canViewRoles,
+  );
+  const replaceRolesMutation = useReplaceUserRoleAssignments(id);
 
   useEffect(() => {
     setSuccess(readUserFormFlash());
@@ -88,6 +106,10 @@ export function UserDetailScreen({ id }: { id: string }) {
 
   const user = detailQuery.data;
   const actions = getUserActionPermissions(permissions, currentUser, user);
+  const availableRoles = filterVisibleAssignableRoles(
+    roleAssignmentsQuery.data?.available_roles ?? [],
+    currentUser,
+  );
 
   return (
     <div className="space-y-6">
@@ -190,6 +212,90 @@ export function UserDetailScreen({ id }: { id: string }) {
         </dl>
       </section>
 
+      {roleSectionAccess.canViewRoles ? (
+        <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-slate-950">
+                Assigned roles
+              </h2>
+              <p className="mt-1 text-sm text-slate-600">
+                Active role assignments visible to the current session.
+              </p>
+            </div>
+            {roleSectionAccess.canManageRoles ? (
+              <button
+                className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                onClick={() => setManageRolesOpen(true)}
+                type="button"
+              >
+                Manage Roles
+              </button>
+            ) : null}
+          </div>
+
+          {roleAssignmentsQuery.isPending ? (
+            <LoadingState title="Loading assigned roles" />
+          ) : null}
+
+          {roleAssignmentsQuery.isError ? (
+            <ErrorState
+              title="Unable to load assigned roles"
+              message={
+                roleAssignmentsQuery.error instanceof Error
+                  ? roleAssignmentsQuery.error.message
+                  : "Assigned roles could not be loaded."
+              }
+              action={
+                <button
+                  className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800"
+                  onClick={() => void roleAssignmentsQuery.refetch()}
+                  type="button"
+                >
+                  Retry
+                </button>
+              }
+            />
+          ) : null}
+
+          {!roleAssignmentsQuery.isPending &&
+          !roleAssignmentsQuery.isError &&
+          (roleAssignmentsQuery.data?.assigned_roles.length ?? 0) > 0 ? (
+            <div className="space-y-3">
+              {roleAssignmentsQuery.data?.assigned_roles.map((role) => (
+                <div
+                  className="rounded-lg border border-slate-200 p-4"
+                  key={role.id}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-slate-950">{role.name}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                      {role.code}
+                    </span>
+                    {role.is_system_role ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-900">
+                        System role
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {role.description || "No description provided."}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {!roleAssignmentsQuery.isPending &&
+          !roleAssignmentsQuery.isError &&
+          (roleAssignmentsQuery.data?.assigned_roles.length ?? 0) === 0 ? (
+            <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+              This user has no visible active role assignments.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
       {deactivateOpen ? (
         <UserDeactivateDialog
           error={
@@ -212,6 +318,28 @@ export function UserDetailScreen({ id }: { id: string }) {
             setDeactivateOpen(false);
           }}
           user={user}
+        />
+      ) : null}
+
+      {manageRolesOpen && roleAssignmentsQuery.data ? (
+        <UserRoleAssignmentDialog
+          assignedRoles={roleAssignmentsQuery.data.assigned_roles}
+          availableRoles={availableRoles}
+          isPending={replaceRolesMutation.isPending}
+          onClose={() => {
+            if (!replaceRolesMutation.isPending) {
+              setManageRolesOpen(false);
+              replaceRolesMutation.reset();
+            }
+          }}
+          onSubmit={async (roleIds) => {
+            await replaceRolesMutation.mutateAsync({ role_ids: roleIds });
+            if (currentUser?.id === id) {
+              await refreshPermissions();
+            }
+            setSuccess("Roles updated successfully.");
+            setManageRolesOpen(false);
+          }}
         />
       ) : null}
     </div>

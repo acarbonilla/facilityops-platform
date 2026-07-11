@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
   users: {
     list: "/users/",
     detail: (id: string) => `/users/${id}/`,
+    roles: (id: string) => `/users/${id}/roles/`,
     directory: "/users/directory/",
   },
   masterData: {

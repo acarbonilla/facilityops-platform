@@ -2,6 +2,8 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.access_control.models import Role
+
 from .models import User
 from .services import create_user, update_user
 
@@ -104,6 +106,51 @@ class UserDirectorySerializer(serializers.ModelSerializer):
     def get_display_name(self, obj):
         full_name = obj.get_full_name().strip()
         return full_name or obj.email
+
+
+class UserRoleAssignmentUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+        )
+        read_only_fields = fields
+
+
+class UserRoleAssignmentRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = (
+            "id",
+            "name",
+            "code",
+            "description",
+            "is_system_role",
+        )
+        read_only_fields = fields
+
+
+class UserRoleAssignmentReadSerializer(serializers.Serializer):
+    user = UserRoleAssignmentUserSerializer()
+    assigned_roles = UserRoleAssignmentRoleSerializer(many=True)
+    available_roles = UserRoleAssignmentRoleSerializer(many=True)
+
+
+class UserRoleAssignmentWriteSerializer(serializers.Serializer):
+    role_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=True,
+    )
+
+    def validate_role_ids(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError(
+                "Duplicate role IDs are not allowed."
+            )
+        return value
 
 
 class LoginSerializer(serializers.Serializer):

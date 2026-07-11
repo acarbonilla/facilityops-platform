@@ -13,7 +13,12 @@ from apps.access_control.models import (
 )
 from apps.master_data.models import Organization, Tenant
 
-from .services import deactivate_user, has_global_user_scope, update_user
+from .services import (
+    deactivate_user,
+    has_global_user_scope,
+    replace_user_role_assignments,
+    update_user,
+)
 
 
 User = get_user_model()
@@ -571,6 +576,442 @@ class UserManagementEndpointTests(APITestCase):
             self.same_tenant_user.check_password("UpdatedPassword123!")
         )
         self.assertNotIn("password", response.data)
+
+
+@override_settings(
+    PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",)
+)
+class UserRoleAssignmentWorkflowTests(APITestCase):
+    password = "Password123!"
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant", code="tenant-roles")
+        self.organization = Organization.objects.create(
+            tenant=self.tenant,
+            name="Organization",
+            code="organization-roles",
+        )
+        self.other_tenant = Tenant.objects.create(name="Other", code="other-roles")
+        self.other_organization = Organization.objects.create(
+            tenant=self.other_tenant,
+            name="Other Organization",
+            code="other-organization-roles",
+        )
+        self.role_viewer = self._create_role(
+            "Role Viewer",
+            "role_viewer",
+            permissions=("users.view", "roles.view"),
+        )
+        self.role_manager = self._create_role(
+            "Role Manager",
+            "role_manager",
+            permissions=("roles.manage",),
+        )
+        self.inspector_role = self._create_role(
+            "Inspector",
+            "inspector",
+            permissions=("inspection.view",),
+        )
+        self.operator_role = self._create_role(
+            "Operator",
+            "operator",
+            permissions=("maintenance.view",),
+        )
+        self.inactive_role = self._create_role(
+            "Inactive",
+            "inactive_role",
+            permissions=("users.view",),
+            is_active=False,
+        )
+        self.system_admin_role = self._create_role(
+            "System Administrator",
+            "system_admin",
+            permissions=(
+                "users.view",
+                "users.create",
+                "users.update",
+                "users.delete",
+                "roles.view",
+                "roles.manage",
+            ),
+            is_system_role=True,
+        )
+
+        self.reader = User.objects.create_user(
+            email="reader@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        self.manager = User.objects.create_user(
+            email="manager@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        self.target = User.objects.create_user(
+            email="target@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        self.cross_tenant_target = User.objects.create_user(
+            email="cross-target@example.com",
+            password=self.password,
+            tenant=self.other_tenant,
+            organization=self.other_organization,
+        )
+        self.global_admin = User.objects.create_user(
+            email="global-admin@example.com",
+            password=self.password,
+        )
+        self.tenantless_manager = User.objects.create_user(
+            email="tenantless-manager@example.com",
+            password=self.password,
+        )
+        self.admin = User.objects.create_user(
+            email="admin@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        self.same_tenant_user = User.objects.create_user(
+            email="same@example.com",
+            password=self.password,
+            first_name="Same",
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        self.cross_tenant_user = User.objects.create_user(
+            email="cross@example.com",
+            password=self.password,
+            tenant=self.other_tenant,
+            organization=self.other_organization,
+        )
+
+        self.user_admin_role = self._create_role(
+            "User Admin",
+            "user_admin",
+            permissions=(
+                "users.view",
+                "users.create",
+                "users.update",
+                "users.delete",
+            ),
+        )
+
+        UserRole.objects.create(user=self.reader, role=self.role_viewer)
+        UserRole.objects.create(user=self.manager, role=self.role_viewer)
+        UserRole.objects.create(user=self.manager, role=self.role_manager)
+        UserRole.objects.create(user=self.global_admin, role=self.system_admin_role)
+        UserRole.objects.create(user=self.tenantless_manager, role=self.role_manager)
+        UserRole.objects.create(user=self.admin, role=self.user_admin_role)
+        UserRole.objects.create(user=self.target, role=self.operator_role)
+        UserRole.objects.create(
+            user=self.target,
+            role=self.system_admin_role,
+            is_active=True,
+        )
+
+    def _permission(self, code):
+        module, action = code.split(".", 1)
+        permission, _ = Permission.objects.get_or_create(
+            code=code,
+            defaults={
+                "name": code,
+                "module": module,
+                "action": action,
+            },
+        )
+        return permission
+
+    def _create_role(
+        self,
+        name,
+        code,
+        *,
+        permissions=(),
+        is_active=True,
+        is_system_role=False,
+    ):
+        role = Role.objects.create(
+            name=name,
+            code=code,
+            is_active=is_active,
+            is_system_role=is_system_role,
+        )
+        for permission_code in permissions:
+            RolePermission.objects.create(
+                role=role,
+                permission=self._permission(permission_code),
+            )
+        return role
+
+    def _authenticate(self, user=None):
+        self.client.force_authenticate(user=user or self.admin)
+
+    def _results(self, response):
+        return response.data["results"]
+
+    def _roles_url(self, user):
+        return reverse("user-roles", args=(user.id,))
+
+    def test_unauthenticated_role_assignment_requests_return_401(self):
+        response = self.client.get(self._roles_url(self.target))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.operator_role.id)]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_user_without_roles_view_cannot_read_assignments(self):
+        actor = User.objects.create_user(
+            email="users-view-only@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        viewer_role = self._create_role(
+            "Users Viewer",
+            "users_viewer",
+            permissions=("users.view",),
+        )
+        UserRole.objects.create(user=actor, role=viewer_role)
+        self._authenticate(actor)
+
+        response = self.client.get(self._roles_url(self.target))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_without_roles_manage_cannot_replace_assignments(self):
+        self._authenticate(self.reader)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.operator_role.id)]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_same_tenant_authorized_actor_can_view_assignments(self):
+        self._authenticate(self.reader)
+
+        response = self.client.get(self._roles_url(self.target))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["user"]["id"], str(self.target.id))
+        self.assertEqual(
+            [role["code"] for role in response.data["assigned_roles"]],
+            ["operator"],
+        )
+        self.assertEqual(response.data["available_roles"], [])
+
+    def test_cross_tenant_target_returns_404_for_get_and_put(self):
+        self._authenticate(self.manager)
+
+        get_response = self.client.get(self._roles_url(self.cross_tenant_target))
+        put_response = self.client.put(
+            self._roles_url(self.cross_tenant_target),
+            {"role_ids": [str(self.operator_role.id)]},
+            format="json",
+        )
+
+        self.assertEqual(get_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(put_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_tenantless_regular_actor_cannot_manage_role_assignments(self):
+        self._authenticate(self.tenantless_manager)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.operator_role.id)]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_unknown_inactive_and_duplicate_role_ids_return_400(self):
+        self._authenticate(self.manager)
+
+        unknown_response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": ["63aa22a4-1980-40d0-92ff-97d684264b2f"]},
+            format="json",
+        )
+        inactive_response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.inactive_role.id)]},
+            format="json",
+        )
+        duplicate_response = self.client.put(
+            self._roles_url(self.target),
+            {
+                "role_ids": [
+                    str(self.operator_role.id),
+                    str(self.operator_role.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(unknown_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("role_ids", unknown_response.data)
+        self.assertEqual(inactive_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("role_ids", inactive_response.data)
+        self.assertEqual(duplicate_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("role_ids", duplicate_response.data)
+
+    def test_assignment_replacement_reactivates_and_deactivates_without_duplicates(self):
+        inactive_assignment = UserRole.objects.create(
+            user=self.target,
+            role=self.inspector_role,
+            is_active=False,
+        )
+        unchanged_assignment = UserRole.objects.get(
+            user=self.target,
+            role=self.operator_role,
+        )
+        self._authenticate(self.manager)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {
+                "role_ids": [
+                    str(self.operator_role.id),
+                    str(self.inspector_role.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        inactive_assignment.refresh_from_db()
+        unchanged_assignment.refresh_from_db()
+        self.assertTrue(inactive_assignment.is_active)
+        self.assertTrue(unchanged_assignment.is_active)
+        self.assertEqual(
+            UserRole.objects.filter(user=self.target, role=self.inspector_role).count(),
+            1,
+        )
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.inspector_role.id)]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        unchanged_assignment.refresh_from_db()
+        self.assertFalse(unchanged_assignment.is_active)
+
+    def test_replacement_is_atomic_when_one_submitted_role_is_invalid(self):
+        existing_assignment = UserRole.objects.get(
+            user=self.target,
+            role=self.operator_role,
+        )
+        self._authenticate(self.manager)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {
+                "role_ids": [
+                    str(self.inspector_role.id),
+                    str(self.inactive_role.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        existing_assignment.refresh_from_db()
+        self.assertTrue(existing_assignment.is_active)
+        self.assertFalse(
+            UserRole.objects.filter(user=self.target, role=self.inspector_role).exists()
+        )
+
+    def test_tenant_administrator_cannot_see_or_assign_system_roles(self):
+        self._authenticate(self.manager)
+
+        response = self.client.get(self._roles_url(self.target))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [role["code"] for role in response.data["assigned_roles"]],
+            ["operator"],
+        )
+        self.assertNotIn(
+            "system_admin",
+            [role["code"] for role in response.data["available_roles"]],
+        )
+
+        put_response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.system_admin_role.id)]},
+            format="json",
+        )
+        self.assertEqual(put_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_global_administrator_can_assign_active_system_role(self):
+        self._authenticate(self.global_admin)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {
+                "role_ids": [
+                    str(self.operator_role.id),
+                    str(self.system_admin_role.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [role["code"] for role in response.data["assigned_roles"]],
+            ["operator", "system_admin"],
+        )
+
+    def test_cannot_remove_own_final_active_system_admin_role(self):
+        self._authenticate(self.global_admin)
+
+        response = self.client.put(
+            self._roles_url(self.global_admin),
+            {"role_ids": []},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("role_ids", response.data)
+
+    def test_direct_service_layer_cross_tenant_assignment_is_rejected(self):
+        with self.assertRaises(ValidationError):
+            replace_user_role_assignments(
+                actor=self.manager,
+                user=self.cross_tenant_target,
+                role_ids=[self.inspector_role.id],
+            )
+
+    def test_current_user_permissions_reflect_changed_active_role_assignments(self):
+        self._authenticate(self.manager)
+
+        response = self.client.put(
+            self._roles_url(self.manager),
+            {
+                "role_ids": [
+                    str(self.role_viewer.id),
+                    str(self.role_manager.id),
+                    str(self.inspector_role.id),
+                ]
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        permissions_response = self.client.get(reverse("rbac-me-permissions"))
+        self.assertEqual(permissions_response.status_code, status.HTTP_200_OK)
+        self.assertIn("inspector", permissions_response.data["roles"])
+        self.assertIn("inspection.view", permissions_response.data["permissions"])
 
     def test_cross_tenant_update_is_hidden(self):
         self._authenticate()

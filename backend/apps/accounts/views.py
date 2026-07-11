@@ -14,11 +14,18 @@ from .serializers import (
     LoginSerializer,
     LogoutSerializer,
     UserDirectorySerializer,
+    UserRoleAssignmentReadSerializer,
+    UserRoleAssignmentWriteSerializer,
     UserReadSerializer,
     UserSerializer,
     UserWriteSerializer,
 )
-from .services import deactivate_user, scope_users_to_actor
+from .services import (
+    deactivate_user,
+    get_user_role_assignment_data,
+    replace_user_role_assignments,
+    scope_users_to_actor,
+)
 
 
 class UserExactFilterBackend:
@@ -133,6 +140,8 @@ class UserViewSet(viewsets.ModelViewSet):
     }
 
     def get_permissions(self):
+        if self.action == "roles":
+            return [IsAuthenticated()]
         self.required_permission = self.permission_by_action.get(self.action)
         return super().get_permissions()
 
@@ -178,6 +187,26 @@ class UserViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         deactivate_user(actor=request.user, user=self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=("get", "put"))
+    def roles(self, request, *args, **kwargs):
+        user = self.get_object()
+
+        if request.method.lower() == "get":
+            payload = get_user_role_assignment_data(
+                actor=request.user,
+                user=user,
+            )
+            return Response(UserRoleAssignmentReadSerializer(payload).data)
+
+        serializer = UserRoleAssignmentWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = replace_user_role_assignments(
+            actor=request.user,
+            user=user,
+            role_ids=serializer.validated_data["role_ids"],
+        )
+        return Response(UserRoleAssignmentReadSerializer(payload).data)
 
     @action(detail=False, methods=("get",))
     def directory(self, request):
