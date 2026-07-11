@@ -10,15 +10,19 @@ FO-038 through FO-043 were validated as one integrated 5S Inspection module: bac
 
 ## Defects Resolved
 
-Four defects were identified and corrected during the QA cycle.
+Three inspection product defects were identified and corrected during the QA cycle.
 
-1. **Checklist pass/fail values not preserved on edit** — `mapInspectionFormValuesToUpdatePayload` was discarding `is_pass` and `score` values that were already stored. Fixed by ensuring non-empty string values are coerced and included in the update payload rather than omitted.
+1. **Checklist pass/fail selection omitted when score was blank** — `mapInspectionFormValuesToUpdatePayload` assigned `is_pass` only when score was present, silently discarding a valid pass/fail selection when score was blank. The frontend mapper now normalizes `score` and `is_pass` independently so pass or fail can be persisted without making score mandatory.
 
-2. **Workflow AI-analysis responses mutated on GET** — The `GET /api/inspection/inspections/{id}/ai-analysis/` handler was calling the upsert hook during a read, which caused unintended side-effects. Removed the upsert call from the GET path so read operations are side-effect-free.
+2. **AI-analysis GET endpoint mutated database during read** — `GET /api/inspection/inspections/{id}/ai-analysis/` called `recalculate_inspection_sla()`, causing `InspectionSLA` database mutation during a read request. The SLA recalculation call was removed so GET is side-effect-free.
 
-3. **Inspection soft-delete not centralized** — Soft-delete logic for child resources (items, findings, attachments, comments) was scattered across multiple view actions. Consolidated into a single `soft_delete_inspection` service helper so all code paths use the same cascade.
+3. **Soft deletion performed in view layer without audit or descendant filtering** — Soft deletion for inspections, findings, and corrective actions was moved from direct view-layer mutation into transactional service-layer functions. Each deletion validates tenant access, records audit history, and preserves related historical data while read queries hide deleted parents and descendants.
 
-4. **Backend maintenance reassignment test failing after tenant-isolation hardening** — `test_reassign_and_unassign_create_history_and_update_status` created a `replacement` user without assigning `tenant` or `organization`, causing the tenant-isolation check in `reassign_work_order` to reject the request with HTTP 400. Fixed by setting `replacement.tenant` and `replacement.organization` to the work-order tenant before the reassignment request.
+## Compatibility Test-Data Fix
+
+During the QA cycle, one backend test failure was traced to stale test data rather than an inspection product defect:
+
+- **Maintenance reassignment test tenant setup** — `test_reassign_and_unassign_create_history_and_update_status` created a `replacement` user without assigning `tenant` or `organization`, causing the tenant-isolation check in `reassign_work_order` to reject the request with HTTP 400. Fixed by setting `replacement.tenant` and `replacement.organization` to the work-order tenant before the reassignment request.
 
 ## API Inventory
 
@@ -79,4 +83,4 @@ No critical, high, or medium inspection defects remain after this QA cycle.
 
 ## Result
 
-FO-044 completes the 5S Inspection module QA and stabilization pass. All four identified defects were resolved, the full backend test suite passes at 168 tests, all ten frontend checklist mapping tests pass, and the production build is clean. The `agent/inspection-module` branch is ready to merge into `main`.
+FO-044 completes the 5S Inspection module QA and stabilization pass. All three identified inspection defects were resolved, the full backend test suite passes at 168 tests, all ten frontend checklist mapping tests pass, and the production build is clean. The `agent/inspection-module` branch is ready to merge into `main`.
