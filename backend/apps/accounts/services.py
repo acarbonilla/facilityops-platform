@@ -69,6 +69,26 @@ def _get_manageable_roles(actor):
     return queryset.filter(is_system_role=False)
 
 
+def _build_user_role_assignment_data(*, actor, user):
+    assigned_roles = Role.objects.filter(
+        is_active=True,
+        user_roles__user=user,
+        user_roles__is_active=True,
+    ).order_by("name")
+    if not has_global_user_scope(actor):
+        assigned_roles = assigned_roles.filter(is_system_role=False)
+
+    available_roles = Role.objects.none()
+    if user_has_permission(actor, "roles.manage"):
+        available_roles = _get_manageable_roles(actor)
+
+    return {
+        "user": user,
+        "assigned_roles": assigned_roles,
+        "available_roles": available_roles,
+    }
+
+
 def _validate_requested_role_ids(actor, role_ids):
     normalized_role_ids = list(dict.fromkeys(str(role_id) for role_id in role_ids))
     if len(normalized_role_ids) != len(role_ids):
@@ -239,24 +259,7 @@ def get_user_role_assignment_data(*, actor, user):
     _validate_actor_permission(actor, "users.view")
     _validate_actor_permission(actor, "roles.view")
     _validate_actor_can_manage_user(actor, user)
-
-    assigned_roles = Role.objects.filter(
-        is_active=True,
-        user_roles__user=user,
-        user_roles__is_active=True,
-    ).order_by("name")
-    if not has_global_user_scope(actor):
-        assigned_roles = assigned_roles.filter(is_system_role=False)
-
-    available_roles = Role.objects.none()
-    if user_has_permission(actor, "roles.manage"):
-        available_roles = _get_manageable_roles(actor)
-
-    return {
-        "user": user,
-        "assigned_roles": assigned_roles,
-        "available_roles": available_roles,
-    }
+    return _build_user_role_assignment_data(actor=actor, user=user)
 
 
 @transaction.atomic
@@ -299,4 +302,4 @@ def replace_user_role_assignments(*, actor, user, role_ids):
             assignment.is_active = False
             assignment.save(update_fields=("is_active", "updated_at"))
 
-    return get_user_role_assignment_data(actor=actor, user=user)
+    return _build_user_role_assignment_data(actor=actor, user=user)

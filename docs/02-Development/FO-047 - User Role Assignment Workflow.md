@@ -30,6 +30,13 @@ FO-047 delivers a secure user-role assignment workflow across backend and fronte
 
 The action uses service-level permission and scope enforcement and returns role assignment data in a frontend-friendly shape.
 
+Permission contract for the endpoint methods is intentionally split:
+
+- `GET /api/users/{id}/roles/` requires both `users.view` and `roles.view`
+- `PUT /api/users/{id}/roles/` requires `roles.manage` and does not require the GET read permissions
+
+To enforce this contract safely, mutation responses are built by an internal response-data helper that does not re-run GET authorization checks.
+
 ### Serializers
 
 `apps.accounts.serializers` adds dedicated serializers for role-assignment read and write flows:
@@ -52,6 +59,8 @@ The action uses service-level permission and scope enforcement and returns role 
 - prohibition on tenant-bound assignment of `is_system_role` roles
 - self-protection guard preventing removal of the actor's final active `system_admin` assignment
 - atomic replacement semantics that reactivate existing assignments and soft-deactivate removed assignments
+
+The service also separates response-data construction from GET authorization. The read service validates `users.view` plus `roles.view`, while the replace service validates `roles.manage` and then returns the same response schema through a shared private builder.
 
 ### Tests
 

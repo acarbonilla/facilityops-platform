@@ -795,6 +795,95 @@ class UserRoleAssignmentWorkflowTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_roles_manage_only_actor_can_replace_but_cannot_get_assignments(self):
+        actor = User.objects.create_user(
+            email="roles-manage-only@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        manage_only_role = self._create_role(
+            "Roles Manage Only",
+            "roles_manage_only",
+            permissions=("roles.manage",),
+        )
+        UserRole.objects.create(user=actor, role=manage_only_role)
+        self._authenticate(actor)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {"role_ids": [str(self.inspector_role.id)]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("user", response.data)
+        self.assertIn("assigned_roles", response.data)
+        self.assertIn("available_roles", response.data)
+        self.assertEqual(
+            [role["code"] for role in response.data["assigned_roles"]],
+            ["inspector"],
+        )
+        self.assertTrue(
+            UserRole.objects.filter(
+                user=self.target,
+                role=self.inspector_role,
+                is_active=True,
+            ).exists()
+        )
+        self.assertFalse(
+            UserRole.objects.filter(
+                user=self.target,
+                role=self.operator_role,
+                is_active=True,
+            ).exists()
+        )
+
+        get_response = self.client.get(self._roles_url(self.target))
+        self.assertEqual(get_response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_roles_manage_only_actor_invalid_put_is_atomic(self):
+        actor = User.objects.create_user(
+            email="roles-manage-atomic@example.com",
+            password=self.password,
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+        manage_only_role = self._create_role(
+            "Roles Manage Only Atomic",
+            "roles_manage_only_atomic",
+            permissions=("roles.manage",),
+        )
+        UserRole.objects.create(user=actor, role=manage_only_role)
+        existing_assignment = UserRole.objects.get(
+            user=self.target,
+            role=self.operator_role,
+        )
+        self._authenticate(actor)
+
+        response = self.client.put(
+            self._roles_url(self.target),
+            {
+                "role_ids": [
+                    str(self.inspector_role.id),
+                    str(self.inactive_role.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("role_ids", response.data)
+        existing_assignment.refresh_from_db()
+        self.assertTrue(existing_assignment.is_active)
+        self.assertFalse(
+            UserRole.objects.filter(
+                user=self.target,
+                role=self.inspector_role,
+                is_active=True,
+            ).exists()
+        )
+
     def test_same_tenant_authorized_actor_can_view_assignments(self):
         self._authenticate(self.reader)
 
