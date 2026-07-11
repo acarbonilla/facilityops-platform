@@ -3,6 +3,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
+from .services import create_user, update_user
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -16,6 +17,83 @@ class UserSerializer(serializers.ModelSerializer):
             "tenant",
             "organization",
             "is_staff",
+        )
+        read_only_fields = fields
+
+
+class UserReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "tenant",
+            "organization",
+            "is_active",
+            "is_staff",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class UserWriteSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        trim_whitespace=False,
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            "email",
+            "first_name",
+            "last_name",
+            "tenant",
+            "organization",
+            "password",
+            "is_active",
+            "is_staff",
+        )
+        extra_kwargs = {
+            "tenant": {"required": False, "allow_null": True},
+            "organization": {"required": False, "allow_null": True},
+        }
+
+    def validate(self, attrs):
+        if self.instance is None and "password" not in attrs:
+            raise serializers.ValidationError(
+                {"password": "This field is required."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        return create_user(
+            actor=self.context["request"].user,
+            validated_data=validated_data,
+        )
+
+    def update(self, instance, validated_data):
+        return update_user(
+            actor=self.context["request"].user,
+            user=instance,
+            validated_data=validated_data,
+        )
+
+
+class UserDirectorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "tenant",
+            "organization",
         )
         read_only_fields = fields
 
