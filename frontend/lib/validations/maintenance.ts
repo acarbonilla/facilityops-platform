@@ -8,7 +8,6 @@ const optionalString = z.string().trim();
 const maintenanceTaskSchema = z.object({
   title: optionalString,
   description: optionalString,
-  assigned_technician: optionalString,
   estimated_hours: optionalString,
   sequence: optionalString,
   required: z.boolean(),
@@ -23,7 +22,6 @@ const maintenanceMaterialSchema = z.object({
 });
 
 const maintenanceLaborSchema = z.object({
-  technician: optionalString,
   estimated_hours: optionalString,
   rate: optionalString,
   notes: optionalString,
@@ -61,7 +59,6 @@ function taskHasContent(task: z.infer<typeof maintenanceTaskSchema>) {
   return Boolean(
     task.title ||
       task.description ||
-      task.assigned_technician ||
       task.estimated_hours ||
       task.sequence,
   );
@@ -79,8 +76,7 @@ function materialHasContent(material: z.infer<typeof maintenanceMaterialSchema>)
 
 function laborHasContent(labor: z.infer<typeof maintenanceLaborSchema>) {
   return Boolean(
-    labor.technician ||
-      labor.estimated_hours ||
+    labor.estimated_hours ||
       labor.rate ||
       labor.notes,
   );
@@ -122,8 +118,6 @@ export const maintenanceWorkOrderSchema = z
     estimated_start_at: optionalString,
     estimated_completion_at: optionalString,
     estimated_hours: optionalString,
-    assigned_technician: optionalString,
-    supervisor: optionalString,
     assignment_team: optionalString,
     tasks: z.array(maintenanceTaskSchema),
     materials: z.array(maintenanceMaterialSchema),
@@ -235,14 +229,6 @@ export const maintenanceWorkOrderSchema = z
     values.labor.forEach((entry, index) => {
       if (!laborHasContent(entry)) {
         return;
-      }
-
-      if (!entry.technician) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Technician is required for labor entries.",
-          path: ["labor", index, "technician"],
-        });
       }
 
       const laborHours = parsePositiveNumber(entry.estimated_hours);

@@ -102,3 +102,17 @@ for (const scenario of cases) {
     });
   }
 }
+
+test("create and update payloads preserve selected inspector and supervisor IDs", () => {
+  const values = {
+    ...buildValues("", ""),
+    inspector: "inspector-1",
+    supervisor: "supervisor-1",
+  };
+
+  for (const [, mapper] of payloadMappers) {
+    const payload = mapper(values);
+    assert.equal(payload.inspector, "inspector-1");
+    assert.equal(payload.supervisor, "supervisor-1");
+  }
+});

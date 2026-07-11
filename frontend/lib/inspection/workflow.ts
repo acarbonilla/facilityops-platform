@@ -1,7 +1,9 @@
 import type {
+  InspectionAssignPayload,
   InspectionStatus,
   InspectionWorkflowAction,
 } from "@/types/inspection";
+import { normalizeOptionalUserId } from "@/lib/users/directory";
 
 const ACTIONS_BY_STATUS: Record<InspectionStatus, InspectionWorkflowAction[]> = {
   draft: [
@@ -130,4 +132,23 @@ const ACTIONS_BY_STATUS: Record<InspectionStatus, InspectionWorkflowAction[]> = 
 
 export function getInspectionWorkflowActions(status: InspectionStatus) {
   return ACTIONS_BY_STATUS[status] ?? [];
+}
+
+export function buildInspectionAssignPayload(
+  inspector?: string | null,
+  supervisor?: string | null,
+  note?: string,
+): InspectionAssignPayload | null {
+  const normalizedInspector = normalizeOptionalUserId(inspector);
+  const normalizedSupervisor = normalizeOptionalUserId(supervisor);
+
+  if (!normalizedInspector && !normalizedSupervisor) {
+    return null;
+  }
+
+  return {
+    inspector: normalizedInspector,
+    supervisor: normalizedSupervisor,
+    note: note?.trim() || undefined,
+  };
 }

@@ -38,10 +38,11 @@ export function useUser(id: string) {
   });
 }
 
-export function useUserDirectory(params?: UserDirectoryParams) {
+export function useUserDirectory(params?: UserDirectoryParams, enabled = true) {
   return useQuery({
     queryKey: usersQueryKeys.directory(params),
     queryFn: () => getUserDirectory(params),
+    enabled,
   });
 }
 

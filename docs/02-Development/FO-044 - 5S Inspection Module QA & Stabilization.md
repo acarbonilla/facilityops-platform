@@ -72,8 +72,7 @@ This was previously the only low-priority limitation noted in the final review c
 
 ## Known Limitations
 
-- Inspector and supervisor assignment still uses raw UUID input in workflow dialogs because the frontend has no supported user-directory list API.
-- Corrective-action `assigned_to` also remains a raw UUID field until a user-directory picker is available.
+- FO-048B replaces Inspection inspector, supervisor, and corrective-action owner UUID entry with the shared assignment-safe user directory picker.
 - No external AI provider is connected; `model_name` defaults to `manual` and stored AI output is advisory only.
 - Attachment handling stores metadata only; binary upload transport is not implemented.
 - Celery SLA check task exists but periodic Beat scheduling remains deployment configuration.

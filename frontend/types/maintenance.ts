@@ -380,7 +380,6 @@ export interface MaintenanceTimelineEvent {
 export interface MaintenanceTaskFormValues {
   title: string;
   description: string;
-  assigned_technician: string;
   estimated_hours: string;
   sequence: string;
   required: boolean;
@@ -395,7 +394,6 @@ export interface MaintenanceMaterialFormValues {
 }
 
 export interface MaintenanceLaborFormValues {
-  technician: string;
   estimated_hours: string;
   rate: string;
   notes: string;
@@ -422,8 +420,6 @@ export interface MaintenanceWorkOrderFormValues {
   estimated_start_at: string;
   estimated_completion_at: string;
   estimated_hours: string;
-  assigned_technician: string;
-  supervisor: string;
   assignment_team: string;
   tasks: MaintenanceTaskFormValues[];
   materials: MaintenanceMaterialFormValues[];

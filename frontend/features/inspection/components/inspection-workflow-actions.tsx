@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { ErrorState } from "@/components/common/error-state";
 import { FormField } from "@/components/common/form-field";
+import { UserDirectoryPicker } from "@/components/common/user-directory-picker";
 import { useAssignInspection } from "@/hooks/use-assign-inspection";
 import { useCancelInspection } from "@/hooks/use-cancel-inspection";
 import { useCompleteInspection } from "@/hooks/use-complete-inspection";
@@ -11,7 +12,11 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useReopenInspection } from "@/hooks/use-reopen-inspection";
 import { useStartInspection } from "@/hooks/use-start-inspection";
 import { useVerifyInspection } from "@/hooks/use-verify-inspection";
-import { getInspectionWorkflowActions } from "@/lib/inspection/workflow";
+import {
+  buildInspectionAssignPayload,
+  getInspectionWorkflowActions,
+} from "@/lib/inspection/workflow";
+import { createUserDirectoryEmailFallback } from "@/lib/users/directory";
 import type {
   InspectionAssignPayload,
   InspectionCancelPayload,
@@ -190,38 +195,49 @@ function InspectionAssignDialog({
   isBusy,
   onClose,
   onConfirm,
+  permissionEnabled,
 }: {
   inspection: InspectionDetail;
   isBusy: boolean;
   onClose: () => void;
   onConfirm: (payload: InspectionAssignPayload) => void | Promise<void>;
+  permissionEnabled: boolean;
 }) {
   const [inspector, setInspector] = useState(inspection.inspector ?? "");
   const [supervisor, setSupervisor] = useState(inspection.supervisor ?? "");
   const [note, setNote] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
+  const inspectorFallback = useMemo(
+    () =>
+      createUserDirectoryEmailFallback(
+        inspection.inspector,
+        inspection.inspector_email,
+      ),
+    [inspection.inspector, inspection.inspector_email],
+  );
+  const supervisorFallback = useMemo(
+    () =>
+      createUserDirectoryEmailFallback(
+        inspection.supervisor,
+        inspection.supervisor_email,
+      ),
+    [inspection.supervisor, inspection.supervisor_email],
+  );
 
   return (
     <InspectionWorkflowConfirmDialog
       confirmLabel="Assign inspection"
-      description="Assign an inspector and/or supervisor. The current frontend does not yet provide a user-directory picker, so enter backend user UUIDs directly."
+      description="Assign an inspector and/or supervisor from the active user directory."
       error={validationError}
       isBusy={isBusy}
       onClose={onClose}
       onConfirm={async () => {
-        const trimmedInspector = inspector.trim();
-        const trimmedSupervisor = supervisor.trim();
-
-        if (!trimmedInspector && !trimmedSupervisor) {
+        const payload = buildInspectionAssignPayload(inspector, supervisor, note);
+        if (!payload) {
           setValidationError("At least one of inspector or supervisor is required.");
           return;
         }
-
-        await onConfirm({
-          inspector: trimmedInspector || null,
-          supervisor: trimmedSupervisor || null,
-          note: note.trim() || undefined,
-        });
+        await onConfirm(payload);
       }}
       title="Assign Inspection"
     >
@@ -229,36 +245,34 @@ function InspectionAssignDialog({
         <p>Current inspector: {inspection.inspector_email || "Not assigned"}</p>
         <p className="mt-1">Current supervisor: {inspection.supervisor_email || "Not assigned"}</p>
       </div>
-      <FormField
-        description="Optional. Paste the backend user UUID for the assigned inspector."
-        htmlFor="inspection-assign-inspector"
-        label="Inspector UUID"
-      >
-        <input
-          className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          id="inspection-assign-inspector"
-          onChange={(event) => {
-            setValidationError(null);
-            setInspector(event.target.value);
-          }}
-          value={inspector}
-        />
-      </FormField>
-      <FormField
-        description="Optional. Paste the backend user UUID for the supervisor."
-        htmlFor="inspection-assign-supervisor"
-        label="Supervisor UUID"
-      >
-        <input
-          className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-          id="inspection-assign-supervisor"
-          onChange={(event) => {
-            setValidationError(null);
-            setSupervisor(event.target.value);
-          }}
-          value={supervisor}
-        />
-      </FormField>
+      <UserDirectoryPicker
+        description="Optional inspector assignment."
+        disabled={isBusy}
+        label="Inspector"
+        onChange={(value) => {
+          setValidationError(null);
+          setInspector(value ?? "");
+        }}
+        organization={inspection.organization}
+        permissionEnabled={permissionEnabled}
+        selectedUser={inspectorFallback}
+        tenant={inspection.tenant}
+        value={inspector || null}
+      />
+      <UserDirectoryPicker
+        description="Optional supervisor assignment."
+        disabled={isBusy}
+        label="Supervisor"
+        onChange={(value) => {
+          setValidationError(null);
+          setSupervisor(value ?? "");
+        }}
+        organization={inspection.organization}
+        permissionEnabled={permissionEnabled}
+        selectedUser={supervisorFallback}
+        tenant={inspection.tenant}
+        value={supervisor || null}
+      />
       <FormField
         description="Optional assignment note recorded by the backend."
         htmlFor="inspection-assign-note"
@@ -420,6 +434,7 @@ export function InspectionWorkflowActions({
   const reopenMutation = useReopenInspection(inspection.id);
 
   const canManage = hasPermission("inspection.manage");
+  const canReadDirectory = hasPermission("users.directory");
   const allActions = useMemo(
     () => getInspectionWorkflowActions(inspection.status),
     [inspection.status],
@@ -532,6 +547,7 @@ export function InspectionWorkflowActions({
             setSuccessMessage("Inspection assignment updated successfully.");
             setActiveDialog(null);
           }}
+          permissionEnabled={!permissionsLoading && canReadDirectory}
         />
       ) : null}
 

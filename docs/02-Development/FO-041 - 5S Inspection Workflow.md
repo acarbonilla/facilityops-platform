@@ -91,7 +91,7 @@ Explicitly excluded:
 ## Implementation notes
 
 - The workflow UI reuses the established maintenance workflow frontend pattern for action mapping by status, mutation-hook invalidation, modal confirmation flow, and backend-driven timeline rendering.
-- The assign dialog uses raw inspector and supervisor UUID inputs rather than a searchable selector because the frontend still has no supported user-directory list API for inspection assignment.
+- The assign dialog uses the shared, searchable `UserDirectoryPicker` for inspector and supervisor while preserving the `inspection.assign` mutation permission and exact backend payload keys.
 - The workflow UI stays focused on inspection lifecycle only and does not introduce delete, AI action, or corrective-action workflow controls.
 
 ## Validation

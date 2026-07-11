@@ -199,7 +199,7 @@ function getMaterialError(
 function getLaborError(
   errors: FieldErrors<MaintenanceWorkOrderFormValues>,
   index: number,
-  key: "technician" | "estimated_hours" | "rate" | "notes",
+  key: "estimated_hours" | "rate" | "notes",
 ) {
   return getFieldErrorMessage(errors.labor?.[index]?.[key]?.message as string | undefined);
 }
@@ -442,23 +442,11 @@ export function MaintenanceAssignmentSection({
 }) {
   return (
     <MaintenanceFormSection
-      description="Assignment details are captured for planning, but the current backend still uses separate workflow APIs for real assignee changes."
+      description="Technician and supervisor assignments are managed through the dedicated role-aware assignment workflow after the work order is created."
       title="Assignment"
     >
       {capabilityNote ? <SectionNotice tone="amber">{capabilityNote}</SectionNotice> : null}
       <TextFieldGrid>
-        <TextInputField
-          error={getFieldErrorMessage(errors.assigned_technician?.message)}
-          id="maintenance-assigned-technician"
-          inputProps={register("assigned_technician")}
-          label="Assigned technician"
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.supervisor?.message)}
-          id="maintenance-supervisor"
-          inputProps={register("supervisor")}
-          label="Supervisor"
-        />
         <TextInputField
           error={getFieldErrorMessage(errors.assignment_team?.message)}
           id="maintenance-assignment-team"
@@ -578,12 +566,6 @@ export function MaintenanceTaskFormSection({
                 id={`maintenance-task-title-${index}`}
                 inputProps={register(`tasks.${index}.title`)}
                 label="Task name"
-              />
-              <TextInputField
-                error={getTaskError(errors, index, "assigned_technician")}
-                id={`maintenance-task-assigned-${index}`}
-                inputProps={register(`tasks.${index}.assigned_technician`)}
-                label="Assigned technician"
               />
               <TextInputField
                 error={getTaskError(errors, index, "estimated_hours")}
@@ -758,12 +740,6 @@ export function MaintenanceLaborFormSection({
               </button>
             </div>
             <TextFieldGrid>
-              <TextInputField
-                error={getLaborError(errors, index, "technician")}
-                id={`maintenance-labor-technician-${index}`}
-                inputProps={register(`labor.${index}.technician`)}
-                label="Technician"
-              />
               <TextInputField
                 error={getLaborError(errors, index, "estimated_hours")}
                 id={`maintenance-labor-hours-${index}`}
