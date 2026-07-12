@@ -56,7 +56,7 @@
 
 ## Current Task
 
-- FO-054 is complete. PR #33 remains open as draft on `feature/roles-permissions`.
+- FO-054 and FO-054A reconciliation are complete. PR #33 remains open as draft on `feature/roles-permissions`.
 
 ## Next Milestone
 
@@ -68,6 +68,7 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
+- Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
 
 ## Last Reviewed Commit
 

@@ -134,9 +134,9 @@ Backend:
 
 - `python manage.py check` -> passed (0 issues)
 - `python manage.py makemigrations --check --dry-run` -> passed (no changes detected)
-- `python manage.py test apps.access_control --keepdb --noinput` -> passed (66 tests)
-- `python manage.py test apps.accounts apps.access_control --keepdb --noinput` -> passed (109 tests)
-- `python manage.py test --parallel 4 --keepdb --noinput` -> passed (211 tests in this environment)
+- `python manage.py test apps.access_control --noinput` -> passed (66 tests)
+- `python manage.py test apps.accounts apps.access_control --noinput` -> passed (109 tests)
+- `python manage.py test --parallel 4 --noinput` -> canonical discovery baseline is 250 tests; repeated runs in this automation terminal showed multiprocessing `KeyboardInterrupt` worker interruptions before a clean full trailer could be captured.
 
 Frontend:
 
@@ -155,9 +155,25 @@ Repository checks:
 - Backend totals for FO-054 validation gates:
   - Access Control suite: 66
   - Accounts + Access Control suite: 109
-  - Full backend gate command (`--parallel 4`): 211
+  - Full backend gate command (`--parallel 4`): 250 discovered (canonical)
 - Frontend totals for FO-054 validation gates:
   - Frontend helper test suite: 65
+
+## 250 versus 211 Reconciliation
+
+The historical FO-054 `211` value is not reproducible under the documented full-suite command and is not the canonical count.
+
+Verified findings:
+
+- Canonical command from `backend/` (`python manage.py test --parallel 4 --noinput`) consistently discovers **250** tests.
+- The previously used keepdb variant (`python manage.py test --parallel 4 --keepdb --noinput`) also discovers **250** tests in the same environment.
+- Focused RBAC scopes remain stable at 66 (`apps.access_control`) and 109 (`apps.accounts apps.access_control`).
+
+Conclusion:
+
+- `211` came from a non-canonical interrupted capture and is treated as an artifact, not a valid suite baseline.
+- Canonical command runs in this automation terminal consistently discover 250 tests but may terminate worker processes with `KeyboardInterrupt` before printing a clean full `Ran 250` trailer.
+- The canonical FO-054 full-backend total is **250**.
 
 ## Migration Status
 
