@@ -47,6 +47,7 @@ function normalizeRbacParams<T extends RbacListParams | PermissionListParams>(
 
 export const rbacQueryKeys = {
   all: ["rbac"] as const,
+  roleLists: () => ["rbac", "roles"] as const,
   roles: (params?: RbacListParams) =>
     ["rbac", "roles", normalizeRbacParams(params)] as const,
   role: (id: string) => ["rbac", "role", id] as const,

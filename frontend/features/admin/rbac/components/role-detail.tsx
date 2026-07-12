@@ -1,174 +1,167 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { useState } from "react";
 
 import { DetailField } from "@/components/common/detail-field";
-import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
-import { getRole } from "@/services/api/rbac";
-import { rbacQueryKeys } from "@/services/api/query-keys";
-import type { Permission, RoleDetailResponse } from "@/types/rbac";
-
+import { useDeactivateRole, useRole } from "@/hooks/use-rbac";
 import {
-  PermissionGroupSection,
-  groupPermissionsByModule,
-} from "./permission-group";
+  formatRoleDate,
+  getRoleActionPermissions,
+  readRoleFormFlash,
+} from "@/lib/rbac/roles";
+import { ApiError } from "@/services/api/types";
 
-function getErrorMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
-
-function StatusBadge({
-  isActive,
-  activeLabel = "Active",
-  inactiveLabel = "Inactive",
-}: {
-  isActive: boolean;
-  activeLabel?: string;
-  inactiveLabel?: string;
-}) {
-  return (
-    <span
-      className={[
-        "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
-        isActive ? "bg-emerald-100 text-emerald-800" : "bg-slate-200 text-slate-700",
-      ].join(" ")}
-    >
-      {isActive ? activeLabel : inactiveLabel}
-    </span>
-  );
-}
-
-function getAssignedPermissions(role: RoleDetailResponse): Permission[] {
-  if (Array.isArray(role.permissions)) {
-    return role.permissions;
-  }
-
-  if (!Array.isArray(role.role_permissions)) {
-    return [];
-  }
-
-  return role.role_permissions
-    .map((assignment) => assignment.permission)
-    .filter((permission): permission is Permission =>
-      typeof permission === "object" && permission !== null && "code" in permission,
-    );
-}
+import { RoleDeactivateDialog } from "./role-deactivate-dialog";
+import { RoleStatusBadge, RoleTypeBadge } from "./role-shared";
 
 export function RoleDetailScreen({ id }: { id: string }) {
-  const { hasPermission } = usePermissions();
-  const canManage = hasPermission("roles.manage");
-  const roleQuery = useQuery({
-    queryKey: rbacQueryKeys.role(id),
-    queryFn: () => getRole(id),
-  });
+  const { user } = useAuth();
+  const { permissions, refreshPermissions } = usePermissions();
+  const roleQuery = useRole(id);
+  const deactivateMutation = useDeactivateRole();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [success, setSuccess] = useState<string | null>(() => readRoleFormFlash());
 
-  const role = roleQuery.data;
-  const assignedPermissions = role ? getAssignedPermissions(role) : [];
-  const groupedPermissions = groupPermissionsByModule(assignedPermissions);
-  const hasAssignmentPayload =
-    role !== undefined &&
-    ("permissions" in role || "role_permissions" in role);
-
-  return (
-    <div className="space-y-6">
-      {role ? (
-        <PageHeader
-          description={
-            role.description ||
-            "This role does not currently include a description."
-          }
-          eyebrow="RBAC administration"
-          title={role.name}
-        >
-          <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <DetailField
-              label="Code"
-              value={<span className="font-mono text-xs">{role.code}</span>}
-            />
-            <DetailField
-              label="System role"
-              value={
-                <StatusBadge
-                  activeLabel="System"
-                  inactiveLabel="Custom"
-                  isActive={role.is_system_role}
-                />
-              }
-            />
-            <DetailField
-              label="Status"
-              value={<StatusBadge isActive={role.is_active} />}
-            />
-            <DetailField
-              label="Manage actions"
-              value={canManage ? "Allowed when backend supports it" : "Hidden"}
-            />
-          </dl>
-        </PageHeader>
-      ) : null}
-
-      {roleQuery.isPending ? (
-        <LoadingState
-          title="Loading role"
-          message="Retrieving the latest role details from the backend."
-        />
-      ) : null}
-
-      {!roleQuery.isPending && roleQuery.isError ? (
-        <ErrorState
-          title="Unable to load role"
-          message={getErrorMessage(
-            roleQuery.error,
-            "The role detail could not be loaded.",
-          )}
-          action={
+  if (roleQuery.isPending) return <LoadingState title="Loading role" />;
+  if (roleQuery.isError || !roleQuery.data) {
+    const notFound =
+      roleQuery.error instanceof ApiError && roleQuery.error.status === 404;
+    return (
+      <ErrorState
+        action={
+          notFound ? (
+            <Link
+              className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+              href="/admin/roles"
+            >
+              Return to roles
+            </Link>
+          ) : (
             <button
-              className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800"
+              className="rounded-md bg-red-700 px-3 py-2 text-sm text-white"
               onClick={() => void roleQuery.refetch()}
               type="button"
             >
-              Retry
+              Retry role detail
             </button>
-          }
-        />
+          )
+        }
+        message={
+          notFound
+            ? "The requested role does not exist."
+            : roleQuery.error instanceof Error
+              ? roleQuery.error.message
+              : "The role detail could not be loaded."
+        }
+        title={notFound ? "Role not found" : "Unable to load role"}
+      />
+    );
+  }
+
+  const role = roleQuery.data;
+  const actions = getRoleActionPermissions(permissions, user, role);
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        description={role.description || "This role has no description."}
+        eyebrow="Admin / Roles"
+        title={role.name}
+      >
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50"
+            href="/admin/roles"
+          >
+            Back to roles
+          </Link>
+          {actions.canEdit ? (
+            <Link
+              className="rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+              href={`/admin/roles/${role.id}/edit`}
+            >
+              Edit role
+            </Link>
+          ) : null}
+          {actions.canDeactivate ? (
+            <button
+              className="rounded-md bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
+              onClick={() => setDialogOpen(true)}
+              type="button"
+            >
+              Deactivate role
+            </button>
+          ) : null}
+        </div>
+      </PageHeader>
+
+      {success ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900" role="status">
+          {success}
+        </p>
       ) : null}
 
-      {!roleQuery.isPending && !roleQuery.isError && role ? (
-        <section className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-950">
-              Assigned permissions
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              Role-permission editing remains disabled until the backend exposes
-              dedicated assignment and removal endpoints.
-            </p>
-          </div>
-
-          {!hasAssignmentPayload ? (
-            <EmptyState
-              title="Assigned permissions unavailable"
-              message="The current backend role detail response does not expose role-permission assignments yet. Add a role detail endpoint with assigned permissions before enabling richer role-permission viewing."
-            />
-          ) : null}
-
-          {hasAssignmentPayload && groupedPermissions.length === 0 ? (
-            <EmptyState
-              title="No assigned permissions"
-              message="This role currently has no active permission assignments in the role detail payload."
-            />
-          ) : null}
-
-          {hasAssignmentPayload && groupedPermissions.length > 0
-            ? groupedPermissions.map((group) => (
-                <PermissionGroupSection group={group} key={group.module} />
-              ))
-            : null}
+      {role.is_system_role ? (
+        <section className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+          <h2 className="font-semibold text-blue-950">Protected system role</h2>
+          <p className="mt-1 text-sm text-blue-900">
+            System roles are read-only and cannot be renamed, edited, or deactivated.
+          </p>
         </section>
+      ) : null}
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Role details</h2>
+        <dl className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <DetailField label="Name" value={role.name} />
+          <DetailField label="Code" value={<span className="font-mono text-xs">{role.code}</span>} />
+          <DetailField label="Type" value={<RoleTypeBadge role={role} />} />
+          <DetailField label="Status" value={<RoleStatusBadge role={role} />} />
+          <DetailField label="Created" value={formatRoleDate(role.created_at)} />
+          <DetailField label="Updated" value={formatRoleDate(role.updated_at)} />
+          <div className="md:col-span-2 xl:col-span-3">
+            <DetailField label="Description" value={role.description || "No description provided."} />
+          </div>
+        </dl>
+      </section>
+
+      <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+        <h2 className="font-semibold text-amber-950">Permission assignment pending</h2>
+        <p className="mt-1 text-sm text-amber-900">
+          Assigning permissions to this role is not part of FO-051 and arrives in FO-052.
+        </p>
+      </section>
+
+      {dialogOpen ? (
+        <RoleDeactivateDialog
+          error={
+            deactivateMutation.isError
+              ? deactivateMutation.error instanceof Error
+                ? deactivateMutation.error.message
+                : "The role could not be deactivated."
+              : null
+          }
+          isPending={deactivateMutation.isPending}
+          onClose={() => {
+            if (!deactivateMutation.isPending) {
+              setDialogOpen(false);
+              deactivateMutation.reset();
+            }
+          }}
+          onConfirm={async () => {
+            await deactivateMutation.mutateAsync(role.id);
+            await refreshPermissions();
+            setSuccess("Role deactivated successfully.");
+            setDialogOpen(false);
+          }}
+          role={role}
+        />
       ) : null}
     </div>
   );

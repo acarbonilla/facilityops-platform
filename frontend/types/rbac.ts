@@ -9,6 +9,8 @@ export interface Role {
   description: string;
   is_system_role: boolean;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Permission {
@@ -38,13 +40,42 @@ export interface PermissionGroup {
   permissions: Permission[];
 }
 
-export interface RbacListParams {
+export interface RoleListParams {
   search?: string;
   is_active?: boolean;
   is_system_role?: boolean;
   ordering?: string;
   page?: number;
   page_size?: number;
+}
+
+export type RbacListParams = RoleListParams;
+
+export interface RoleListFilters {
+  search: string;
+  systemRole: "" | "true" | "false";
+  active: "" | "true" | "false";
+  ordering: string;
+  pageSize: number;
+}
+
+export interface RoleCreatePayload {
+  name: string;
+  code: string;
+  description: string;
+}
+
+export interface RoleUpdatePayload {
+  name: string;
+  description: string;
+}
+
+export type RoleFormMode = "create" | "edit";
+
+export interface RoleFormValues {
+  name: string;
+  code: string;
+  description: string;
 }
 
 export interface PermissionListParams extends RbacListParams {
@@ -57,7 +88,12 @@ export interface UserPermissionsResponse {
   permissions: PermissionCode[];
 }
 
-export type RoleListResponse = Role[];
+export interface RoleListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Role[];
+}
 
 export type PermissionListResponse = Permission[];
 
