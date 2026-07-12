@@ -65,8 +65,7 @@ Validation completed with Django system checks, migration drift detection, focus
 ## Limitations
 
 - Permission records remain read-only; Permission CRUD is pending.
-- Assigning permissions to roles is pending FO-052.
 - Role duplication is pending FO-053.
 - Role reactivation is not provided.
 - Roles remain a global catalog; tenant-scoped roles require a separately approved schema design.
-- FO-051 remains the next feature milestone and will add the role-management frontend.
+- FO-053 remains the next feature milestone and will extend system-role protection and duplication behavior.

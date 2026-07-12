@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import filters, serializers, status, viewsets
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
@@ -10,11 +11,19 @@ from .models import Permission, Role
 from .permissions import HasPermissionCode
 from .serializers import (
     PermissionSerializer,
+    ReplaceRolePermissionsSerializer,
     RoleSerializer,
+    RolePermissionAssignmentSerializer,
     RoleWriteSerializer,
     UserPermissionSerializer,
 )
-from .services import deactivate_role, get_user_permission_codes, get_user_roles
+from .services import (
+    deactivate_role,
+    get_role_permission_assignment_data,
+    get_user_permission_codes,
+    get_user_roles,
+    replace_role_permissions,
+)
 
 
 class RoleExactFilterBackend:
@@ -118,3 +127,31 @@ class CurrentUserPermissionsView(APIView):
         }
         serializer = UserPermissionSerializer(payload)
         return Response(serializer.data)
+
+
+class RolePermissionAssignmentView(APIView):
+    permission_classes = [IsAuthenticated, HasPermissionCode]
+
+    def get_permissions(self):
+        if self.request.method == "GET":
+            self.required_permission = "roles.view"
+        elif self.request.method == "PUT":
+            self.required_permission = "roles.manage"
+        return super().get_permissions()
+
+    def get(self, request, role_id):
+        role = get_object_or_404(Role, pk=role_id)
+        payload = get_role_permission_assignment_data(actor=request.user, role=role)
+        serializer = RolePermissionAssignmentSerializer(payload)
+        return Response(serializer.data)
+
+    def put(self, request, role_id):
+        role = get_object_or_404(Role, pk=role_id)
+        serializer = ReplaceRolePermissionsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = replace_role_permissions(
+            actor=request.user,
+            role=role,
+            permission_ids=serializer.validated_data["permission_ids"],
+        )
+        return Response(RolePermissionAssignmentSerializer(payload).data)

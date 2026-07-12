@@ -17,6 +17,7 @@ from .management.commands.seed_rbac import (
 from .services import (
     create_role,
     deactivate_role,
+    replace_role_permissions,
     get_user_permission_codes,
     get_user_roles,
     update_role,
@@ -506,6 +507,450 @@ class RoleCatalogAdministrationTests(APITestCase):
             self.client.delete(self._detail_url()).status_code,
             status.HTTP_204_NO_CONTENT,
         )
+
+
+@override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
+class RolePermissionAssignmentWorkflowTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant", code="tenant")
+
+        self.roles_view_permission = Permission.objects.create(
+            name="View Roles",
+            code="roles.view",
+            module="roles",
+            action="view",
+        )
+        self.roles_manage_permission = Permission.objects.create(
+            name="Manage Roles",
+            code="roles.manage",
+            module="roles",
+            action="manage",
+        )
+        self.users_view_permission = Permission.objects.create(
+            name="View Users",
+            code="users.view",
+            module="users",
+            action="view",
+        )
+        self.users_update_permission = Permission.objects.create(
+            name="Update Users",
+            code="users.update",
+            module="users",
+            action="update",
+        )
+        self.assets_view_permission = Permission.objects.create(
+            name="View Assets",
+            code="assets.view",
+            module="assets",
+            action="view",
+        )
+        self.inactive_permission = Permission.objects.create(
+            name="Inactive",
+            code="users.inactive",
+            module="users",
+            action="inactive",
+            is_active=False,
+        )
+
+        self.viewer_role = self._role_with_permissions(
+            "Role Viewer",
+            "role_viewer",
+            (self.roles_view_permission,),
+        )
+        self.manager_role = self._role_with_permissions(
+            "Role Manager",
+            "role_manager",
+            (self.roles_view_permission, self.roles_manage_permission),
+        )
+        self.system_admin_role = self._role_with_permissions(
+            "System Administrator",
+            "system_admin",
+            (self.roles_view_permission, self.roles_manage_permission),
+            is_system_role=True,
+        )
+
+        self.viewer = self._user("viewer@example.com", self.viewer_role)
+        self.tenant_manager = self._user(
+            "tenant-manager@example.com", self.manager_role, tenant=self.tenant
+        )
+        self.system_admin = self._user(
+            "system-admin@example.com", self.system_admin_role
+        )
+        self.superuser = User.objects.create_superuser(
+            email="permission-superuser@example.com", password="Password123!"
+        )
+
+        self.custom_role = Role.objects.create(name="Custom", code="custom")
+        self.inactive_custom_role = Role.objects.create(
+            name="Inactive Custom",
+            code="inactive_custom",
+            is_active=False,
+        )
+        self.system_role = Role.objects.create(
+            name="System",
+            code="system_role",
+            is_system_role=True,
+        )
+
+        self.active_assignment = RolePermission.objects.create(
+            role=self.custom_role,
+            permission=self.users_view_permission,
+            is_active=True,
+        )
+        self.secondary_active_assignment = RolePermission.objects.create(
+            role=self.custom_role,
+            permission=self.assets_view_permission,
+            is_active=True,
+        )
+        self.inactive_assignment = RolePermission.objects.create(
+            role=self.custom_role,
+            permission=self.users_update_permission,
+            is_active=False,
+        )
+
+        self.inactive_permission_assignment = RolePermission.objects.create(
+            role=self.custom_role,
+            permission=self.inactive_permission,
+            is_active=True,
+        )
+
+    def _role_with_permissions(self, name, code, permissions, is_system_role=False):
+        role = Role.objects.create(name=name, code=code, is_system_role=is_system_role)
+        for permission in permissions:
+            RolePermission.objects.create(role=role, permission=permission)
+        return role
+
+    def _user(self, email, role, tenant=None, is_active=True):
+        user = User.objects.create_user(
+            email=email,
+            password="Password123!",
+            tenant=tenant,
+            is_active=is_active,
+        )
+        UserRole.objects.create(user=user, role=role)
+        return user
+
+    def _url(self, role=None):
+        return reverse(
+            "rbac-role-permissions", args=((role or self.custom_role).id,)
+        )
+
+    def _authenticate(self, user):
+        self.client.force_authenticate(user)
+
+    def test_unauthenticated_get_and_put_are_rejected(self):
+        self.assertEqual(
+            self.client.get(self._url()).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+        self.assertEqual(
+            self.client.put(
+                self._url(),
+                {"permission_ids": [str(self.users_view_permission.id)]},
+                format="json",
+            ).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_actor_without_roles_view_cannot_get_assignments(self):
+        no_permission = User.objects.create_user(
+            email="no-view@example.com", password="Password123!"
+        )
+        self._authenticate(no_permission)
+
+        self.assertEqual(
+            self.client.get(self._url()).status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+
+    def test_roles_view_actor_can_get_custom_system_and_inactive_roles(self):
+        self._authenticate(self.viewer)
+
+        custom_response = self.client.get(self._url(self.custom_role))
+        system_response = self.client.get(self._url(self.system_role))
+        inactive_response = self.client.get(self._url(self.inactive_custom_role))
+
+        self.assertEqual(custom_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(system_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(inactive_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(custom_response.data["role"]["id"], str(self.custom_role.id))
+
+    def test_get_returns_active_assignments_only_sorted_by_module_action_and_name(self):
+        self._authenticate(self.viewer)
+
+        response = self.client.get(self._url(self.custom_role))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["role"]["code"], self.custom_role.code)
+        self.assertEqual(
+            [item["code"] for item in response.data["assigned_permissions"]],
+            ["assets.view", "users.view"],
+        )
+
+    def test_actor_with_roles_view_but_without_roles_manage_cannot_put(self):
+        self._authenticate(self.viewer)
+
+        response = self.client.put(
+            self._url(),
+            {"permission_ids": [str(self.users_view_permission.id)]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tenant_bound_roles_manage_actor_cannot_put(self):
+        self._authenticate(self.tenant_manager)
+
+        response = self.client.put(
+            self._url(),
+            {"permission_ids": [str(self.users_view_permission.id)]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_superuser_and_active_system_admin_can_replace_permissions(self):
+        for actor in (self.superuser, self.system_admin):
+            self._authenticate(actor)
+            response = self.client.put(
+                self._url(),
+                {
+                    "permission_ids": [
+                        str(self.users_update_permission.id),
+                        str(self.assets_view_permission.id),
+                    ]
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(
+                [item["code"] for item in response.data["assigned_permissions"]],
+                ["assets.view", "users.update"],
+            )
+
+    def test_inactive_actor_cannot_replace_permissions(self):
+        self.system_admin.is_active = False
+        self.system_admin.save(update_fields=("is_active",))
+        self._authenticate(self.system_admin)
+
+        response = self.client.put(
+            self._url(),
+            {"permission_ids": [str(self.users_view_permission.id)]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_put_rejects_system_role_and_inactive_custom_role(self):
+        self._authenticate(self.superuser)
+
+        system_response = self.client.put(
+            self._url(self.system_role),
+            {"permission_ids": [str(self.users_view_permission.id)]},
+            format="json",
+        )
+        inactive_response = self.client.put(
+            self._url(self.inactive_custom_role),
+            {"permission_ids": [str(self.users_view_permission.id)]},
+            format="json",
+        )
+
+        self.assertEqual(system_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(inactive_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_rejects_unknown_inactive_duplicate_and_malformed_permission_ids(self):
+        self._authenticate(self.superuser)
+
+        unknown_response = self.client.put(
+            self._url(),
+            {"permission_ids": ["f09b84a0-97e7-4a8d-ac43-f2b5ea9eaf9c"]},
+            format="json",
+        )
+        inactive_response = self.client.put(
+            self._url(),
+            {"permission_ids": [str(self.inactive_permission.id)]},
+            format="json",
+        )
+        duplicate_response = self.client.put(
+            self._url(),
+            {
+                "permission_ids": [
+                    str(self.users_view_permission.id),
+                    str(self.users_view_permission.id),
+                ]
+            },
+            format="json",
+        )
+        malformed_response = self.client.put(
+            self._url(),
+            {"permission_ids": ["not-a-uuid"]},
+            format="json",
+        )
+
+        self.assertEqual(unknown_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(inactive_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(duplicate_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(malformed_response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_empty_permission_ids_deactivates_all_active_assignments(self):
+        self._authenticate(self.superuser)
+
+        response = self.client.put(
+            self._url(),
+            {"permission_ids": []},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["assigned_permissions"], [])
+        self.assertFalse(
+            RolePermission.objects.filter(
+                role=self.custom_role,
+                permission=self.users_view_permission,
+                is_active=True,
+            ).exists()
+        )
+        self.assertEqual(
+            RolePermission.objects.filter(role=self.custom_role).count(),
+            4,
+        )
+
+    def test_replacement_reactivates_creates_deactivates_and_preserves_rows(self):
+        self._authenticate(self.superuser)
+        before_count = RolePermission.objects.filter(role=self.custom_role).count()
+
+        response = self.client.put(
+            self._url(),
+            {
+                "permission_ids": [
+                    str(self.users_update_permission.id),
+                    str(self.roles_view_permission.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.inactive_assignment.refresh_from_db()
+        self.active_assignment.refresh_from_db()
+        self.secondary_active_assignment.refresh_from_db()
+        self.assertTrue(self.inactive_assignment.is_active)
+        self.assertFalse(self.active_assignment.is_active)
+        self.assertFalse(self.secondary_active_assignment.is_active)
+        self.assertTrue(
+            RolePermission.objects.filter(
+                role=self.custom_role,
+                permission=self.roles_view_permission,
+                is_active=True,
+            ).exists()
+        )
+        self.assertEqual(
+            RolePermission.objects.filter(role=self.custom_role).count(),
+            before_count + 1,
+        )
+
+    def test_unchanged_assignment_remains_active_without_duplication(self):
+        self._authenticate(self.superuser)
+        before_count = RolePermission.objects.filter(role=self.custom_role).count()
+
+        response = self.client.put(
+            self._url(),
+            {
+                "permission_ids": [
+                    str(self.users_view_permission.id),
+                    str(self.assets_view_permission.id),
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            RolePermission.objects.filter(
+                role=self.custom_role,
+                permission=self.users_view_permission,
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            RolePermission.objects.filter(role=self.custom_role).count(),
+            before_count,
+        )
+
+    def test_invalid_replacement_is_atomic(self):
+        self._authenticate(self.superuser)
+        before_active_ids = set(
+            RolePermission.objects.filter(role=self.custom_role, is_active=True)
+            .values_list("permission_id", flat=True)
+        )
+
+        response = self.client.put(
+            self._url(),
+            {
+                "permission_ids": [
+                    str(self.users_update_permission.id),
+                    "f09b84a0-97e7-4a8d-ac43-f2b5ea9eaf9c",
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        after_active_ids = set(
+            RolePermission.objects.filter(role=self.custom_role, is_active=True)
+            .values_list("permission_id", flat=True)
+        )
+        self.assertEqual(before_active_ids, after_active_ids)
+
+    def test_service_rejects_tenant_bound_non_global_actor(self):
+        with self.assertRaises(PermissionDenied):
+            replace_role_permissions(
+                actor=self.tenant_manager,
+                role=self.custom_role,
+                permission_ids=[self.users_view_permission.id],
+            )
+
+    def test_effective_permissions_gain_and_lose_after_replacement(self):
+        assigned_user = User.objects.create_user(
+            email="assigned-user@example.com",
+            password="Password123!",
+        )
+        UserRole.objects.create(user=assigned_user, role=self.custom_role, is_active=True)
+
+        self.assertIn("users.view", get_user_permission_codes(assigned_user))
+        self.assertNotIn("roles.view", get_user_permission_codes(assigned_user))
+
+        replace_role_permissions(
+            actor=self.superuser,
+            role=self.custom_role,
+            permission_ids=[self.roles_view_permission.id],
+        )
+
+        updated_codes = get_user_permission_codes(assigned_user)
+        self.assertIn("roles.view", updated_codes)
+        self.assertNotIn("users.view", updated_codes)
+
+    def test_permission_from_another_active_role_remains_effective(self):
+        secondary_role = Role.objects.create(name="Secondary", code="secondary")
+        RolePermission.objects.create(
+            role=secondary_role,
+            permission=self.users_view_permission,
+            is_active=True,
+        )
+        assigned_user = User.objects.create_user(
+            email="multi-role@example.com",
+            password="Password123!",
+        )
+        UserRole.objects.create(user=assigned_user, role=self.custom_role, is_active=True)
+        UserRole.objects.create(user=assigned_user, role=secondary_role, is_active=True)
+
+        replace_role_permissions(
+            actor=self.superuser,
+            role=self.custom_role,
+            permission_ids=[],
+        )
+
+        self.assertIn("users.view", get_user_permission_codes(assigned_user))
 
 
 class SeedRbacCommandTests(APITestCase):

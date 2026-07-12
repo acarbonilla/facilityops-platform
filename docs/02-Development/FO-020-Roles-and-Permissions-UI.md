@@ -86,13 +86,9 @@ FO-051 upgrades the original read-only roles experience with backend pagination,
 
 Mutation controls require `roles.manage` in the UI and remain subject to the backend's global-scope enforcement. System roles never expose mutation controls. See `FO-051 - Roles Management Frontend.md` for the current contract.
 
-## Role-Permission Assignment Limitation
+## Role-Permission Assignment Follow-Up
 
-The current backend does not expose role-permission assignment or removal endpoints, and it does not currently provide assigned permissions from a dedicated role detail response. For that reason:
-
-- assignment and removal UI are not implemented
-- the UI clearly identifies permission assignment as pending FO-052
-- the permission catalog remains read-only
+FO-052 completed the dedicated role-permission assignment workflow on top of the FO-020 screens. The role detail experience now shows active assigned permissions, and authorized administrators can replace assignments through the dedicated endpoint contract. The permission catalog remains read-only.
 
 ## Validation Commands
 
@@ -141,9 +137,8 @@ Validate:
 ## Known Limitations
 
 - The permissions catalog route is frontend-protected with `roles.manage` to match the current backend endpoint authorization.
-- Role-permission assignment and removal UI are intentionally absent until backend endpoints exist.
 - Permission CRUD and role reactivation remain unavailable.
 
 ## Next Task Recommendation
 
-FO-052 - Permission Assignment Workflow is the next Roles & Permissions milestone.
+FO-053 - System Role Protection and Duplication Workflow is the next Roles & Permissions milestone.

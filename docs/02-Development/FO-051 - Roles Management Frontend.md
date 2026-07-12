@@ -52,7 +52,7 @@ Direct navigation to a system-role edit route returns a protected read-only stat
 
 The detail screen uses `GET /api/access-control/roles/{id}/` and displays name, code, description, type, status, created timestamp, and updated timestamp. A `404` renders a dedicated Role not found state. System roles show a protected-role notice and never show Edit or Deactivate. Active custom roles show those actions only with `roles.manage`.
 
-Permission-assignment controls are intentionally absent. The detail screen states that permission assignment arrives in FO-052.
+FO-052 adds role-permission assignment controls to this detail workflow while preserving system-role and inactive-role mutation protection.
 
 ## Non-Destructive Deactivation
 
@@ -67,10 +67,9 @@ Validation includes frontend tests, ESLint, TypeScript, the production Next.js b
 ## Limitations
 
 - Permission creation, editing, and deletion remain unavailable.
-- Permission-to-role assignment remains pending FO-052.
 - Role duplication remains pending FO-053.
 - Role reactivation is unavailable.
 - The frontend does not duplicate backend global-scope role-resolution logic.
 - Component-level browser automation remains outside the current test infrastructure.
 
-FO-052 - Permission Assignment Workflow remains the next milestone.
+FO-053 - System Role Protection and Duplication Workflow remains the next milestone.

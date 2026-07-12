@@ -7,13 +7,11 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { groupPermissionsByModule } from "@/lib/rbac/permissions-assignment";
 import { getPermissions } from "@/services/api/rbac";
 import { rbacQueryKeys } from "@/services/api/query-keys";
 
-import {
-  PermissionGroupSection,
-  groupPermissionsByModule,
-} from "./permission-group";
+import { PermissionGroupSection } from "./permission-group";
 
 function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;

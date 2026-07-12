@@ -58,6 +58,7 @@ export function getRoleActionPermissions(
     canCreate: canManage,
     canEdit: canManage && mutableRole,
     canDeactivate: canManage && mutableRole,
+    canManagePermissions: canManage && mutableRole,
   };
 }
 

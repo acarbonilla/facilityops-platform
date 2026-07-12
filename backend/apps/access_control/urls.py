@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     CurrentUserPermissionsView,
     PermissionListView,
+    RolePermissionAssignmentView,
     RoleViewSet,
 )
 
@@ -19,6 +20,11 @@ role_detail = RoleViewSet.as_view(
 urlpatterns = [
     path("roles/", role_list, name="rbac-roles"),
     path("roles/<uuid:pk>/", role_detail, name="rbac-role-detail"),
+    path(
+        "roles/<uuid:role_id>/permissions/",
+        RolePermissionAssignmentView.as_view(),
+        name="rbac-role-permissions",
+    ),
     path("permissions/", PermissionListView.as_view(), name="rbac-permissions"),
     path(
         "me/permissions/",

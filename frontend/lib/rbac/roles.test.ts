@@ -59,10 +59,9 @@ test("code preview matches backend-style space and underscore behavior", () => {
 });
 
 test("permission helper hides create without roles.manage", () => {
-  assert.equal(
-    getRoleActionPermissions(["roles.view"], currentUser).canCreate,
-    false,
-  );
+  const actions = getRoleActionPermissions(["roles.view"], currentUser);
+  assert.equal(actions.canCreate, false);
+  assert.equal(actions.canManagePermissions, false);
 });
 
 test("permission helper hides edit and deactivate for system roles", () => {
@@ -72,6 +71,7 @@ test("permission helper hides edit and deactivate for system roles", () => {
   });
   assert.equal(actions.canEdit, false);
   assert.equal(actions.canDeactivate, false);
+  assert.equal(actions.canManagePermissions, false);
 });
 
 test("permission helper hides deactivate for inactive roles", () => {
@@ -80,12 +80,18 @@ test("permission helper hides deactivate for inactive roles", () => {
     is_active: false,
   });
   assert.equal(actions.canDeactivate, false);
+  assert.equal(actions.canManagePermissions, false);
 });
 
 test("permission helper exposes custom-role actions with roles.manage", () => {
   assert.deepEqual(
     getRoleActionPermissions(["roles.manage"], currentUser, activeCustomRole),
-    { canCreate: true, canEdit: true, canDeactivate: true },
+    {
+      canCreate: true,
+      canEdit: true,
+      canDeactivate: true,
+      canManagePermissions: true,
+    },
   );
 });
 
@@ -107,6 +113,13 @@ test("role list query keys vary with pagination, search, filters, and ordering",
     ordering: "-updated_at",
   });
   assert.notDeepEqual(first, second);
+});
+
+test("role permission assignment query keys are scoped by role id", () => {
+  assert.notDeepEqual(
+    rbacQueryKeys.rolePermissions("role-1"),
+    rbacQueryKeys.rolePermissions("role-2"),
+  );
 });
 
 test("paginated response mapping preserves metadata and role results", () => {

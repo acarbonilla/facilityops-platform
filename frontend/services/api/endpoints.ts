@@ -9,6 +9,7 @@ export const API_ENDPOINTS = {
   accessControl: {
     roles: "/access-control/roles/",
     role: (id: string) => `/access-control/roles/${id}/`,
+    rolePermissions: (id: string) => `/access-control/roles/${id}/permissions/`,
     permissions: "/access-control/permissions/",
     permission: (id: string) => `/access-control/permissions/${id}/`,
     mePermissions: "/access-control/me/permissions/",

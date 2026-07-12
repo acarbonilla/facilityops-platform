@@ -13,6 +13,15 @@ export interface Role {
   updated_at: string;
 }
 
+export interface RoleReference {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  is_system_role: boolean;
+  is_active: boolean;
+}
+
 export interface Permission {
   id: string;
   name: string;
@@ -33,6 +42,15 @@ export interface RolePermission {
 export interface RoleDetailResponse extends Role {
   permissions?: Permission[];
   role_permissions?: RolePermission[];
+}
+
+export interface RolePermissionAssignmentResponse {
+  role: RoleReference;
+  assigned_permissions: Permission[];
+}
+
+export interface ReplaceRolePermissionsPayload {
+  permission_ids: string[];
 }
 
 export interface PermissionGroup {

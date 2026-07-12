@@ -66,6 +66,27 @@ def _validate_role_actor(actor):
         )
 
 
+def _validate_role_assignment_read_actor(actor):
+    if not getattr(actor, "is_authenticated", False):
+        raise NotAuthenticated()
+    if not actor.is_active:
+        raise PermissionDenied("Inactive users may not manage roles.")
+    if not user_has_permission(actor, "roles.view"):
+        raise PermissionDenied("You do not have permission to perform this action.")
+
+
+def _build_role_permission_assignment_data(role):
+    assigned_permissions = Permission.objects.filter(
+        is_active=True,
+        role_permissions__role=role,
+        role_permissions__is_active=True,
+    ).order_by("module", "action", "name")
+    return {
+        "role": role,
+        "assigned_permissions": assigned_permissions,
+    }
+
+
 def _save_role(role):
     try:
         role.full_clean()
@@ -158,4 +179,78 @@ def deactivate_role(*, actor, role):
     return role
 
 
-import re
+def get_role_permission_assignment_data(*, actor, role):
+    _validate_role_assignment_read_actor(actor)
+    return _build_role_permission_assignment_data(role)
+
+
+@transaction.atomic
+def replace_role_permissions(*, actor, role, permission_ids):
+    _validate_role_actor(actor)
+    if role.is_system_role:
+        raise ValidationError({"role": ["System roles cannot be modified."]})
+    if not role.is_active:
+        raise ValidationError(
+            {"role": ["Inactive roles cannot be modified."]}
+        )
+
+    normalized_ids = [str(permission_id) for permission_id in permission_ids]
+    if len(normalized_ids) != len(set(normalized_ids)):
+        raise ValidationError(
+            {"permission_ids": ["Duplicate permission IDs are not allowed."]}
+        )
+
+    permissions = {
+        str(permission.id): permission
+        for permission in Permission.objects.filter(id__in=normalized_ids)
+    }
+    if len(permissions) != len(normalized_ids):
+        raise ValidationError(
+            {"permission_ids": ["One or more permissions do not exist."]}
+        )
+
+    if any(not permission.is_active for permission in permissions.values()):
+        raise ValidationError(
+            {"permission_ids": ["Only active permissions may be assigned."]}
+        )
+
+    existing_assignments = {
+        str(assignment.permission_id): assignment
+        for assignment in RolePermission.objects.select_for_update().filter(role=role)
+    }
+    requested_ids = set(normalized_ids)
+    reactivate_assignment_ids = []
+    new_assignments = []
+
+    for permission_id in requested_ids:
+        assignment = existing_assignments.get(permission_id)
+        if assignment is None:
+            new_assignments.append(
+                RolePermission(
+                    role=role,
+                    permission_id=permission_id,
+                    is_active=True,
+                )
+            )
+            continue
+        if not assignment.is_active:
+            reactivate_assignment_ids.append(assignment.id)
+
+    deactivate_assignment_ids = [
+        assignment.id
+        for permission_id, assignment in existing_assignments.items()
+        if assignment.is_active and permission_id not in requested_ids
+    ]
+
+    if reactivate_assignment_ids:
+        RolePermission.objects.filter(id__in=reactivate_assignment_ids).update(
+            is_active=True
+        )
+    if deactivate_assignment_ids:
+        RolePermission.objects.filter(id__in=deactivate_assignment_ids).update(
+            is_active=False
+        )
+    if new_assignments:
+        RolePermission.objects.bulk_create(new_assignments)
+
+    return _build_role_permission_assignment_data(role)

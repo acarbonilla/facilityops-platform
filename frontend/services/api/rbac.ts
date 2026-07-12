@@ -6,9 +6,12 @@ import type {
   Permission,
   PermissionListParams,
   PermissionListResponse,
+  ReplaceRolePermissionsPayload,
   Role,
   RoleCreatePayload,
   RoleDetailResponse,
+  RolePermissionAssignmentResponse,
+  RoleReference,
   RbacListParams,
   RoleListResponse,
   RolePermission,
@@ -51,6 +54,21 @@ function normalizeRole(value: unknown): Role {
     is_active: Boolean(value.is_active),
     created_at: typeof value.created_at === "string" ? value.created_at : "",
     updated_at: typeof value.updated_at === "string" ? value.updated_at : "",
+  };
+}
+
+function normalizeRoleReference(value: unknown): RoleReference {
+  if (!isRecord(value)) {
+    throw new ApiError("The backend returned an invalid role response.");
+  }
+
+  return {
+    id: String(value.id ?? ""),
+    name: typeof value.name === "string" ? value.name : "",
+    code: typeof value.code === "string" ? value.code : "",
+    description: typeof value.description === "string" ? value.description : "",
+    is_system_role: Boolean(value.is_system_role),
+    is_active: Boolean(value.is_active),
   };
 }
 
@@ -148,6 +166,23 @@ function normalizePermissionDetailPayload(payload: unknown): Permission {
   return normalizePermission(payload);
 }
 
+function normalizeRolePermissionsPayload(
+  payload: unknown,
+): RolePermissionAssignmentResponse {
+  if (!isRecord(payload)) {
+    throw new ApiError(
+      "The backend returned an invalid role permission assignment response.",
+    );
+  }
+
+  return {
+    role: normalizeRoleReference(payload.role),
+    assigned_permissions: Array.isArray(payload.assigned_permissions)
+      ? payload.assigned_permissions.map(normalizePermission)
+      : [],
+  };
+}
+
 export async function getRoles(params?: RbacListParams): Promise<RoleListResponse> {
   const payload = await apiClient<unknown>(API_ENDPOINTS.accessControl.roles, {
     method: "GET",
@@ -188,6 +223,32 @@ export async function deactivateRole(id: string): Promise<void> {
   await apiClient<void>(API_ENDPOINTS.accessControl.role(id), {
     method: "DELETE",
   });
+}
+
+export async function getRolePermissions(
+  roleId: string,
+): Promise<RolePermissionAssignmentResponse> {
+  const payload = await apiClient<unknown>(
+    API_ENDPOINTS.accessControl.rolePermissions(roleId),
+    { method: "GET" },
+  );
+
+  return normalizeRolePermissionsPayload(payload);
+}
+
+export async function replaceRolePermissions(
+  roleId: string,
+  payload: ReplaceRolePermissionsPayload,
+): Promise<RolePermissionAssignmentResponse> {
+  const response = await apiClient<unknown>(
+    API_ENDPOINTS.accessControl.rolePermissions(roleId),
+    {
+      method: "PUT",
+      body: payload,
+    },
+  );
+
+  return normalizeRolePermissionsPayload(response);
 }
 
 export async function getPermissions(

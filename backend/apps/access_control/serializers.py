@@ -103,6 +103,40 @@ class PermissionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class RolePermissionAssignmentRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = (
+            "id",
+            "name",
+            "code",
+            "description",
+            "is_system_role",
+            "is_active",
+        )
+        read_only_fields = fields
+
+
+class RolePermissionAssignmentSerializer(serializers.Serializer):
+    role = RolePermissionAssignmentRoleSerializer(read_only=True)
+    assigned_permissions = PermissionSerializer(read_only=True, many=True)
+
+
+class ReplaceRolePermissionsSerializer(serializers.Serializer):
+    permission_ids = serializers.ListField(
+        child=serializers.UUIDField(format="hex_verbose"),
+        allow_empty=True,
+    )
+
+    def validate_permission_ids(self, value):
+        normalized_ids = [str(permission_id) for permission_id in value]
+        if len(normalized_ids) != len(set(normalized_ids)):
+            raise serializers.ValidationError(
+                "Duplicate permission IDs are not allowed."
+            )
+        return value
+
+
 class UserPermissionSerializer(serializers.Serializer):
     roles = serializers.ListField(child=serializers.CharField())
     permissions = serializers.ListField(child=serializers.CharField())

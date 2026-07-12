@@ -6,11 +6,14 @@ import {
   createRole,
   deactivateRole,
   getRole,
+  getRolePermissions,
   getRoles,
+  replaceRolePermissions,
   updateRole,
 } from "@/services/api/rbac";
 import { rbacQueryKeys } from "@/services/api/query-keys";
 import type {
+  ReplaceRolePermissionsPayload,
   RoleCreatePayload,
   RoleListParams,
   RoleUpdatePayload,
@@ -27,6 +30,14 @@ export function useRole(id: string) {
   return useQuery({
     queryKey: rbacQueryKeys.role(id),
     queryFn: () => getRole(id),
+    enabled: Boolean(id),
+  });
+}
+
+export function useRolePermissions(id: string) {
+  return useQuery({
+    queryKey: rbacQueryKeys.rolePermissions(id),
+    queryFn: () => getRolePermissions(id),
     enabled: Boolean(id),
   });
 }
@@ -64,6 +75,29 @@ export function useDeactivateRole() {
     onSuccess: async (_, id) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: rbacQueryKeys.roleLists() }),
+        queryClient.invalidateQueries({ queryKey: rbacQueryKeys.role(id) }),
+        queryClient.invalidateQueries({
+          queryKey: rbacQueryKeys.mePermissions(),
+        }),
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            query.queryKey[0] === "users" && query.queryKey[2] === "roles",
+        }),
+      ]);
+    },
+  });
+}
+
+export function useReplaceRolePermissions(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ReplaceRolePermissionsPayload) =>
+      replaceRolePermissions(id, payload),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: rbacQueryKeys.rolePermissions(id),
+        }),
         queryClient.invalidateQueries({ queryKey: rbacQueryKeys.role(id) }),
         queryClient.invalidateQueries({
           queryKey: rbacQueryKeys.mePermissions(),

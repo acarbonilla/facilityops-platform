@@ -33,14 +33,14 @@
     "**/*.ts",
     "**/*.tsx",
     ".next-dev*/types/**/*.ts",
+    ".next-dev-3000/types/**/*.ts",
     ".next-runtime*/types/**/*.ts",
     ".next-runtime-20260707160126104-14124/types/**/*.ts",
     ".next-runtime-20260707161506888-3844/types/**/*.ts",
     ".next-runtime-20260707214422257-6576/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    "next-env.d.ts",
-    ".next-dev-3000/types/**/*.ts"
+    "next-env.d.ts"
   ],
   "exclude": [
     "node_modules"

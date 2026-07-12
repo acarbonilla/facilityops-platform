@@ -102,7 +102,7 @@ export function RoleForm({
         <div className="md:col-span-2">
           <h2 className="text-lg font-semibold text-slate-950">Role metadata</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Permission assignment is intentionally separate and arrives in FO-052.
+            Permission assignment is managed separately from role metadata.
           </p>
         </div>
         <TextInputField
