@@ -89,11 +89,17 @@ function normalizeRolePermission(value: unknown): RolePermission {
 }
 
 function normalizeRolesPayload(payload: unknown): RoleListResponse {
-  if (!Array.isArray(payload)) {
+  const roles = Array.isArray(payload)
+    ? payload
+    : isRecord(payload) && Array.isArray(payload.results)
+      ? payload.results
+      : null;
+
+  if (!roles) {
     throw new ApiError("The backend returned an invalid roles response.");
   }
 
-  return payload.map(normalizeRole);
+  return roles.map(normalizeRole);
 }
 
 function normalizePermissionListPayload(payload: unknown): PermissionListResponse {

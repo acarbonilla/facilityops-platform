@@ -41,6 +41,10 @@ export interface PermissionGroup {
 export interface RbacListParams {
   search?: string;
   is_active?: boolean;
+  is_system_role?: boolean;
+  ordering?: string;
+  page?: number;
+  page_size?: number;
 }
 
 export interface PermissionListParams extends RbacListParams {
