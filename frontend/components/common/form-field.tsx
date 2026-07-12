@@ -24,7 +24,11 @@ export function FormField({
         <p className="mt-1 text-xs text-slate-500">{description}</p>
       ) : null}
       <div className="mt-2">{children}</div>
-      {error ? <p className="mt-1 text-sm text-red-700">{error}</p> : null}
+      {error ? (
+        <p className="mt-1 text-sm text-red-700" id={`${htmlFor}-error`}>
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

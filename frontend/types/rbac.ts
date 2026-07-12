@@ -9,6 +9,17 @@ export interface Role {
   description: string;
   is_system_role: boolean;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoleReference {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  is_system_role: boolean;
+  is_active: boolean;
 }
 
 export interface Permission {
@@ -33,15 +44,65 @@ export interface RoleDetailResponse extends Role {
   role_permissions?: RolePermission[];
 }
 
+export interface RolePermissionAssignmentResponse {
+  role: RoleReference;
+  assigned_permissions: Permission[];
+}
+
+export interface ReplaceRolePermissionsPayload {
+  permission_ids: string[];
+}
+
 export interface PermissionGroup {
   module: string;
   permissions: Permission[];
 }
 
-export interface RbacListParams {
+export interface RoleListParams {
   search?: string;
   is_active?: boolean;
+  is_system_role?: boolean;
+  ordering?: string;
+  page?: number;
+  page_size?: number;
 }
+
+export type RbacListParams = RoleListParams;
+
+export interface RoleListFilters {
+  search: string;
+  systemRole: "" | "true" | "false";
+  active: "" | "true" | "false";
+  ordering: string;
+  pageSize: number;
+}
+
+export interface RoleCreatePayload {
+  name: string;
+  code: string;
+  description: string;
+}
+
+export interface RoleUpdatePayload {
+  name: string;
+  description: string;
+}
+
+export interface DuplicateRolePayload {
+  name: string;
+  code: string;
+  description: string;
+}
+
+export type RoleFormMode = "create" | "edit" | "duplicate";
+
+export interface RoleFormValues {
+  name: string;
+  code: string;
+  description: string;
+}
+
+export type DuplicateRoleDefaults = RoleFormValues;
 
 export interface PermissionListParams extends RbacListParams {
   module?: string;
@@ -53,7 +114,12 @@ export interface UserPermissionsResponse {
   permissions: PermissionCode[];
 }
 
-export type RoleListResponse = Role[];
+export interface RoleListResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: Role[];
+}
 
 export type PermissionListResponse = Permission[];
 

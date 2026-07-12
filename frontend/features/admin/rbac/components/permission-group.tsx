@@ -29,28 +29,6 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   );
 }
 
-export function groupPermissionsByModule(
-  permissions: Permission[],
-): PermissionGroup[] {
-  const groups = new Map<string, Permission[]>();
-
-  for (const permission of permissions) {
-    const moduleKey = permission.module || "general";
-    const items = groups.get(moduleKey) ?? [];
-    items.push(permission);
-    groups.set(moduleKey, items);
-  }
-
-  return Array.from(groups.entries())
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([module, items]) => ({
-      module,
-      permissions: [...items].sort((left, right) =>
-        left.code.localeCompare(right.code),
-      ),
-    }));
-}
-
 export function PermissionGroupSection({
   group,
 }: {

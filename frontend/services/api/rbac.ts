@@ -3,14 +3,20 @@ import { apiClient } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 import type {
+  DuplicateRolePayload,
   Permission,
   PermissionListParams,
   PermissionListResponse,
+  ReplaceRolePermissionsPayload,
   Role,
+  RoleCreatePayload,
   RoleDetailResponse,
+  RolePermissionAssignmentResponse,
+  RoleReference,
   RbacListParams,
   RoleListResponse,
   RolePermission,
+  RoleUpdatePayload,
   UserPermissionsResponse,
 } from "@/types/rbac";
 
@@ -36,6 +42,23 @@ function normalizeQueryParams(
 }
 
 function normalizeRole(value: unknown): Role {
+  if (!isRecord(value)) {
+    throw new ApiError("The backend returned an invalid role response.");
+  }
+
+  return {
+    id: String(value.id ?? ""),
+    name: typeof value.name === "string" ? value.name : "",
+    code: typeof value.code === "string" ? value.code : "",
+    description: typeof value.description === "string" ? value.description : "",
+    is_system_role: Boolean(value.is_system_role),
+    is_active: Boolean(value.is_active),
+    created_at: typeof value.created_at === "string" ? value.created_at : "",
+    updated_at: typeof value.updated_at === "string" ? value.updated_at : "",
+  };
+}
+
+function normalizeRoleReference(value: unknown): RoleReference {
   if (!isRecord(value)) {
     throw new ApiError("The backend returned an invalid role response.");
   }
@@ -88,12 +111,21 @@ function normalizeRolePermission(value: unknown): RolePermission {
   };
 }
 
-function normalizeRolesPayload(payload: unknown): RoleListResponse {
-  if (!Array.isArray(payload)) {
+export function normalizeRolesPayload(payload: unknown): RoleListResponse {
+  if (
+    !isRecord(payload) ||
+    typeof payload.count !== "number" ||
+    !Array.isArray(payload.results)
+  ) {
     throw new ApiError("The backend returned an invalid roles response.");
   }
 
-  return payload.map(normalizeRole);
+  return {
+    count: payload.count,
+    next: typeof payload.next === "string" ? payload.next : null,
+    previous: typeof payload.previous === "string" ? payload.previous : null,
+    results: payload.results.map(normalizeRole),
+  };
 }
 
 function normalizePermissionListPayload(payload: unknown): PermissionListResponse {
@@ -135,8 +167,25 @@ function normalizePermissionDetailPayload(payload: unknown): Permission {
   return normalizePermission(payload);
 }
 
+function normalizeRolePermissionsPayload(
+  payload: unknown,
+): RolePermissionAssignmentResponse {
+  if (!isRecord(payload)) {
+    throw new ApiError(
+      "The backend returned an invalid role permission assignment response.",
+    );
+  }
+
+  return {
+    role: normalizeRoleReference(payload.role),
+    assigned_permissions: Array.isArray(payload.assigned_permissions)
+      ? payload.assigned_permissions.map(normalizePermission)
+      : [],
+  };
+}
+
 export async function getRoles(params?: RbacListParams): Promise<RoleListResponse> {
-  const payload = await apiClient<RoleListResponse>(API_ENDPOINTS.accessControl.roles, {
+  const payload = await apiClient<unknown>(API_ENDPOINTS.accessControl.roles, {
     method: "GET",
     query: normalizeQueryParams(params),
   });
@@ -145,27 +194,76 @@ export async function getRoles(params?: RbacListParams): Promise<RoleListRespons
 }
 
 export async function getRole(id: string): Promise<RoleDetailResponse> {
-  try {
-    const payload = await apiClient<RoleDetailResponse>(
-      API_ENDPOINTS.accessControl.role(id),
-      { method: "GET" },
-    );
+  const payload = await apiClient<RoleDetailResponse>(
+    API_ENDPOINTS.accessControl.role(id),
+    { method: "GET" },
+  );
+  return normalizeRoleDetailPayload(payload);
+}
 
-    return normalizeRoleDetailPayload(payload);
-  } catch (error) {
-    if (!(error instanceof ApiError) || error.status !== 404) {
-      throw error;
-    }
-  }
+export async function createRole(payload: RoleCreatePayload): Promise<Role> {
+  const response = await apiClient<unknown>(API_ENDPOINTS.accessControl.roles, {
+    method: "POST",
+    body: payload,
+  });
+  return normalizeRole(response);
+}
 
-  const roles = await getRoles();
-  const role = roles.find((item) => item.id === id);
+export async function duplicateRole(
+  roleId: string,
+  payload: DuplicateRolePayload,
+): Promise<Role> {
+  const response = await apiClient<unknown>(
+    API_ENDPOINTS.accessControl.duplicateRole(roleId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+  return normalizeRole(response);
+}
 
-  if (!role) {
-    throw new ApiError("The requested role could not be found.", 404);
-  }
+export async function updateRole(
+  id: string,
+  payload: RoleUpdatePayload,
+): Promise<Role> {
+  const response = await apiClient<unknown>(API_ENDPOINTS.accessControl.role(id), {
+    method: "PATCH",
+    body: payload,
+  });
+  return normalizeRole(response);
+}
 
-  return role;
+export async function deactivateRole(id: string): Promise<void> {
+  await apiClient<void>(API_ENDPOINTS.accessControl.role(id), {
+    method: "DELETE",
+  });
+}
+
+export async function getRolePermissions(
+  roleId: string,
+): Promise<RolePermissionAssignmentResponse> {
+  const payload = await apiClient<unknown>(
+    API_ENDPOINTS.accessControl.rolePermissions(roleId),
+    { method: "GET" },
+  );
+
+  return normalizeRolePermissionsPayload(payload);
+}
+
+export async function replaceRolePermissions(
+  roleId: string,
+  payload: ReplaceRolePermissionsPayload,
+): Promise<RolePermissionAssignmentResponse> {
+  const response = await apiClient<unknown>(
+    API_ENDPOINTS.accessControl.rolePermissions(roleId),
+    {
+      method: "PUT",
+      body: payload,
+    },
+  );
+
+  return normalizeRolePermissionsPayload(response);
 }
 
 export async function getPermissions(

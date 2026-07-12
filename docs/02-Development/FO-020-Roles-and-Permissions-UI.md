@@ -32,16 +32,19 @@ User management UI, user-role assignment, invitations, audit logs, business-modu
 - `GET /api/access-control/permissions/`
 - `GET /api/access-control/me/permissions/`
 
-The frontend also probes for these detail endpoints and falls back safely when they are not available:
+FO-050 and FO-051 subsequently added and adopted the dedicated role detail endpoint:
 
 - `GET /api/access-control/roles/:id/`
-- `GET /api/access-control/permissions/:id/`
+
+The permission detail helper retains its list fallback because Permission CRUD and dedicated permission administration remain outside the current feature.
 
 ## Frontend Routes Created
 
 - `/admin`
 - `/admin/roles`
 - `/admin/roles/[id]`
+- `/admin/roles/new` (added by FO-051)
+- `/admin/roles/[id]/edit` (added by FO-051)
 - `/admin/permissions`
 
 The legacy `/roles` route now redirects to `/admin/roles`.
@@ -77,13 +80,15 @@ Added or updated in `frontend/services/api/rbac.ts`:
 - Backend RBAC remains authoritative even when frontend guards hide or show navigation.
 - Elevated staff access in the frontend permission helpers remains a UX convenience only and does not replace backend checks.
 
-## Role-Permission Assignment Limitation
+## FO-051 Roles Management Upgrade
 
-The current backend does not expose role-permission assignment or removal endpoints, and it does not currently provide assigned permissions from a dedicated role detail response. For that reason:
+FO-051 upgrades the original read-only roles experience with backend pagination, search, system/active filters, supported ordering, custom-role creation, custom-role metadata editing, immutable code display, protected system-role states, and non-destructive deactivation. The role detail route now uses the dedicated FO-050 endpoint directly.
 
-- the role detail screen is read-only
-- assignment and removal UI were not implemented
-- the UI documents that backend follow-up is required before richer role-permission management can be added
+Mutation controls require `roles.manage` in the UI and remain subject to the backend's global-scope enforcement. System roles never expose mutation controls. See `FO-051 - Roles Management Frontend.md` for the current contract.
+
+## Role-Permission Assignment Follow-Up
+
+FO-052 completed the dedicated role-permission assignment workflow on top of the FO-020 screens. The role detail experience now shows active assigned permissions, and authorized administrators can replace assignments through the dedicated endpoint contract. The permission catalog remains read-only.
 
 ## Validation Commands
 
@@ -131,12 +136,9 @@ Validate:
 
 ## Known Limitations
 
-- The backend currently exposes list endpoints only for roles and permissions; detail responses are not guaranteed.
 - The permissions catalog route is frontend-protected with `roles.manage` to match the current backend endpoint authorization.
-- Role detail falls back to list data when a dedicated detail endpoint is unavailable, so assigned permissions may not be visible yet.
-- Role-permission assignment and removal UI are intentionally absent until backend endpoints exist.
-- User management remains deferred to the next task.
+- Permission CRUD and role reactivation remain unavailable.
 
 ## Next Task Recommendation
 
-FO-021 - User Management UI should add controlled user administration screens without bypassing the backend RBAC boundary or mixing user-role assignment into unsupported APIs.
+FO-053 - System Role Protection and Duplication Workflow is the next Roles & Permissions milestone.
