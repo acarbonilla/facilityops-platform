@@ -2,7 +2,10 @@ from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.access_control.models import Role
+
 from .models import User
+from .services import create_user, update_user
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -18,6 +21,136 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
         )
         read_only_fields = fields
+
+
+class UserReadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "tenant",
+            "organization",
+            "is_active",
+            "is_staff",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class UserWriteSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        trim_whitespace=False,
+    )
+
+    class Meta:
+        model = User
+        fields = (
+            "email",
+            "first_name",
+            "last_name",
+            "tenant",
+            "organization",
+            "password",
+            "is_active",
+            "is_staff",
+        )
+        extra_kwargs = {
+            "tenant": {"required": False, "allow_null": True},
+            "organization": {"required": False, "allow_null": True},
+        }
+
+    def validate(self, attrs):
+        if self.instance is None and "password" not in attrs:
+            raise serializers.ValidationError(
+                {"password": "This field is required."}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        return create_user(
+            actor=self.context["request"].user,
+            validated_data=validated_data,
+        )
+
+    def update(self, instance, validated_data):
+        return update_user(
+            actor=self.context["request"].user,
+            user=instance,
+            validated_data=validated_data,
+        )
+
+
+class UserDirectorySerializer(serializers.ModelSerializer):
+    display_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "display_name",
+            "tenant",
+            "organization",
+            "is_active",
+        )
+        read_only_fields = fields
+
+    def get_display_name(self, obj):
+        full_name = obj.get_full_name().strip()
+        return full_name or obj.email
+
+
+class UserRoleAssignmentUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+        )
+        read_only_fields = fields
+
+
+class UserRoleAssignmentRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = (
+            "id",
+            "name",
+            "code",
+            "description",
+            "is_system_role",
+        )
+        read_only_fields = fields
+
+
+class UserRoleAssignmentReadSerializer(serializers.Serializer):
+    user = UserRoleAssignmentUserSerializer()
+    assigned_roles = UserRoleAssignmentRoleSerializer(many=True)
+    available_roles = UserRoleAssignmentRoleSerializer(many=True)
+
+
+class UserRoleAssignmentWriteSerializer(serializers.Serializer):
+    role_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=True,
+    )
+
+    def validate_role_ids(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError(
+                "Duplicate role IDs are not allowed."
+            )
+        return value
 
 
 class LoginSerializer(serializers.Serializer):

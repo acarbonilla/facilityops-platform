@@ -1,6 +1,6 @@
 import type { MasterDataListParams, MasterDataResourceKey } from "@/types/master-data";
 import type { PermissionListParams, RbacListParams } from "@/types/rbac";
-import type { UserListParams } from "@/types/users";
+import type { UserDirectoryParams, UserListParams } from "@/types/users";
 import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
@@ -62,8 +62,13 @@ function normalizeUserParams(params?: UserListParams): UserListParams | Record<s
 
 export const usersQueryKeys = {
   all: ["users"] as const,
-  list: (params?: UserListParams) => ["users", normalizeUserParams(params)] as const,
-  detail: (id: string) => ["users", id] as const,
+  lists: () => ["users", "list"] as const,
+  list: (params?: UserListParams) =>
+    ["users", "list", normalizeUserParams(params)] as const,
+  detail: (id: string) => ["users", "detail", id] as const,
+  directory: (params?: UserDirectoryParams) =>
+    ["users", "directory", stripNilParams(params)] as const,
+  formOptions: () => ["users", "form-options"] as const,
   roles: (id: string) => ["users", id, "roles"] as const,
 };
 

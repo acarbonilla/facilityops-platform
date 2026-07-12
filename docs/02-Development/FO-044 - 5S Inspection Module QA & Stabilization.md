@@ -72,8 +72,7 @@ This was previously the only low-priority limitation noted in the final review c
 
 ## Known Limitations
 
-- Inspector and supervisor assignment still uses raw UUID input in workflow dialogs because the frontend has no supported user-directory list API.
-- Corrective-action `assigned_to` also remains a raw UUID field until a user-directory picker is available.
+- FO-048B replaces Inspection inspector, supervisor, and corrective-action owner UUID entry with the shared assignment-safe user directory picker.
 - No external AI provider is connected; `model_name` defaults to `manual` and stored AI output is advisory only.
 - Attachment handling stores metadata only; binary upload transport is not implemented.
 - Celery SLA check task exists but periodic Beat scheduling remains deployment configuration.
@@ -83,4 +82,4 @@ No critical, high, or medium inspection defects remain after this QA cycle.
 
 ## Result
 
-FO-044 completes the 5S Inspection module QA and stabilization pass. All three identified inspection defects were resolved, the full backend test suite passes at 168 tests, all ten frontend checklist mapping tests pass, and the production build is clean. The `agent/inspection-module` branch is ready to merge into `main`.
+FO-044 completed the original 5S Inspection stabilization pass at its historical 168-backend/10-frontend-test baseline. Subsequent FO-048/FO-049 integration replaces raw assignment UUID entry and validates the current cumulative branch at 204 backend and 43 frontend helper tests; final merge readiness is tracked on draft PR #32.

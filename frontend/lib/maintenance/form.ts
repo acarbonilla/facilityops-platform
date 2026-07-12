@@ -18,7 +18,6 @@ export function createEmptyMaintenanceTask(
   return {
     title: "",
     description: "",
-    assigned_technician: "",
     estimated_hours: "",
     sequence: String(sequence),
     required: true,
@@ -37,7 +36,6 @@ export function createEmptyMaintenanceMaterial(): MaintenanceMaterialFormValues 
 
 export function createEmptyMaintenanceLabor(): MaintenanceLaborFormValues {
   return {
-    technician: "",
     estimated_hours: "",
     rate: "",
     notes: "",
@@ -82,7 +80,6 @@ function taskHasContent(task: MaintenanceTaskFormValues) {
   return Boolean(
     task.title.trim() ||
       task.description.trim() ||
-      task.assigned_technician.trim() ||
       task.estimated_hours.trim() ||
       task.sequence.trim(),
   );
@@ -100,8 +97,7 @@ function materialHasContent(material: MaintenanceMaterialFormValues) {
 
 function laborHasContent(entry: MaintenanceLaborFormValues) {
   return Boolean(
-    entry.technician.trim() ||
-      entry.estimated_hours.trim() ||
+    entry.estimated_hours.trim() ||
       entry.rate.trim() ||
       entry.notes.trim(),
   );
@@ -117,14 +113,11 @@ export function sanitizeMaintenanceFormValues(
     notes: values.notes.trim(),
     location_description: values.location_description.trim(),
     requested_by: values.requested_by.trim(),
-    assigned_technician: values.assigned_technician.trim(),
-    supervisor: values.supervisor.trim(),
     assignment_team: values.assignment_team.trim(),
     tasks: values.tasks.filter(taskHasContent).map((task) => ({
       ...task,
       title: task.title.trim(),
       description: task.description.trim(),
-      assigned_technician: task.assigned_technician.trim(),
       estimated_hours: task.estimated_hours.trim(),
       sequence: task.sequence.trim(),
     })),
@@ -138,7 +131,6 @@ export function sanitizeMaintenanceFormValues(
     })),
     labor: values.labor.filter(laborHasContent).map((entry) => ({
       ...entry,
-      technician: entry.technician.trim(),
       estimated_hours: entry.estimated_hours.trim(),
       rate: entry.rate.trim(),
       notes: entry.notes.trim(),
@@ -209,8 +201,6 @@ export function buildMaintenanceFormDefaults(
     estimated_start_at: "",
     estimated_completion_at: "",
     estimated_hours: "",
-    assigned_technician: "",
-    supervisor: "",
     assignment_team: "",
     tasks: [createEmptyMaintenanceTask(1)],
     materials: [createEmptyMaintenanceMaterial()],
@@ -242,15 +232,12 @@ export function mapMaintenanceDetailToFormValues(
     estimated_start_at: formatDateTimeLocalValue(detail.scheduled_start_at),
     estimated_completion_at: formatDateTimeLocalValue(detail.scheduled_end_at),
     estimated_hours: "",
-    assigned_technician: detail.assignee_email ?? "",
-    supervisor: detail.supervisor_approval?.approved_by_email ?? "",
     assignment_team: detail.department_name ?? "",
     tasks:
       detail.tasks.length > 0
-        ? detail.tasks.map((task) => ({
+          ? detail.tasks.map((task) => ({
             title: task.title,
             description: task.description,
-            assigned_technician: task.assigned_to_email ?? "",
             estimated_hours: "",
             sequence: String(task.sequence),
             required: true,
@@ -269,7 +256,6 @@ export function mapMaintenanceDetailToFormValues(
     labor:
       detail.labor_entries.length > 0
         ? detail.labor_entries.map((entry) => ({
-            technician: entry.performed_by_email ?? "",
             estimated_hours: entry.hours,
             rate: "",
             notes: entry.description,

@@ -16,6 +16,12 @@ export const API_ENDPOINTS = {
   dashboard: {
     foundationSummary: "/dashboard/foundation-summary/",
   },
+  users: {
+    list: "/users/",
+    detail: (id: string) => `/users/${id}/`,
+    roles: (id: string) => `/users/${id}/roles/`,
+    directory: "/users/directory/",
+  },
   masterData: {
     tenants: "/master-data/tenants/",
     tenant: (id: string) => `/master-data/tenants/${id}/`,

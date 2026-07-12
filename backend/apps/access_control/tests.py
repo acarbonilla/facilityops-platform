@@ -209,3 +209,17 @@ class SeedRbacCommandTests(APITestCase):
             RolePermission.objects.filter(role__code="system_admin").count(),
             len(ROLE_PERMISSION_CODES["system_admin"]),
         )
+
+    def test_assignment_and_administration_roles_receive_user_directory(self):
+        call_command("seed_rbac")
+
+        directory_roles = set(
+            RolePermission.objects.filter(
+                permission__code="users.directory",
+                is_active=True,
+            ).values_list("role__code", flat=True)
+        )
+
+        self.assertEqual(directory_roles, {"system_admin", "facility_manager"})
+        self.assertIn("users.view", ROLE_PERMISSION_CODES["system_admin"])
+        self.assertNotIn("users.view", ROLE_PERMISSION_CODES["facility_manager"])

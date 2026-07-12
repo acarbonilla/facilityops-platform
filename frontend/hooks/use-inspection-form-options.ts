@@ -40,9 +40,8 @@ export function useInspectionFormOptions() {
         buildings: buildingsResponse.results,
         floors: floorsResponse.results,
         areas: areasResponse.results,
-        supports_user_directory: false,
-        user_directory_note:
-          "Inspector and supervisor selection stays read-only because the current frontend does not have a supported user-directory list API.",
+        supports_user_directory: true,
+        user_directory_note: null,
       };
     },
   });

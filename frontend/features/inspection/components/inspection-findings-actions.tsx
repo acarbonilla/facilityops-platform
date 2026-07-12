@@ -2,10 +2,11 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
 import { ErrorState } from "@/components/common/error-state";
 import { SelectField } from "@/components/common/select-field";
+import { UserDirectoryPicker } from "@/components/common/user-directory-picker";
 import { useCreateInspectionCorrectiveAction } from "@/hooks/use-create-inspection-corrective-action";
 import { useCreateInspectionFinding } from "@/hooks/use-create-inspection-finding";
 import { useDeleteInspectionCorrectiveAction } from "@/hooks/use-delete-inspection-corrective-action";
@@ -23,6 +24,7 @@ import {
   mapFindingFormValuesToUpdatePayload,
   mapFindingToFormValues,
 } from "@/lib/inspection/findings";
+import { createUserDirectoryEmailFallback } from "@/lib/users/directory";
 import {
   inspectionCorrectiveActionFormSchema,
   inspectionFindingFormSchema,
@@ -332,12 +334,14 @@ function CorrectiveActionFormDialog({
   isBusy,
   onClose,
   onSubmit,
+  permissionEnabled,
 }: {
   action?: InspectionCorrectiveAction | null;
   inspection: InspectionDetail;
   isBusy: boolean;
   onClose: () => void;
   onSubmit: (values: InspectionCorrectiveActionFormValues) => void | Promise<void>;
+  permissionEnabled: boolean;
 }) {
   const findingOptions = useMemo(
     () =>
@@ -363,10 +367,19 @@ function CorrectiveActionFormDialog({
   }, [action, form, inspection.id]);
 
   const {
+    control,
     formState: { errors },
     handleSubmit,
     register,
   } = form;
+  const assignedUserFallback = useMemo(
+    () =>
+      createUserDirectoryEmailFallback(
+        action?.assigned_to,
+        action?.assigned_to_email,
+      ),
+    [action?.assigned_to, action?.assigned_to_email],
+  );
 
   return (
     <DialogShell
@@ -387,12 +400,23 @@ function CorrectiveActionFormDialog({
           placeholder="No linked finding"
           {...register("finding")}
         />
-        <TextInputField
-          description="Raw user UUID input until a supported user picker exists."
-          error={getFieldErrorMessage(errors.assigned_to?.message)}
-          id="corrective-action-assigned-to"
-          label="Assigned to"
-          inputProps={register("assigned_to")}
+        <Controller
+          control={control}
+          name="assigned_to"
+          render={({ field }) => (
+            <UserDirectoryPicker
+              description="Optional owner responsible for this corrective action."
+              disabled={isBusy}
+              error={getFieldErrorMessage(errors.assigned_to?.message)}
+              label="Assigned to"
+              onChange={(value) => field.onChange(value ?? "")}
+              organization={inspection.organization}
+              permissionEnabled={permissionEnabled}
+              selectedUser={assignedUserFallback}
+              tenant={inspection.tenant}
+              value={field.value || null}
+            />
+          )}
         />
         <TextInputField
           error={getFieldErrorMessage(errors.due_date?.message)}
@@ -481,6 +505,7 @@ export function InspectionFindingsActions({
   );
 
   const canManage = hasPermission("inspection.manage");
+  const canReadDirectory = hasPermission("users.directory");
   const canCreateEditFindings =
     !permissionsLoading &&
     (canManage || hasPermission("inspection.update"));
@@ -628,7 +653,7 @@ export function InspectionFindingsActions({
 
       {canCreateEditCorrectiveActions || canDeleteCorrectiveActions ? (
         <ManagementSectionCard
-          description="Create, edit, and delete corrective actions using the existing corrective-action APIs. Assigned user entry remains a raw UUID field because there is still no supported user-directory picker."
+          description="Create, edit, and delete corrective actions using the existing APIs and assignment-safe user directory."
           title="Corrective Actions Management"
         >
           {canCreateEditCorrectiveActions ? (
@@ -771,6 +796,7 @@ export function InspectionFindingsActions({
             setSuccessMessage("Corrective action created successfully.");
             setActiveDialog(null);
           }}
+          permissionEnabled={!permissionsLoading && canReadDirectory}
         />
       ) : null}
 
@@ -787,6 +813,7 @@ export function InspectionFindingsActions({
             setSuccessMessage("Corrective action updated successfully.");
             setActiveDialog(null);
           }}
+          permissionEnabled={!permissionsLoading && canReadDirectory}
         />
       ) : null}
 

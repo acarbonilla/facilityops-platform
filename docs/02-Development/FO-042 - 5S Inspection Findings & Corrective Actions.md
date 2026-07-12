@@ -115,7 +115,7 @@ Corrective actions:
 
 - No binary upload UI was added
 - `photo_path` remains metadata text only
-- `assigned_to` remains raw UUID input because the frontend still has no supported user-directory picker
+- Corrective-action `assigned_to` uses the shared assignment-safe user directory picker and preserves optional clearing through `null`
 - Finding item selection reuses inspection items already present on the detail payload
 - Corrective-action finding selection reuses findings already present on the detail payload
 

@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useMemo } from "react";
 import {
   useFieldArray,
+  Controller,
   useForm,
   useWatch,
   type Control,
@@ -14,6 +15,8 @@ import { ErrorState } from "@/components/common/error-state";
 import { FormActions } from "@/components/common/form-actions";
 import { LoadingState } from "@/components/common/loading-state";
 import { SelectField } from "@/components/common/select-field";
+import { UserDirectoryPicker } from "@/components/common/user-directory-picker";
+import { usePermissions } from "@/hooks/use-permissions";
 import { useUnsavedChangesPrompt } from "@/hooks/use-unsaved-changes-prompt";
 import {
   createEmptyInspectionItem,
@@ -21,6 +24,7 @@ import {
   sanitizeInspectionFormValues,
 } from "@/lib/inspection/form";
 import { inspectionFormSchema } from "@/lib/validations/inspection";
+import { createUserDirectoryEmailFallback } from "@/lib/users/directory";
 import {
   buildRecordOptions,
   filterBuildingsByOrganization,
@@ -330,43 +334,82 @@ function InspectionLocationSection({
 
 function InspectionAssignmentSection({
   capabilityNote,
+  control,
+  errors,
   inspectorLabel,
-  register,
+  isSubmitting,
+  organization,
+  permissionEnabled,
   scheduledDateError,
   scheduledDateRegister,
   supervisorLabel,
+  tenant,
 }: {
   capabilityNote?: string | null;
+  control: Control<InspectionFormValues>;
+  errors: FieldErrors<InspectionFormValues>;
   inspectorLabel?: string | null;
-  register: ReturnType<typeof useForm<InspectionFormValues>>["register"];
+  isSubmitting: boolean;
+  organization: string;
+  permissionEnabled: boolean;
   scheduledDateError?: string;
   scheduledDateRegister: ReturnType<typeof useForm<InspectionFormValues>>["register"];
   supervisorLabel?: string | null;
+  tenant: string;
 }) {
+  const inspectorValue = useWatch({ control, name: "inspector" });
+  const supervisorValue = useWatch({ control, name: "supervisor" });
+  const inspectorFallback = useMemo(
+    () => createUserDirectoryEmailFallback(inspectorValue, inspectorLabel),
+    [inspectorLabel, inspectorValue],
+  );
+  const supervisorFallback = useMemo(
+    () => createUserDirectoryEmailFallback(supervisorValue, supervisorLabel),
+    [supervisorLabel, supervisorValue],
+  );
+
   return (
     <InspectionFormSection
-      description="Planning ownership and schedule while user-directory selection remains unavailable."
+      description="Select active users from the assignment-safe directory and set the optional schedule."
       title="Assignment and Planning"
     >
       {capabilityNote ? <SectionNotice>{capabilityNote}</SectionNotice> : null}
-      <input type="hidden" {...register("inspector")} />
-      <input type="hidden" {...register("supervisor")} />
       <TextFieldGrid>
-        <TextInputField
-          description="The current frontend cannot browse user records yet."
-          disabled
-          id="inspection-inspector"
-          inputProps={{
-            value: inspectorLabel || "Backend default on create / not assigned",
-          }}
-          label="Inspector"
+        <Controller
+          control={control}
+          name="inspector"
+          render={({ field }) => (
+            <UserDirectoryPicker
+              description="Optional inspector responsible for performing the inspection."
+              disabled={isSubmitting}
+              error={getFieldErrorMessage(errors.inspector?.message)}
+              label="Inspector"
+              onChange={(value) => field.onChange(value ?? "")}
+              organization={organization || null}
+              permissionEnabled={permissionEnabled}
+              selectedUser={inspectorFallback}
+              tenant={tenant || null}
+              value={field.value || null}
+            />
+          )}
         />
-        <TextInputField
-          description="Supervisor assignment remains read-only until a supported user API exists."
-          disabled
-          id="inspection-supervisor"
-          inputProps={{ value: supervisorLabel || "Not assigned" }}
-          label="Supervisor"
+        <Controller
+          control={control}
+          name="supervisor"
+          render={({ field }) => (
+            <UserDirectoryPicker
+              description="Optional supervisor responsible for oversight."
+              disabled={isSubmitting}
+              error={getFieldErrorMessage(errors.supervisor?.message)}
+              label="Supervisor"
+              onChange={(value) => field.onChange(value ?? "")}
+              organization={organization || null}
+              permissionEnabled={permissionEnabled}
+              selectedUser={supervisorFallback}
+              tenant={tenant || null}
+              value={field.value || null}
+            />
+          )}
         />
         <TextInputField
           description="Optional schedule target for the inspection."
@@ -559,6 +602,7 @@ export function InspectionForm({
   submitLabel,
   supervisorLabel,
 }: InspectionFormProps) {
+  const { hasPermission, permissionsLoading } = usePermissions();
   const {
     control,
     formState: { errors, isDirty },
@@ -637,11 +681,18 @@ export function InspectionForm({
       />
       <InspectionAssignmentSection
         capabilityNote={capabilityNotes.userDirectory}
+        control={control}
+        errors={errors}
         inspectorLabel={inspectorLabel}
-        register={register}
+        isSubmitting={isSubmitting}
+        organization={selectedOrganization}
+        permissionEnabled={
+          !permissionsLoading && hasPermission("users.directory")
+        }
         scheduledDateError={getFieldErrorMessage(errors.scheduled_date?.message)}
         scheduledDateRegister={register}
         supervisorLabel={supervisorLabel}
+        tenant={selectedTenant}
       />
       <InspectionChecklistItemsSection
         control={control}
