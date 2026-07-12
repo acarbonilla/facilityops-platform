@@ -178,6 +178,7 @@ Validation gates executed:
 
 - Permission CRUD endpoints
 - Assignment via role create/update payloads
-- Role duplication and reactivation
+- Role reactivation
+- Permission selection during role duplication; FO-053 copies the source role's eligible active assignments atomically instead
 - Tenant-scoped role catalogs
 - UserRole mutation during permission replacement

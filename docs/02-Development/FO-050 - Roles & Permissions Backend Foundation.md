@@ -65,7 +65,7 @@ Validation completed with Django system checks, migration drift detection, focus
 ## Limitations
 
 - Permission records remain read-only; Permission CRUD is pending.
-- Role duplication is pending FO-053.
+- FO-053 extends this service architecture with atomic active-role duplication while preserving the same authorization and protected-field rules.
 - Role reactivation is not provided.
 - Roles remain a global catalog; tenant-scoped roles require a separately approved schema design.
-- FO-053 remains the next feature milestone and will extend system-role protection and duplication behavior.
+- FO-053 verifies the system-role protections and permits active system roles only as read-only duplication templates; every duplicate remains custom.

@@ -1,6 +1,8 @@
 import { hasPermission } from "@/lib/auth/permissions";
 import type { AuthUser } from "@/types/auth";
 import type {
+  DuplicateRoleDefaults,
+  DuplicateRolePayload,
   PermissionCode,
   Role,
   RoleCreatePayload,
@@ -45,6 +47,24 @@ export function mapRoleUpdatePayload(
   };
 }
 
+export function buildDuplicateRoleDefaults(role: Role): DuplicateRoleDefaults {
+  return {
+    name: `${role.name} Copy`,
+    code: normalizeRoleCode(`${role.code}-copy`),
+    description: role.description,
+  };
+}
+
+export function mapDuplicateRolePayload(
+  values: RoleFormValues,
+): DuplicateRolePayload {
+  return {
+    name: values.name.trim(),
+    code: normalizeRoleCode(values.code),
+    description: values.description.trim(),
+  };
+}
+
 export function getRoleActionPermissions(
   permissions: PermissionCode[],
   currentUser: AuthUser | null,
@@ -56,6 +76,7 @@ export function getRoleActionPermissions(
   );
   return {
     canCreate: canManage,
+    canDuplicate: canManage && Boolean(role?.is_active),
     canEdit: canManage && mutableRole,
     canDeactivate: canManage && mutableRole,
     canManagePermissions: canManage && mutableRole,

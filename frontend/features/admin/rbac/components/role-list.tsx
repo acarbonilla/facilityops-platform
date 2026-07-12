@@ -115,6 +115,14 @@ export function RoleListScreen() {
                 Edit role
               </Link>
             ) : null}
+            {actions.canDuplicate ? (
+              <Link
+                className="rounded-md border border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-800 hover:bg-emerald-50"
+                href={`/admin/roles/${role.id}/duplicate`}
+              >
+                Duplicate role
+              </Link>
+            ) : null}
             {actions.canDeactivate ? (
               <button
                 className="rounded-md border border-red-300 px-3 py-2 text-sm font-medium text-red-800 hover:bg-red-50"

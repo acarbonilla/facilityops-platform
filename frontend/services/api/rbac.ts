@@ -3,6 +3,7 @@ import { apiClient } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 
 import type {
+  DuplicateRolePayload,
   Permission,
   PermissionListParams,
   PermissionListResponse,
@@ -205,6 +206,20 @@ export async function createRole(payload: RoleCreatePayload): Promise<Role> {
     method: "POST",
     body: payload,
   });
+  return normalizeRole(response);
+}
+
+export async function duplicateRole(
+  roleId: string,
+  payload: DuplicateRolePayload,
+): Promise<Role> {
+  const response = await apiClient<unknown>(
+    API_ENDPOINTS.accessControl.duplicateRole(roleId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
   return normalizeRole(response);
 }
 

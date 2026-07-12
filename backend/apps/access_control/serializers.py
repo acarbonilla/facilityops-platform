@@ -4,7 +4,7 @@ from django.utils.text import slugify
 from rest_framework import serializers
 
 from .models import Permission, Role
-from .services import create_role, update_role
+from .services import create_role, duplicate_role, update_role
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -84,6 +84,44 @@ class RoleWriteSerializer(serializers.ModelSerializer):
         return update_role(
             actor=self.context["request"].user,
             role=instance,
+            validated_data=validated_data,
+        )
+
+
+class RoleDuplicateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=150)
+    code = serializers.CharField(max_length=100)
+    description = serializers.CharField(required=False, allow_blank=True)
+    unsupported_fields = (
+        "is_system_role",
+        "is_active",
+        "permission_ids",
+        "user_ids",
+        "source_role_id",
+        "created_at",
+        "updated_at",
+    )
+
+    def validate(self, attrs):
+        errors = {
+            field: ["This field is not accepted when duplicating a role."]
+            for field in self.unsupported_fields
+            if field in self.initial_data
+        }
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
+
+    def validate_name(self, value):
+        return RoleWriteSerializer.validate_name(self, value)
+
+    def validate_code(self, value):
+        return RoleWriteSerializer.validate_code(self, value)
+
+    def create(self, validated_data):
+        return duplicate_role(
+            actor=self.context["request"].user,
+            source_role=self.context["source_role"],
             validated_data=validated_data,
         )
 

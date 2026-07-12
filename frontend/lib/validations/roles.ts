@@ -8,7 +8,7 @@ export function createRoleFormSchema(mode: RoleFormMode) {
   return z.object({
     name: z.string().trim().min(1, "Role name is required."),
     code:
-      mode === "create"
+      mode !== "edit"
         ? z
             .string()
             .trim()

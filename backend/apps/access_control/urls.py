@@ -16,10 +16,16 @@ role_detail = RoleViewSet.as_view(
         "delete": "destroy",
     }
 )
+role_duplicate = RoleViewSet.as_view({"post": "duplicate"})
 
 urlpatterns = [
     path("roles/", role_list, name="rbac-roles"),
     path("roles/<uuid:pk>/", role_detail, name="rbac-role-detail"),
+    path(
+        "roles/<uuid:pk>/duplicate/",
+        role_duplicate,
+        name="rbac-role-duplicate",
+    ),
     path(
         "roles/<uuid:role_id>/permissions/",
         RolePermissionAssignmentView.as_view(),

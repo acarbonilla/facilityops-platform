@@ -12,6 +12,7 @@ from .permissions import HasPermissionCode
 from .serializers import (
     PermissionSerializer,
     ReplaceRolePermissionsSerializer,
+    RoleDuplicateSerializer,
     RoleSerializer,
     RolePermissionAssignmentSerializer,
     RoleWriteSerializer,
@@ -67,6 +68,7 @@ class RoleViewSet(viewsets.ModelViewSet):
         "update": "roles.manage",
         "partial_update": "roles.manage",
         "destroy": "roles.manage",
+        "duplicate": "roles.manage",
     }
 
     def get_permissions(self):
@@ -74,6 +76,8 @@ class RoleViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_serializer_class(self):
+        if self.action == "duplicate":
+            return RoleDuplicateSerializer
         if self.action in ("create", "update", "partial_update"):
             return RoleWriteSerializer
         return RoleSerializer
@@ -106,6 +110,20 @@ class RoleViewSet(viewsets.ModelViewSet):
         self._enforce_global_scope()
         deactivate_role(actor=request.user, role=self.get_object())
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def duplicate(self, request, *args, **kwargs):
+        self._enforce_global_scope()
+        source_role = self.get_object()
+        serializer = self.get_serializer(
+            data=request.data,
+            context={
+                **self.get_serializer_context(),
+                "source_role": source_role,
+            },
+        )
+        serializer.is_valid(raise_exception=True)
+        role = serializer.save()
+        return Response(RoleSerializer(role).data, status=status.HTTP_201_CREATED)
 
 
 class PermissionListView(APIView):

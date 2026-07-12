@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildDuplicateRoleDefaults,
   getRoleActionPermissions,
+  mapDuplicateRolePayload,
   mapRoleCreatePayload,
   mapRoleUpdatePayload,
   normalizeRoleCode,
@@ -23,6 +25,22 @@ const currentUser = {
 const activeCustomRole = {
   is_system_role: false,
   is_active: true,
+};
+
+const activeSystemRole = {
+  is_system_role: true,
+  is_active: true,
+};
+
+const sourceRole = {
+  id: "role-source",
+  name: "Facilities Coordinator",
+  code: "facilities_coordinator",
+  description: "Coordinates facilities.",
+  is_system_role: false,
+  is_active: true,
+  created_at: "2026-07-12T00:00:00Z",
+  updated_at: "2026-07-12T00:00:00Z",
 };
 
 test("create payload trims fields and includes normalized code", () => {
@@ -61,6 +79,7 @@ test("code preview matches backend-style space and underscore behavior", () => {
 test("permission helper hides create without roles.manage", () => {
   const actions = getRoleActionPermissions(["roles.view"], currentUser);
   assert.equal(actions.canCreate, false);
+  assert.equal(actions.canDuplicate, false);
   assert.equal(actions.canManagePermissions, false);
 });
 
@@ -72,6 +91,7 @@ test("permission helper hides edit and deactivate for system roles", () => {
   assert.equal(actions.canEdit, false);
   assert.equal(actions.canDeactivate, false);
   assert.equal(actions.canManagePermissions, false);
+  assert.equal(actions.canDuplicate, true);
 });
 
 test("permission helper hides deactivate for inactive roles", () => {
@@ -81,6 +101,7 @@ test("permission helper hides deactivate for inactive roles", () => {
   });
   assert.equal(actions.canDeactivate, false);
   assert.equal(actions.canManagePermissions, false);
+  assert.equal(actions.canDuplicate, false);
 });
 
 test("permission helper exposes custom-role actions with roles.manage", () => {
@@ -88,11 +109,65 @@ test("permission helper exposes custom-role actions with roles.manage", () => {
     getRoleActionPermissions(["roles.manage"], currentUser, activeCustomRole),
     {
       canCreate: true,
+      canDuplicate: true,
       canEdit: true,
       canDeactivate: true,
       canManagePermissions: true,
     },
   );
+});
+
+test("duplicate defaults append Copy and retain source description", () => {
+  assert.deepEqual(buildDuplicateRoleDefaults(sourceRole), {
+    name: "Facilities Coordinator Copy",
+    code: "facilities_coordinator-copy",
+    description: "Coordinates facilities.",
+  });
+});
+
+test("duplicate code suggestion is normalized from the source code", () => {
+  const defaults = buildDuplicateRoleDefaults({
+    ...sourceRole,
+    code: "Safety Lead",
+  });
+  assert.equal(defaults.code, "safety-lead-copy");
+});
+
+test("duplicate payload contains only normalized role metadata", () => {
+  const payload = mapDuplicateRolePayload({
+    name: "  New Coordinator  ",
+    code: " New Coordinator Copy ",
+    description: "  Replacement description.  ",
+  });
+  assert.deepEqual(payload, {
+    name: "New Coordinator",
+    code: "new-coordinator-copy",
+    description: "Replacement description.",
+  });
+  assert.equal("is_system_role" in payload, false);
+  assert.equal("is_active" in payload, false);
+  assert.equal("permission_ids" in payload, false);
+  assert.equal("user_ids" in payload, false);
+});
+
+test("changing duplicate description changes only duplicate payload", () => {
+  const defaults = buildDuplicateRoleDefaults(sourceRole);
+  const payload = mapDuplicateRolePayload({
+    ...defaults,
+    description: "Duplicate-specific description.",
+  });
+  assert.equal(payload.description, "Duplicate-specific description.");
+  assert.equal(sourceRole.description, "Coordinates facilities.");
+});
+
+test("duplicate action is visible for active system roles with roles.manage", () => {
+  const actions = getRoleActionPermissions(
+    ["roles.manage"],
+    currentUser,
+    activeSystemRole,
+  );
+  assert.equal(actions.canDuplicate, true);
+  assert.equal(actions.canEdit, false);
 });
 
 test("role list query keys vary with pagination, search, filters, and ordering", () => {

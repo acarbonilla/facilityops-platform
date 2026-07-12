@@ -139,6 +139,65 @@ def create_role(*, actor, validated_data):
 
 
 @transaction.atomic
+def duplicate_role(*, actor, source_role, validated_data):
+    _validate_role_actor(actor)
+    if not source_role.is_active:
+        raise ValidationError({"role": ["Inactive roles cannot be duplicated."]})
+
+    data = dict(validated_data)
+    protected_fields = {
+        field: ["This field is not accepted when duplicating a role."]
+        for field in (
+            "is_system_role",
+            "is_active",
+            "permission_ids",
+            "user_ids",
+            "source_role_id",
+            "created_at",
+            "updated_at",
+        )
+        if field in data
+    }
+    if protected_fields:
+        raise ValidationError(protected_fields)
+
+    name = str(data.get("name") or "").strip()
+    if not name:
+        raise ValidationError({"name": ["Role name cannot be blank."]})
+
+    code = _normalize_role_code(data.get("code"))
+    description = data.get("description", source_role.description)
+    role = Role(
+        name=name,
+        code=code,
+        description=description,
+        is_system_role=False,
+        is_active=True,
+    )
+    _save_role(role)
+
+    active_permission_ids = list(
+        RolePermission.objects.filter(
+            role=source_role,
+            is_active=True,
+            permission__is_active=True,
+        ).values_list("permission_id", flat=True)
+    )
+    if active_permission_ids:
+        RolePermission.objects.bulk_create(
+            [
+                RolePermission(
+                    role=role,
+                    permission_id=permission_id,
+                    is_active=True,
+                )
+                for permission_id in active_permission_ids
+            ]
+        )
+    return role
+
+
+@transaction.atomic
 def update_role(*, actor, role, validated_data):
     _validate_role_actor(actor)
     if role.is_system_role:

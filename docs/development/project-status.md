@@ -40,13 +40,14 @@
 
 ## Completed FO Tasks
 
-- FO-001 through FO-052
+- FO-001 through FO-053
 
 ## Completed Roles & Permissions Tasks
 
 - FO-050
 - FO-051
 - FO-052
+- FO-053
 
 ## Completed Governance Task
 
@@ -54,22 +55,22 @@
 
 ## Current Task
 
-- FO-052 is complete. PR #33 remains open as draft on `feature/roles-permissions`.
+- FO-053 is complete. PR #33 remains open as draft on `feature/roles-permissions`.
 
 ## Next Milestone
 
-- FO-053 remains next, with FO-054 pending after FO-053.
+- FO-054 remains the final pending Roles & Permissions milestone.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 60 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level (`npm run test`, 65 tests); no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 
 ## Last Reviewed Commit
 
-- `e01c25539594e699867767584cfcf0103a367bc7` (FO-052 starting point)
+- `2eff316fcd7f676082a350f921070c1367ad98c6` (FO-053 starting point)
 
 ## Last Merge
 

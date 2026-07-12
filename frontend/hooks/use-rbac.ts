@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createRole,
   deactivateRole,
+  duplicateRole,
   getRole,
   getRolePermissions,
   getRoles,
@@ -13,6 +14,7 @@ import {
 } from "@/services/api/rbac";
 import { rbacQueryKeys } from "@/services/api/query-keys";
 import type {
+  DuplicateRolePayload,
   ReplaceRolePermissionsPayload,
   RoleCreatePayload,
   RoleListParams,
@@ -50,6 +52,23 @@ export function useCreateRole() {
       await queryClient.invalidateQueries({
         queryKey: rbacQueryKeys.roleLists(),
       });
+    },
+  });
+}
+
+export function useDuplicateRole(sourceRoleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: DuplicateRolePayload) =>
+      duplicateRole(sourceRoleId, payload),
+    onSuccess: async (role) => {
+      queryClient.setQueryData(rbacQueryKeys.role(role.id), role);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: rbacQueryKeys.roleLists() }),
+        queryClient.invalidateQueries({
+          queryKey: rbacQueryKeys.rolePermissions(role.id),
+        }),
+      ]);
     },
   });
 }

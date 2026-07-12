@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.test import APITestCase
+from unittest.mock import patch
 
 from apps.master_data.models import Tenant
 
@@ -17,6 +18,7 @@ from .management.commands.seed_rbac import (
 from .services import (
     create_role,
     deactivate_role,
+    duplicate_role,
     replace_role_permissions,
     get_user_permission_codes,
     get_user_roles,
@@ -951,6 +953,375 @@ class RolePermissionAssignmentWorkflowTests(APITestCase):
         )
 
         self.assertIn("users.view", get_user_permission_codes(assigned_user))
+
+
+@override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
+class RoleDuplicationTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Duplicate Tenant", code="duplicate")
+        self.roles_view = Permission.objects.create(
+            name="View Roles", code="roles.view", module="roles", action="view"
+        )
+        self.roles_manage = Permission.objects.create(
+            name="Manage Roles",
+            code="roles.manage",
+            module="roles",
+            action="manage",
+        )
+        self.users_view = Permission.objects.create(
+            name="View Users", code="users.view", module="users", action="view"
+        )
+        self.assets_view = Permission.objects.create(
+            name="View Assets", code="assets.view", module="assets", action="view"
+        )
+        self.inactive_permission = Permission.objects.create(
+            name="Inactive Permission",
+            code="assets.inactive",
+            module="assets",
+            action="inactive",
+            is_active=False,
+        )
+        self.viewer_role = self._role_with_permissions(
+            "Role Viewer", "duplicate_viewer", (self.roles_view,)
+        )
+        self.manager_role = self._role_with_permissions(
+            "Tenant Manager",
+            "duplicate_tenant_manager",
+            (self.roles_view, self.roles_manage),
+        )
+        self.system_admin_role = self._role_with_permissions(
+            "System Administrator",
+            "system_admin",
+            (self.roles_view, self.roles_manage),
+            is_system_role=True,
+        )
+        self.viewer = self._user("duplicate-viewer@example.com", self.viewer_role)
+        self.tenant_manager = self._user(
+            "duplicate-tenant@example.com", self.manager_role, tenant=self.tenant
+        )
+        self.system_admin = self._user(
+            "duplicate-system-admin@example.com", self.system_admin_role
+        )
+        self.superuser = User.objects.create_superuser(
+            email="duplicate-superuser@example.com", password="Password123!"
+        )
+        self.source_role = Role.objects.create(
+            name="Facilities Coordinator",
+            code="facilities_coordinator",
+            description="Coordinates facilities.",
+        )
+        self.system_source = Role.objects.create(
+            name="Protected Template",
+            code="protected_template",
+            description="Protected source.",
+            is_system_role=True,
+        )
+        self.inactive_source = Role.objects.create(
+            name="Inactive Source", code="inactive_source", is_active=False
+        )
+        self.active_assignment = RolePermission.objects.create(
+            role=self.source_role, permission=self.users_view, is_active=True
+        )
+        self.inactive_assignment = RolePermission.objects.create(
+            role=self.source_role, permission=self.assets_view, is_active=False
+        )
+        self.inactive_permission_assignment = RolePermission.objects.create(
+            role=self.source_role,
+            permission=self.inactive_permission,
+            is_active=True,
+        )
+        RolePermission.objects.create(
+            role=self.system_source, permission=self.assets_view, is_active=True
+        )
+        self.source_user = User.objects.create_user(
+            email="source-user@example.com", password="Password123!"
+        )
+        UserRole.objects.create(user=self.source_user, role=self.source_role)
+
+    def _role_with_permissions(self, name, code, permissions, is_system_role=False):
+        role = Role.objects.create(name=name, code=code, is_system_role=is_system_role)
+        for permission in permissions:
+            RolePermission.objects.create(role=role, permission=permission)
+        return role
+
+    def _user(self, email, role, tenant=None, is_active=True):
+        user = User.objects.create_user(
+            email=email,
+            password="Password123!",
+            tenant=tenant,
+            is_active=is_active,
+        )
+        UserRole.objects.create(user=user, role=role)
+        return user
+
+    def _url(self, role=None):
+        return reverse("rbac-role-duplicate", args=((role or self.source_role).id,))
+
+    def _payload(self, **overrides):
+        payload = {
+            "name": "Facilities Coordinator Copy",
+            "code": "facilities-coordinator-copy",
+        }
+        payload.update(overrides)
+        return payload
+
+    def _authenticate(self, user):
+        self.client.force_authenticate(user)
+
+    def test_unauthenticated_duplicate_request_returns_401(self):
+        response = self.client.post(self._url(), self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_actor_without_roles_manage_receives_403(self):
+        self._authenticate(self.viewer)
+        response = self.client.post(self._url(), self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_tenant_bound_manager_without_global_scope_receives_403(self):
+        self._authenticate(self.tenant_manager)
+        response = self.client.post(self._url(), self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_superuser_duplicates_active_custom_role_as_new_active_custom_role(self):
+        self._authenticate(self.superuser)
+        response = self.client.post(
+            self._url(),
+            self._payload(name="  Facilities Copy  ", code="Facilities Copy"),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotEqual(response.data["id"], str(self.source_role.id))
+        self.assertEqual(response.data["name"], "Facilities Copy")
+        self.assertEqual(response.data["code"], "facilities-copy")
+        self.assertFalse(response.data["is_system_role"])
+        self.assertTrue(response.data["is_active"])
+
+    def test_active_system_admin_can_duplicate_active_custom_role(self):
+        self._authenticate(self.system_admin)
+        response = self.client.post(self._url(), self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_inactive_actor_cannot_duplicate_role(self):
+        self.system_admin.is_active = False
+        self.system_admin.save(update_fields=("is_active",))
+        self._authenticate(self.system_admin)
+        response = self.client.post(self._url(), self._payload(), format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_inactive_source_role_returns_400(self):
+        self._authenticate(self.superuser)
+        response = self.client.post(
+            self._url(self.inactive_source), self._payload(), format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("role", response.data)
+
+    def test_description_defaults_to_source_and_explicit_description_overrides(self):
+        self._authenticate(self.superuser)
+        default_response = self.client.post(
+            self._url(), self._payload(), format="json"
+        )
+        override_response = self.client.post(
+            self._url(),
+            self._payload(
+                name="Second Copy",
+                code="second-copy",
+                description="Replacement description.",
+            ),
+            format="json",
+        )
+        self.assertEqual(
+            default_response.data["description"], self.source_role.description
+        )
+        self.assertEqual(
+            override_response.data["description"], "Replacement description."
+        )
+
+    def test_duplicate_code_must_be_unique_across_inactive_roles(self):
+        Role.objects.create(
+            name="Archived Code", code="archived_duplicate", is_active=False
+        )
+        self._authenticate(self.superuser)
+        response = self.client.post(
+            self._url(), self._payload(code="archived_duplicate"), format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("code", response.data)
+
+    def test_blank_name_and_malformed_code_return_400(self):
+        self._authenticate(self.superuser)
+        blank_response = self.client.post(
+            self._url(), self._payload(name="   "), format="json"
+        )
+        malformed_response = self.client.post(
+            self._url(), self._payload(code="invalid/code"), format="json"
+        )
+        self.assertEqual(blank_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", blank_response.data)
+        self.assertEqual(malformed_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("code", malformed_response.data)
+
+    def test_protected_and_unsupported_fields_are_explicitly_rejected(self):
+        self._authenticate(self.superuser)
+        values = {
+            "is_system_role": True,
+            "is_active": False,
+            "permission_ids": [str(self.users_view.id)],
+            "user_ids": [str(self.source_user.id)],
+            "source_role_id": str(self.system_source.id),
+            "created_at": "2026-07-12T00:00:00Z",
+            "updated_at": "2026-07-12T00:00:00Z",
+        }
+        for field, value in values.items():
+            with self.subTest(field=field):
+                response = self.client.post(
+                    self._url(), self._payload(**{field: value}), format="json"
+                )
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn(field, response.data)
+
+    def test_only_active_assignments_with_active_permissions_are_copied(self):
+        self._authenticate(self.superuser)
+        response = self.client.post(self._url(), self._payload(), format="json")
+        duplicate = Role.objects.get(id=response.data["id"])
+
+        assignments = list(RolePermission.objects.filter(role=duplicate))
+        self.assertEqual(len(assignments), 1)
+        self.assertEqual(assignments[0].permission_id, self.users_view.id)
+        self.assertTrue(assignments[0].is_active)
+
+    def test_user_role_assignments_are_never_copied(self):
+        self._authenticate(self.superuser)
+        response = self.client.post(self._url(), self._payload(), format="json")
+        self.assertFalse(
+            UserRole.objects.filter(role_id=response.data["id"]).exists()
+        )
+
+    def test_source_role_assignments_users_and_timestamps_remain_unchanged(self):
+        role_snapshot = {
+            "name": self.source_role.name,
+            "code": self.source_role.code,
+            "description": self.source_role.description,
+            "is_system_role": self.source_role.is_system_role,
+            "is_active": self.source_role.is_active,
+            "created_at": self.source_role.created_at,
+            "updated_at": self.source_role.updated_at,
+        }
+        assignment_snapshot = list(
+            RolePermission.objects.filter(role=self.source_role)
+            .order_by("id")
+            .values_list("id", "permission_id", "is_active")
+        )
+        user_snapshot = list(
+            UserRole.objects.filter(role=self.source_role).values_list(
+                "id", "user_id", "is_active"
+            )
+        )
+        self._authenticate(self.superuser)
+        self.client.post(self._url(), self._payload(), format="json")
+
+        self.source_role.refresh_from_db()
+        for field, value in role_snapshot.items():
+            self.assertEqual(getattr(self.source_role, field), value)
+        self.assertEqual(
+            list(
+                RolePermission.objects.filter(role=self.source_role)
+                .order_by("id")
+                .values_list("id", "permission_id", "is_active")
+            ),
+            assignment_snapshot,
+        )
+        self.assertEqual(
+            list(
+                UserRole.objects.filter(role=self.source_role).values_list(
+                    "id", "user_id", "is_active"
+                )
+            ),
+            user_snapshot,
+        )
+
+    def test_system_role_can_be_read_only_template_for_custom_duplicate(self):
+        source_snapshot = (
+            self.system_source.name,
+            self.system_source.code,
+            self.system_source.description,
+            self.system_source.is_active,
+            self.system_source.created_at,
+            self.system_source.updated_at,
+        )
+        self._authenticate(self.superuser)
+        response = self.client.post(
+            self._url(self.system_source),
+            self._payload(name="Template Copy", code="template-copy"),
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data["is_system_role"])
+        self.assertTrue(response.data["is_active"])
+        duplicate = Role.objects.get(id=response.data["id"])
+        self.assertTrue(
+            RolePermission.objects.filter(
+                role=duplicate, permission=self.assets_view, is_active=True
+            ).exists()
+        )
+        self.system_source.refresh_from_db()
+        self.assertEqual(
+            (
+                self.system_source.name,
+                self.system_source.code,
+                self.system_source.description,
+                self.system_source.is_active,
+                self.system_source.created_at,
+                self.system_source.updated_at,
+            ),
+            source_snapshot,
+        )
+
+    def test_assignment_failure_rolls_back_new_role_and_assignments(self):
+        before_role_ids = set(Role.objects.values_list("id", flat=True))
+        with patch(
+            "apps.access_control.services.RolePermission.objects.bulk_create",
+            side_effect=RuntimeError("assignment failure"),
+        ):
+            with self.assertRaises(RuntimeError):
+                duplicate_role(
+                    actor=self.superuser,
+                    source_role=self.source_role,
+                    validated_data=self._payload(code="rollback-copy"),
+                )
+
+        self.assertEqual(
+            set(Role.objects.values_list("id", flat=True)), before_role_ids
+        )
+        self.assertFalse(
+            RolePermission.objects.filter(role__code="rollback-copy").exists()
+        )
+
+    def test_direct_service_call_rejects_tenant_bound_non_global_actor(self):
+        with self.assertRaises(PermissionDenied):
+            duplicate_role(
+                actor=self.tenant_manager,
+                source_role=self.source_role,
+                validated_data=self._payload(),
+            )
+
+    def test_normal_role_create_still_rejects_protected_fields(self):
+        self._authenticate(self.superuser)
+        response = self.client.post(
+            reverse("rbac-roles"),
+            {
+                "name": "Injected System Role",
+                "code": "injected-system-role",
+                "is_system_role": True,
+                "is_active": False,
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("is_system_role", response.data)
+        self.assertIn("is_active", response.data)
 
 
 class SeedRbacCommandTests(APITestCase):

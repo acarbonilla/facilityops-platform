@@ -67,9 +67,9 @@ Validation includes frontend tests, ESLint, TypeScript, the production Next.js b
 ## Limitations
 
 - Permission creation, editing, and deletion remain unavailable.
-- Role duplication remains pending FO-053.
+- FO-053 adds the guarded role duplication route and permission-aware list/detail actions while reusing these form conventions.
 - Role reactivation is unavailable.
 - The frontend does not duplicate backend global-scope role-resolution logic.
 - Component-level browser automation remains outside the current test infrastructure.
 
-FO-053 - System Role Protection and Duplication Workflow remains the next milestone.
+FO-053 extends this workflow with active-role duplication. FO-054 remains the final QA and stabilization milestone.

@@ -49,6 +49,7 @@ export function RoleForm({
   });
   const code = useWatch({ control, name: "code" });
   const codePreview = normalizeRoleCode(code ?? "");
+  const codeEditable = mode !== "edit";
   useUnsavedChangesPrompt(isDirty && !isSubmitting);
 
   return (
@@ -116,7 +117,7 @@ export function RoleForm({
           }}
           label="Role name"
         />
-        {mode === "create" ? (
+        {codeEditable ? (
           <TextInputField
             description="Letters, numbers, spaces, underscores, and hyphens are accepted."
             error={errors.code?.message}
@@ -140,7 +141,7 @@ export function RoleForm({
             label="Role code (read-only)"
           />
         )}
-        {mode === "create" ? (
+        {codeEditable ? (
           <div
             className="rounded-lg border border-blue-200 bg-blue-50 p-4 md:col-span-2"
             id="role-code-preview"

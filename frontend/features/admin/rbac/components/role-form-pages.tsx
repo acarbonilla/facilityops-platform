@@ -6,9 +6,16 @@ import { useRouter } from "next/navigation";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
-import { useCreateRole, useRole, useUpdateRole } from "@/hooks/use-rbac";
 import {
+  useCreateRole,
+  useDuplicateRole,
+  useRole,
+  useUpdateRole,
+} from "@/hooks/use-rbac";
+import {
+  buildDuplicateRoleDefaults,
   buildRoleFormDefaults,
+  mapDuplicateRolePayload,
   mapRoleCreatePayload,
   mapRoleUpdatePayload,
   writeRoleFormFlash,
@@ -16,6 +23,7 @@ import {
 import { ApiError } from "@/services/api/types";
 
 import { RoleForm } from "./role-form";
+import { RoleStatusBadge, RoleTypeBadge } from "./role-shared";
 
 function Breadcrumbs({ label }: { label: string }) {
   return (
@@ -54,6 +62,108 @@ export function RoleCreateScreen() {
             router.refresh();
           }}
           submitLabel="Create role"
+        />
+      </section>
+    </div>
+  );
+}
+
+export function RoleDuplicateScreen({ id }: { id: string }) {
+  const detailQuery = useRole(id);
+  const mutation = useDuplicateRole(id);
+  const router = useRouter();
+
+  if (detailQuery.isPending) return <LoadingState title="Loading source role" />;
+  if (detailQuery.isError || !detailQuery.data) {
+    const notFound =
+      detailQuery.error instanceof ApiError && detailQuery.error.status === 404;
+    return (
+      <ErrorState
+        message={
+          notFound
+            ? "The requested source role does not exist."
+            : detailQuery.error instanceof Error
+              ? detailQuery.error.message
+              : "The source role could not be loaded."
+        }
+        title={notFound ? "Role not found" : "Unable to load source role"}
+      />
+    );
+  }
+
+  const sourceRole = detailQuery.data;
+  if (!sourceRole.is_active) {
+    return (
+      <ErrorState
+        action={
+          <Link
+            className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium"
+            href={`/admin/roles/${id}`}
+          >
+            Return to role detail
+          </Link>
+        }
+        message="Inactive roles cannot be duplicated. The source role will remain unchanged."
+        title="Inactive role cannot be duplicated"
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        description="Create a new active custom role from this role's active permission assignments."
+        eyebrow="Admin / Roles"
+        title="Duplicate Role"
+      >
+        <Breadcrumbs label="Duplicate" />
+      </PageHeader>
+
+      <section className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+        <h2 className="font-semibold text-blue-950">Source role reference</h2>
+        <dl className="mt-4 grid gap-4 text-sm md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <dt className="font-medium text-blue-800">Name</dt>
+            <dd className="mt-1 text-blue-950">{sourceRole.name}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-blue-800">Code</dt>
+            <dd className="mt-1 font-mono text-blue-950">{sourceRole.code}</dd>
+          </div>
+          <div>
+            <dt className="font-medium text-blue-800">Type</dt>
+            <dd className="mt-1"><RoleTypeBadge role={sourceRole} /></dd>
+          </div>
+          <div>
+            <dt className="font-medium text-blue-800">Status</dt>
+            <dd className="mt-1"><RoleStatusBadge role={sourceRole} /></dd>
+          </div>
+        </dl>
+        <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-blue-900">
+          <li>The new role will always be active and custom.</li>
+          <li>Active permissions will be copied.</li>
+          <li>User assignments will not be copied.</li>
+          <li>The source role and its assignments will not change.</li>
+        </ul>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <RoleForm
+          cancelHref={`/admin/roles/${id}`}
+          initialValues={buildDuplicateRoleDefaults(sourceRole)}
+          isSubmitting={mutation.isPending}
+          mode="duplicate"
+          onSubmit={async (values) => {
+            const duplicate = await mutation.mutateAsync(
+              mapDuplicateRolePayload(values),
+            );
+            writeRoleFormFlash(
+              `Role duplicated from ${sourceRole.name} successfully.`,
+            );
+            router.replace(`/admin/roles/${duplicate.id}`);
+            router.refresh();
+          }}
+          submitLabel="Duplicate role"
         />
       </section>
     </div>

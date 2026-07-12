@@ -88,13 +88,21 @@ export interface RoleUpdatePayload {
   description: string;
 }
 
-export type RoleFormMode = "create" | "edit";
+export interface DuplicateRolePayload {
+  name: string;
+  code: string;
+  description: string;
+}
+
+export type RoleFormMode = "create" | "edit" | "duplicate";
 
 export interface RoleFormValues {
   name: string;
   code: string;
   description: string;
 }
+
+export type DuplicateRoleDefaults = RoleFormValues;
 
 export interface PermissionListParams extends RbacListParams {
   module?: string;
