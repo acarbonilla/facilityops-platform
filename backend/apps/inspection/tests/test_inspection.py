@@ -30,6 +30,7 @@ from apps.inspection.services.inspection_service import (
 from apps.inspection.services.notification_service import (
     ASSIGNMENT_EVENT_CODE,
     STATUS_CHANGED_EVENT_CODE,
+    notify_inspection_assigned,
     notify_inspection_status_changed,
 )
 from apps.inspection.services.inspection_ai_service import build_inspection_ai_context
@@ -1570,6 +1571,24 @@ class InspectionNotificationIntegrationTests(InspectionTestDataMixin, APITestCas
                 recipient=self.supervisor,
             ).exists()
         )
+
+    def test_same_user_assigned_as_inspector_and_supervisor_produces_one_notification(self):
+        notify_inspection_assigned(
+            inspection=self.inspection,
+            inspector=self.inspector,
+            supervisor=self.inspector,
+            previous_inspector_id=None,
+            previous_supervisor_id=None,
+            actor=self.actor,
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        notification = assignment_notifications.get()
+        self.assertEqual(notification.recipient, self.inspector)
+        self.assertEqual(notification.metadata["assignment_role"], "inspector")
 
     def test_assignment_notifies_changed_inspector_only(self):
         replacement_inspector = User.objects.create_user(

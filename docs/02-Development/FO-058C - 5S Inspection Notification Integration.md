@@ -89,6 +89,7 @@ Assignment:
 - initial assignment notifies all eligible new inspector and supervisor principals
 - reassignment through `assign_inspection()` notifies only principals whose `inspector_id` or `supervisor_id` changed
 - unchanged inspector or supervisor receives no additional notification
+- assignment recipients are deduplicated by user UUID; when the same eligible user qualifies for both changed roles in one operation, exactly one `inspection.assigned` notification is created with `assignment_role: "inspector"` because inspector is processed first (FO-058CA)
 
 Status:
 
@@ -130,6 +131,7 @@ If a required notification write fails unexpectedly, the workflow transaction ro
 `apps.inspection.tests.test_inspection.InspectionNotificationIntegrationTests`:
 
 - initial assignment notifies eligible inspector and supervisor
+- same user newly assigned to both inspector and supervisor roles produces one notification with `assignment_role: "inspector"` (FO-058CA)
 - changed-principal assignment notifies inspector-only or supervisor-only updates
 - unchanged inspector or supervisor suppression on reassignment
 - actor exclusion for assignment and status workflows
@@ -145,17 +147,23 @@ If a required notification write fails unexpectedly, the workflow transaction ro
 
 Existing Inspection workflow tests, notification isolation tests, and FM Ticket / Maintenance integration tests remain passing.
 
+## FO-058CA Correction
+
+FO-058CA corrects assignment recipient deduplication in `notify_inspection_assigned()` so the same eligible user supplied as both inspector and supervisor in one operation receives exactly one `inspection.assigned` notification. The retained notification uses `assignment_role: "inspector"` because inspector candidates are processed before supervisor candidates.
+
+This correction is recorded for independent review and does not constitute final approval of FO-058C notification behavior.
+
 ## Validation
 
 Commands run from `backend/`:
 
-- `python manage.py test apps.inspection.tests.test_inspection.InspectionNotificationIntegrationTests --noinput` -> passed (21 tests)
-- `python manage.py test apps.inspection --noinput` -> passed (63 tests)
+- `python manage.py test apps.inspection.tests.test_inspection.InspectionNotificationIntegrationTests --noinput` -> passed (22 tests)
+- `python manage.py test apps.inspection --noinput` -> passed (64 tests)
 - `python manage.py test apps.notifications --noinput` -> passed (41 tests)
 - `python manage.py test apps.fm_tickets --noinput` -> passed (43 tests)
 - `python manage.py test apps.maintenance --noinput` -> passed (69 tests)
 - `python manage.py test apps.accounts apps.access_control --noinput` -> passed (109 tests)
-- `python manage.py test --parallel 4 --noinput` -> passed (353 tests)
+- `python manage.py test --parallel 4 --noinput` -> passed (354 tests)
 - `python manage.py check` -> passed
 - `python manage.py makemigrations --check --dry-run` -> no changes detected
 

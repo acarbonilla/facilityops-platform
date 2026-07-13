@@ -103,27 +103,30 @@ def notify_inspection_assigned(
     previous_supervisor_id=None,
     actor=None,
 ):
-    notifications = []
+    assignment_candidates = []
 
     if inspector is not None and previous_inspector_id != inspector.id:
-        inspector_notification = _notify_assignment_principal(
-            inspection=inspection,
-            recipient=inspector,
-            actor=actor,
-            assignment_role="inspector",
-        )
-        if inspector_notification is not None:
-            notifications.append(inspector_notification)
+        assignment_candidates.append((inspector, "inspector"))
 
     if supervisor is not None and previous_supervisor_id != supervisor.id:
-        supervisor_notification = _notify_assignment_principal(
+        assignment_candidates.append((supervisor, "supervisor"))
+
+    seen_recipient_ids = set()
+    notifications = []
+
+    for recipient, assignment_role in assignment_candidates:
+        if recipient.id in seen_recipient_ids:
+            continue
+        seen_recipient_ids.add(recipient.id)
+
+        assignment_notification = _notify_assignment_principal(
             inspection=inspection,
-            recipient=supervisor,
+            recipient=recipient,
             actor=actor,
-            assignment_role="supervisor",
+            assignment_role=assignment_role,
         )
-        if supervisor_notification is not None:
-            notifications.append(supervisor_notification)
+        if assignment_notification is not None:
+            notifications.append(assignment_notification)
 
     return notifications
 

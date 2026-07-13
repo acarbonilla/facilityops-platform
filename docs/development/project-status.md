@@ -65,6 +65,7 @@
 - FO-058A
 - FO-058B
 - FO-058C
+- FO-058CA (assignment deduplication correction; pending independent review)
 
 ## Completed Governance Task
 
@@ -72,7 +73,7 @@
 
 ## Current Task
 
-- FO-058C 5S Inspection Notification Integration is complete. Cumulative FO-058 is complete. Draft PR #34 remains open and unmerged.
+- FO-058CA corrects 5S Inspection assignment notification recipient deduplication. FO-058C remains subject to independent review. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
