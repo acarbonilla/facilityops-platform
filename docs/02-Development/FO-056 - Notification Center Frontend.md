@@ -89,7 +89,8 @@ Bell behavior:
 - Preview includes loading, error, and empty states
 - Preview includes a `View all notifications` link to `/notifications`
 - Escape and outside-click close the panel
-- `aria-expanded` and `aria-haspopup` are set on the bell trigger
+- `aria-expanded`, `aria-haspopup="dialog"`, and `aria-controls` are set on the bell trigger
+- Preview uses `role="dialog"`, a stable preview ID, and an accessible name
 - Panel width is constrained for narrow screens
 
 ## Notification Center Page Behavior
@@ -121,20 +122,26 @@ Raw `metadata` JSON is not rendered in the list or preview panel.
 
 ## Safe Target URL Handling
 
-`getSafeNotificationTargetUrl` in `frontend/lib/notifications/display.ts` treats `target_url` as untrusted backend-provided data.
+`getSafeNotificationTargetUrl` in `frontend/lib/notifications/display.ts` treats `target_url` as untrusted backend-provided data and fails closed.
 
 Accepted values:
 
-- internal application paths beginning with one slash, such as `/dashboard` or `/maintenance/work-orders/123/`
+- internal application paths beginning with one slash, such as `/dashboard`, `/notifications`, or `/maintenance/work-orders/123/`
+- valid internal paths that include query strings or fragments
 
 Rejected values:
 
 - absolute `http://` and `https://` URLs
-- protocol-relative URLs beginning with `//`
+- protocol-relative URLs beginning with `//`, including percent-encoded forms such as `/%2Fevil.com`
+- backslash-based navigation forms, including encoded forms such as `/%5Cevil.com`
 - `javascript:` and other scheme-based values
+- ASCII control characters such as newline, carriage return, tab, and null bytes
+- malformed percent encoding
 - malformed or empty values
 
-When `target_url` is unsafe or empty, the notification renders without a navigation link.
+When decoding fails or the decoded path resolves to an unsafe navigation form, the helper returns `null`. When `target_url` is unsafe or empty, the notification renders without a navigation link.
+
+FO-056A hardened this helper with encoded-path regression coverage and fail-closed decoding behavior.
 
 ## Read-Only Interaction Contract
 

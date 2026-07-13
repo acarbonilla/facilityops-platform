@@ -117,11 +117,87 @@ export function getSafeNotificationTargetUrl(
     return null;
   }
 
-  if (trimmed.includes("\0")) {
+  if (trimmed.includes("\\")) {
     return null;
   }
 
+  if (containsAsciiControlCharacters(trimmed)) {
+    return null;
+  }
+
+  const decodedPath = getDecodedPathForValidation(trimmed);
+  if (decodedPath === null || isUnsafeDecodedPath(decodedPath)) {
+    return null;
+  }
+
+  const suffixIndex = trimmed.search(/[?#]/);
+  if (suffixIndex !== -1) {
+    const suffix = trimmed.slice(suffixIndex);
+    if (suffix.includes("\\") || containsAsciiControlCharacters(suffix)) {
+      return null;
+    }
+  }
+
   return trimmed;
+}
+
+const ASCII_CONTROL_CHARACTER_PATTERN = /[\u0000-\u001F\u007F]/;
+
+function containsAsciiControlCharacters(value: string): boolean {
+  return ASCII_CONTROL_CHARACTER_PATTERN.test(value);
+}
+
+function isUnsafeDecodedPath(value: string): boolean {
+  if (!value.startsWith("/")) {
+    return true;
+  }
+
+  if (value.startsWith("//")) {
+    return true;
+  }
+
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value)) {
+    return true;
+  }
+
+  if (value.includes("\\")) {
+    return true;
+  }
+
+  if (containsAsciiControlCharacters(value)) {
+    return true;
+  }
+
+  return false;
+}
+
+function decodePathComponent(value: string): string | null {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return null;
+  }
+}
+
+function getDecodedPathForValidation(value: string): string | null {
+  const suffixIndex = value.search(/[?#]/);
+  const pathOnly = suffixIndex === -1 ? value : value.slice(0, suffixIndex);
+
+  let decoded = pathOnly;
+  for (let iteration = 0; iteration < 3; iteration += 1) {
+    const next = decodePathComponent(decoded);
+    if (next === null) {
+      return null;
+    }
+
+    if (next === decoded) {
+      break;
+    }
+
+    decoded = next;
+  }
+
+  return decoded;
 }
 
 export function buildNotificationListParams(

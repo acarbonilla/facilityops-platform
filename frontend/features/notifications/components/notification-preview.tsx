@@ -12,6 +12,8 @@ import { NotificationItem } from "./notification-item";
 
 const PREVIEW_PAGE_SIZE = 5;
 
+export const NOTIFICATION_PREVIEW_ID = "notification-preview-dialog";
+
 export interface NotificationPreviewProps {
   onClose: () => void;
 }
@@ -25,9 +27,10 @@ export function NotificationPreview({ onClose }: NotificationPreviewProps) {
 
   return (
     <div
-      className="absolute right-0 z-30 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white shadow-lg"
-      role="region"
       aria-label="Notification preview"
+      className="absolute right-0 z-30 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white shadow-lg"
+      id={NOTIFICATION_PREVIEW_ID}
+      role="dialog"
     >
       <div className="border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-950">Notifications</h2>

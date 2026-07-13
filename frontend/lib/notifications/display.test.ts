@@ -75,6 +75,45 @@ test("scheme and malformed target rejection blocks unsafe values", () => {
   assert.equal(getSafeNotificationTargetUrl("\0/bad"), null);
 });
 
+test("backslash and encoded backslash navigation attempts are rejected", () => {
+  assert.equal(getSafeNotificationTargetUrl("/\\evil.com"), null);
+  assert.equal(getSafeNotificationTargetUrl("/%5Cevil.com"), null);
+  assert.equal(getSafeNotificationTargetUrl("/%5cevil.com"), null);
+});
+
+test("encoded protocol-relative navigation attempts are rejected", () => {
+  assert.equal(getSafeNotificationTargetUrl("/%2Fevil.com"), null);
+  assert.equal(getSafeNotificationTargetUrl("/%2fevil.com"), null);
+  assert.equal(getSafeNotificationTargetUrl("/%252Fevil.com"), null);
+});
+
+test("control characters and malformed percent encoding are rejected", () => {
+  assert.equal(getSafeNotificationTargetUrl("/dashboard\nattack"), null);
+  assert.equal(getSafeNotificationTargetUrl("/dashboard\rattack"), null);
+  assert.equal(getSafeNotificationTargetUrl("/dashboard\tattack"), null);
+  assert.equal(getSafeNotificationTargetUrl("/dashboard\u0000attack"), null);
+  assert.equal(getSafeNotificationTargetUrl("/bad%"), null);
+  assert.equal(getSafeNotificationTargetUrl("/bad%2"), null);
+  assert.equal(getSafeNotificationTargetUrl("/bad%ZZ"), null);
+});
+
+test("valid internal paths with query strings and fragments are accepted", () => {
+  assert.equal(
+    getSafeNotificationTargetUrl("/notifications?status=unread"),
+    "/notifications?status=unread",
+  );
+  assert.equal(
+    getSafeNotificationTargetUrl("/dashboard#summary"),
+    "/dashboard#summary",
+  );
+  assert.equal(
+    getSafeNotificationTargetUrl(
+      "/maintenance/work-orders/123/?tab=history#notes",
+    ),
+    "/maintenance/work-orders/123/?tab=history#notes",
+  );
+});
+
 test("empty target URL behavior returns null", () => {
   assert.equal(getSafeNotificationTargetUrl(""), null);
   assert.equal(getSafeNotificationTargetUrl("   "), null);

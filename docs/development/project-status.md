@@ -61,15 +61,15 @@
 
 ## Current Task
 
-- FO-056 Notification Center Frontend implementation and validation are complete. Draft PR from `feature/notifications` to `main` remains open and unmerged.
+- FO-056A Notification Frontend Security and PR Reconciliation is complete. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-057 notification state mutation workflow after FO-056 draft review.
+- FO-057 notification state mutation workflow after FO-056A reconciliation.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 77 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level (`npm run test`, 81 tests); no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
@@ -78,7 +78,7 @@
 
 ## Last Reviewed Commit
 
-- `a072b1a8928915ec6eec73c86b6380a3a76a2f36` (FO-055 feature implementation head)
+- `7dc313c8b46a6322d42eac268e0d57df47eb846f` (FO-056A Notification Frontend Security and PR Reconciliation head)
 
 ## Last Merge
 

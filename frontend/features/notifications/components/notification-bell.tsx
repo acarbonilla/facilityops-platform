@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNotificationUnreadCount } from "@/hooks/use-notifications";
 import { formatUnreadBadgeCount } from "@/lib/notifications/display";
 
-import { NotificationPreview } from "./notification-preview";
+import { NotificationPreview, NOTIFICATION_PREVIEW_ID } from "./notification-preview";
 
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,6 +41,7 @@ export function NotificationBell() {
   return (
     <div className="relative" ref={containerRef}>
       <button
+        aria-controls={NOTIFICATION_PREVIEW_ID}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label="Notifications"
