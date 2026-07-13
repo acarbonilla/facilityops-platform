@@ -94,7 +94,7 @@
 
 ## Last Reviewed Commit
 
-- FO-060 final HEAD recorded after push (see FO-060 document and PR #34)
+- `e9e6762` (FO-060 Notifications Module QA and Stabilization)
 
 ## Last Merge
 
