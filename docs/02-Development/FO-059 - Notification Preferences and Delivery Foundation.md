@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete (FO-059A correction applied; pending independent review)
+Complete (FO-059A independently approved)
 
 ## Purpose
 
@@ -125,8 +125,7 @@ Commands run from `backend/` and `frontend/`:
 
 ## Deferred Scope
 
-- FO-060 Notifications QA and stabilization
 - external delivery providers and scheduling
 - preference-based suppression of existing in-app notification creation
 
-Notifications remains `In Progress` because FO-060 remains pending.
+FO-059A independently approved at reviewed baseline `6df8ec3`. FO-060 is the Notifications module QA and stabilization task.

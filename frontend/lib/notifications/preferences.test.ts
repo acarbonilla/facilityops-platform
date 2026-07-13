@@ -15,6 +15,7 @@ import {
   formatNotificationPreferenceError,
   formatNotificationPreferenceSuccess,
   normalizeNotificationSourceModule,
+  resolveDraftInheritedChannelDefault,
   resolveEffectivePreference,
   storedModulePreferenceToState,
 } from "./preferences";
@@ -206,6 +207,53 @@ test("changing a channel default does not change the module control from inherit
   assert.equal(
     initialModuleStates[buildPreferenceKey("inspection", "email")],
     "inherit",
+  );
+});
+
+test("inherited effective label follows draft channel default toggles", () => {
+  const response = {
+    defaults: platformDefaults,
+    preferences: storedPreferences,
+  };
+  const channelDefaults = buildChannelDefaultFormState(response);
+
+  assert.equal(
+    resolveDraftInheritedChannelDefault({
+      channel: "email",
+      channelDefaults,
+    }),
+    true,
+  );
+  assert.equal(
+    formatEffectivePreferenceLabel(
+      resolveDraftInheritedChannelDefault({
+        channel: "email",
+        channelDefaults,
+      }),
+    ),
+    "Uses channel default: Enabled",
+  );
+
+  const draftChannelDefaults = {
+    ...channelDefaults,
+    [buildPreferenceKey("", "email")]: false,
+  };
+
+  assert.equal(
+    resolveDraftInheritedChannelDefault({
+      channel: "email",
+      channelDefaults: draftChannelDefaults,
+    }),
+    false,
+  );
+  assert.equal(
+    formatEffectivePreferenceLabel(
+      resolveDraftInheritedChannelDefault({
+        channel: "email",
+        channelDefaults: draftChannelDefaults,
+      }),
+    ),
+    "Uses channel default: Disabled",
   );
 });
 

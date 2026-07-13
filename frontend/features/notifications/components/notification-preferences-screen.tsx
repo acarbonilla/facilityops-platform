@@ -24,7 +24,7 @@ import {
   NOTIFICATION_CHANNEL_LABELS,
   NOTIFICATION_SOURCE_MODULE_LABELS,
   NOTIFICATION_SOURCE_MODULES,
-  resolveEffectivePreference,
+  resolveDraftInheritedChannelDefault,
 } from "@/lib/notifications/preferences";
 import type { ModulePreferenceState } from "@/lib/notifications/preferences";
 
@@ -147,9 +147,6 @@ export function NotificationPreferencesScreen() {
     );
   }
 
-  const storedPreferences = preferencesQuery.data.preferences;
-  const platformDefaults = preferencesQuery.data.defaults;
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -237,11 +234,9 @@ export function NotificationPreferencesScreen() {
                   const key = buildPreferenceKey(sourceModule, channel);
                   const selectId = `notification-${sourceModule}-${channel}`;
                   const currentState = moduleStates[key] ?? "inherit";
-                  const effectiveValue = resolveEffectivePreference({
+                  const effectiveValue = resolveDraftInheritedChannelDefault({
                     channel,
-                    sourceModule,
-                    defaults: platformDefaults,
-                    storedPreferences,
+                    channelDefaults,
                   });
 
                   return (

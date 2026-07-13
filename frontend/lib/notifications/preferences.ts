@@ -183,6 +183,17 @@ export function formatEffectivePreferenceLabel(isEnabled: boolean): string {
   return `Uses channel default: ${isEnabled ? "Enabled" : "Disabled"}`;
 }
 
+/** Effective result shown beside inherited module controls, including unsaved channel defaults. */
+export function resolveDraftInheritedChannelDefault({
+  channel,
+  channelDefaults,
+}: {
+  channel: NotificationChannel;
+  channelDefaults: Record<string, boolean>;
+}): boolean {
+  return channelDefaults[buildPreferenceKey("", channel)] ?? false;
+}
+
 export function buildPreferenceChanges({
   channelDefaults,
   initialChannelDefaults,

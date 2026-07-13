@@ -322,6 +322,26 @@ class NotificationEndpointTests(APITestCase):
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["id"], str(self.notification_a2.id))
 
+    def test_invalid_filters_fail_safely(self):
+        self._auth(self.recipient_a)
+
+        invalid_severity = self.client.get(self.list_url, {"severity": "nope"})
+        invalid_is_read = self.client.get(self.list_url, {"is_read": "maybe"})
+
+        self.assertEqual(invalid_severity.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(invalid_is_read.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preferences_path_does_not_conflict_with_uuid_detail(self):
+        self._auth(self.recipient_a)
+        preferences_url = reverse("notification-preferences")
+
+        response = self.client.get(preferences_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("defaults", response.data)
+        self.assertIn("preferences", response.data)
+        self.assertNotIn("results", response.data)
+
     def test_newest_first_ordering_is_deterministic(self):
         self._auth(self.recipient_a)
 
