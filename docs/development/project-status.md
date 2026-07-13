@@ -41,6 +41,10 @@
 ## Completed FO Tasks
 
 - FO-001 through FO-057A
+- FO-058 (cumulative)
+- FO-058A
+- FO-058B
+- FO-058C
 
 ## Completed Roles & Permissions Tasks
 
@@ -60,6 +64,7 @@
 - FO-057A
 - FO-058A
 - FO-058B
+- FO-058C
 
 ## Completed Governance Task
 
@@ -67,11 +72,11 @@
 
 ## Current Task
 
-- FO-058B Maintenance Work Order Notification Integration is complete. Draft PR #34 remains open and unmerged.
+- FO-058C 5S Inspection Notification Integration is complete. Cumulative FO-058 is complete. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-058C follow-on notification workflow expansion after FO-058B draft review.
+- FO-059 and FO-060 Notifications follow-on work after FO-058C draft review.
 
 ## Known Issues
 
@@ -80,11 +85,11 @@
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 - Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
-- Canonical full backend suite for current repository validation discovers 332 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
+- Canonical full backend suite for current repository validation discovers 353 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
 
 ## Last Reviewed Commit
 
-- `6a25e59` (FO-058B Maintenance Work Order Notification Integration head)
+- Pending FO-058C commit (FO-058C 5S Inspection Notification Integration head)
 
 ## Last Merge
 
