@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.utils import timezone
 
 from .models import (
@@ -8,6 +9,10 @@ from .models import (
     FmTicketEscalation,
     FmTicketHistory,
     FmTicketStatusHistory,
+)
+from .notification_service import (
+    notify_fm_ticket_assigned,
+    notify_fm_ticket_status_changed,
 )
 
 
@@ -186,6 +191,7 @@ def add_ticket_comment(*, ticket, author, body, is_internal=False):
     return comment
 
 
+@transaction.atomic
 def change_ticket_status(*, ticket, to_status, changed_by=None, note=""):
     from_status = ticket.status
     if from_status == to_status:
@@ -216,10 +222,18 @@ def change_ticket_status(*, ticket, to_status, changed_by=None, note=""):
             "note": note,
         },
     )
+    notify_fm_ticket_status_changed(
+        ticket=ticket,
+        from_status=from_status,
+        to_status=to_status,
+        actor=changed_by,
+    )
     return ticket
 
 
+@transaction.atomic
 def assign_ticket(*, ticket, assigned_to, assigned_by=None, note=""):
+    previous_assignee_id = ticket.assignee_id
     previous_assignee = ticket.assignee
     ticket.assignee = assigned_to
     ticket.updated_by = str(assigned_by.id) if assigned_by else None
@@ -252,6 +266,13 @@ def assign_ticket(*, ticket, assigned_to, assigned_by=None, note=""):
             to_status=ticket.status,
             changed_by=assigned_by,
             note=note or "Status updated during assignment.",
+        )
+
+    if previous_assignee_id != assigned_to.id:
+        notify_fm_ticket_assigned(
+            ticket=ticket,
+            assignee=assigned_to,
+            actor=assigned_by,
         )
 
     return ticket
