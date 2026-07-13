@@ -151,7 +151,7 @@ Existing Inspection workflow tests, notification isolation tests, and FM Ticket 
 
 FO-058CA corrects assignment recipient deduplication in `notify_inspection_assigned()` so the same eligible user supplied as both inspector and supervisor in one operation receives exactly one `inspection.assigned` notification. The retained notification uses `assignment_role: "inspector"` because inspector candidates are processed before supervisor candidates.
 
-This correction is recorded for independent review and does not constitute final approval of FO-058C notification behavior.
+FO-058CA was independently approved. FO-058 and FO-058C are closed.
 
 ## Validation
 

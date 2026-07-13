@@ -65,7 +65,7 @@
 - FO-058A
 - FO-058B
 - FO-058C
-- FO-058CA (assignment deduplication correction; pending independent review)
+- FO-058CA (assignment deduplication correction; independently approved)
 
 ## Completed Governance Task
 
@@ -73,11 +73,11 @@
 
 ## Current Task
 
-- FO-058CA corrects 5S Inspection assignment notification recipient deduplication. FO-058C remains subject to independent review. Draft PR #34 remains open and unmerged.
+- FO-058 and FO-058C are closed. FO-058CA is independently approved. FO-059 Notification Preferences and Delivery Foundation is the current task. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-059 and FO-060 Notifications follow-on work after FO-058C draft review.
+- FO-059 Notification Preferences and Delivery Foundation, then FO-060 Notifications QA and stabilization.
 
 ## Known Issues
 
@@ -90,7 +90,7 @@
 
 ## Last Reviewed Commit
 
-- `4d68765` (FO-058CA assignment deduplication correction head)
+- `6ea5e1b` (FO-058CA record reviewed commit reference head)
 
 ## Last Merge
 
