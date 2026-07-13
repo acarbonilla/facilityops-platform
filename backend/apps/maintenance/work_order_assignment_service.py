@@ -8,6 +8,10 @@ from .models import (
     MaintenanceStatusHistory,
     MaintenanceWorkOrder,
 )
+from .notification_service import (
+    notify_maintenance_assigned,
+    notify_maintenance_reassigned,
+)
 from .services import calculate_sla, record_history, record_status_history
 
 TERMINAL_ASSIGNMENT_STATUSES = {
@@ -173,6 +177,12 @@ def assign_work_order(
         actor=assigned_by,
         metadata={"assignment_id": str(assignment.id), "notes": notes},
     )
+    notify_maintenance_assigned(
+        work_order=work_order,
+        technician=assigned_to,
+        supervisor=supervisor,
+        actor=assigned_by,
+    )
     return work_order
 
 
@@ -247,6 +257,13 @@ def reassign_work_order(
             "reason": reason,
             "notes": notes,
         },
+    )
+    notify_maintenance_reassigned(
+        work_order=work_order,
+        technician=assigned_to,
+        supervisor=supervisor,
+        previous_assignment=previous,
+        actor=assigned_by,
     )
     return work_order
 

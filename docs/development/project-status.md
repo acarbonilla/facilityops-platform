@@ -59,6 +59,7 @@
 - FO-057
 - FO-057A
 - FO-058A
+- FO-058B
 
 ## Completed Governance Task
 
@@ -66,11 +67,11 @@
 
 ## Current Task
 
-- FO-058A FM Ticket Notification Integration is complete. Draft PR #34 remains open and unmerged.
+- FO-058B Maintenance Work Order Notification Integration is complete. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-058 cumulative notification workflow expansion after FO-058A draft review.
+- FO-058C follow-on notification workflow expansion after FO-058B draft review.
 
 ## Known Issues
 
@@ -79,7 +80,7 @@
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 - Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
-- Canonical full backend suite for current repository validation discovers 311 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
+- Canonical full backend suite for current repository validation discovers 332 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
 
 ## Last Reviewed Commit
 
