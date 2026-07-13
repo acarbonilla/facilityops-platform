@@ -86,11 +86,11 @@
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 - Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
-- Canonical full backend suite for current repository validation discovers 353 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
+- Canonical full backend suite for current repository validation discovers 354 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
 
 ## Last Reviewed Commit
 
-- `d72fd84` (FO-058C 5S Inspection Notification Integration head)
+- `4d68765` (FO-058CA assignment deduplication correction head)
 
 ## Last Merge
 
