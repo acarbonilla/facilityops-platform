@@ -65,7 +65,7 @@ class NotificationPreferencesResponseSerializer(serializers.Serializer):
 class NotificationPreferenceUpdateItemSerializer(serializers.Serializer):
     source_module = serializers.CharField(max_length=100, allow_blank=True, default="")
     channel = serializers.CharField(max_length=20)
-    is_enabled = serializers.BooleanField()
+    is_enabled = serializers.BooleanField(allow_null=True)
 
     def validate_source_module(self, value):
         return normalize_source_module(value)

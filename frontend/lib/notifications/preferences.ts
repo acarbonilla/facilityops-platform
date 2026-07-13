@@ -37,6 +37,14 @@ export const NOTIFICATION_CHANNEL_LABELS: Record<NotificationChannel, string> = 
 export const EXTERNAL_DELIVERY_AVAILABILITY_MESSAGE =
   "External delivery channels are preference-ready but are not connected yet.";
 
+export type ModulePreferenceState = "inherit" | "enabled" | "disabled";
+
+export const MODULE_PREFERENCE_STATE_LABELS: Record<ModulePreferenceState, string> = {
+  inherit: "Use channel default",
+  enabled: "Enabled",
+  disabled: "Disabled",
+};
+
 export function normalizeNotificationSourceModule(
   value: string,
 ): NotificationSourceModule | "" {
@@ -74,6 +82,24 @@ export function indexStoredPreferences(
   return indexed;
 }
 
+export function storedModulePreferenceToState(
+  storedPreference: NotificationPreferenceItem | undefined,
+): ModulePreferenceState {
+  if (!storedPreference) {
+    return "inherit";
+  }
+  return storedPreference.is_enabled ? "enabled" : "disabled";
+}
+
+export function modulePreferenceStateToIsEnabled(
+  state: ModulePreferenceState,
+): boolean | null {
+  if (state === "inherit") {
+    return null;
+  }
+  return state === "enabled";
+}
+
 export function resolveEffectivePreference({
   channel,
   sourceModule = "",
@@ -103,6 +129,119 @@ export function resolveEffectivePreference({
   return defaults[channel];
 }
 
+export function resolveChannelDefaultValue({
+  channel,
+  defaults,
+  storedPreferences,
+}: {
+  channel: NotificationChannel;
+  defaults: NotificationPreferencesResponse["defaults"];
+  storedPreferences: NotificationPreferenceItem[];
+}): boolean {
+  const defaultPreference = indexStoredPreferences(storedPreferences).get(
+    buildPreferenceKey("", channel),
+  );
+  if (defaultPreference) {
+    return defaultPreference.is_enabled;
+  }
+  return defaults[channel];
+}
+
+export function buildChannelDefaultFormState(
+  response: NotificationPreferencesResponse,
+): Record<string, boolean> {
+  const state: Record<string, boolean> = {};
+  for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
+    state[buildPreferenceKey("", channel)] = resolveChannelDefaultValue({
+      channel,
+      defaults: response.defaults,
+      storedPreferences: response.preferences,
+    });
+  }
+  return state;
+}
+
+export function buildModuleFormState(
+  response: NotificationPreferencesResponse,
+): Record<string, ModulePreferenceState> {
+  const indexed = indexStoredPreferences(response.preferences);
+  const state: Record<string, ModulePreferenceState> = {};
+
+  for (const sourceModule of NOTIFICATION_SOURCE_MODULES) {
+    for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
+      const key = buildPreferenceKey(sourceModule, channel);
+      state[key] = storedModulePreferenceToState(
+        indexed.get(key),
+      );
+    }
+  }
+
+  return state;
+}
+
+export function formatEffectivePreferenceLabel(isEnabled: boolean): string {
+  return `Uses channel default: ${isEnabled ? "Enabled" : "Disabled"}`;
+}
+
+export function buildPreferenceChanges({
+  channelDefaults,
+  initialChannelDefaults,
+  moduleStates,
+  initialModuleStates,
+}: {
+  channelDefaults: Record<string, boolean>;
+  initialChannelDefaults: Record<string, boolean>;
+  moduleStates: Record<string, ModulePreferenceState>;
+  initialModuleStates: Record<string, ModulePreferenceState>;
+}): NotificationPreferenceUpdateItem[] {
+  const changes: NotificationPreferenceUpdateItem[] = [];
+
+  for (const [key, isEnabled] of Object.entries(channelDefaults)) {
+    if (initialChannelDefaults[key] === isEnabled) {
+      continue;
+    }
+
+    const [, channel] = key.split("::") as ["default", NotificationChannel];
+    changes.push({
+      source_module: "",
+      channel,
+      is_enabled: isEnabled,
+    });
+  }
+
+  for (const [key, state] of Object.entries(moduleStates)) {
+    if (initialModuleStates[key] === state) {
+      continue;
+    }
+
+    const [sourceModule, channel] = key.split("::") as [
+      NotificationSourceModule,
+      NotificationChannel,
+    ];
+    const initialState = initialModuleStates[key];
+
+    if (state === "inherit") {
+      if (initialState === "inherit") {
+        continue;
+      }
+      changes.push({
+        source_module: sourceModule,
+        channel,
+        is_enabled: null,
+      });
+      continue;
+    }
+
+    changes.push({
+      source_module: sourceModule,
+      channel,
+      is_enabled: state === "enabled",
+    });
+  }
+
+  return changes;
+}
+
 export function buildPreferenceUpdatePayload(
   entries: NotificationPreferenceUpdateItem[],
 ): { preferences: NotificationPreferenceUpdateItem[] } {
@@ -112,6 +251,18 @@ export function buildPreferenceUpdatePayload(
       channel: entry.channel,
       is_enabled: entry.is_enabled,
     })),
+  };
+}
+
+export function buildFormStateFromResponse(
+  response: NotificationPreferencesResponse,
+): {
+  channelDefaults: Record<string, boolean>;
+  moduleStates: Record<string, ModulePreferenceState>;
+} {
+  return {
+    channelDefaults: buildChannelDefaultFormState(response),
+    moduleStates: buildModuleFormState(response),
   };
 }
 

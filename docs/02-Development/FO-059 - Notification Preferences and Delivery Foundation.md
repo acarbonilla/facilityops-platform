@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete
+Complete (FO-059A correction applied; pending independent review)
 
 ## Purpose
 
@@ -36,6 +36,26 @@ Missing rows resolve to platform fallbacks without eager seeding.
 
 `set_notification_preferences(recipient, preferences)` performs atomic upsert with duplicate rejection, tenant-safe validation, and source-module normalization.
 
+### Module override semantics (FO-059A)
+
+Module-specific preferences support three explicit states via the update contract:
+
+```json
+{
+  "source_module": "maintenance",
+  "channel": "email",
+  "is_enabled": true | false | null
+}
+```
+
+- `is_enabled=true`: create or update an enabled module override
+- `is_enabled=false`: create or update a disabled module override
+- `is_enabled=null`: delete the stored module override so it inherits the channel default
+
+`is_enabled=null` is rejected for channel-default entries (`source_module=""`). Null is an API deletion instruction; no nullable `is_enabled` is stored in the database.
+
+GET responses continue returning stored preference rows and platform defaults only. Inherited values are not materialized as rows.
+
 ### NotificationDelivery model
 
 Provider-neutral delivery records with:
@@ -61,8 +81,9 @@ Authentication required. Preferences are always derived from `request.user` with
 ## Frontend Scope
 
 - Authenticated route: `/settings/notifications`
-- Channel defaults for email, SMS, and push
-- Module overrides for FM Ticketing, Maintenance, and 5S Inspection
+- Channel defaults for email, SMS, and push (boolean toggles)
+- Module overrides for FM Ticketing, Maintenance, and 5S Inspection (three-state controls: inherit, enabled, disabled)
+- Module controls initialize from stored rows only; inherited settings show the effective resolved value
 - In-app informational section
 - Explicit message: external delivery channels are preference-ready but not connected yet
 - Discoverable links from Notification Center and Profile
@@ -92,12 +113,12 @@ Authentication required. Preferences are always derived from `request.user` with
 
 Commands run from `backend/` and `frontend/`:
 
-- `python manage.py test apps.notifications --noinput` -> passed (66 tests)
-- `python manage.py test apps.fm_tickets apps.maintenance apps.inspection apps.accounts apps.access_control --noinput` -> passed (285 tests)
-- `python manage.py test --parallel 4 --noinput` -> passed (379 tests)
+- `python manage.py test apps.notifications --noinput` -> passed (76 tests)
+- `python manage.py test apps.fm_tickets apps.maintenance apps.inspection --noinput` -> passed (176 tests)
+- `python manage.py test --parallel 4 --noinput` -> passed (389 tests)
 - `python manage.py check` -> passed
 - `python manage.py makemigrations --check --dry-run` -> no changes detected
-- `npm test` -> passed (100 tests)
+- `npm test` -> passed (108 tests)
 - `npm run lint` -> passed
 - `npx tsc --noEmit` -> passed
 - `npm run build` -> passed

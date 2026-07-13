@@ -75,7 +75,7 @@ export interface NotificationPreferencesResponse {
 export interface NotificationPreferenceUpdateItem {
   source_module?: string;
   channel: NotificationChannel;
-  is_enabled: boolean;
+  is_enabled: boolean | null;
 }
 
 export interface NotificationPreferencesUpdatePayload {

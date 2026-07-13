@@ -944,6 +944,213 @@ class NotificationPreferenceServiceTests(APITestCase):
 
         self.assertEqual(NotificationPreference.objects.count(), 0)
 
+    def test_null_deletes_existing_module_override(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                }
+            ],
+        )
+
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+
+    def test_deleted_override_falls_back_to_channel_default(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": False,
+                },
+            ],
+        )
+
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                }
+            ],
+        )
+
+        self.assertTrue(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.EMAIL,
+                source_module="maintenance",
+            )
+        )
+
+    def test_null_for_channel_default_is_rejected(self):
+        with self.assertRaisesMessage(Exception, "cannot be null"):
+            set_notification_preferences(
+                self.tenant_user,
+                [
+                    {
+                        "source_module": "",
+                        "channel": NotificationPreference.Channel.EMAIL,
+                        "is_enabled": None,
+                    }
+                ],
+            )
+
+    def test_deleting_nonexistent_module_override_is_idempotent(self):
+        response = set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                }
+            ],
+        )
+
+        self.assertEqual(response["preferences"], [])
+
+    def test_mixed_create_update_delete_request_is_atomic(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "inspection",
+                    "channel": NotificationPreference.Channel.SMS,
+                    "is_enabled": False,
+                },
+            ],
+        )
+
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                },
+                {
+                    "source_module": "fm_tickets",
+                    "channel": NotificationPreference.Channel.PUSH,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "inspection",
+                    "channel": NotificationPreference.Channel.SMS,
+                    "is_enabled": True,
+                },
+            ],
+        )
+
+        preferences = NotificationPreference.objects.filter(
+            recipient=self.tenant_user,
+        ).order_by("source_module", "channel")
+        self.assertEqual(preferences.count(), 2)
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+        self.assertTrue(
+            NotificationPreference.objects.get(
+                recipient=self.tenant_user,
+                source_module="fm_tickets",
+                channel=NotificationPreference.Channel.PUSH,
+            ).is_enabled
+        )
+        self.assertTrue(
+            NotificationPreference.objects.get(
+                recipient=self.tenant_user,
+                source_module="inspection",
+                channel=NotificationPreference.Channel.SMS,
+            ).is_enabled
+        )
+
+    def test_failure_in_one_entry_rolls_back_all_changes(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        with patch(
+            "apps.notifications.preference_services.NotificationPreference.save"
+        ) as mock_save:
+            mock_save.side_effect = DRFValidationError("Preference write failed.")
+
+            with self.assertRaises(DRFValidationError):
+                set_notification_preferences(
+                    self.tenant_user,
+                    [
+                        {
+                            "source_module": "inspection",
+                            "channel": NotificationPreference.Channel.SMS,
+                            "is_enabled": True,
+                        },
+                        {
+                            "source_module": "maintenance",
+                            "channel": NotificationPreference.Channel.EMAIL,
+                            "is_enabled": None,
+                        },
+                    ],
+                )
+
+        self.assertTrue(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="inspection",
+                channel=NotificationPreference.Channel.SMS,
+            ).exists()
+        )
+
 
 @override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
 class NotificationPreferenceEndpointTests(APITestCase):
@@ -1113,6 +1320,116 @@ class NotificationPreferenceEndpointTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_null_deletes_module_override(self):
+        set_notification_preferences(
+            self.recipient,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "maintenance",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["preferences"]), 0)
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.recipient,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+
+    def test_put_rejects_null_for_channel_default(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_deleting_nonexistent_override_is_idempotent(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "maintenance",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["preferences"]), 0)
+
+    def test_another_recipients_preferences_remain_inaccessible(self):
+        set_notification_preferences(
+            self.other_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "maintenance",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            NotificationPreference.objects.filter(
+                recipient=self.other_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
 
 
 class NotificationDeliveryFoundationTests(APITestCase):

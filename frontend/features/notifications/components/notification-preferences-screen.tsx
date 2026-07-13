@@ -11,78 +11,38 @@ import {
   useUpdateNotificationPreferences,
 } from "@/hooks/use-notifications";
 import {
+  buildFormStateFromResponse,
+  buildPreferenceChanges,
+  buildPreferenceKey,
   buildPreferenceUpdatePayload,
   EXTERNAL_DELIVERY_AVAILABILITY_MESSAGE,
   EXTERNAL_NOTIFICATION_CHANNELS,
+  formatEffectivePreferenceLabel,
   formatNotificationPreferenceError,
   formatNotificationPreferenceSuccess,
+  MODULE_PREFERENCE_STATE_LABELS,
   NOTIFICATION_CHANNEL_LABELS,
   NOTIFICATION_SOURCE_MODULE_LABELS,
   NOTIFICATION_SOURCE_MODULES,
   resolveEffectivePreference,
 } from "@/lib/notifications/preferences";
-import type {
-  NotificationChannel,
-  NotificationPreferenceUpdateItem,
-  NotificationSourceModule,
-} from "@/types/notifications";
+import type { ModulePreferenceState } from "@/lib/notifications/preferences";
 
-type PreferenceFormState = Record<string, boolean>;
-
-function buildFormState(
-  preferences: NonNullable<ReturnType<typeof useNotificationPreferences>["data"]>,
-): PreferenceFormState {
-  const nextState: PreferenceFormState = {};
-
-  for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
-    nextState[`default::${channel}`] = resolveEffectivePreference({
-      channel,
-      defaults: preferences.defaults,
-      storedPreferences: preferences.preferences,
-    });
-  }
-
-  for (const sourceModule of NOTIFICATION_SOURCE_MODULES) {
-    for (const channel of EXTERNAL_NOTIFICATION_CHANNELS) {
-      nextState[`${sourceModule}::${channel}`] = resolveEffectivePreference({
-        channel,
-        sourceModule,
-        defaults: preferences.defaults,
-        storedPreferences: preferences.preferences,
-      });
-    }
-  }
-
-  return nextState;
-}
-
-function buildChangedPreferences(
-  formState: PreferenceFormState,
-  initialState: PreferenceFormState,
-): NotificationPreferenceUpdateItem[] {
-  const changes: NotificationPreferenceUpdateItem[] = [];
-
-  for (const [key, isEnabled] of Object.entries(formState)) {
-    if (initialState[key] === isEnabled) {
-      continue;
-    }
-
-    const [scope, channel] = key.split("::") as [string, NotificationChannel];
-    changes.push({
-      source_module: scope === "default" ? "" : (scope as NotificationSourceModule),
-      channel,
-      is_enabled: isEnabled,
-    });
-  }
-
-  return changes;
-}
+type ChannelDefaultFormState = Record<string, boolean>;
+type ModuleFormState = Record<string, ModulePreferenceState>;
 
 export function NotificationPreferencesScreen() {
   const preferencesQuery = useNotificationPreferences();
   const updateMutation = useUpdateNotificationPreferences();
-  const [formState, setFormState] = useState<PreferenceFormState>({});
-  const [initialState, setInitialState] = useState<PreferenceFormState>({});
+  const [channelDefaults, setChannelDefaults] = useState<ChannelDefaultFormState>(
+    {},
+  );
+  const [moduleStates, setModuleStates] = useState<ModuleFormState>({});
+  const [initialChannelDefaults, setInitialChannelDefaults] =
+    useState<ChannelDefaultFormState>({});
+  const [initialModuleStates, setInitialModuleStates] = useState<ModuleFormState>(
+    {},
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -91,19 +51,30 @@ export function NotificationPreferencesScreen() {
       return;
     }
 
-    const nextState = buildFormState(preferencesQuery.data);
-    setFormState(nextState);
-    setInitialState(nextState);
+    const nextState = buildFormStateFromResponse(preferencesQuery.data);
+    setChannelDefaults(nextState.channelDefaults);
+    setModuleStates(nextState.moduleStates);
+    setInitialChannelDefaults(nextState.channelDefaults);
+    setInitialModuleStates(nextState.moduleStates);
   }, [preferencesQuery.data]);
 
-  const hasChanges = useMemo(
-    () =>
-      Object.keys(formState).some((key) => formState[key] !== initialState[key]),
-    [formState, initialState],
-  );
+  const hasChanges = useMemo(() => {
+    const channelChanged = Object.keys(channelDefaults).some(
+      (key) => channelDefaults[key] !== initialChannelDefaults[key],
+    );
+    const moduleChanged = Object.keys(moduleStates).some(
+      (key) => moduleStates[key] !== initialModuleStates[key],
+    );
+    return channelChanged || moduleChanged;
+  }, [
+    channelDefaults,
+    initialChannelDefaults,
+    moduleStates,
+    initialModuleStates,
+  ]);
 
-  function handleToggle(key: string, checked: boolean) {
-    setFormState((current) => ({
+  function handleChannelDefaultToggle(key: string, checked: boolean) {
+    setChannelDefaults((current) => ({
       ...current,
       [key]: checked,
     }));
@@ -111,8 +82,22 @@ export function NotificationPreferencesScreen() {
     setErrorMessage(null);
   }
 
+  function handleModuleStateChange(key: string, state: ModulePreferenceState) {
+    setModuleStates((current) => ({
+      ...current,
+      [key]: state,
+    }));
+    setSuccessMessage(null);
+    setErrorMessage(null);
+  }
+
   async function handleSave() {
-    const changes = buildChangedPreferences(formState, initialState);
+    const changes = buildPreferenceChanges({
+      channelDefaults,
+      initialChannelDefaults,
+      moduleStates,
+      initialModuleStates,
+    });
     if (changes.length === 0) {
       return;
     }
@@ -124,9 +109,11 @@ export function NotificationPreferencesScreen() {
       const response = await updateMutation.mutateAsync(
         buildPreferenceUpdatePayload(changes),
       );
-      const nextState = buildFormState(response);
-      setFormState(nextState);
-      setInitialState(nextState);
+      const nextState = buildFormStateFromResponse(response);
+      setChannelDefaults(nextState.channelDefaults);
+      setModuleStates(nextState.moduleStates);
+      setInitialChannelDefaults(nextState.channelDefaults);
+      setInitialModuleStates(nextState.moduleStates);
       setSuccessMessage(formatNotificationPreferenceSuccess());
     } catch (error) {
       setErrorMessage(formatNotificationPreferenceError(error));
@@ -159,6 +146,9 @@ export function NotificationPreferencesScreen() {
       />
     );
   }
+
+  const storedPreferences = preferencesQuery.data.preferences;
+  const platformDefaults = preferencesQuery.data.defaults;
 
   return (
     <div className="space-y-6">
@@ -196,7 +186,7 @@ export function NotificationPreferencesScreen() {
         </p>
         <div className="mt-6 space-y-4">
           {EXTERNAL_NOTIFICATION_CHANNELS.map((channel) => {
-            const key = `default::${channel}`;
+            const key = buildPreferenceKey("", channel);
             const inputId = `notification-default-${channel}`;
             return (
               <label
@@ -205,10 +195,12 @@ export function NotificationPreferencesScreen() {
                 htmlFor={inputId}
               >
                 <input
-                  checked={formState[key] ?? false}
+                  checked={channelDefaults[key] ?? false}
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   id={inputId}
-                  onChange={(event) => handleToggle(key, event.target.checked)}
+                  onChange={(event) =>
+                    handleChannelDefaultToggle(key, event.target.checked)
+                  }
                   type="checkbox"
                 />
                 <span>
@@ -228,7 +220,8 @@ export function NotificationPreferencesScreen() {
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Module overrides</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Override channel defaults for specific FacilityOps modules.
+          Override channel defaults for specific FacilityOps modules, or inherit the
+          channel default.
         </p>
         <div className="mt-6 space-y-6">
           {NOTIFICATION_SOURCE_MODULES.map((sourceModule) => (
@@ -239,29 +232,59 @@ export function NotificationPreferencesScreen() {
               <h3 className="text-sm font-semibold text-slate-900">
                 {NOTIFICATION_SOURCE_MODULE_LABELS[sourceModule]}
               </h3>
-              <div className="mt-4 space-y-3">
+              <div className="mt-4 space-y-4">
                 {EXTERNAL_NOTIFICATION_CHANNELS.map((channel) => {
-                  const key = `${sourceModule}::${channel}`;
-                  const inputId = `notification-${sourceModule}-${channel}`;
+                  const key = buildPreferenceKey(sourceModule, channel);
+                  const selectId = `notification-${sourceModule}-${channel}`;
+                  const currentState = moduleStates[key] ?? "inherit";
+                  const effectiveValue = resolveEffectivePreference({
+                    channel,
+                    sourceModule,
+                    defaults: platformDefaults,
+                    storedPreferences,
+                  });
+
                   return (
-                    <label
+                    <div
                       key={key}
-                      className="flex items-center gap-3"
-                      htmlFor={inputId}
+                      className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <input
-                        checked={formState[key] ?? false}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        id={inputId}
-                        onChange={(event) =>
-                          handleToggle(key, event.target.checked)
-                        }
-                        type="checkbox"
-                      />
-                      <span className="text-sm text-slate-800">
+                      <label
+                        className="text-sm font-medium text-slate-800"
+                        htmlFor={selectId}
+                      >
                         {NOTIFICATION_CHANNEL_LABELS[channel]}
-                      </span>
-                    </label>
+                      </label>
+                      <div className="flex flex-col gap-1 sm:items-end">
+                        <select
+                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          id={selectId}
+                          onChange={(event) =>
+                            handleModuleStateChange(
+                              key,
+                              event.target.value as ModulePreferenceState,
+                            )
+                          }
+                          value={currentState}
+                        >
+                          {(
+                            Object.entries(MODULE_PREFERENCE_STATE_LABELS) as [
+                              ModulePreferenceState,
+                              string,
+                            ][]
+                          ).map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                        {currentState === "inherit" ? (
+                          <p className="text-xs text-slate-500">
+                            {formatEffectivePreferenceLabel(effectiveValue)}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -294,7 +317,8 @@ export function NotificationPreferencesScreen() {
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!hasChanges || updateMutation.isPending}
             onClick={() => {
-              setFormState(initialState);
+              setChannelDefaults(initialChannelDefaults);
+              setModuleStates(initialModuleStates);
               setErrorMessage(null);
               setSuccessMessage(null);
             }}

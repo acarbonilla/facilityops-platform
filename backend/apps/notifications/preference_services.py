@@ -87,9 +87,17 @@ def _resolve_preference_tenant(recipient):
 def _validate_preference_entry(*, recipient, source_module, channel, is_enabled):
     normalized_channel = normalize_channel(channel)
     normalized_source_module = normalize_source_module(source_module)
-    if not isinstance(is_enabled, bool):
+    if is_enabled is not None and not isinstance(is_enabled, bool):
         raise ValidationError(
-            {"is_enabled": ["is_enabled must be a boolean value."]}
+            {"is_enabled": ["is_enabled must be true, false, or null."]}
+        )
+    if is_enabled is None and not normalized_source_module:
+        raise ValidationError(
+            {
+                "is_enabled": [
+                    "is_enabled cannot be null for channel default preferences."
+                ]
+            }
         )
     return {
         "tenant": _resolve_preference_tenant(recipient),
@@ -183,6 +191,14 @@ def set_notification_preferences(recipient, preferences):
     _reject_duplicate_preference_entries(normalized_entries)
 
     for entry in normalized_entries:
+        if entry["is_enabled"] is None:
+            NotificationPreference.objects.filter(
+                recipient=recipient,
+                source_module=entry["source_module"],
+                channel=entry["channel"],
+            ).delete()
+            continue
+
         preference, _created = NotificationPreference.objects.get_or_create(
             recipient=recipient,
             source_module=entry["source_module"],
