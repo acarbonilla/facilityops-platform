@@ -6,12 +6,19 @@ import type { NotificationListFilters } from "@/types/notifications";
 
 import {
   buildNotificationListParams,
+  buildBulkStatePayload,
+  enforceMaximumNotificationSelection,
+  formatNotificationMutationSuccess,
   formatNotificationSeverityLabel,
   formatNotificationSourceModule,
   formatNotificationTimestamp,
   formatUnreadBadgeCount,
+  getBulkNotificationActionLabel,
+  getIndividualNotificationActionLabel,
   getSafeNotificationTargetUrl,
   hasActiveNotificationFilters,
+  normalizeSelectedNotificationIds,
+  pruneNotificationSelection,
 } from "./display";
 
 test("unread badge formatting hides zero and caps at 99+", () => {
@@ -179,5 +186,58 @@ test("notification query keys vary with list params", () => {
   assert.notDeepEqual(
     notificationQueryKeys.unreadCount(),
     notificationQueryKeys.detail("notification-id"),
+  );
+});
+
+test("bulk payload creation normalizes duplicate selected IDs", () => {
+  assert.deepEqual(
+    buildBulkStatePayload(["id-1", "id-1", " id-2 "], true),
+    {
+      notification_ids: ["id-1", "id-2"],
+      is_read: true,
+    },
+  );
+});
+
+test("maximum selection enforcement caps bulk payloads at 100 IDs", () => {
+  const ids = Array.from({ length: 120 }, (_, index) => `notification-${index}`);
+  const limited = enforceMaximumNotificationSelection(ids);
+
+  assert.equal(limited.length, 100);
+  assert.equal(limited[0], "notification-0");
+  assert.equal(limited[99], "notification-99");
+});
+
+test("selection cleanup keeps only visible notification IDs", () => {
+  const pruned = pruneNotificationSelection(
+    ["visible-1", "hidden-1", "visible-2"],
+    ["visible-1", "visible-2"],
+  );
+
+  assert.deepEqual(pruned, ["visible-1", "visible-2"]);
+});
+
+test("read and unread action labels map to the expected button text", () => {
+  assert.equal(getIndividualNotificationActionLabel(false), "Mark as read");
+  assert.equal(getIndividualNotificationActionLabel(true), "Mark as unread");
+  assert.equal(getBulkNotificationActionLabel(true), "Mark selected as read");
+  assert.equal(getBulkNotificationActionLabel(false), "Mark selected as unread");
+});
+
+test("mutation response formatting includes updated counts", () => {
+  assert.equal(
+    formatNotificationMutationSuccess("All notifications marked as read.", 3),
+    "All notifications marked as read. 3 notifications updated.",
+  );
+  assert.equal(
+    formatNotificationMutationSuccess("Notification updated."),
+    "Notification updated.",
+  );
+});
+
+test("selected ID normalization removes empty and duplicate values", () => {
+  assert.deepEqual(
+    normalizeSelectedNotificationIds(["a", "a", "", "  ", "b"]),
+    ["a", "b"],
   );
 });

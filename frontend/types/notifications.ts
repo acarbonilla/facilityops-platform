@@ -36,3 +36,17 @@ export interface NotificationListFilters {
 export interface NotificationUnreadCountResponse {
   unread_count: number;
 }
+
+export interface NotificationUpdatedCountResponse {
+  updated_count: number;
+}
+
+export interface NotificationBulkStatePayload {
+  notification_ids: string[];
+  is_read: boolean;
+}
+
+export interface NotificationBulkStateResponse {
+  updated_count: number;
+  is_read: boolean;
+}

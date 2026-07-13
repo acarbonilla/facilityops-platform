@@ -264,3 +264,63 @@ export function formatNotificationError(
 
   return fallback;
 }
+
+export const MAX_NOTIFICATION_BULK_SELECTION = 100;
+
+export function normalizeSelectedNotificationIds(ids: string[]): string[] {
+  const normalized: string[] = [];
+
+  for (const value of ids) {
+    const trimmed = value.trim();
+    if (!trimmed || normalized.includes(trimmed)) {
+      continue;
+    }
+    normalized.push(trimmed);
+  }
+
+  return normalized;
+}
+
+export function buildBulkStatePayload(
+  notificationIds: string[],
+  isRead: boolean,
+): { notification_ids: string[]; is_read: boolean } {
+  return {
+    notification_ids: normalizeSelectedNotificationIds(notificationIds),
+    is_read: isRead,
+  };
+}
+
+export function enforceMaximumNotificationSelection(
+  ids: string[],
+  max = MAX_NOTIFICATION_BULK_SELECTION,
+): string[] {
+  return normalizeSelectedNotificationIds(ids).slice(0, max);
+}
+
+export function pruneNotificationSelection(
+  selectedIds: string[],
+  visibleIds: string[],
+): string[] {
+  const visible = new Set(visibleIds);
+  return selectedIds.filter((id) => visible.has(id));
+}
+
+export function getIndividualNotificationActionLabel(isRead: boolean): string {
+  return isRead ? "Mark as unread" : "Mark as read";
+}
+
+export function getBulkNotificationActionLabel(isRead: boolean): string {
+  return isRead ? "Mark selected as read" : "Mark selected as unread";
+}
+
+export function formatNotificationMutationSuccess(
+  message: string,
+  updatedCount?: number,
+): string {
+  if (updatedCount === undefined) {
+    return message;
+  }
+
+  return `${message} ${updatedCount} notification${updatedCount === 1 ? "" : "s"} updated.`;
+}

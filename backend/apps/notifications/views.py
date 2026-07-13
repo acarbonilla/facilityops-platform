@@ -7,7 +7,19 @@ from rest_framework.response import Response
 from common.pagination import StandardResultsSetPagination
 
 from .models import Notification
-from .serializers import NotificationSerializer, UnreadCountSerializer
+from .serializers import (
+    NotificationBulkStateResponseSerializer,
+    NotificationBulkStateSerializer,
+    NotificationSerializer,
+    UnreadCountSerializer,
+    UpdatedCountSerializer,
+)
+from .services import (
+    bulk_update_notification_state,
+    mark_all_notifications_read,
+    mark_notification_read,
+    mark_notification_unread,
+)
 
 
 class NotificationExactFilterBackend:
@@ -61,3 +73,36 @@ class NotificationViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericVi
         }
         serializer = UnreadCountSerializer(payload)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="mark-read")
+    def mark_read(self, request, pk=None):
+        notification = mark_notification_read(self.get_object())
+        return Response(NotificationSerializer(notification).data)
+
+    @action(detail=True, methods=["post"], url_path="mark-unread")
+    def mark_unread(self, request, pk=None):
+        notification = mark_notification_unread(self.get_object())
+        return Response(NotificationSerializer(notification).data)
+
+    @action(detail=False, methods=["post"], url_path="mark-all-read")
+    def mark_all_read(self, request):
+        updated_count = mark_all_notifications_read(self.get_queryset())
+        serializer = UpdatedCountSerializer({"updated_count": updated_count})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"], url_path="bulk-state")
+    def bulk_state(self, request):
+        serializer = NotificationBulkStateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        updated_count = bulk_update_notification_state(
+            self.get_queryset(),
+            serializer.validated_data["notification_ids"],
+            serializer.validated_data["is_read"],
+        )
+        response = NotificationBulkStateResponseSerializer(
+            {
+                "updated_count": updated_count,
+                "is_read": serializer.validated_data["is_read"],
+            }
+        )
+        return Response(response.data)

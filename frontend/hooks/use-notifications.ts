@@ -1,19 +1,44 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useAuth } from "@/hooks/use-auth";
 import {
+  bulkUpdateNotificationState,
   getNotification,
   getNotifications,
   getNotificationUnreadCount,
+  markAllNotificationsRead,
+  markNotificationRead,
+  markNotificationUnread,
 } from "@/services/api/notifications";
 import { notificationQueryKeys } from "@/services/api/query-keys";
-import type { NotificationListParams } from "@/types/notifications";
+import type {
+  NotificationBulkStatePayload,
+  NotificationListParams,
+} from "@/types/notifications";
 
 function useNotificationsEnabled() {
   const { isAuthenticated, isLoading } = useAuth();
   return !isLoading && isAuthenticated;
+}
+
+async function invalidateNotificationCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  detailId?: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: notificationQueryKeys.lists(),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: notificationQueryKeys.unreadCount(),
+  });
+
+  if (detailId) {
+    await queryClient.invalidateQueries({
+      queryKey: notificationQueryKeys.detail(detailId),
+    });
+  }
 }
 
 export function useNotifications(params?: NotificationListParams) {
@@ -43,5 +68,58 @@ export function useNotificationUnreadCount() {
     queryKey: notificationQueryKeys.unreadCount(),
     queryFn: getNotificationUnreadCount,
     enabled,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => markNotificationRead(id),
+    onSuccess: async (notification) => {
+      queryClient.setQueryData(
+        notificationQueryKeys.detail(notification.id),
+        notification,
+      );
+      await invalidateNotificationCaches(queryClient, notification.id);
+    },
+  });
+}
+
+export function useMarkNotificationUnread() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => markNotificationUnread(id),
+    onSuccess: async (notification) => {
+      queryClient.setQueryData(
+        notificationQueryKeys.detail(notification.id),
+        notification,
+      );
+      await invalidateNotificationCaches(queryClient, notification.id);
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: markAllNotificationsRead,
+    onSuccess: async () => {
+      await invalidateNotificationCaches(queryClient);
+    },
+  });
+}
+
+export function useBulkUpdateNotificationState() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: NotificationBulkStatePayload) =>
+      bulkUpdateNotificationState(payload),
+    onSuccess: async () => {
+      await invalidateNotificationCaches(queryClient);
+    },
   });
 }

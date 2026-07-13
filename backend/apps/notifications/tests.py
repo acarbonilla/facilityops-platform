@@ -4,13 +4,19 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.master_data.models import Tenant
 
 from .models import Notification
-from .services import create_notification
+from .services import (
+    bulk_update_notification_state,
+    create_notification,
+    mark_all_notifications_read,
+    mark_notification_unread,
+)
 
 User = get_user_model()
 
@@ -354,3 +360,368 @@ class NotificationEndpointTests(APITestCase):
         self.assertIn("previous", response.data)
         self.assertIn("results", response.data)
         self.assertEqual(len(response.data["results"]), 20)
+
+
+@override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
+class NotificationMutationTests(APITestCase):
+    def setUp(self):
+        self.tenant_a = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.tenant_b = Tenant.objects.create(name="Tenant B", code="tenant-b")
+
+        self.recipient_a = User.objects.create_user(
+            email="recipient-a@example.com",
+            password="Password123!",
+            tenant=self.tenant_a,
+        )
+        self.recipient_b = User.objects.create_user(
+            email="recipient-b@example.com",
+            password="Password123!",
+            tenant=self.tenant_b,
+        )
+        self.global_user = User.objects.create_user(
+            email="global@example.com",
+            password="Password123!",
+        )
+        self.superuser = User.objects.create_superuser(
+            email="superuser@example.com",
+            password="Password123!",
+        )
+
+        self.notification_a_unread = create_notification(
+            recipient=self.recipient_a,
+            event_code="maintenance.created",
+            title="Unread A",
+            message="Unread notification",
+            severity="info",
+        )
+        self.notification_a_read = create_notification(
+            recipient=self.recipient_a,
+            event_code="maintenance.updated",
+            title="Read A",
+            message="Read notification",
+            severity="warning",
+        )
+        self.notification_a_read.is_read = True
+        self.notification_a_read.read_at = timezone.now()
+        self.notification_a_read.save(
+            update_fields=("is_read", "read_at", "updated_at")
+        )
+
+        self.notification_b = create_notification(
+            recipient=self.recipient_b,
+            event_code="maintenance.completed",
+            title="Recipient B",
+            message="Other recipient notification",
+            severity="success",
+        )
+        self.global_notification = create_notification(
+            recipient=self.global_user,
+            event_code="dashboard.digest",
+            title="Global",
+            message="Global notification",
+            severity="info",
+        )
+
+        self.mark_read_url = lambda notification: reverse(
+            "notification-mark-read",
+            args=(notification.id,),
+        )
+        self.mark_unread_url = lambda notification: reverse(
+            "notification-mark-unread",
+            args=(notification.id,),
+        )
+        self.mark_all_read_url = reverse("notification-mark-all-read")
+        self.bulk_state_url = reverse("notification-bulk-state")
+
+    def _auth(self, user):
+        self.client.force_authenticate(user=user)
+
+    def _recipient_a_queryset(self):
+        return Notification.objects.filter(
+            recipient_id=self.recipient_a.id,
+            tenant_id=self.tenant_a.id,
+        )
+
+    def test_anonymous_mutation_requests_are_rejected(self):
+        responses = (
+            self.client.post(self.mark_read_url(self.notification_a_unread)),
+            self.client.post(self.mark_unread_url(self.notification_a_read)),
+            self.client.post(self.mark_all_read_url),
+            self.client.post(
+                self.bulk_state_url,
+                {"notification_ids": [str(self.notification_a_unread.id)], "is_read": True},
+                format="json",
+            ),
+        )
+
+        for response in responses:
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_recipient_can_mark_their_notification_read(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(self.notification_a_unread))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_read"])
+        self.assertIsNotNone(response.data["read_at"])
+
+    def test_mark_read_sets_timezone_aware_read_at(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(self.notification_a_unread))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.notification_a_unread.refresh_from_db()
+        self.assertTrue(timezone.is_aware(self.notification_a_unread.read_at))
+
+    def test_repeated_mark_read_is_idempotent_and_preserves_read_at(self):
+        self._auth(self.recipient_a)
+
+        first = self.client.post(self.mark_read_url(self.notification_a_unread))
+        second = self.client.post(self.mark_read_url(self.notification_a_unread))
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["read_at"], second.data["read_at"])
+
+    def test_recipient_can_mark_their_notification_unread(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_unread_url(self.notification_a_read))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_read"])
+        self.assertIsNone(response.data["read_at"])
+
+    def test_repeated_mark_unread_is_idempotent(self):
+        self._auth(self.recipient_a)
+        self.client.post(self.mark_unread_url(self.notification_a_read))
+
+        response = self.client.post(self.mark_unread_url(self.notification_a_read))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_read"])
+        self.assertIsNone(response.data["read_at"])
+
+    def test_recipient_cannot_mutate_another_users_notification(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(self.notification_b))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_cross_tenant_mutation_returns_generic_404(self):
+        cross_tenant = Notification.objects.create(
+            tenant=self.tenant_b,
+            recipient=self.recipient_a,
+            event_code="security.alert",
+            title="Inconsistent",
+            message="Mismatched tenant record",
+            severity=Notification.Severity.ERROR,
+        )
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(cross_tenant))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_superuser_and_global_account_cannot_bypass_recipient_isolation(self):
+        self._auth(self.global_user)
+        global_response = self.client.post(
+            self.mark_read_url(self.notification_a_unread)
+        )
+        self.assertEqual(global_response.status_code, status.HTTP_404_NOT_FOUND)
+
+        self._auth(self.superuser)
+        superuser_response = self.client.post(
+            self.mark_read_url(self.notification_a_unread)
+        )
+        self.assertEqual(superuser_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_mark_all_read_updates_only_authenticated_recipient_notifications(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_all_read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"updated_count": 1})
+        self.notification_a_unread.refresh_from_db()
+        self.notification_b.refresh_from_db()
+        self.assertTrue(self.notification_a_unread.is_read)
+        self.assertFalse(self.notification_b.is_read)
+
+    def test_mark_all_read_does_not_affect_another_user_or_tenant(self):
+        self._auth(self.recipient_a)
+        self.client.post(self.mark_all_read_url)
+
+        self.notification_b.refresh_from_db()
+        self.assertFalse(self.notification_b.is_read)
+
+    def test_repeated_mark_all_read_returns_zero_updated_count(self):
+        self._auth(self.recipient_a)
+        self.client.post(self.mark_all_read_url)
+
+        response = self.client.post(self.mark_all_read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"updated_count": 0})
+
+    def test_bulk_read_succeeds_for_owned_notification_ids(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [
+                    str(self.notification_a_unread.id),
+                    str(self.notification_a_read.id),
+                ],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            {"updated_count": 1, "is_read": True},
+        )
+
+    def test_bulk_unread_succeeds_for_owned_notification_ids(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(self.notification_a_read.id)],
+                "is_read": False,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            {"updated_count": 1, "is_read": False},
+        )
+        self.notification_a_read.refresh_from_db()
+        self.assertFalse(self.notification_a_read.is_read)
+        self.assertIsNone(self.notification_a_read.read_at)
+
+    def test_bulk_read_preserves_existing_read_at(self):
+        original_read_at = self.notification_a_read.read_at
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(self.notification_a_read.id)],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["updated_count"], 0)
+        self.notification_a_read.refresh_from_db()
+        self.assertEqual(self.notification_a_read.read_at, original_read_at)
+
+    def test_bulk_request_rejects_empty_id_list(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {"notification_ids": [], "is_read": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_request_rejects_more_than_100_ids(self):
+        self._auth(self.recipient_a)
+        ids = [str(uuid.uuid4()) for _ in range(101)]
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {"notification_ids": ids, "is_read": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_request_validates_uuid_values(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {"notification_ids": ["not-a-uuid"], "is_read": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_mixed_owned_and_unauthorized_ids_produce_no_partial_update(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [
+                    str(self.notification_a_unread.id),
+                    str(self.notification_b.id),
+                ],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.notification_a_unread.refresh_from_db()
+        self.notification_b.refresh_from_db()
+        self.assertFalse(self.notification_a_unread.is_read)
+        self.assertFalse(self.notification_b.is_read)
+
+    def test_unknown_and_unauthorized_ids_use_same_non_enumerating_response(self):
+        self._auth(self.recipient_a)
+
+        unknown_response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(uuid.uuid4())],
+                "is_read": True,
+            },
+            format="json",
+        )
+        unauthorized_response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(self.notification_b.id)],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(unknown_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(unauthorized_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_service_mark_unread_clears_read_at(self):
+        mark_notification_unread(self.notification_a_read)
+        self.notification_a_read.refresh_from_db()
+        self.assertFalse(self.notification_a_read.is_read)
+        self.assertIsNone(self.notification_a_read.read_at)
+
+    def test_service_mark_all_read_only_counts_recipient_scope(self):
+        updated_count = mark_all_notifications_read(self._recipient_a_queryset())
+        self.assertEqual(updated_count, 1)
+
+    def test_service_bulk_update_normalizes_duplicate_ids(self):
+        updated_count = bulk_update_notification_state(
+            self._recipient_a_queryset(),
+            [
+                self.notification_a_unread.id,
+                self.notification_a_unread.id,
+            ],
+            True,
+        )
+        self.assertEqual(updated_count, 1)

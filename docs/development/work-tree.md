@@ -17,7 +17,7 @@
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
 | Dashboard | Complete | Foundation metrics backend and frontend dashboard shell |
-| Notifications | In Progress | FO-055 backend notification foundation and FO-056 authenticated read-only Notification Center frontend are complete; FO-057 through FO-060 remain pending |
+| Notifications | In Progress | FO-055 backend foundation, FO-056 read-only Notification Center frontend, and FO-057 read/unread/bulk state-management workflow are complete; FO-058 through FO-060 remain pending |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
@@ -75,7 +75,7 @@ facilityops-platform/
 - FO-044 completes 5S Inspection module QA and stabilization: four defects corrected (checklist pass/fail preservation, AI-analysis GET mutation, inspection soft-delete centralization, maintenance reassignment test tenant isolation), 168 backend tests pass, 10 frontend checklist mapping tests pass via formally configured `npm run test`, ESLint, TypeScript, and production build clean.
 - FO-045 through FO-049 complete User Management CRUD, tenant/security hardening, role assignment, assignment-safe directory/pickers, and cumulative QA.
 - FO-050 through FO-054 complete Roles and Permissions backend foundation, frontend workflows, permission assignment, duplication and system-role protection, and cumulative module QA; FO-054 validation gates pass at 66 Access Control tests, 109 Accounts+Access Control tests, canonical full backend parallel discovery baseline of 250 tests, and 65 frontend helper tests.
-- Notifications is currently `In Progress`: FO-055 backend foundation and FO-056 read-only Notification Center frontend are complete, while FO-057 through FO-060 remain pending.
+- Notifications is currently `In Progress`: FO-055 backend foundation, FO-056 read-only Notification Center frontend, and FO-057 state-management workflow are complete, while FO-058 through FO-060 remain pending.
 - FO-DOC-001 establishes the permanent developer handbook under `docs/04-Developer-Handbook/`, adds `docs/development/project-status.md`, and defines repository-level process ownership, QA expectations, merge workflow, and documentation standards.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 

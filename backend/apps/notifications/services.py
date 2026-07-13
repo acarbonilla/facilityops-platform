@@ -1,8 +1,11 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
-from rest_framework.exceptions import ValidationError
+from django.utils import timezone
+from rest_framework.exceptions import NotFound, ValidationError
 
 from .models import Notification
+
+MAX_BULK_NOTIFICATION_IDS = 100
 
 
 def _validate_recipient(recipient):
@@ -102,3 +105,84 @@ def create_notification(
 
     notification.save()
     return notification
+
+
+def _normalize_notification_ids(notification_ids):
+    if not notification_ids:
+        raise ValidationError(
+            {"notification_ids": ["At least one notification ID is required."]}
+        )
+
+    normalized = list(dict.fromkeys(notification_ids))
+    if len(normalized) > MAX_BULK_NOTIFICATION_IDS:
+        raise ValidationError(
+            {
+                "notification_ids": [
+                    f"No more than {MAX_BULK_NOTIFICATION_IDS} notification IDs are allowed."
+                ]
+            }
+        )
+
+    return normalized
+
+
+def _assert_queryset_contains_notification_ids(queryset, notification_ids):
+    matched_ids = set(
+        queryset.filter(id__in=notification_ids).values_list("id", flat=True)
+    )
+    if len(matched_ids) != len(notification_ids):
+        raise NotFound("Notification not found.")
+
+
+@transaction.atomic
+def mark_notification_read(notification):
+    if notification.is_read:
+        return notification
+
+    notification.is_read = True
+    notification.read_at = timezone.now()
+    notification.save(update_fields=("is_read", "read_at", "updated_at"))
+    return notification
+
+
+@transaction.atomic
+def mark_notification_unread(notification):
+    if not notification.is_read:
+        return notification
+
+    notification.is_read = False
+    notification.read_at = None
+    notification.save(update_fields=("is_read", "read_at", "updated_at"))
+    return notification
+
+
+@transaction.atomic
+def mark_all_notifications_read(queryset):
+    now = timezone.now()
+    return queryset.filter(is_read=False).update(
+        is_read=True,
+        read_at=now,
+        updated_at=now,
+    )
+
+
+@transaction.atomic
+def bulk_update_notification_state(queryset, notification_ids, is_read):
+    normalized_ids = _normalize_notification_ids(notification_ids)
+    _assert_queryset_contains_notification_ids(queryset, normalized_ids)
+
+    matched_queryset = queryset.filter(id__in=normalized_ids)
+    now = timezone.now()
+
+    if is_read:
+        return matched_queryset.filter(is_read=False).update(
+            is_read=True,
+            read_at=now,
+            updated_at=now,
+        )
+
+    return matched_queryset.filter(is_read=True).update(
+        is_read=False,
+        read_at=None,
+        updated_at=now,
+    )

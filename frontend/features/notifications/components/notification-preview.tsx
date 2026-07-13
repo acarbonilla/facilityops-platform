@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
-import { useNotifications } from "@/hooks/use-notifications";
+import {
+  useMarkNotificationRead,
+  useNotifications,
+} from "@/hooks/use-notifications";
 import { formatNotificationError } from "@/lib/notifications/display";
 
 import { NotificationItem } from "./notification-item";
@@ -19,11 +23,37 @@ export interface NotificationPreviewProps {
 }
 
 export function NotificationPreview({ onClose }: NotificationPreviewProps) {
+  const [pendingNotificationId, setPendingNotificationId] = useState<string | null>(
+    null,
+  );
+  const [itemErrors, setItemErrors] = useState<Record<string, string | undefined>>(
+    {},
+  );
   const previewQuery = useNotifications({
     page: 1,
     page_size: PREVIEW_PAGE_SIZE,
     ordering: "-created_at",
   });
+  const markReadMutation = useMarkNotificationRead();
+
+  async function handleMarkRead(notificationId: string) {
+    setPendingNotificationId(notificationId);
+    setItemErrors((current) => ({ ...current, [notificationId]: undefined }));
+
+    try {
+      await markReadMutation.mutateAsync(notificationId);
+    } catch (error) {
+      setItemErrors((current) => ({
+        ...current,
+        [notificationId]: formatNotificationError(
+          error,
+          "Could not mark the notification as read.",
+        ),
+      }));
+    } finally {
+      setPendingNotificationId(null);
+    }
+  }
 
   return (
     <div
@@ -69,9 +99,14 @@ export function NotificationPreview({ onClose }: NotificationPreviewProps) {
             {previewQuery.data.results.map((notification) => (
               <li key={notification.id}>
                 <NotificationItem
+                  actionError={itemErrors[notification.id]}
                   compact
+                  isActionPending={pendingNotificationId === notification.id}
                   notification={notification}
+                  onMarkRead={() => void handleMarkRead(notification.id)}
                   onNavigate={onClose}
+                  previewActionsOnly
+                  showStateActions
                 />
               </li>
             ))}

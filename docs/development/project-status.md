@@ -40,7 +40,7 @@
 
 ## Completed FO Tasks
 
-- FO-001 through FO-056
+- FO-001 through FO-057
 
 ## Completed Roles & Permissions Tasks
 
@@ -54,6 +54,7 @@
 
 - FO-055
 - FO-056
+- FO-057
 
 ## Completed Governance Task
 
@@ -61,20 +62,20 @@
 
 ## Current Task
 
-- FO-056A Notification Frontend Security and PR Reconciliation is complete. Draft PR #34 remains open and unmerged.
+- FO-057 Notification Read, Unread, and Bulk Management Workflow is complete. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-057 notification state mutation workflow after FO-056A reconciliation.
+- FO-058 follow-on notification workflow expansion after FO-057 draft review.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 81 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level (`npm run test`, 87 tests); no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 - Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
-- Canonical full backend suite for current repository validation discovers 268 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
+- Canonical full backend suite for current repository validation discovers 291 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
 
 ## Last Reviewed Commit
 
