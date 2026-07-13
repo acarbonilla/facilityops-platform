@@ -40,7 +40,7 @@
 
 ## Completed FO Tasks
 
-- FO-001 through FO-057
+- FO-001 through FO-057A
 
 ## Completed Roles & Permissions Tasks
 
@@ -53,8 +53,11 @@
 ## Completed Notifications Tasks
 
 - FO-055
+- FO-055A
 - FO-056
+- FO-056A
 - FO-057
+- FO-057A
 
 ## Completed Governance Task
 
@@ -62,15 +65,15 @@
 
 ## Current Task
 
-- FO-057 Notification Read, Unread, and Bulk Management Workflow is complete. Draft PR #34 remains open and unmerged.
+- FO-057A Notification Bulk Limit and PR Reconciliation is complete. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-058 follow-on notification workflow expansion after FO-057 draft review.
+- FO-058 follow-on notification workflow expansion after FO-057A draft review.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 87 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level (`npm run test`, 94 tests); no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.

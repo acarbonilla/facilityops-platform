@@ -2,11 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { notificationQueryKeys } from "@/services/api/query-keys";
-import type { NotificationListFilters } from "@/types/notifications";
+import type { Notification, NotificationListFilters } from "@/types/notifications";
+
+import {
+  selectAllVisibleNotifications,
+  toggleNotificationSelection,
+} from "@/features/notifications/components/notification-bulk-actions";
 
 import {
   buildNotificationListParams,
   buildBulkStatePayload,
+  canSubmitBulkNotificationSelection,
   enforceMaximumNotificationSelection,
   formatNotificationMutationSuccess,
   formatNotificationSeverityLabel,
@@ -15,11 +21,31 @@ import {
   formatUnreadBadgeCount,
   getBulkNotificationActionLabel,
   getIndividualNotificationActionLabel,
+  getMaximumNotificationSelectionStatus,
   getSafeNotificationTargetUrl,
   hasActiveNotificationFilters,
+  MAX_NOTIFICATION_BULK_SELECTION,
   normalizeSelectedNotificationIds,
   pruneNotificationSelection,
 } from "./display";
+
+function makeNotification(id: string): Notification {
+  return {
+    id,
+    event_code: "test.event",
+    title: "Test notification",
+    message: "Test message",
+    severity: "info",
+    target_url: null,
+    source_module: "notifications",
+    source_object_id: null,
+    metadata: {},
+    is_read: false,
+    read_at: null,
+    created_at: "2026-07-13T12:00:00.000Z",
+    updated_at: "2026-07-13T12:00:00.000Z",
+  };
+}
 
 test("unread badge formatting hides zero and caps at 99+", () => {
   assert.equal(formatUnreadBadgeCount(0), null);
@@ -239,5 +265,85 @@ test("selected ID normalization removes empty and duplicate values", () => {
   assert.deepEqual(
     normalizeSelectedNotificationIds(["a", "a", "", "  ", "b"]),
     ["a", "b"],
+  );
+});
+
+test("bulk selection boundary allows 99 items and accepts the 100th", () => {
+  const firstNinetyNine = Array.from({ length: 99 }, (_, index) => `id-${index}`);
+  const withHundredth = toggleNotificationSelection(
+    firstNinetyNine,
+    "id-99",
+    true,
+  );
+
+  assert.equal(withHundredth.length, 100);
+  assert.equal(canSubmitBulkNotificationSelection(withHundredth.length), true);
+});
+
+test("bulk selection boundary keeps exactly 100 selected IDs submittable", () => {
+  const exactlyOneHundred = Array.from({ length: 100 }, (_, index) => `id-${index}`);
+
+  assert.equal(exactlyOneHundred.length, MAX_NOTIFICATION_BULK_SELECTION);
+  assert.equal(canSubmitBulkNotificationSelection(exactlyOneHundred.length), true);
+  assert.deepEqual(
+    buildBulkStatePayload(exactlyOneHundred, true).notification_ids.length,
+    100,
+  );
+});
+
+test("bulk selection boundary rejects adding item 101", () => {
+  const exactlyOneHundred = Array.from({ length: 100 }, (_, index) => `id-${index}`);
+  const afterAttempt = toggleNotificationSelection(
+    exactlyOneHundred,
+    "id-100",
+    true,
+  );
+
+  assert.deepEqual(afterAttempt, exactlyOneHundred);
+  assert.equal(afterAttempt.length, 100);
+});
+
+test("bulk selection boundary still allows deselecting at the maximum", () => {
+  const exactlyOneHundred = Array.from({ length: 100 }, (_, index) => `id-${index}`);
+  const afterDeselect = toggleNotificationSelection(
+    exactlyOneHundred,
+    "id-0",
+    false,
+  );
+
+  assert.equal(afterDeselect.length, 99);
+  assert.equal(canSubmitBulkNotificationSelection(afterDeselect.length), true);
+});
+
+test("bulk payload creation preserves exactly 100 unique IDs", () => {
+  const ids = Array.from({ length: 100 }, (_, index) => `notification-${index}`);
+  const payload = buildBulkStatePayload(ids, false);
+
+  assert.equal(payload.notification_ids.length, 100);
+  assert.equal(new Set(payload.notification_ids).size, 100);
+  assert.equal(payload.is_read, false);
+});
+
+test("select-all-visible caps merged selection at 100 notifications", () => {
+  const visible = Array.from({ length: 150 }, (_, index) =>
+    makeNotification(`visible-${index}`),
+  );
+  const existing = Array.from({ length: 10 }, (_, index) => `existing-${index}`);
+  const merged = selectAllVisibleNotifications(visible, existing);
+
+  assert.equal(merged.length, 100);
+  assert.equal(merged[0], "existing-0");
+  assert.equal(merged[9], "existing-9");
+  assert.equal(merged[99], "visible-89");
+});
+
+test("maximum selection status message stays neutral at the boundary", () => {
+  assert.match(
+    getMaximumNotificationSelectionStatus(),
+    /apply a bulk action or deselect notifications/i,
+  );
+  assert.doesNotMatch(
+    getMaximumNotificationSelectionStatus(),
+    /deselect one or more notifications before adding more/i,
   );
 });

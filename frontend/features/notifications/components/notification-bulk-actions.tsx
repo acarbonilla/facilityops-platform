@@ -3,6 +3,7 @@
 import type { Notification } from "@/types/notifications";
 import {
   getBulkNotificationActionLabel,
+  getMaximumNotificationSelectionStatus,
   MAX_NOTIFICATION_BULK_SELECTION,
 } from "@/lib/notifications/display";
 
@@ -31,7 +32,8 @@ export function NotificationBulkActions({
   onBulkRead,
   onBulkUnread,
 }: NotificationBulkActionsProps) {
-  const selectionLimitReached = selectedCount >= MAX_NOTIFICATION_BULK_SELECTION;
+  const maximumSelectionReached =
+    selectedCount === MAX_NOTIFICATION_BULK_SELECTION;
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -63,9 +65,7 @@ export function NotificationBulkActions({
           </button>
           <button
             className="rounded-md bg-blue-700 px-3 py-2 text-sm font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={
-              isDisabled || isPending || selectedCount === 0 || selectionLimitReached
-            }
+            disabled={isDisabled || isPending || selectedCount === 0}
             onClick={onBulkRead}
             type="button"
           >
@@ -82,10 +82,9 @@ export function NotificationBulkActions({
         </div>
       </div>
 
-      {selectionLimitReached ? (
-        <p className="mt-3 text-sm text-amber-800" role="status">
-          Selection limit reached. Deselect one or more notifications before adding
-          more.
+      {maximumSelectionReached ? (
+        <p className="mt-3 text-sm text-slate-600" role="status">
+          {getMaximumNotificationSelectionStatus()}
         </p>
       ) : null}
 

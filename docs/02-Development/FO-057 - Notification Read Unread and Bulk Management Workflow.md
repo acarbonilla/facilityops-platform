@@ -2,11 +2,13 @@
 
 ## Status
 
-Complete
+Complete (FO-057A boundary correction applied)
 
 ## Purpose
 
 FO-057 adds secure, recipient-scoped notification state management on top of the FO-055 backend foundation and FO-056 Notification Center frontend. Users can now mark individual notifications read or unread, mark all unread notifications as read, and bulk-update up to 100 selected notifications from the Notification Center page.
+
+FO-057A corrects the frontend bulk-selection boundary so exactly 100 selected notifications remain submittable while additional selection is blocked at the UI layer. Bulk read and bulk unread now share identical enablement rules.
 
 No schema changes or migrations were introduced.
 
@@ -102,6 +104,8 @@ Notification Center UX:
 - preview panel supports Mark as read for unread items only
 - page-local checkbox selection with select-all-visible and clear-selection controls
 - bulk Mark as read / Mark as unread for up to 100 selected IDs
+- selection boundary: 0 selected disables bulk actions; 1 through 100 selected enables both bulk read and bulk unread; additional selection is blocked at exactly 100; deselect and clear-selection remain available at the maximum
+- neutral maximum-selection status: "Maximum selection reached. You can apply a bulk action or deselect notifications."
 - Mark all as read in the unread summary with explicit confirmation
 - selection clears when page, filters, or page size changes
 - navigation links and state buttons are separate controls; no nested interactive elements inside `Link`
@@ -133,6 +137,14 @@ Frontend (`frontend/lib/notifications/display.test.ts`):
 - selection cleanup against visible IDs
 - read/unread action label mapping
 - mutation response formatting
+- bulk-selection boundary regression coverage:
+  - 99 selected with 100th accepted
+  - exactly 100 selected remains submittable
+  - item 101 cannot be added
+  - deselect still works at the maximum
+  - bulk payload preserves exactly 100 unique IDs
+  - select-all-visible caps merged selection at 100
+  - neutral maximum-selection status message
 - existing safe-target regression coverage remains passing
 
 ## Validation
@@ -149,10 +161,17 @@ Backend:
 
 Frontend (`frontend/`):
 
-- `npm test` -> passed (87 tests)
+- `npm test` -> passed (94 tests)
 - `npm run lint` -> passed
 - `npx tsc --noEmit` -> passed
 - `npm run build` -> passed
+
+FO-057A boundary validation:
+
+- exactly 100 selected IDs can be submitted through `buildBulkStatePayload`
+- item 101 cannot be added through `toggleNotificationSelection`
+- bulk read and bulk unread remain enabled at exactly 100 selected
+- select-all-visible caps merged selection at 100
 
 Repository checks:
 

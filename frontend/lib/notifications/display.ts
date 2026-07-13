@@ -314,6 +314,17 @@ export function getBulkNotificationActionLabel(isRead: boolean): string {
   return isRead ? "Mark selected as read" : "Mark selected as unread";
 }
 
+export function getMaximumNotificationSelectionStatus(): string {
+  return "Maximum selection reached. You can apply a bulk action or deselect notifications.";
+}
+
+export function canSubmitBulkNotificationSelection(
+  selectedCount: number,
+  max = MAX_NOTIFICATION_BULK_SELECTION,
+): boolean {
+  return selectedCount > 0 && selectedCount <= max;
+}
+
 export function formatNotificationMutationSuccess(
   message: string,
   updatedCount?: number,
