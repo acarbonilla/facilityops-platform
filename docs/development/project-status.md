@@ -91,7 +91,7 @@
 
 ## Last Reviewed Commit
 
-- `6ea5e1b` (FO-058CA record reviewed commit reference head)
+- `5f8ac4f` (FO-059 Notification Preferences and Delivery Foundation head)
 
 ## Last Merge
 
