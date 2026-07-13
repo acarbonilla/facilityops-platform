@@ -187,8 +187,8 @@ Interpreter:
 Commands and outcomes:
 
 - `python manage.py test apps.notifications --noinput` -> passed (18 tests)
-- `python manage.py test apps.accounts apps.access_control --noinput` -> passed (109 tests)
-- `python manage.py test --parallel 4 --noinput` -> canonical full backend suite executed (268 discovered); this environment intermittently shows multiprocessing worker teardown trace output after parallel completion, consistent with prior repository notes
+- `python manage.py test --parallel 4 --noinput` -> ambiguous in this environment; output showed worker teardown trace text and did not provide a clean validation record for FO-055A
+- `python manage.py test --noinput` -> passed (268 tests, exit code 0)
 - `python manage.py check` -> passed (0 issues)
 - `python manage.py makemigrations --check --dry-run` -> passed (no changes detected)
 
