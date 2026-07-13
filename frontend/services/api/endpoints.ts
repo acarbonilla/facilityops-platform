@@ -87,6 +87,7 @@ export const API_ENDPOINTS = {
     markUnread: (id: string) => `/v1/notifications/${id}/mark-unread/`,
     markAllRead: "/v1/notifications/mark-all-read/",
     bulkState: "/v1/notifications/bulk-state/",
+    preferences: "/v1/notifications/preferences/",
   },
   inspection: {
     inspections: "/inspection/inspections/",

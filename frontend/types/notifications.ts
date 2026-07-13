@@ -50,3 +50,34 @@ export interface NotificationBulkStateResponse {
   updated_count: number;
   is_read: boolean;
 }
+
+export type NotificationChannel = "in_app" | "email" | "sms" | "push";
+
+export type NotificationSourceModule =
+  | "fm_tickets"
+  | "maintenance"
+  | "inspection";
+
+export interface NotificationPreferenceItem {
+  id: string;
+  source_module: string;
+  channel: NotificationChannel;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationPreferencesResponse {
+  defaults: Record<NotificationChannel, boolean>;
+  preferences: NotificationPreferenceItem[];
+}
+
+export interface NotificationPreferenceUpdateItem {
+  source_module?: string;
+  channel: NotificationChannel;
+  is_enabled: boolean;
+}
+
+export interface NotificationPreferencesUpdatePayload {
+  preferences: NotificationPreferenceUpdateItem[];
+}

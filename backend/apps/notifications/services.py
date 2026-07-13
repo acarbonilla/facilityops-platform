@@ -3,7 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import NotFound, ValidationError
 
-from .models import Notification
+from .models import Notification, NotificationDelivery
 
 MAX_BULK_NOTIFICATION_IDS = 100
 
@@ -56,6 +56,27 @@ def _resolve_tenant(recipient, tenant):
     return tenant
 
 
+def _create_in_app_delivery(*, notification, recipient, tenant):
+    delivery = NotificationDelivery(
+        notification=notification,
+        recipient=recipient,
+        tenant=tenant,
+        channel=NotificationDelivery.Channel.IN_APP,
+        status=NotificationDelivery.Status.DELIVERED,
+        delivered_at=timezone.now(),
+        attempt_count=0,
+    )
+    try:
+        delivery.full_clean()
+    except DjangoValidationError as exc:
+        detail = getattr(exc, "message_dict", None) or {
+            "non_field_errors": exc.messages
+        }
+        raise ValidationError(detail) from exc
+    delivery.save()
+    return delivery
+
+
 @transaction.atomic
 def create_notification(
     *,
@@ -104,6 +125,11 @@ def create_notification(
         raise ValidationError(detail) from exc
 
     notification.save()
+    _create_in_app_delivery(
+        notification=notification,
+        recipient=recipient,
+        tenant=resolved_tenant,
+    )
     return notification
 
 

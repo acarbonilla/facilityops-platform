@@ -3,13 +3,17 @@ from rest_framework.decorators import action
 from rest_framework.mixins import ListModelMixin, RetrieveModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from common.pagination import StandardResultsSetPagination
 
 from .models import Notification
+from .preference_services import build_preferences_response, set_notification_preferences
 from .serializers import (
     NotificationBulkStateResponseSerializer,
     NotificationBulkStateSerializer,
+    NotificationPreferencesResponseSerializer,
+    NotificationPreferencesUpdateSerializer,
     NotificationSerializer,
     UnreadCountSerializer,
     UpdatedCountSerializer,
@@ -105,4 +109,23 @@ class NotificationViewSet(ListModelMixin, RetrieveModelMixin, viewsets.GenericVi
                 "is_read": serializer.validated_data["is_read"],
             }
         )
+        return Response(response.data)
+
+
+class NotificationPreferenceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        payload = build_preferences_response(request.user)
+        serializer = NotificationPreferencesResponseSerializer(payload)
+        return Response(serializer.data)
+
+    def put(self, request):
+        serializer = NotificationPreferencesUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payload = set_notification_preferences(
+            request.user,
+            serializer.validated_data["preferences"],
+        )
+        response = NotificationPreferencesResponseSerializer(payload)
         return Response(response.data)

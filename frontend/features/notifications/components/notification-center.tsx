@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
@@ -168,7 +169,14 @@ export function NotificationCenterScreen() {
         description="Review and manage in-app updates for your account. State changes apply only when you choose an action."
         eyebrow="Notifications"
         title="Notification Center"
-      />
+      >
+        <Link
+          className="inline-flex text-sm font-medium text-blue-700 underline-offset-2 hover:underline"
+          href="/settings/notifications"
+        >
+          Manage notification preferences
+        </Link>
+      </PageHeader>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-950">Unread summary</h2>

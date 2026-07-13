@@ -7,6 +7,8 @@ import type {
   NotificationBulkStatePayload,
   NotificationBulkStateResponse,
   NotificationListParams,
+  NotificationPreferencesResponse,
+  NotificationPreferencesUpdatePayload,
   NotificationUnreadCountResponse,
   NotificationUpdatedCountResponse,
 } from "@/types/notifications";
@@ -61,6 +63,25 @@ export function bulkUpdateNotificationState(
     API_ENDPOINTS.notifications.bulkState,
     {
       method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function getNotificationPreferences(): Promise<NotificationPreferencesResponse> {
+  return apiClient<NotificationPreferencesResponse>(
+    API_ENDPOINTS.notifications.preferences,
+    { method: "GET" },
+  );
+}
+
+export function updateNotificationPreferences(
+  payload: NotificationPreferencesUpdatePayload,
+): Promise<NotificationPreferencesResponse> {
+  return apiClient<NotificationPreferencesResponse>(
+    API_ENDPOINTS.notifications.preferences,
+    {
+      method: "PUT",
       body: payload,
     },
   );

@@ -8,14 +8,17 @@ import {
   getNotification,
   getNotifications,
   getNotificationUnreadCount,
+  getNotificationPreferences,
   markAllNotificationsRead,
   markNotificationRead,
   markNotificationUnread,
+  updateNotificationPreferences,
 } from "@/services/api/notifications";
 import { notificationQueryKeys } from "@/services/api/query-keys";
 import type {
   NotificationBulkStatePayload,
   NotificationListParams,
+  NotificationPreferencesUpdatePayload,
 } from "@/types/notifications";
 
 function useNotificationsEnabled() {
@@ -120,6 +123,31 @@ export function useBulkUpdateNotificationState() {
       bulkUpdateNotificationState(payload),
     onSuccess: async () => {
       await invalidateNotificationCaches(queryClient);
+    },
+  });
+}
+
+export function useNotificationPreferences() {
+  const enabled = useNotificationsEnabled();
+
+  return useQuery({
+    queryKey: notificationQueryKeys.preferences(),
+    queryFn: getNotificationPreferences,
+    enabled,
+  });
+}
+
+export function useUpdateNotificationPreferences() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: NotificationPreferencesUpdatePayload) =>
+      updateNotificationPreferences(payload),
+    onSuccess: async (response) => {
+      queryClient.setQueryData(notificationQueryKeys.preferences(), response);
+      await queryClient.invalidateQueries({
+        queryKey: notificationQueryKeys.preferences(),
+      });
     },
   });
 }

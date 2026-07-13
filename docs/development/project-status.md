@@ -66,6 +66,7 @@
 - FO-058B
 - FO-058C
 - FO-058CA (assignment deduplication correction; independently approved)
+- FO-059
 
 ## Completed Governance Task
 
@@ -73,20 +74,20 @@
 
 ## Current Task
 
-- FO-058 and FO-058C are closed. FO-058CA is independently approved. FO-059 Notification Preferences and Delivery Foundation is the current task. Draft PR #34 remains open and unmerged.
+- FO-059 Notification Preferences and Delivery Foundation is complete. FO-060 Notifications QA and stabilization is next. Draft PR #34 remains open and unmerged.
 
 ## Next Milestone
 
-- FO-059 Notification Preferences and Delivery Foundation, then FO-060 Notifications QA and stabilization.
+- FO-060 Notifications QA and stabilization.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 94 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level (`npm run test`, 100 tests); no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
 - Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
-- Canonical full backend suite for current repository validation discovers 354 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
+- Canonical full backend suite for current repository validation discovers 379 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
 
 ## Last Reviewed Commit
 

@@ -132,6 +132,7 @@ export const notificationQueryKeys = {
     ["notifications", "list", normalizeNotificationParams(params)] as const,
   detail: (id: string) => ["notifications", "detail", id] as const,
   unreadCount: () => ["notifications", "unread-count"] as const,
+  preferences: () => ["notifications", "preferences"] as const,
 };
 
 export const inspectionQueryKeys = {
