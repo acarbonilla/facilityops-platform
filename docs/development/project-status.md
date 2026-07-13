@@ -79,7 +79,7 @@
 
 ## Last Reviewed Commit
 
-- `d7de301a8b652fd9f6bf336f21d41b36e2fe5380` (FO-056A Notification Frontend Security and PR Reconciliation head)
+- `ec090e2b2f6a5cc3021013a2adaf3364c24adc58` (FO-057 Notification Read, Unread, and Bulk Management Workflow head)
 
 ## Last Merge
 
