@@ -89,7 +89,7 @@
 
 ## Last Reviewed Commit
 
-- Pending FO-058C commit (FO-058C 5S Inspection Notification Integration head)
+- `d72fd84` (FO-058C 5S Inspection Notification Integration head)
 
 ## Last Merge
 
