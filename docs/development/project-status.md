@@ -95,7 +95,7 @@
 
 ## Last Reviewed Commit
 
-- `5f8ac4f` (FO-059 Notification Preferences and Delivery Foundation head)
+- `cb0ca6b` (FO-059A notification module override semantics correction)
 
 ## Last Merge
 
