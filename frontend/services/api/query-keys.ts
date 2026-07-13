@@ -4,6 +4,7 @@ import type { UserDirectoryParams, UserListParams } from "@/types/users";
 import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
+import type { NotificationListParams } from "@/types/notifications";
 
 function stripNilParams<T extends object>(
   params?: T,
@@ -117,6 +118,21 @@ function normalizeInspectionParams(
 ): InspectionListParams | Record<string, never> {
   return stripNilParams(params) as InspectionListParams;
 }
+
+function normalizeNotificationParams(
+  params?: NotificationListParams,
+): NotificationListParams | Record<string, never> {
+  return stripNilParams(params) as NotificationListParams;
+}
+
+export const notificationQueryKeys = {
+  all: ["notifications"] as const,
+  lists: () => ["notifications", "list"] as const,
+  list: (params?: NotificationListParams) =>
+    ["notifications", "list", normalizeNotificationParams(params)] as const,
+  detail: (id: string) => ["notifications", "detail", id] as const,
+  unreadCount: () => ["notifications", "unread-count"] as const,
+};
 
 export const inspectionQueryKeys = {
   all: ["inspection"] as const,

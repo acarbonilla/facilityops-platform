@@ -40,7 +40,7 @@
 
 ## Completed FO Tasks
 
-- FO-001 through FO-055
+- FO-001 through FO-056
 
 ## Completed Roles & Permissions Tasks
 
@@ -53,6 +53,7 @@
 ## Completed Notifications Tasks
 
 - FO-055
+- FO-056
 
 ## Completed Governance Task
 
@@ -60,15 +61,15 @@
 
 ## Current Task
 
-- FO-055 Notifications Backend Foundation implementation and validation are complete. Draft PR from `feature/notifications` to `main` remains open and unmerged.
+- FO-056 Notification Center Frontend implementation and validation are complete. Draft PR from `feature/notifications` to `main` remains open and unmerged.
 
 ## Next Milestone
 
-- FO-056 follow-on notification workflow expansion after FO-055 draft review.
+- FO-057 notification state mutation workflow after FO-056 draft review.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 65 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level (`npm run test`, 77 tests); no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus
   tracker accuracy.
