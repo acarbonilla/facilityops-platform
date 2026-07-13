@@ -1,4 +1,6 @@
 from datetime import timedelta
+from decimal import Decimal
+from unittest.mock import patch
 
 from apps.access_control.models import Permission, Role, RolePermission, UserRole
 from apps.maintenance.models import (
@@ -14,9 +16,25 @@ from apps.maintenance.models import (
     MaintenanceTask,
     MaintenanceWorkOrder,
 )
+from apps.maintenance.notification_service import (
+    ASSIGNMENT_EVENT_CODE,
+    STATUS_CHANGED_EVENT_CODE,
+)
 from apps.maintenance.tasks import check_maintenance_sla_breaches
+from apps.maintenance.work_order_assignment_service import (
+    assign_work_order,
+    reassign_work_order,
+)
 from apps.maintenance.work_order_escalation_service import check_work_order_escalations
 from apps.maintenance.work_order_sla_service import recalculate_work_order_sla
+from apps.maintenance.work_order_workflow_service import (
+    cancel_work_order,
+    complete_work_order,
+    hold_work_order,
+    reopen_work_order,
+    resume_work_order,
+    start_work_order,
+)
 from apps.master_data.models import (
     Area,
     Asset,
@@ -27,13 +45,16 @@ from apps.master_data.models import (
     Organization,
     Tenant,
 )
+from apps.notifications.models import Notification
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.test import APITestCase
 
 User = get_user_model()
@@ -1195,6 +1216,521 @@ class MaintenanceApiTests(MaintenanceTestDataMixin, APITestCase):
         result = check_maintenance_sla_breaches()
         self.assertIn("checked", result)
         self.assertIn("escalations_created", result)
+
+
+class MaintenanceNotificationIntegrationTests(MaintenanceTestDataMixin, APITestCase):
+    def setUp(self):
+        self.permissions = self.create_maintenance_permissions()
+        self.data = self.create_master_data()
+        self.tenant = self.data["tenant"]
+        self.requester = User.objects.create_user(
+            email="maint-requester@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.technician = User.objects.create_user(
+            email="maint-technician@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.supervisor = User.objects.create_user(
+            email="maint-supervisor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.actor = User.objects.create_user(
+            email="maint-actor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.assign_permissions(
+            self.actor,
+            "maintenance.assign",
+            "maintenance.reassign",
+            "maintenance.start",
+            "maintenance.hold",
+            "maintenance.complete",
+            "maintenance.cancel",
+            "maintenance.reopen",
+        )
+        self.work_order = self._create_work_order()
+
+    def _create_work_order(self, **overrides):
+        values = {
+            "tenant": self.tenant,
+            "organization": self.data["organization"],
+            "department": self.data["department"],
+            "building": self.data["building"],
+            "floor": self.data["floor"],
+            "area": self.data["area"],
+            "asset": self.data["asset"],
+            "requester": self.requester,
+            "title": "Replace AHU belt",
+            "description": "Drive belt needs replacement.",
+            "priority": MaintenanceWorkOrder.Priority.HIGH,
+            "status": MaintenanceWorkOrder.Status.OPEN,
+            "due_at": timezone.now() + timedelta(days=1),
+        }
+        values.update(overrides)
+        work_order = MaintenanceWorkOrder.objects.create(**values)
+        MaintenanceSLA.objects.create(
+            work_order=work_order,
+            response_due_at=timezone.now() + timedelta(hours=4),
+            resolution_due_at=timezone.now() + timedelta(days=1),
+            sla_status=MaintenanceSLA.Status.NOT_STARTED,
+        )
+        return work_order
+
+    def _assign_initial(self, technician=None, supervisor=None, actor=None):
+        return assign_work_order(
+            work_order=self.work_order,
+            assigned_to=technician or self.technician,
+            assigned_by=actor or self.actor,
+            supervisor=supervisor,
+            enforce_permission=False,
+        )
+
+    def test_initial_assignment_notifies_eligible_technician(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        notification = Notification.objects.get(
+            event_code=ASSIGNMENT_EVENT_CODE,
+            recipient=self.technician,
+        )
+        self.assertIn(self.work_order.work_order_number, notification.message)
+        self.assertIn(self.work_order.title, notification.message)
+
+    def test_initial_assignment_notifies_eligible_supervisor(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        self.assertTrue(
+            Notification.objects.filter(
+                event_code=ASSIGNMENT_EVENT_CODE,
+                recipient=self.supervisor,
+            ).exists()
+        )
+
+    def test_assignment_excludes_actor_from_notifications(self):
+        technician_role = Role.objects.create(
+            name="Technician",
+            code="technician",
+        )
+        UserRole.objects.create(user=self.actor, role=technician_role)
+
+        assign_work_order(
+            work_order=self.work_order,
+            assigned_to=self.actor,
+            assigned_by=self.actor,
+            enforce_permission=False,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_assignment_excludes_inactive_global_and_cross_tenant_principals(self):
+        inactive_technician = User.objects.create_user(
+            email="inactive-tech@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+            is_active=False,
+        )
+        with self.assertRaises(ValidationError):
+            assign_work_order(
+                work_order=self.work_order,
+                assigned_to=inactive_technician,
+                assigned_by=self.actor,
+                enforce_permission=False,
+            )
+        self.assertEqual(Notification.objects.count(), 0)
+
+        global_technician = User.objects.create_user(
+            email="global-tech@example.com",
+            password="Password123!",
+        )
+        with self.assertRaises(ValidationError):
+            assign_work_order(
+                work_order=self.work_order,
+                assigned_to=global_technician,
+                assigned_by=self.actor,
+                enforce_permission=False,
+            )
+        self.assertEqual(Notification.objects.count(), 0)
+
+        other_tenant = Tenant.objects.create(name="Other Tenant", code="other-tenant")
+        cross_tenant_technician = User.objects.create_user(
+            email="cross-tenant-tech@example.com",
+            password="Password123!",
+            tenant=other_tenant,
+        )
+        with self.assertRaises(ValidationError):
+            assign_work_order(
+                work_order=self.work_order,
+                assigned_to=cross_tenant_technician,
+                assigned_by=self.actor,
+                enforce_permission=False,
+            )
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_reassignment_notifies_changed_technician_only(self):
+        replacement_technician = User.objects.create_user(
+            email="replacement-tech@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        reassign_work_order(
+            work_order=self.work_order,
+            assigned_to=replacement_technician,
+            assigned_by=self.actor,
+            supervisor=self.supervisor,
+            reason="Shift handoff.",
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_technician)
+
+    def test_reassignment_does_not_renotify_unchanged_technician(self):
+        replacement_supervisor = User.objects.create_user(
+            email="replacement-supervisor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        reassign_work_order(
+            work_order=self.work_order,
+            assigned_to=self.technician,
+            assigned_by=self.actor,
+            supervisor=replacement_supervisor,
+            reason="Supervisor change only.",
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_supervisor)
+
+    def test_reassignment_notifies_changed_supervisor_only(self):
+        replacement_technician = User.objects.create_user(
+            email="replacement-tech-2@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        reassign_work_order(
+            work_order=self.work_order,
+            assigned_to=replacement_technician,
+            assigned_by=self.actor,
+            supervisor=self.supervisor,
+            reason="Technician change only.",
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_technician)
+        self.assertEqual(
+            assignment_notifications.get().metadata["assignment_role"],
+            "technician",
+        )
+
+    def test_assignment_role_metadata_is_correct(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        technician_notification = Notification.objects.get(
+            event_code=ASSIGNMENT_EVENT_CODE,
+            recipient=self.technician,
+        )
+        supervisor_notification = Notification.objects.get(
+            event_code=ASSIGNMENT_EVENT_CODE,
+            recipient=self.supervisor,
+        )
+        self.assertEqual(technician_notification.metadata["assignment_role"], "technician")
+        self.assertEqual(supervisor_notification.metadata["assignment_role"], "supervisor")
+
+    def test_assignment_target_url_and_source_fields_are_correct(self):
+        self._assign_initial()
+
+        notification = Notification.objects.get(event_code=ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(notification.source_module, "maintenance")
+        self.assertEqual(notification.source_object_id, self.work_order.id)
+        self.assertEqual(
+            notification.target_url,
+            f"/maintenance/work-orders/{self.work_order.id}",
+        )
+
+    def test_status_transition_notifies_requester_assignee_and_supervisor(self):
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        start_work_order(work_order=self.work_order, actor=self.actor)
+
+        recipients = set(
+            Notification.objects.filter(
+                event_code=STATUS_CHANGED_EVENT_CODE
+            ).values_list("recipient_id", flat=True)
+        )
+        self.assertEqual(
+            recipients,
+            {self.requester.id, self.technician.id, self.supervisor.id},
+        )
+
+    def test_status_recipients_are_deduplicated(self):
+        self.work_order.requester = self.technician
+        self.work_order.save(update_fields=["requester", "updated_at"])
+        self._assign_initial()
+        Notification.objects.all().delete()
+
+        start_work_order(work_order=self.work_order, actor=self.actor)
+
+        self.assertEqual(
+            Notification.objects.filter(event_code=STATUS_CHANGED_EVENT_CODE).count(),
+            1,
+        )
+
+    def test_status_transition_excludes_actor(self):
+        self._assign_initial()
+        Notification.objects.all().delete()
+
+        start_work_order(work_order=self.work_order, actor=self.technician)
+
+        self.assertFalse(
+            Notification.objects.filter(recipient=self.technician).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.requester).exists()
+        )
+
+    def test_completed_and_closed_status_use_success_severity(self):
+        self._assign_initial()
+        start_work_order(work_order=self.work_order, actor=self.actor)
+        MaintenanceTask.objects.create(
+            work_order=self.work_order,
+            title="Replace belt",
+            sequence=1,
+            status=MaintenanceTask.Status.COMPLETED,
+        )
+        Notification.objects.all().delete()
+
+        complete_work_order(
+            work_order=self.work_order,
+            completed_by=self.actor,
+            completion_notes="Belt replaced.",
+            actual_hours=Decimal("2.5"),
+        )
+
+        notifications = Notification.objects.filter(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertGreater(notifications.count(), 0)
+        for notification in notifications:
+            self.assertEqual(notification.severity, Notification.Severity.SUCCESS)
+
+    def test_cancelled_and_on_hold_status_use_warning_severity(self):
+        self._assign_initial()
+        start_work_order(work_order=self.work_order, actor=self.actor)
+        Notification.objects.all().delete()
+
+        hold_work_order(
+            work_order=self.work_order,
+            actor=self.actor,
+            reason="Awaiting parts.",
+        )
+        hold_notifications = Notification.objects.filter(
+            event_code=STATUS_CHANGED_EVENT_CODE
+        )
+        self.assertGreater(hold_notifications.count(), 0)
+        for notification in hold_notifications:
+            self.assertEqual(notification.severity, Notification.Severity.WARNING)
+
+        self.work_order.refresh_from_db()
+        resume_work_order(work_order=self.work_order, actor=self.actor)
+        Notification.objects.all().delete()
+        cancel_work_order(
+            work_order=self.work_order,
+            actor=self.actor,
+            reason="No longer required.",
+        )
+        cancel_notifications = Notification.objects.filter(
+            event_code=STATUS_CHANGED_EVENT_CODE
+        )
+        self.assertGreater(cancel_notifications.count(), 0)
+        for notification in cancel_notifications:
+            self.assertEqual(notification.severity, Notification.Severity.WARNING)
+
+    def test_other_status_transitions_use_info_severity(self):
+        self._assign_initial()
+        Notification.objects.all().delete()
+
+        start_work_order(work_order=self.work_order, actor=self.actor)
+
+        notifications = Notification.objects.filter(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertGreater(notifications.count(), 0)
+        for notification in notifications:
+            self.assertEqual(notification.severity, Notification.Severity.INFO)
+        self.assertEqual(
+            notifications.first().metadata,
+            {
+                "work_order_number": self.work_order.work_order_number,
+                "event": "status_changed",
+                "from_status": MaintenanceWorkOrder.Status.ASSIGNED,
+                "to_status": MaintenanceWorkOrder.Status.IN_PROGRESS,
+            },
+        )
+
+    def test_invalid_status_transition_creates_no_notification(self):
+        with self.assertRaises(ValidationError):
+            start_work_order(work_order=self.work_order, actor=self.actor)
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    @patch("apps.maintenance.notification_service.create_notification")
+    def test_assignment_notification_failure_rolls_back_assignment_and_history(
+        self,
+        mock_create_notification,
+    ):
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            self._assign_initial(supervisor=self.supervisor)
+
+        self.work_order.refresh_from_db()
+        self.assertIsNone(self.work_order.assignee_id)
+        self.assertEqual(self.work_order.status, MaintenanceWorkOrder.Status.OPEN)
+        self.assertEqual(self.work_order.assignments.filter(is_active=True).count(), 0)
+        self.assertEqual(
+            self.work_order.history_entries.filter(action="assignment_assigned").count(),
+            0,
+        )
+
+    @patch("apps.maintenance.notification_service.create_notification")
+    def test_reassignment_notification_failure_rolls_back_reassignment_and_history(
+        self,
+        mock_create_notification,
+    ):
+        replacement_technician = User.objects.create_user(
+            email="rollback-tech@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            reassign_work_order(
+                work_order=self.work_order,
+                assigned_to=replacement_technician,
+                assigned_by=self.actor,
+                supervisor=self.supervisor,
+                reason="Rollback test.",
+            )
+
+        self.work_order.refresh_from_db()
+        self.assertEqual(self.work_order.assignee, self.technician)
+        self.assertEqual(
+            self.work_order.assignments.filter(is_active=True).get().assigned_to,
+            self.technician,
+        )
+        self.assertEqual(
+            self.work_order.history_entries.filter(action="assignment_reassigned").count(),
+            0,
+        )
+
+    @patch("apps.maintenance.notification_service.create_notification")
+    def test_status_notification_failure_rolls_back_status_sla_and_history(
+        self,
+        mock_create_notification,
+    ):
+        self._assign_initial()
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            start_work_order(work_order=self.work_order, actor=self.actor)
+
+        self.work_order.refresh_from_db()
+        self.assertEqual(self.work_order.status, MaintenanceWorkOrder.Status.ASSIGNED)
+        self.assertEqual(
+            self.work_order.status_history_entries.filter(
+                to_status=MaintenanceWorkOrder.Status.IN_PROGRESS
+            ).count(),
+            0,
+        )
+
+    @patch("apps.maintenance.notification_service.create_notification")
+    def test_completion_notification_failure_rolls_back_completion_and_workflow_state(
+        self,
+        mock_create_notification,
+    ):
+        self._assign_initial()
+        start_work_order(work_order=self.work_order, actor=self.actor)
+        MaintenanceTask.objects.create(
+            work_order=self.work_order,
+            title="Replace belt",
+            sequence=1,
+            status=MaintenanceTask.Status.COMPLETED,
+        )
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            complete_work_order(
+                work_order=self.work_order,
+                completed_by=self.actor,
+                completion_notes="Belt replaced.",
+                actual_hours=Decimal("2.5"),
+            )
+
+        self.work_order.refresh_from_db()
+        self.assertEqual(self.work_order.status, MaintenanceWorkOrder.Status.IN_PROGRESS)
+        self.assertFalse(MaintenanceCompletion.objects.filter(work_order=self.work_order).exists())
+
+    @patch("apps.maintenance.notification_service.create_notification")
+    def test_reopen_notification_failure_rolls_back_assignment_deactivation_and_state(
+        self,
+        mock_create_notification,
+    ):
+        self._assign_initial(supervisor=self.supervisor)
+        start_work_order(work_order=self.work_order, actor=self.actor)
+        MaintenanceTask.objects.create(
+            work_order=self.work_order,
+            title="Replace belt",
+            sequence=1,
+            status=MaintenanceTask.Status.COMPLETED,
+        )
+        complete_work_order(
+            work_order=self.work_order,
+            completed_by=self.actor,
+            completion_notes="Belt replaced.",
+            actual_hours=Decimal("2.5"),
+        )
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            reopen_work_order(
+                work_order=self.work_order,
+                actor=self.actor,
+                reason="Issue returned.",
+            )
+
+        self.work_order.refresh_from_db()
+        self.assertEqual(self.work_order.status, MaintenanceWorkOrder.Status.COMPLETED)
+        self.assertEqual(self.work_order.assignments.filter(is_active=True).count(), 1)
 
 
 class MaintenanceSeedCommandTests(MaintenanceTestDataMixin, APITestCase):

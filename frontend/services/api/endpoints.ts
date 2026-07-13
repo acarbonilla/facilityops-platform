@@ -79,6 +79,16 @@ export const API_ENDPOINTS = {
     cancel: (id: string) => `/maintenance/work-orders/${id}/cancel/`,
     reopen: (id: string) => `/maintenance/work-orders/${id}/reopen/`,
   },
+  notifications: {
+    list: "/v1/notifications/",
+    detail: (id: string) => `/v1/notifications/${id}/`,
+    unreadCount: "/v1/notifications/unread-count/",
+    markRead: (id: string) => `/v1/notifications/${id}/mark-read/`,
+    markUnread: (id: string) => `/v1/notifications/${id}/mark-unread/`,
+    markAllRead: "/v1/notifications/mark-all-read/",
+    bulkState: "/v1/notifications/bulk-state/",
+    preferences: "/v1/notifications/preferences/",
+  },
   inspection: {
     inspections: "/inspection/inspections/",
     inspection: (id: string) => `/inspection/inspections/${id}/`,

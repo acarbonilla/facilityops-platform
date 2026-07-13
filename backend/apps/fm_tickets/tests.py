@@ -1,10 +1,12 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from apps.access_control.models import Permission, Role, RolePermission, UserRole
@@ -18,6 +20,7 @@ from apps.master_data.models import (
     Organization,
     Tenant,
 )
+from apps.notifications.models import Notification
 
 from .models import (
     FmTicket,
@@ -26,6 +29,11 @@ from .models import (
     FmTicketHistory,
     FmTicketStatusHistory,
 )
+from .notification_service import (
+    ASSIGNMENT_EVENT_CODE,
+    STATUS_CHANGED_EVENT_CODE,
+)
+from .services import assign_ticket, change_ticket_status
 
 
 User = get_user_model()
@@ -511,6 +519,340 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
             self.ticket.history_entries.filter(action="escalated").count(),
             1,
         )
+
+
+class FmTicketNotificationIntegrationTests(FmTicketTestDataMixin, APITestCase):
+    def setUp(self):
+        self.data = self.create_master_data()
+        self.tenant = self.data["tenant"]
+        self.requester = User.objects.create_user(
+            email="fm-requester@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.assignee = User.objects.create_user(
+            email="fm-assignee@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.actor = User.objects.create_user(
+            email="fm-actor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.ticket = self._create_ticket()
+
+    def _create_ticket(self, **overrides):
+        values = {
+            "tenant": self.tenant,
+            "organization": self.data["organization"],
+            "department": self.data["department"],
+            "building": self.data["building"],
+            "floor": self.data["floor"],
+            "area": self.data["area"],
+            "asset": self.data["asset"],
+            "requester": self.requester,
+            "title": "Lobby aircon issue",
+            "description": "The lobby aircon is not cooling.",
+            "category": FmTicket.Category.HVAC,
+            "priority": FmTicket.Priority.HIGH,
+            "source": FmTicket.Source.WEB,
+            "status": FmTicket.Status.OPEN,
+        }
+        values.update(overrides)
+        return FmTicket.objects.create(**values)
+
+    def test_assignment_creates_notification_for_changed_eligible_assignee(self):
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.assignee,
+            assigned_by=self.actor,
+        )
+
+        notifications = Notification.objects.filter(event_code=ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(notifications.count(), 1)
+        notification = notifications.get()
+        self.assertEqual(notification.recipient, self.assignee)
+        self.assertIn(self.ticket.ticket_number, notification.message)
+        self.assertIn(self.ticket.title, notification.message)
+
+    def test_assignment_notification_uses_correct_event_code_and_source_fields(self):
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.assignee,
+            assigned_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(notification.event_code, ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(notification.source_module, "fm_tickets")
+        self.assertEqual(notification.source_object_id, self.ticket.id)
+        self.assertEqual(notification.severity, Notification.Severity.INFO)
+
+    def test_assignment_notification_target_url_points_to_ticket_detail_route(self):
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.assignee,
+            assigned_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(notification.target_url, f"/fm-tickets/{self.ticket.id}")
+
+    def test_assignment_notification_includes_only_approved_metadata(self):
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.assignee,
+            assigned_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(
+            notification.metadata,
+            {
+                "ticket_number": self.ticket.ticket_number,
+                "event": "assigned",
+            },
+        )
+
+    def test_same_assignee_reassignment_creates_no_additional_notification(self):
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.assignee,
+            assigned_by=self.actor,
+        )
+        self.assertEqual(
+            Notification.objects.filter(event_code=ASSIGNMENT_EVENT_CODE).count(),
+            1,
+        )
+
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.assignee,
+            assigned_by=self.actor,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(event_code=ASSIGNMENT_EVENT_CODE).count(),
+            1,
+        )
+
+    def test_actor_assigned_to_themselves_receives_no_self_notification(self):
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=self.actor,
+            assigned_by=self.actor,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_inactive_assignee_receives_no_notification(self):
+        inactive_assignee = User.objects.create_user(
+            email="inactive-assignee@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+            is_active=False,
+        )
+
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=inactive_assignee,
+            assigned_by=self.actor,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.assignee, inactive_assignee)
+
+    def test_cross_tenant_recipient_receives_no_tenant_bound_notification(self):
+        other_tenant = Tenant.objects.create(name="Other Tenant", code="other-tenant")
+        cross_tenant_assignee = User.objects.create_user(
+            email="cross-tenant@example.com",
+            password="Password123!",
+            tenant=other_tenant,
+        )
+
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=cross_tenant_assignee,
+            assigned_by=self.actor,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_global_recipient_receives_no_tenant_bound_notification(self):
+        global_assignee = User.objects.create_user(
+            email="global-assignee@example.com",
+            password="Password123!",
+        )
+
+        assign_ticket(
+            ticket=self.ticket,
+            assigned_to=global_assignee,
+            assigned_by=self.actor,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_status_change_notifies_eligible_requester(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.IN_PROGRESS,
+            changed_by=self.actor,
+        )
+
+        notification = Notification.objects.get(
+            event_code=STATUS_CHANGED_EVENT_CODE,
+            recipient=self.requester,
+        )
+        self.assertIn(self.ticket.ticket_number, notification.message)
+        self.assertIn("Open", notification.message)
+        self.assertIn("In Progress", notification.message)
+
+    def test_status_change_notifies_eligible_assignee(self):
+        self.ticket.assignee = self.assignee
+        self.ticket.save(update_fields=["assignee"])
+
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.IN_PROGRESS,
+            changed_by=self.actor,
+        )
+
+        self.assertTrue(
+            Notification.objects.filter(
+                event_code=STATUS_CHANGED_EVENT_CODE,
+                recipient=self.assignee,
+            ).exists()
+        )
+
+    def test_status_change_excludes_actor_from_notifications(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.IN_PROGRESS,
+            changed_by=self.requester,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_status_change_deduplicates_requester_and_assignee(self):
+        self.ticket.assignee = self.requester
+        self.ticket.save(update_fields=["assignee"])
+
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.IN_PROGRESS,
+            changed_by=self.actor,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(event_code=STATUS_CHANGED_EVENT_CODE).count(),
+            1,
+        )
+
+    def test_no_op_status_change_creates_no_notification(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.OPEN,
+            changed_by=self.actor,
+        )
+
+        self.assertEqual(Notification.objects.count(), 0)
+        self.assertEqual(self.ticket.status_history_entries.count(), 0)
+
+    def test_resolved_status_uses_success_severity(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.RESOLVED,
+            changed_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertEqual(notification.severity, Notification.Severity.SUCCESS)
+
+    def test_closed_status_uses_success_severity(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.CLOSED,
+            changed_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertEqual(notification.severity, Notification.Severity.SUCCESS)
+
+    def test_cancelled_status_uses_warning_severity(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.CANCELLED,
+            changed_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertEqual(notification.severity, Notification.Severity.WARNING)
+
+    def test_other_status_changes_use_info_severity(self):
+        change_ticket_status(
+            ticket=self.ticket,
+            to_status=FmTicket.Status.IN_PROGRESS,
+            changed_by=self.actor,
+        )
+
+        notification = Notification.objects.get(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertEqual(notification.severity, Notification.Severity.INFO)
+        self.assertEqual(
+            notification.metadata,
+            {
+                "ticket_number": self.ticket.ticket_number,
+                "event": "status_changed",
+                "from_status": FmTicket.Status.OPEN,
+                "to_status": FmTicket.Status.IN_PROGRESS,
+            },
+        )
+
+    @patch("apps.fm_tickets.notification_service.create_notification")
+    def test_assignment_notification_failure_rolls_back_workflow_state_and_history(
+        self,
+        mock_create_notification,
+    ):
+        mock_create_notification.side_effect = ValidationError("Notification write failed.")
+
+        with self.assertRaises(ValidationError):
+            assign_ticket(
+                ticket=self.ticket,
+                assigned_to=self.assignee,
+                assigned_by=self.actor,
+            )
+
+        self.ticket.refresh_from_db()
+        self.assertIsNone(self.ticket.assignee_id)
+        self.assertEqual(self.ticket.status, FmTicket.Status.OPEN)
+        self.assertEqual(
+            self.ticket.history_entries.filter(action="assigned").count(),
+            0,
+        )
+        self.assertEqual(self.ticket.status_history_entries.count(), 0)
+
+    @patch("apps.fm_tickets.notification_service.create_notification")
+    def test_status_notification_failure_rolls_back_workflow_state_and_history(
+        self,
+        mock_create_notification,
+    ):
+        mock_create_notification.side_effect = ValidationError("Notification write failed.")
+
+        with self.assertRaises(ValidationError):
+            change_ticket_status(
+                ticket=self.ticket,
+                to_status=FmTicket.Status.IN_PROGRESS,
+                changed_by=self.actor,
+            )
+
+        self.ticket.refresh_from_db()
+        self.assertEqual(self.ticket.status, FmTicket.Status.OPEN)
+        self.assertEqual(
+            self.ticket.history_entries.filter(action="status_changed").count(),
+            0,
+        )
+        self.assertEqual(self.ticket.status_history_entries.count(), 0)
 
 
 class FmTicketSeedCommandTests(FmTicketTestDataMixin, APITestCase):

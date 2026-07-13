@@ -1,0 +1,1606 @@
+import uuid
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.test import override_settings
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.test import APITestCase
+
+from apps.master_data.models import Tenant
+
+from .models import Notification, NotificationDelivery, NotificationPreference
+from .preference_services import (
+    get_effective_notification_preference,
+    set_notification_preferences,
+)
+from .services import (
+    bulk_update_notification_state,
+    create_notification,
+    mark_all_notifications_read,
+    mark_notification_unread,
+)
+
+User = get_user_model()
+
+
+class NotificationModelTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.user = User.objects.create_user(
+            email="model-user@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+
+    def test_notification_uuid_and_default_fields(self):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient=self.user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity=Notification.Severity.INFO,
+        )
+
+        self.assertIsInstance(notification.id, uuid.UUID)
+        self.assertEqual(notification.metadata, {})
+        self.assertFalse(notification.is_read)
+        self.assertIsNone(notification.read_at)
+
+    def test_recipient_tenant_consistency_validation(self):
+        other_tenant = Tenant.objects.create(name="Tenant B", code="tenant-b")
+        notification = Notification(
+            tenant=other_tenant,
+            recipient=self.user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity=Notification.Severity.INFO,
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            notification.full_clean()
+
+
+class NotificationServiceTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.other_tenant = Tenant.objects.create(name="Tenant B", code="tenant-b")
+        self.tenant_user = User.objects.create_user(
+            email="tenant-user@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.global_user = User.objects.create_user(
+            email="global-user@example.com",
+            password="Password123!",
+        )
+
+    def test_creation_service_requires_explicit_recipient(self):
+        with self.assertRaisesMessage(Exception, "Recipient is required"):
+            create_notification(
+                recipient=None,
+                event_code="maintenance.assigned",
+                title="Assigned",
+                message="A work order was assigned.",
+                severity="info",
+            )
+
+    def test_creation_service_derives_tenant_from_recipient(self):
+        notification = create_notification(
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity="warning",
+            source_module="maintenance",
+            metadata={"work_order": "WO-1001"},
+        )
+
+        self.assertEqual(notification.tenant_id, self.tenant.id)
+        self.assertEqual(notification.severity, Notification.Severity.WARNING)
+        self.assertEqual(notification.source_module, "maintenance")
+        delivery = NotificationDelivery.objects.get(notification=notification)
+        self.assertEqual(delivery.channel, NotificationDelivery.Channel.IN_APP)
+        self.assertEqual(delivery.status, NotificationDelivery.Status.DELIVERED)
+        self.assertEqual(delivery.recipient_id, self.tenant_user.id)
+        self.assertEqual(delivery.tenant_id, self.tenant.id)
+        self.assertIsNotNone(delivery.delivered_at)
+        self.assertEqual(delivery.attempt_count, 0)
+
+    def test_creation_service_rejects_mismatched_tenant(self):
+        with self.assertRaisesMessage(Exception, "tenant"):
+            create_notification(
+                recipient=self.tenant_user,
+                tenant=self.other_tenant,
+                event_code="maintenance.assigned",
+                title="Assigned",
+                message="A work order was assigned.",
+                severity="info",
+            )
+
+    def test_creation_service_rejects_invalid_severity(self):
+        with self.assertRaisesMessage(Exception, "Severity must be one of"):
+            create_notification(
+                recipient=self.tenant_user,
+                event_code="maintenance.assigned",
+                title="Assigned",
+                message="A work order was assigned.",
+                severity="critical",
+            )
+
+    def test_creation_service_rejects_tenant_binding_for_global_user(self):
+        with self.assertRaisesMessage(Exception, "Global recipients"):
+            create_notification(
+                recipient=self.global_user,
+                tenant=self.tenant,
+                event_code="maintenance.assigned",
+                title="Assigned",
+                message="A work order was assigned.",
+                severity="info",
+            )
+
+
+@override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
+class NotificationEndpointTests(APITestCase):
+    def setUp(self):
+        self.tenant_a = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.tenant_b = Tenant.objects.create(name="Tenant B", code="tenant-b")
+
+        self.recipient_a = User.objects.create_user(
+            email="recipient-a@example.com",
+            password="Password123!",
+            tenant=self.tenant_a,
+        )
+        self.recipient_b = User.objects.create_user(
+            email="recipient-b@example.com",
+            password="Password123!",
+            tenant=self.tenant_b,
+        )
+        self.global_user = User.objects.create_user(
+            email="global@example.com",
+            password="Password123!",
+        )
+        self.other_global_user = User.objects.create_user(
+            email="other-global@example.com",
+            password="Password123!",
+        )
+        self.superuser = User.objects.create_superuser(
+            email="superuser@example.com",
+            password="Password123!",
+        )
+
+        self.notification_a1 = create_notification(
+            recipient=self.recipient_a,
+            event_code="maintenance.created",
+            title="Created",
+            message="Notification A1",
+            severity="info",
+            source_module="maintenance",
+        )
+        self.notification_a2 = create_notification(
+            recipient=self.recipient_a,
+            event_code="inspection.completed",
+            title="Completed",
+            message="Notification A2",
+            severity="warning",
+            source_module="inspection",
+            metadata={"inspection": "I-100"},
+        )
+        self.notification_b1 = create_notification(
+            recipient=self.recipient_b,
+            event_code="maintenance.completed",
+            title="Completed",
+            message="Notification B1",
+            severity="success",
+            source_module="maintenance",
+        )
+        self.global_notification = create_notification(
+            recipient=self.global_user,
+            event_code="dashboard.digest",
+            title="Digest",
+            message="Global digest",
+            severity="info",
+            source_module="dashboard",
+        )
+        self.other_global_notification = create_notification(
+            recipient=self.other_global_user,
+            event_code="dashboard.digest",
+            title="Digest",
+            message="Other global digest",
+            severity="info",
+            source_module="dashboard",
+        )
+
+        self.list_url = reverse("notification-list")
+        self.unread_count_url = reverse("notification-unread-count")
+
+    def _detail_url(self, notification):
+        return reverse("notification-detail", args=(notification.id,))
+
+    def _auth(self, user):
+        self.client.force_authenticate(user=user)
+
+    def test_anonymous_access_is_rejected(self):
+        responses = (
+            self.client.get(self.list_url),
+            self.client.get(self._detail_url(self.notification_a1)),
+            self.client.get(self.unread_count_url),
+        )
+
+        for response in responses:
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_recipient_can_list_and_retrieve_own_notifications(self):
+        self._auth(self.recipient_a)
+
+        list_response = self.client.get(self.list_url)
+        detail_response = self.client.get(self._detail_url(self.notification_a1))
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["count"], 2)
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data["id"], str(self.notification_a1.id))
+
+    def test_recipient_cannot_retrieve_another_users_notification(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.get(self._detail_url(self.notification_b1))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_cross_tenant_notification_isolation(self):
+        Notification.objects.create(
+            tenant=self.tenant_b,
+            recipient=self.recipient_a,
+            event_code="security.alert",
+            title="Inconsistent",
+            message="Mismatched tenant record",
+            severity=Notification.Severity.ERROR,
+        )
+        self._auth(self.recipient_a)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+
+    def test_global_and_superuser_accounts_cannot_bypass_recipient_isolation(self):
+        self._auth(self.global_user)
+        global_list = self.client.get(self.list_url)
+        global_other_detail = self.client.get(
+            self._detail_url(self.other_global_notification)
+        )
+
+        self.assertEqual(global_list.status_code, status.HTTP_200_OK)
+        self.assertEqual(global_list.data["count"], 1)
+        self.assertEqual(
+            global_list.data["results"][0]["id"],
+            str(self.global_notification.id),
+        )
+        self.assertEqual(global_other_detail.status_code, status.HTTP_404_NOT_FOUND)
+
+        self._auth(self.superuser)
+        superuser_list = self.client.get(self.list_url)
+        superuser_other_detail = self.client.get(
+            self._detail_url(self.notification_a1)
+        )
+
+        self.assertEqual(superuser_list.status_code, status.HTTP_200_OK)
+        self.assertEqual(superuser_list.data["count"], 0)
+        self.assertEqual(superuser_other_detail.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_unread_filtering(self):
+        self.notification_a1.is_read = True
+        self.notification_a1.save(update_fields=("is_read", "updated_at"))
+        self._auth(self.recipient_a)
+
+        unread_response = self.client.get(self.list_url, {"is_read": "false"})
+        read_response = self.client.get(self.list_url, {"is_read": "true"})
+
+        self.assertEqual(unread_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(unread_response.data["count"], 1)
+        self.assertEqual(read_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(read_response.data["count"], 1)
+
+    def test_severity_and_source_module_filtering(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.get(
+            self.list_url,
+            {
+                "severity": "warning",
+                "source_module": "inspection",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], str(self.notification_a2.id))
+
+    def test_invalid_filters_fail_safely(self):
+        self._auth(self.recipient_a)
+
+        invalid_severity = self.client.get(self.list_url, {"severity": "nope"})
+        invalid_is_read = self.client.get(self.list_url, {"is_read": "maybe"})
+
+        self.assertEqual(invalid_severity.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(invalid_is_read.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_preferences_path_does_not_conflict_with_uuid_detail(self):
+        self._auth(self.recipient_a)
+        preferences_url = reverse("notification-preferences")
+
+        response = self.client.get(preferences_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("defaults", response.data)
+        self.assertIn("preferences", response.data)
+        self.assertNotIn("results", response.data)
+
+    def test_newest_first_ordering_is_deterministic(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_ids = [item["id"] for item in response.data["results"]]
+        self.assertEqual(returned_ids[0], str(self.notification_a2.id))
+        self.assertEqual(returned_ids[1], str(self.notification_a1.id))
+
+    def test_unread_count_endpoint_returns_recipient_scoped_count(self):
+        self.notification_a1.is_read = True
+        self.notification_a1.save(update_fields=("is_read", "updated_at"))
+        self._auth(self.recipient_a)
+
+        response = self.client.get(self.unread_count_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"unread_count": 1})
+
+    def test_invalid_uuid_and_missing_record_behavior(self):
+        self._auth(self.recipient_a)
+
+        invalid_uuid = self.client.get("/api/v1/notifications/not-a-uuid/")
+        missing_uuid = self.client.get(
+            f"/api/v1/notifications/{uuid.uuid4()}/"
+        )
+
+        self.assertEqual(invalid_uuid.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(missing_uuid.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_pagination_contract(self):
+        for index in range(25):
+            create_notification(
+                recipient=self.recipient_a,
+                event_code=f"maintenance.bulk-{index}",
+                title=f"Bulk {index}",
+                message="Bulk message",
+                severity="info",
+                source_module="maintenance",
+            )
+        self._auth(self.recipient_a)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("count", response.data)
+        self.assertIn("next", response.data)
+        self.assertIn("previous", response.data)
+        self.assertIn("results", response.data)
+        self.assertEqual(len(response.data["results"]), 20)
+
+
+@override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
+class NotificationMutationTests(APITestCase):
+    def setUp(self):
+        self.tenant_a = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.tenant_b = Tenant.objects.create(name="Tenant B", code="tenant-b")
+
+        self.recipient_a = User.objects.create_user(
+            email="recipient-a@example.com",
+            password="Password123!",
+            tenant=self.tenant_a,
+        )
+        self.recipient_b = User.objects.create_user(
+            email="recipient-b@example.com",
+            password="Password123!",
+            tenant=self.tenant_b,
+        )
+        self.global_user = User.objects.create_user(
+            email="global@example.com",
+            password="Password123!",
+        )
+        self.superuser = User.objects.create_superuser(
+            email="superuser@example.com",
+            password="Password123!",
+        )
+
+        self.notification_a_unread = create_notification(
+            recipient=self.recipient_a,
+            event_code="maintenance.created",
+            title="Unread A",
+            message="Unread notification",
+            severity="info",
+        )
+        self.notification_a_read = create_notification(
+            recipient=self.recipient_a,
+            event_code="maintenance.updated",
+            title="Read A",
+            message="Read notification",
+            severity="warning",
+        )
+        self.notification_a_read.is_read = True
+        self.notification_a_read.read_at = timezone.now()
+        self.notification_a_read.save(
+            update_fields=("is_read", "read_at", "updated_at")
+        )
+
+        self.notification_b = create_notification(
+            recipient=self.recipient_b,
+            event_code="maintenance.completed",
+            title="Recipient B",
+            message="Other recipient notification",
+            severity="success",
+        )
+        self.global_notification = create_notification(
+            recipient=self.global_user,
+            event_code="dashboard.digest",
+            title="Global",
+            message="Global notification",
+            severity="info",
+        )
+
+        self.mark_read_url = lambda notification: reverse(
+            "notification-mark-read",
+            args=(notification.id,),
+        )
+        self.mark_unread_url = lambda notification: reverse(
+            "notification-mark-unread",
+            args=(notification.id,),
+        )
+        self.mark_all_read_url = reverse("notification-mark-all-read")
+        self.bulk_state_url = reverse("notification-bulk-state")
+
+    def _auth(self, user):
+        self.client.force_authenticate(user=user)
+
+    def _recipient_a_queryset(self):
+        return Notification.objects.filter(
+            recipient_id=self.recipient_a.id,
+            tenant_id=self.tenant_a.id,
+        )
+
+    def test_anonymous_mutation_requests_are_rejected(self):
+        responses = (
+            self.client.post(self.mark_read_url(self.notification_a_unread)),
+            self.client.post(self.mark_unread_url(self.notification_a_read)),
+            self.client.post(self.mark_all_read_url),
+            self.client.post(
+                self.bulk_state_url,
+                {"notification_ids": [str(self.notification_a_unread.id)], "is_read": True},
+                format="json",
+            ),
+        )
+
+        for response in responses:
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_recipient_can_mark_their_notification_read(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(self.notification_a_unread))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_read"])
+        self.assertIsNotNone(response.data["read_at"])
+
+    def test_mark_read_sets_timezone_aware_read_at(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(self.notification_a_unread))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.notification_a_unread.refresh_from_db()
+        self.assertTrue(timezone.is_aware(self.notification_a_unread.read_at))
+
+    def test_repeated_mark_read_is_idempotent_and_preserves_read_at(self):
+        self._auth(self.recipient_a)
+
+        first = self.client.post(self.mark_read_url(self.notification_a_unread))
+        second = self.client.post(self.mark_read_url(self.notification_a_unread))
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(first.data["read_at"], second.data["read_at"])
+
+    def test_recipient_can_mark_their_notification_unread(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_unread_url(self.notification_a_read))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_read"])
+        self.assertIsNone(response.data["read_at"])
+
+    def test_repeated_mark_unread_is_idempotent(self):
+        self._auth(self.recipient_a)
+        self.client.post(self.mark_unread_url(self.notification_a_read))
+
+        response = self.client.post(self.mark_unread_url(self.notification_a_read))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_read"])
+        self.assertIsNone(response.data["read_at"])
+
+    def test_recipient_cannot_mutate_another_users_notification(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(self.notification_b))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_cross_tenant_mutation_returns_generic_404(self):
+        cross_tenant = Notification.objects.create(
+            tenant=self.tenant_b,
+            recipient=self.recipient_a,
+            event_code="security.alert",
+            title="Inconsistent",
+            message="Mismatched tenant record",
+            severity=Notification.Severity.ERROR,
+        )
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_read_url(cross_tenant))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_superuser_and_global_account_cannot_bypass_recipient_isolation(self):
+        self._auth(self.global_user)
+        global_response = self.client.post(
+            self.mark_read_url(self.notification_a_unread)
+        )
+        self.assertEqual(global_response.status_code, status.HTTP_404_NOT_FOUND)
+
+        self._auth(self.superuser)
+        superuser_response = self.client.post(
+            self.mark_read_url(self.notification_a_unread)
+        )
+        self.assertEqual(superuser_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_mark_all_read_updates_only_authenticated_recipient_notifications(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(self.mark_all_read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"updated_count": 1})
+        self.notification_a_unread.refresh_from_db()
+        self.notification_b.refresh_from_db()
+        self.assertTrue(self.notification_a_unread.is_read)
+        self.assertFalse(self.notification_b.is_read)
+
+    def test_mark_all_read_does_not_affect_another_user_or_tenant(self):
+        self._auth(self.recipient_a)
+        self.client.post(self.mark_all_read_url)
+
+        self.notification_b.refresh_from_db()
+        self.assertFalse(self.notification_b.is_read)
+
+    def test_repeated_mark_all_read_returns_zero_updated_count(self):
+        self._auth(self.recipient_a)
+        self.client.post(self.mark_all_read_url)
+
+        response = self.client.post(self.mark_all_read_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {"updated_count": 0})
+
+    def test_bulk_read_succeeds_for_owned_notification_ids(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [
+                    str(self.notification_a_unread.id),
+                    str(self.notification_a_read.id),
+                ],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            {"updated_count": 1, "is_read": True},
+        )
+
+    def test_bulk_unread_succeeds_for_owned_notification_ids(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(self.notification_a_read.id)],
+                "is_read": False,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            {"updated_count": 1, "is_read": False},
+        )
+        self.notification_a_read.refresh_from_db()
+        self.assertFalse(self.notification_a_read.is_read)
+        self.assertIsNone(self.notification_a_read.read_at)
+
+    def test_bulk_read_preserves_existing_read_at(self):
+        original_read_at = self.notification_a_read.read_at
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(self.notification_a_read.id)],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["updated_count"], 0)
+        self.notification_a_read.refresh_from_db()
+        self.assertEqual(self.notification_a_read.read_at, original_read_at)
+
+    def test_bulk_request_rejects_empty_id_list(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {"notification_ids": [], "is_read": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_request_rejects_more_than_100_ids(self):
+        self._auth(self.recipient_a)
+        ids = [str(uuid.uuid4()) for _ in range(101)]
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {"notification_ids": ids, "is_read": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bulk_request_validates_uuid_values(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {"notification_ids": ["not-a-uuid"], "is_read": True},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_mixed_owned_and_unauthorized_ids_produce_no_partial_update(self):
+        self._auth(self.recipient_a)
+
+        response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [
+                    str(self.notification_a_unread.id),
+                    str(self.notification_b.id),
+                ],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.notification_a_unread.refresh_from_db()
+        self.notification_b.refresh_from_db()
+        self.assertFalse(self.notification_a_unread.is_read)
+        self.assertFalse(self.notification_b.is_read)
+
+    def test_unknown_and_unauthorized_ids_use_same_non_enumerating_response(self):
+        self._auth(self.recipient_a)
+
+        unknown_response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(uuid.uuid4())],
+                "is_read": True,
+            },
+            format="json",
+        )
+        unauthorized_response = self.client.post(
+            self.bulk_state_url,
+            {
+                "notification_ids": [str(self.notification_b.id)],
+                "is_read": True,
+            },
+            format="json",
+        )
+
+        self.assertEqual(unknown_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(unauthorized_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_service_mark_unread_clears_read_at(self):
+        mark_notification_unread(self.notification_a_read)
+        self.notification_a_read.refresh_from_db()
+        self.assertFalse(self.notification_a_read.is_read)
+        self.assertIsNone(self.notification_a_read.read_at)
+
+    def test_service_mark_all_read_only_counts_recipient_scope(self):
+        updated_count = mark_all_notifications_read(self._recipient_a_queryset())
+        self.assertEqual(updated_count, 1)
+
+    def test_service_bulk_update_normalizes_duplicate_ids(self):
+        updated_count = bulk_update_notification_state(
+            self._recipient_a_queryset(),
+            [
+                self.notification_a_unread.id,
+                self.notification_a_unread.id,
+            ],
+            True,
+        )
+        self.assertEqual(updated_count, 1)
+
+
+class NotificationPreferenceServiceTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.other_tenant = Tenant.objects.create(name="Tenant B", code="tenant-b")
+        self.tenant_user = User.objects.create_user(
+            email="pref-tenant-user@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.global_user = User.objects.create_user(
+            email="pref-global-user@example.com",
+            password="Password123!",
+        )
+
+    def test_platform_fallback_enables_in_app_and_disables_external_channels(self):
+        self.assertTrue(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.IN_APP,
+            )
+        )
+        self.assertFalse(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.EMAIL,
+            )
+        )
+
+    def test_channel_default_overrides_platform_fallback(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        self.assertTrue(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.EMAIL,
+            )
+        )
+
+    def test_module_specific_preference_overrides_channel_default(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": False,
+                },
+            ],
+        )
+
+        self.assertTrue(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.EMAIL,
+            )
+        )
+        self.assertFalse(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.EMAIL,
+                source_module="maintenance",
+            )
+        )
+
+    def test_source_module_normalization_trims_and_lowercases(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": " Maintenance ",
+                    "channel": NotificationPreference.Channel.PUSH,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        preference = NotificationPreference.objects.get(
+            recipient=self.tenant_user,
+            source_module="maintenance",
+            channel=NotificationPreference.Channel.PUSH,
+        )
+        self.assertTrue(preference.is_enabled)
+
+    def test_duplicate_entries_in_one_request_are_rejected(self):
+        with self.assertRaisesMessage(Exception, "Duplicate"):
+            set_notification_preferences(
+                self.tenant_user,
+                [
+                    {
+                        "source_module": "",
+                        "channel": NotificationPreference.Channel.EMAIL,
+                        "is_enabled": True,
+                    },
+                    {
+                        "source_module": "",
+                        "channel": NotificationPreference.Channel.EMAIL,
+                        "is_enabled": False,
+                    },
+                ],
+            )
+
+    def test_malformed_source_module_is_rejected(self):
+        with self.assertRaisesMessage(Exception, "Source module"):
+            set_notification_preferences(
+                self.tenant_user,
+                [
+                    {
+                        "source_module": "invalid module!",
+                        "channel": NotificationPreference.Channel.EMAIL,
+                        "is_enabled": True,
+                    }
+                ],
+            )
+
+    def test_invalid_channel_is_rejected(self):
+        with self.assertRaisesMessage(Exception, "Channel must be one of"):
+            set_notification_preferences(
+                self.tenant_user,
+                [
+                    {
+                        "source_module": "",
+                        "channel": "pager",
+                        "is_enabled": True,
+                    }
+                ],
+            )
+
+    def test_tenant_bound_preference_persists_matching_tenant(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "fm_tickets",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        preference = NotificationPreference.objects.get(recipient=self.tenant_user)
+        self.assertEqual(preference.tenant_id, self.tenant.id)
+
+    def test_global_recipient_persists_null_tenant(self):
+        set_notification_preferences(
+            self.global_user,
+            [
+                {
+                    "source_module": "",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        preference = NotificationPreference.objects.get(recipient=self.global_user)
+        self.assertIsNone(preference.tenant_id)
+
+    def test_cross_tenant_preference_assignment_is_rejected(self):
+        preference = NotificationPreference(
+            recipient=self.tenant_user,
+            tenant=self.other_tenant,
+            source_module="",
+            channel=NotificationPreference.Channel.EMAIL,
+            is_enabled=True,
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            preference.full_clean()
+
+    @patch("apps.notifications.preference_services.NotificationPreference.save")
+    def test_atomic_update_rolls_back_on_unexpected_save_failure(
+        self,
+        mock_save,
+    ):
+        mock_save.side_effect = DRFValidationError("Preference write failed.")
+
+        with self.assertRaises(DRFValidationError):
+            set_notification_preferences(
+                self.tenant_user,
+                [
+                    {
+                        "source_module": "",
+                        "channel": NotificationPreference.Channel.EMAIL,
+                        "is_enabled": True,
+                    }
+                ],
+            )
+
+        self.assertEqual(NotificationPreference.objects.count(), 0)
+
+    def test_null_deletes_existing_module_override(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                }
+            ],
+        )
+
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+
+    def test_deleted_override_falls_back_to_channel_default(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": False,
+                },
+            ],
+        )
+
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                }
+            ],
+        )
+
+        self.assertTrue(
+            get_effective_notification_preference(
+                self.tenant_user,
+                NotificationPreference.Channel.EMAIL,
+                source_module="maintenance",
+            )
+        )
+
+    def test_null_for_channel_default_is_rejected(self):
+        with self.assertRaisesMessage(Exception, "cannot be null"):
+            set_notification_preferences(
+                self.tenant_user,
+                [
+                    {
+                        "source_module": "",
+                        "channel": NotificationPreference.Channel.EMAIL,
+                        "is_enabled": None,
+                    }
+                ],
+            )
+
+    def test_deleting_nonexistent_module_override_is_idempotent(self):
+        response = set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                }
+            ],
+        )
+
+        self.assertEqual(response["preferences"], [])
+
+    def test_mixed_create_update_delete_request_is_atomic(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "inspection",
+                    "channel": NotificationPreference.Channel.SMS,
+                    "is_enabled": False,
+                },
+            ],
+        )
+
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": None,
+                },
+                {
+                    "source_module": "fm_tickets",
+                    "channel": NotificationPreference.Channel.PUSH,
+                    "is_enabled": True,
+                },
+                {
+                    "source_module": "inspection",
+                    "channel": NotificationPreference.Channel.SMS,
+                    "is_enabled": True,
+                },
+            ],
+        )
+
+        preferences = NotificationPreference.objects.filter(
+            recipient=self.tenant_user,
+        ).order_by("source_module", "channel")
+        self.assertEqual(preferences.count(), 2)
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+        self.assertTrue(
+            NotificationPreference.objects.get(
+                recipient=self.tenant_user,
+                source_module="fm_tickets",
+                channel=NotificationPreference.Channel.PUSH,
+            ).is_enabled
+        )
+        self.assertTrue(
+            NotificationPreference.objects.get(
+                recipient=self.tenant_user,
+                source_module="inspection",
+                channel=NotificationPreference.Channel.SMS,
+            ).is_enabled
+        )
+
+    def test_failure_in_one_entry_rolls_back_all_changes(self):
+        set_notification_preferences(
+            self.tenant_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        with patch(
+            "apps.notifications.preference_services.NotificationPreference.save"
+        ) as mock_save:
+            mock_save.side_effect = DRFValidationError("Preference write failed.")
+
+            with self.assertRaises(DRFValidationError):
+                set_notification_preferences(
+                    self.tenant_user,
+                    [
+                        {
+                            "source_module": "inspection",
+                            "channel": NotificationPreference.Channel.SMS,
+                            "is_enabled": True,
+                        },
+                        {
+                            "source_module": "maintenance",
+                            "channel": NotificationPreference.Channel.EMAIL,
+                            "is_enabled": None,
+                        },
+                    ],
+                )
+
+        self.assertTrue(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.tenant_user,
+                source_module="inspection",
+                channel=NotificationPreference.Channel.SMS,
+            ).exists()
+        )
+
+
+@override_settings(PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",))
+class NotificationPreferenceEndpointTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.recipient = User.objects.create_user(
+            email="pref-recipient@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.other_user = User.objects.create_user(
+            email="pref-other@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.superuser = User.objects.create_superuser(
+            email="pref-superuser@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.preferences_url = reverse("notification-preferences")
+
+    def test_preferences_endpoint_requires_authentication(self):
+        response = self.client.get(self.preferences_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_returns_only_caller_preferences(self):
+        set_notification_preferences(
+            self.recipient,
+            [
+                {
+                    "source_module": "",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+        set_notification_preferences(
+            self.other_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.SMS,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        self.client.force_authenticate(self.recipient)
+        response = self.client.get(self.preferences_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["defaults"]["in_app"], True)
+        self.assertEqual(response.data["defaults"]["email"], False)
+        self.assertEqual(len(response.data["preferences"]), 1)
+        self.assertEqual(response.data["preferences"][0]["source_module"], "")
+        self.assertEqual(response.data["preferences"][0]["channel"], "email")
+
+    def test_put_updates_only_caller_preferences(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "inspection",
+                        "channel": "push",
+                        "is_enabled": True,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["preferences"]), 1)
+        self.assertEqual(
+            NotificationPreference.objects.filter(recipient=self.recipient).count(),
+            1,
+        )
+        self.assertEqual(
+            NotificationPreference.objects.filter(recipient=self.other_user).count(),
+            0,
+        )
+
+    def test_superuser_cannot_update_another_users_preferences_via_api(self):
+        self.client.force_authenticate(self.superuser)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "",
+                        "channel": "email",
+                        "is_enabled": True,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            NotificationPreference.objects.filter(recipient=self.superuser).count(),
+            1,
+        )
+        self.assertEqual(
+            NotificationPreference.objects.filter(recipient=self.recipient).count(),
+            0,
+        )
+
+    def test_put_rejects_duplicate_entries(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "",
+                        "channel": "email",
+                        "is_enabled": True,
+                    },
+                    {
+                        "source_module": "",
+                        "channel": "email",
+                        "is_enabled": False,
+                    },
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_rejects_invalid_channel(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "",
+                        "channel": "pager",
+                        "is_enabled": True,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_rejects_malformed_source_module(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "bad module",
+                        "channel": "email",
+                        "is_enabled": True,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_null_deletes_module_override(self):
+        set_notification_preferences(
+            self.recipient,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "maintenance",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["preferences"]), 0)
+        self.assertFalse(
+            NotificationPreference.objects.filter(
+                recipient=self.recipient,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+
+    def test_put_rejects_null_for_channel_default(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_put_deleting_nonexistent_override_is_idempotent(self):
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "maintenance",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["preferences"]), 0)
+
+    def test_another_recipients_preferences_remain_inaccessible(self):
+        set_notification_preferences(
+            self.other_user,
+            [
+                {
+                    "source_module": "maintenance",
+                    "channel": NotificationPreference.Channel.EMAIL,
+                    "is_enabled": True,
+                }
+            ],
+        )
+
+        self.client.force_authenticate(self.recipient)
+        response = self.client.put(
+            self.preferences_url,
+            {
+                "preferences": [
+                    {
+                        "source_module": "maintenance",
+                        "channel": "email",
+                        "is_enabled": None,
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            NotificationPreference.objects.filter(
+                recipient=self.other_user,
+                source_module="maintenance",
+                channel=NotificationPreference.Channel.EMAIL,
+            ).exists()
+        )
+
+
+class NotificationDeliveryFoundationTests(APITestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant A", code="tenant-a")
+        self.other_tenant = Tenant.objects.create(name="Tenant B", code="tenant-b")
+        self.tenant_user = User.objects.create_user(
+            email="delivery-tenant-user@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+
+    def test_create_notification_creates_delivered_in_app_delivery_record(self):
+        notification = create_notification(
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity="info",
+        )
+
+        delivery = NotificationDelivery.objects.get(notification=notification)
+        self.assertEqual(delivery.channel, NotificationDelivery.Channel.IN_APP)
+        self.assertEqual(delivery.status, NotificationDelivery.Status.DELIVERED)
+        self.assertEqual(delivery.recipient_id, self.tenant_user.id)
+        self.assertEqual(delivery.tenant_id, self.tenant.id)
+        self.assertIsNotNone(delivery.delivered_at)
+        self.assertTrue(timezone.is_aware(delivery.delivered_at))
+        self.assertEqual(delivery.attempt_count, 0)
+
+    def test_duplicate_notification_channel_delivery_is_rejected(self):
+        notification = create_notification(
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity="info",
+        )
+        duplicate = NotificationDelivery(
+            notification=notification,
+            recipient=self.tenant_user,
+            tenant=self.tenant,
+            channel=NotificationDelivery.Channel.IN_APP,
+            status=NotificationDelivery.Status.DELIVERED,
+            delivered_at=timezone.now(),
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            duplicate.full_clean()
+            duplicate.save()
+
+    def test_delivery_recipient_must_match_notification_recipient(self):
+        other_user = User.objects.create_user(
+            email="delivery-other@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity=Notification.Severity.INFO,
+        )
+        delivery = NotificationDelivery(
+            notification=notification,
+            recipient=other_user,
+            tenant=self.tenant,
+            channel=NotificationDelivery.Channel.IN_APP,
+            status=NotificationDelivery.Status.DELIVERED,
+            delivered_at=timezone.now(),
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            delivery.full_clean()
+
+    def test_delivery_tenant_must_match_notification_tenant(self):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity=Notification.Severity.INFO,
+        )
+        delivery = NotificationDelivery(
+            notification=notification,
+            recipient=self.tenant_user,
+            tenant=self.other_tenant,
+            channel=NotificationDelivery.Channel.IN_APP,
+            status=NotificationDelivery.Status.DELIVERED,
+            delivered_at=timezone.now(),
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            delivery.full_clean()
+
+    def test_delivered_status_requires_delivered_at(self):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity=Notification.Severity.INFO,
+        )
+        delivery = NotificationDelivery(
+            notification=notification,
+            recipient=self.tenant_user,
+            tenant=self.tenant,
+            channel=NotificationDelivery.Channel.IN_APP,
+            status=NotificationDelivery.Status.DELIVERED,
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            delivery.full_clean()
+
+    def test_non_delivered_status_must_not_include_delivered_at(self):
+        notification = Notification.objects.create(
+            tenant=self.tenant,
+            recipient=self.tenant_user,
+            event_code="maintenance.assigned",
+            title="Assigned",
+            message="A work order was assigned.",
+            severity=Notification.Severity.INFO,
+        )
+        delivery = NotificationDelivery(
+            notification=notification,
+            recipient=self.tenant_user,
+            tenant=self.tenant,
+            channel=NotificationDelivery.Channel.EMAIL,
+            status=NotificationDelivery.Status.PENDING,
+            delivered_at=timezone.now(),
+        )
+
+        with self.assertRaises(DjangoValidationError):
+            delivery.full_clean()
+
+    @patch("apps.notifications.services.NotificationDelivery.save")
+    def test_delivery_failure_rolls_back_notification_creation(self, mock_save):
+        mock_save.side_effect = DRFValidationError("Delivery write failed.")
+
+        with self.assertRaises(DRFValidationError):
+            create_notification(
+                recipient=self.tenant_user,
+                event_code="maintenance.assigned",
+                title="Assigned",
+                message="A work order was assigned.",
+                severity="info",
+            )
+
+        self.assertEqual(Notification.objects.count(), 0)
+        self.assertEqual(NotificationDelivery.objects.count(), 0)

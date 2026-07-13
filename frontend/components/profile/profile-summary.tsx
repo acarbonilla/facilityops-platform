@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { CurrentUserCard } from "@/components/auth/current-user-card";
 import { EmptyState } from "@/components/common/empty-state";
 import { LoadingState } from "@/components/common/loading-state";
@@ -42,6 +44,19 @@ export function ProfileSummary() {
       </section>
 
       <CurrentUserCard user={user} />
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-950">Notification preferences</h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          Manage in-app and external channel preferences for FacilityOps notifications.
+        </p>
+        <Link
+          className="mt-4 inline-flex text-sm font-medium text-blue-700 underline-offset-2 hover:underline"
+          href="/settings/notifications"
+        >
+          Open notification preferences
+        </Link>
+      </section>
     </div>
   );
 }

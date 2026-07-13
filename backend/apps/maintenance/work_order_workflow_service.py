@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 
 from .models import (
@@ -9,6 +10,7 @@ from .models import (
     MaintenanceTask,
     MaintenanceWorkOrder,
 )
+from .notification_service import notify_maintenance_status_changed
 from .services import calculate_sla, record_history, record_status_history
 from .validators import validate_status_transition
 
@@ -43,6 +45,7 @@ def _mark_first_response(*, work_order, responded_at=None):
     return sla
 
 
+@transaction.atomic
 def _transition_work_order(
     *,
     work_order,
@@ -53,9 +56,11 @@ def _transition_work_order(
     reason="",
     changed_at=None,
 ):
-    validate_status_transition(work_order.status, to_status)
-
     from_status = work_order.status
+    if from_status == to_status:
+        return work_order
+
+    validate_status_transition(work_order.status, to_status)
     actor_id = str(actor.id) if actor else None
     timestamp = changed_at or timezone.now()
 
@@ -98,6 +103,12 @@ def _transition_work_order(
             "reason": reason,
             "note": note,
         },
+    )
+    notify_maintenance_status_changed(
+        work_order=work_order,
+        from_status=from_status,
+        to_status=to_status,
+        actor=actor,
     )
     return work_order
 
@@ -170,6 +181,7 @@ def _validate_completion_requirements(work_order, completion_notes, actual_hours
         )
 
 
+@transaction.atomic
 def complete_work_order(
     *,
     work_order,
@@ -252,6 +264,7 @@ def cancel_work_order(*, work_order, actor=None, reason="", note=""):
     )
 
 
+@transaction.atomic
 def reopen_work_order(*, work_order, actor=None, reason="", note=""):
     if not reason.strip():
         raise ValidationError({"reason": "Reopen reason is required."})

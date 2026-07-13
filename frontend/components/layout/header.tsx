@@ -1,6 +1,7 @@
 "use client";
 
 import { UserMenu } from "@/components/auth/user-menu";
+import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import { useAuth } from "@/hooks/use-auth";
 import { APP_NAME } from "@/lib/constants";
 
@@ -16,6 +17,7 @@ export function Header() {
 
       {isLoading ? (
         <div className="flex items-center gap-3">
+          <div className="h-10 w-10 animate-pulse rounded-full bg-slate-200" />
           <div className="h-9 w-9 animate-pulse rounded-full bg-slate-200" />
           <div className="hidden sm:block">
             <div className="h-3 w-28 animate-pulse rounded bg-slate-200" />
@@ -23,7 +25,10 @@ export function Header() {
           </div>
         </div>
       ) : isAuthenticated ? (
-        <UserMenu />
+        <div className="flex items-center gap-2 sm:gap-3">
+          <NotificationBell />
+          <UserMenu />
+        </div>
       ) : (
         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
           Foundation

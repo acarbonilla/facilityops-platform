@@ -18,6 +18,10 @@ from apps.inspection.validators import validate_status_transition
 
 from .inspection_history_service import record_history, record_status_history
 from .inspection_scoring_service import get_inspection_sla_targets, refresh_inspection_score
+from .notification_service import (
+    notify_inspection_assigned,
+    notify_inspection_status_changed,
+)
 from .inspection_validation_service import (
     validate_actor_can_access_tenant,
     validate_completion_requirements,
@@ -342,6 +346,8 @@ def assign_inspection(
         message="You cannot assign inspections for another tenant.",
     )
     actor_id = str(actor.id)
+    previous_inspector_id = inspection.inspector_id
+    previous_supervisor_id = inspection.supervisor_id
 
     if inspector:
         inspection.inspector = inspector
@@ -394,6 +400,14 @@ def assign_inspection(
             "note": note,
         },
     )
+    notify_inspection_assigned(
+        inspection=inspection,
+        inspector=inspector,
+        supervisor=supervisor,
+        previous_inspector_id=previous_inspector_id,
+        previous_supervisor_id=previous_supervisor_id,
+        actor=actor,
+    )
     return inspection
 
 
@@ -426,6 +440,12 @@ def change_status(*, inspection, to_status, changed_by=None, reason="", note="")
             "reason": reason,
             "note": note,
         },
+    )
+    notify_inspection_status_changed(
+        inspection=inspection,
+        from_status=from_status,
+        to_status=to_status,
+        actor=changed_by,
     )
     return inspection
 

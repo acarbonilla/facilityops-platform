@@ -1,24 +1,41 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.management import call_command
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.test import APITestCase
 
 from apps.access_control.models import Permission, Role, RolePermission, UserRole
 from apps.inspection.models import (
     Inspection,
     InspectionAIAnalysis,
+    InspectionAssignment,
     InspectionCorrectiveAction,
     InspectionFinding,
     InspectionHistory,
     InspectionItem,
     InspectionSLA,
+    InspectionStatusHistory,
+)
+from apps.inspection.services.inspection_service import (
+    assign_inspection,
+    change_status,
+    start_inspection,
+)
+from apps.inspection.services.notification_service import (
+    ASSIGNMENT_EVENT_CODE,
+    STATUS_CHANGED_EVENT_CODE,
+    notify_inspection_assigned,
+    notify_inspection_status_changed,
 )
 from apps.inspection.services.inspection_ai_service import build_inspection_ai_context
 from apps.master_data.models import Area, Building, Department, Floor, Organization, Tenant
+from apps.notifications.models import Notification
 
 User = get_user_model()
 
@@ -1480,6 +1497,528 @@ class InspectionApiTests(InspectionTestDataMixin, APITestCase):
         self.assertEqual(reopen_response.status_code, status.HTTP_200_OK)
         self.inspection.refresh_from_db()
         self.assertEqual(self.inspection.status, Inspection.Status.REOPENED)
+
+
+class InspectionNotificationIntegrationTests(InspectionTestDataMixin, APITestCase):
+    def setUp(self):
+        self.data = self.create_master_data()
+        self.tenant = self.data["tenant"]
+        self.inspector = User.objects.create_user(
+            email="insp-notify-inspector@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.supervisor = User.objects.create_user(
+            email="insp-notify-supervisor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.actor = User.objects.create_user(
+            email="insp-notify-actor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self.inspection = self._create_inspection()
+
+    def _create_inspection(self, **overrides):
+        values = {
+            "tenant": self.tenant,
+            "organization": self.data["organization"],
+            "department": self.data["department"],
+            "building": self.data["building"],
+            "floor": self.data["floor"],
+            "area": self.data["area"],
+            "title": "Weekly 5S inspection",
+            "inspection_type": Inspection.InspectionType.ROUTINE,
+            "five_s_category": Inspection.FiveSCategory.SHINE,
+            "priority": Inspection.Priority.HIGH,
+            "status": Inspection.Status.DRAFT,
+            "scheduled_date": timezone.now() + timedelta(hours=2),
+        }
+        values.update(overrides)
+        inspection = Inspection.objects.create(**values)
+        InspectionSLA.objects.create(
+            tenant=self.tenant,
+            inspection=inspection,
+            sla_status=InspectionSLA.Status.NOT_APPLICABLE,
+        )
+        return inspection
+
+    def _assign_initial(self, inspector=None, supervisor=None, actor=None):
+        return assign_inspection(
+            inspection=self.inspection,
+            actor=actor or self.actor,
+            inspector=inspector or self.inspector,
+            supervisor=supervisor,
+        )
+
+    def test_initial_assignment_notifies_eligible_inspector(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        notification = Notification.objects.get(
+            event_code=ASSIGNMENT_EVENT_CODE,
+            recipient=self.inspector,
+        )
+        self.assertIn(self.inspection.inspection_number, notification.message)
+        self.assertIn(self.inspection.title, notification.message)
+
+    def test_initial_assignment_notifies_eligible_supervisor(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        self.assertTrue(
+            Notification.objects.filter(
+                event_code=ASSIGNMENT_EVENT_CODE,
+                recipient=self.supervisor,
+            ).exists()
+        )
+
+    def test_same_user_assigned_as_inspector_and_supervisor_produces_one_notification(self):
+        notify_inspection_assigned(
+            inspection=self.inspection,
+            inspector=self.inspector,
+            supervisor=self.inspector,
+            previous_inspector_id=None,
+            previous_supervisor_id=None,
+            actor=self.actor,
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        notification = assignment_notifications.get()
+        self.assertEqual(notification.recipient, self.inspector)
+        self.assertEqual(notification.metadata["assignment_role"], "inspector")
+
+    def test_assignment_notifies_changed_inspector_only(self):
+        replacement_inspector = User.objects.create_user(
+            email="replacement-inspector@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        assign_inspection(
+            inspection=self.inspection,
+            actor=self.actor,
+            inspector=replacement_inspector,
+            supervisor=self.supervisor,
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_inspector)
+
+    def test_assignment_notifies_changed_supervisor_only(self):
+        replacement_supervisor = User.objects.create_user(
+            email="replacement-supervisor@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        assign_inspection(
+            inspection=self.inspection,
+            actor=self.actor,
+            inspector=self.inspector,
+            supervisor=replacement_supervisor,
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_supervisor)
+
+    def test_assignment_does_not_renotify_unchanged_inspector(self):
+        replacement_supervisor = User.objects.create_user(
+            email="replacement-supervisor-2@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        assign_inspection(
+            inspection=self.inspection,
+            actor=self.actor,
+            inspector=self.inspector,
+            supervisor=replacement_supervisor,
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_supervisor)
+
+    def test_assignment_does_not_renotify_unchanged_supervisor(self):
+        replacement_inspector = User.objects.create_user(
+            email="replacement-inspector-2@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        assign_inspection(
+            inspection=self.inspection,
+            actor=self.actor,
+            inspector=replacement_inspector,
+            supervisor=self.supervisor,
+        )
+
+        assignment_notifications = Notification.objects.filter(
+            event_code=ASSIGNMENT_EVENT_CODE
+        )
+        self.assertEqual(assignment_notifications.count(), 1)
+        self.assertEqual(assignment_notifications.get().recipient, replacement_inspector)
+        self.assertEqual(
+            assignment_notifications.get().metadata["assignment_role"],
+            "inspector",
+        )
+
+    def test_assignment_excludes_actor_from_notifications(self):
+        assign_inspection(
+            inspection=self.inspection,
+            actor=self.actor,
+            inspector=self.actor,
+            supervisor=self.supervisor,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(event_code=ASSIGNMENT_EVENT_CODE).count(),
+            1,
+        )
+        self.assertEqual(
+            Notification.objects.get(event_code=ASSIGNMENT_EVENT_CODE).recipient,
+            self.supervisor,
+        )
+
+    def test_assignment_excludes_inactive_global_and_cross_tenant_principals(self):
+        inactive_inspector = User.objects.create_user(
+            email="inactive-inspector@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+            is_active=False,
+        )
+        inactive_inspection = self._create_inspection()
+        assign_inspection(
+            inspection=inactive_inspection,
+            actor=self.actor,
+            inspector=inactive_inspector,
+            supervisor=self.supervisor,
+        )
+        self.assertEqual(
+            Notification.objects.filter(recipient=inactive_inspector).count(),
+            0,
+        )
+        self.assertEqual(
+            Notification.objects.filter(recipient=self.supervisor).count(),
+            1,
+        )
+
+        Notification.objects.all().delete()
+        global_inspector = User.objects.create_user(
+            email="global-inspector@example.com",
+            password="Password123!",
+        )
+        global_inspection = self._create_inspection()
+        with self.assertRaises(DjangoValidationError):
+            assign_inspection(
+                inspection=global_inspection,
+                actor=self.actor,
+                inspector=global_inspector,
+                supervisor=self.supervisor,
+            )
+        self.assertEqual(Notification.objects.count(), 0)
+
+        other_tenant = Tenant.objects.create(name="Other Tenant", code="other-tenant")
+        cross_tenant_inspector = User.objects.create_user(
+            email="cross-tenant-inspector@example.com",
+            password="Password123!",
+            tenant=other_tenant,
+        )
+        cross_tenant_inspection = self._create_inspection()
+        with self.assertRaises(DjangoValidationError):
+            assign_inspection(
+                inspection=cross_tenant_inspection,
+                actor=self.actor,
+                inspector=cross_tenant_inspector,
+                supervisor=self.supervisor,
+            )
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_assignment_role_metadata_is_correct(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        inspector_notification = Notification.objects.get(
+            event_code=ASSIGNMENT_EVENT_CODE,
+            recipient=self.inspector,
+        )
+        supervisor_notification = Notification.objects.get(
+            event_code=ASSIGNMENT_EVENT_CODE,
+            recipient=self.supervisor,
+        )
+        self.assertEqual(inspector_notification.metadata["assignment_role"], "inspector")
+        self.assertEqual(supervisor_notification.metadata["assignment_role"], "supervisor")
+
+    def test_assignment_target_url_and_source_fields_are_correct(self):
+        self._assign_initial()
+
+        notification = Notification.objects.get(event_code=ASSIGNMENT_EVENT_CODE)
+        self.assertEqual(notification.source_module, "inspection")
+        self.assertEqual(notification.source_object_id, self.inspection.id)
+        self.assertEqual(
+            notification.target_url,
+            f"/inspection/inspections/{self.inspection.id}",
+        )
+
+    def test_status_transition_notifies_inspector_and_supervisor(self):
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        start_inspection(inspection=self.inspection, actor=self.actor)
+
+        recipients = set(
+            Notification.objects.filter(
+                event_code=STATUS_CHANGED_EVENT_CODE
+            ).values_list("recipient_id", flat=True)
+        )
+        self.assertEqual(recipients, {self.inspector.id, self.supervisor.id})
+
+    def test_status_recipients_are_deduplicated(self):
+        self._assign_initial(supervisor=self.supervisor)
+        Inspection.objects.filter(pk=self.inspection.pk).update(
+            supervisor_id=self.inspector.id,
+        )
+        self.inspection.refresh_from_db()
+        Notification.objects.all().delete()
+
+        notify_inspection_status_changed(
+            inspection=self.inspection,
+            from_status=Inspection.Status.SCHEDULED,
+            to_status=Inspection.Status.IN_PROGRESS,
+            actor=self.actor,
+        )
+
+        self.assertEqual(
+            Notification.objects.filter(event_code=STATUS_CHANGED_EVENT_CODE).count(),
+            1,
+        )
+
+    def test_status_transition_excludes_actor(self):
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        start_inspection(inspection=self.inspection, actor=self.inspector)
+
+        self.assertFalse(
+            Notification.objects.filter(recipient=self.inspector).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(recipient=self.supervisor).exists()
+        )
+
+    def test_completed_and_verified_status_use_success_severity(self):
+        self._assign_initial(supervisor=self.supervisor)
+        start_inspection(inspection=self.inspection, actor=self.actor)
+        InspectionItem.objects.create(
+            inspection=self.inspection,
+            sequence=1,
+            checklist_item="Check labels",
+            max_score="5.00",
+            score="5.00",
+            is_pass=True,
+        )
+        Notification.objects.all().delete()
+
+        change_status(
+            inspection=self.inspection,
+            to_status=Inspection.Status.COMPLETED,
+            changed_by=self.actor,
+        )
+        complete_notifications = Notification.objects.filter(
+            event_code=STATUS_CHANGED_EVENT_CODE
+        )
+        self.assertGreater(complete_notifications.count(), 0)
+        for notification in complete_notifications:
+            self.assertEqual(notification.severity, Notification.Severity.SUCCESS)
+
+        Notification.objects.all().delete()
+        change_status(
+            inspection=self.inspection,
+            to_status=Inspection.Status.VERIFIED,
+            changed_by=self.actor,
+        )
+        verified_notifications = Notification.objects.filter(
+            event_code=STATUS_CHANGED_EVENT_CODE
+        )
+        self.assertGreater(verified_notifications.count(), 0)
+        for notification in verified_notifications:
+            self.assertEqual(notification.severity, Notification.Severity.SUCCESS)
+
+    def test_cancelled_status_uses_warning_severity(self):
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        change_status(
+            inspection=self.inspection,
+            to_status=Inspection.Status.CANCELLED,
+            changed_by=self.actor,
+            reason="Schedule conflict.",
+        )
+        cancel_notifications = Notification.objects.filter(
+            event_code=STATUS_CHANGED_EVENT_CODE
+        )
+        self.assertGreater(cancel_notifications.count(), 0)
+        for notification in cancel_notifications:
+            self.assertEqual(notification.severity, Notification.Severity.WARNING)
+
+    def test_other_status_transitions_use_info_severity(self):
+        self._assign_initial(supervisor=self.supervisor)
+        Notification.objects.all().delete()
+
+        start_inspection(inspection=self.inspection, actor=self.actor)
+
+        notifications = Notification.objects.filter(event_code=STATUS_CHANGED_EVENT_CODE)
+        self.assertGreater(notifications.count(), 0)
+        for notification in notifications:
+            self.assertEqual(notification.severity, Notification.Severity.INFO)
+        self.assertEqual(
+            notifications.first().metadata,
+            {
+                "inspection_number": self.inspection.inspection_number,
+                "event": "status_changed",
+                "from_status": Inspection.Status.SCHEDULED,
+                "to_status": Inspection.Status.IN_PROGRESS,
+            },
+        )
+
+    def test_invalid_status_transition_creates_no_notification(self):
+        with self.assertRaises(DjangoValidationError):
+            change_status(
+                inspection=self.inspection,
+                to_status=Inspection.Status.COMPLETED,
+                changed_by=self.actor,
+            )
+
+        self.assertEqual(Notification.objects.count(), 0)
+
+    def test_no_op_status_transition_creates_no_notification(self):
+        self._assign_initial(supervisor=self.supervisor)
+
+        change_status(
+            inspection=self.inspection,
+            to_status=Inspection.Status.SCHEDULED,
+            changed_by=self.actor,
+        )
+
+        self.assertEqual(Notification.objects.count(), 2)
+
+    @patch("apps.inspection.services.notification_service.create_notification")
+    def test_assignment_notification_failure_rolls_back_assignment_and_history(
+        self,
+        mock_create_notification,
+    ):
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            self._assign_initial(supervisor=self.supervisor)
+
+        self.inspection.refresh_from_db()
+        self.assertIsNone(self.inspection.inspector_id)
+        self.assertIsNone(self.inspection.supervisor_id)
+        self.assertEqual(self.inspection.status, Inspection.Status.DRAFT)
+        self.assertEqual(InspectionAssignment.objects.filter(inspection=self.inspection).count(), 0)
+        self.assertEqual(
+            InspectionHistory.objects.filter(
+                inspection=self.inspection,
+                action="assigned",
+            ).count(),
+            0,
+        )
+        self.assertEqual(
+            InspectionStatusHistory.objects.filter(inspection=self.inspection).count(),
+            0,
+        )
+
+    @patch("apps.inspection.services.notification_service.create_notification")
+    def test_reassignment_notification_failure_rolls_back_assignment_and_history(
+        self,
+        mock_create_notification,
+    ):
+        replacement_inspector = User.objects.create_user(
+            email="rollback-inspector@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        self._assign_initial(supervisor=self.supervisor)
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            assign_inspection(
+                inspection=self.inspection,
+                actor=self.actor,
+                inspector=replacement_inspector,
+                supervisor=self.supervisor,
+            )
+
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.inspector, self.inspector)
+        self.assertEqual(self.inspection.supervisor, self.supervisor)
+        self.assertEqual(
+            InspectionAssignment.objects.filter(
+                inspection=self.inspection,
+                assigned_to=replacement_inspector,
+            ).count(),
+            0,
+        )
+        self.assertEqual(
+            InspectionHistory.objects.filter(
+                inspection=self.inspection,
+                action="assigned",
+            ).count(),
+            1,
+        )
+
+    @patch("apps.inspection.services.notification_service.create_notification")
+    def test_status_notification_failure_rolls_back_status_sla_and_history(
+        self,
+        mock_create_notification,
+    ):
+        self._assign_initial(supervisor=self.supervisor)
+        mock_create_notification.side_effect = DRFValidationError(
+            "Notification write failed."
+        )
+
+        with self.assertRaises(DRFValidationError):
+            start_inspection(inspection=self.inspection, actor=self.actor)
+
+        self.inspection.refresh_from_db()
+        self.assertEqual(self.inspection.status, Inspection.Status.SCHEDULED)
+        self.assertEqual(
+            InspectionStatusHistory.objects.filter(
+                inspection=self.inspection,
+                to_status=Inspection.Status.IN_PROGRESS,
+            ).count(),
+            0,
+        )
+        self.assertEqual(
+            InspectionHistory.objects.filter(
+                inspection=self.inspection,
+                action="status_changed",
+            ).count(),
+            0,
+        )
 
 
 class InspectionSeedCommandTests(InspectionTestDataMixin, APITestCase):

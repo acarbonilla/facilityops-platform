@@ -17,6 +17,7 @@
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
 | Dashboard | Complete | Foundation metrics backend and frontend dashboard shell |
+| Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
@@ -26,7 +27,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete | Backend FO-054 gates pass at 66 Access Control tests and 109 Accounts+Access Control tests; canonical full parallel suite discovery baseline is 250 tests; Frontend: 65 helper tests, ESLint, TypeScript, and production build pass; no component/integration harness exists yet |
+| Testing | Complete | Backend FO-060 gates pass at 78 Notifications tests, 176 combined business-module tests, 109 Accounts+Access Control tests, and 391 full parallel suite tests; Frontend: 109 helper tests, ESLint, TypeScript, and production build pass; no component/integration harness exists yet |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -74,6 +75,7 @@ facilityops-platform/
 - FO-044 completes 5S Inspection module QA and stabilization: four defects corrected (checklist pass/fail preservation, AI-analysis GET mutation, inspection soft-delete centralization, maintenance reassignment test tenant isolation), 168 backend tests pass, 10 frontend checklist mapping tests pass via formally configured `npm run test`, ESLint, TypeScript, and production build clean.
 - FO-045 through FO-049 complete User Management CRUD, tenant/security hardening, role assignment, assignment-safe directory/pickers, and cumulative QA.
 - FO-050 through FO-054 complete Roles and Permissions backend foundation, frontend workflows, permission assignment, duplication and system-role protection, and cumulative module QA; FO-054 validation gates pass at 66 Access Control tests, 109 Accounts+Access Control tests, canonical full backend parallel discovery baseline of 250 tests, and 65 frontend helper tests.
+- Notifications is `Complete`: FO-055 through FO-060 are complete on `feature/notifications`. Draft PR #34 awaits Sol’s independent cumulative final review.
 - FO-DOC-001 establishes the permanent developer handbook under `docs/04-Developer-Handbook/`, adds `docs/development/project-status.md`, and defines repository-level process ownership, QA expectations, merge workflow, and documentation standards.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
@@ -408,7 +410,7 @@ Manages facility-management tickets, including read, create, edit, comments, his
 ### Notes
 
 - This module covers FO-024 through FO-030.
-- Notification automation and attachment or AI workflows are still deferred.
+- FO-058A assignment and status-change in-app notifications are implemented; comment, escalation, attachment, and AI notification workflows remain deferred.
 
 ## Maintenance Work Order
 
@@ -603,7 +605,7 @@ Manages facility-management tickets, including read, create, edit, comments, his
 ### Notes
 
 - This module covers FO-024 through FO-030.
-- Notification automation and attachment or AI workflows are still deferred.
+- FO-058A assignment and status-change in-app notifications are implemented; comment, escalation, attachment, and AI notification workflows remain deferred.
 
 ## Maintenance Work Order
 
@@ -695,6 +697,7 @@ Manages 5S inspection scheduling, execution, scoring, findings, corrective actio
 - The AI endpoint stores analysis metadata and summaries but does not call an external AI provider.
 - Attachment handling stores metadata only and reuses the project’s existing file-reference style rather than implementing binary upload transport in this task.
 - FO-048 adds the assignment-safe directory picker to Inspection inspector, supervisor, workflow assignment, and corrective-action owner fields while retaining exact payload keys and permissions.
+- FO-058C adds assignment and status-change in-app notifications through authoritative inspection services; finding, corrective-action, comment, attachment, escalation, and AI notification workflows remain deferred.
 
 ## Shared Services
 
