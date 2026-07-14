@@ -145,7 +145,7 @@ export function MaintenanceCreatePageContent() {
   return (
     <MaintenanceProtectedFormState requiredPermission="maintenance.create">
       <MaintenanceFormLayout
-        description="Create a maintenance work order using the current backend foundation. Planning sections remain visible where later workflow APIs are still pending."
+        description="Create a standalone work order that is not generated from an FM Ticket. Required fields still apply."
         errorMessage={
           mutation.isError
             ? extractErrorMessage(
@@ -154,7 +154,7 @@ export function MaintenanceCreatePageContent() {
               )
             : null
         }
-        title="New Work Order"
+        title="Create Standalone Work Order"
       >
         <MaintenanceWorkOrderForm
           cancelHref="/maintenance/work-orders"
@@ -169,7 +169,7 @@ export function MaintenanceCreatePageContent() {
             router.replace(`/maintenance/work-orders/${createdWorkOrder.id}`);
             router.refresh();
           }}
-          submitLabel="Create work order"
+          submitLabel="Create standalone work order"
         />
       </MaintenanceFormLayout>
     </MaintenanceProtectedFormState>

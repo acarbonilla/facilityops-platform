@@ -74,6 +74,7 @@
 ## Completed Integration Tasks
 
 - FO-061 (FM Ticket to Maintenance Work Order Integration)
+- FO-061A (FM Ticket Assignment and Work Order Generation Reconciliation; on draft PR #36)
 
 ## Completed Governance Task
 
@@ -81,21 +82,23 @@
 
 ## Current Task
 
-- FO-061 FM Ticket to Maintenance Work Order Integration is complete on draft PR (unmerged).
+- FO-061A reconciliation complete on draft PR #36 (unmerged). Awaiting Sol cumulative review; FO-061 is not independently marked approved.
 
 ## Next Milestone
 
-- Independent review of FO-061 draft PR.
+- Independent / Sol cumulative review of draft PR #36.
+- FO-062 status synchronization remains deferred.
 
 ## Known Issues
 
 - Frontend test coverage remains helper-level; no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
+- Local browser smoke of FO-061A depends on seeded same-tenant technicians with `users.directory` on the coordinator.
 
 ## Last Reviewed Commit
 
-- `ebdc10b` (FO-061 FM Ticket to Maintenance Work Order Integration)
+- FO-061A reconciliation on `feature/fm-ticket-maintenance-integration` (draft PR #36)
 
 ## Last Merge
 

@@ -4,6 +4,7 @@ from rest_framework.exceptions import APIException
 
 from apps.maintenance.models import MaintenanceWorkOrder
 from apps.maintenance.services import create_work_order, record_history
+from apps.maintenance.work_order_assignment_service import assign_work_order
 
 from .models import FmTicket
 from .services import record_ticket_history
@@ -108,6 +109,9 @@ def generate_work_order_from_ticket(*, ticket, generated_by):
     )
 
     actor_id = str(generated_by.id)
+    assignment_notes = (
+        f"Generated from FM Ticket {locked_ticket.ticket_number}."
+    )
     work_order_data = {
         "tenant": locked_ticket.tenant,
         "organization": locked_ticket.organization,
@@ -116,12 +120,11 @@ def generate_work_order_from_ticket(*, ticket, generated_by):
         "floor": locked_ticket.floor,
         "area": locked_ticket.area,
         "asset": locked_ticket.asset,
-        "assignee": locked_ticket.assignee,
         "source_ticket": locked_ticket,
         "title": locked_ticket.title,
         "description": locked_ticket.description,
         "priority": map_ticket_priority_to_work_order(locked_ticket.priority),
-        "status": MaintenanceWorkOrder.Status.ASSIGNED,
+        "status": MaintenanceWorkOrder.Status.OPEN,
         "requested_at": locked_ticket.reported_at,
         "due_at": locked_ticket.due_at,
     }
@@ -137,6 +140,15 @@ def generate_work_order_from_ticket(*, ticket, generated_by):
     work_order.created_by = actor_id
     work_order.updated_by = actor_id
     work_order.save(update_fields=["created_by", "updated_by", "updated_at"])
+
+    work_order = assign_work_order(
+        work_order=work_order,
+        assigned_to=locked_ticket.assignee,
+        assigned_by=generated_by,
+        supervisor=None,
+        notes=assignment_notes,
+        enforce_permission=False,
+    )
 
     record_history(
         work_order=work_order,

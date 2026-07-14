@@ -227,7 +227,7 @@ export function MaintenanceListScreen() {
               className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
               href="/maintenance/work-orders/new"
             >
-              New Work Order
+              Create Standalone Work Order
             </Link>
           ) : null}
         </div>

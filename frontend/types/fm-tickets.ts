@@ -207,7 +207,11 @@ export interface FmTicketAssigneeOption {
   is_technician?: boolean;
 }
 
-export type FmTicketAssignmentState = "read_only" | "unavailable" | "ready";
+export type FmTicketAssignmentState =
+  | "read_only"
+  | "unavailable"
+  | "directory_unavailable"
+  | "ready";
 
 export interface FmTicketStatusUpdatePayload {
   to_status: FmTicketStatus;

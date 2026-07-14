@@ -15,22 +15,65 @@ export const WORK_ORDER_GENERATION_EXPLANATION =
 export const WORK_ORDER_GENERATION_CONFIRMATION =
   "Generate a maintenance work order from this ticket? This action creates one linked work order and cannot be undone from this screen.";
 
+export type WorkOrderGenerationDisabledReason =
+  | "missing_assignee"
+  | "missing_asset"
+  | "invalid_status"
+  | "already_linked"
+  | "missing_permission";
+
+export function getWorkOrderGenerationDisabledReason(
+  ticket: Pick<
+    FmTicketDetail,
+    "status" | "assignee" | "asset" | "linked_work_order"
+  >,
+  canManageGeneration = true,
+): WorkOrderGenerationDisabledReason | null {
+  if (!canManageGeneration) {
+    return "missing_permission";
+  }
+  if (ticket.linked_work_order) {
+    return "already_linked";
+  }
+  if (!ticket.assignee) {
+    return "missing_assignee";
+  }
+  if (!ticket.asset) {
+    return "missing_asset";
+  }
+  if (!WORK_ORDER_GENERATION_ELIGIBLE_STATUSES.includes(ticket.status)) {
+    return "invalid_status";
+  }
+  return null;
+}
+
+export function formatWorkOrderGenerationDisabledReason(
+  reason: WorkOrderGenerationDisabledReason | null,
+): string | null {
+  switch (reason) {
+    case "missing_assignee":
+      return "Assign a technician first.";
+    case "missing_asset":
+      return "Add an asset first.";
+    case "invalid_status":
+      return "Ticket must be Assigned or In Progress.";
+    case "already_linked":
+      return "A Work Order is already linked.";
+    case "missing_permission":
+      return "You do not have permission to generate a Work Order.";
+    default:
+      return null;
+  }
+}
+
 export function canGenerateWorkOrderFromTicket(
   ticket: Pick<
     FmTicketDetail,
     "status" | "assignee" | "asset" | "linked_work_order"
   >,
+  canManageGeneration = true,
 ): boolean {
-  if (ticket.linked_work_order) {
-    return false;
-  }
-  if (!ticket.assignee) {
-    return false;
-  }
-  if (!ticket.asset) {
-    return false;
-  }
-  return WORK_ORDER_GENERATION_ELIGIBLE_STATUSES.includes(ticket.status);
+  return getWorkOrderGenerationDisabledReason(ticket, canManageGeneration) === null;
 }
 
 export function getGenerateWorkOrderActionLabel(

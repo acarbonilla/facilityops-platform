@@ -255,17 +255,22 @@ class FmTicketModelTests(FmTicketTestDataMixin, APITestCase):
 
 class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
     def setUp(self):
+        self.data = self.create_master_data()
+        self.tenant = self.data["tenant"]
         self.user = User.objects.create_user(
             email="manager@example.com",
             password="Password123!",
+            tenant=self.tenant,
         )
         self.other_user = User.objects.create_user(
             email="worker@example.com",
             password="Password123!",
+            tenant=self.tenant,
         )
         self.viewer = User.objects.create_user(
             email="viewer@example.com",
             password="Password123!",
+            tenant=self.tenant,
         )
         self.permissions = self.create_ticket_permissions()
         self.assign_permissions(
@@ -278,7 +283,8 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
             "fm_tickets.manage",
         )
         self.assign_permissions(self.viewer, "fm_tickets.view")
-        self.data = self.create_master_data()
+        technician_role = Role.objects.create(name="Technician", code="technician")
+        UserRole.objects.create(user=self.other_user, role=technician_role)
         self.ticket = FmTicket.objects.create(
             tenant=self.data["tenant"],
             organization=self.data["organization"],
@@ -483,6 +489,89 @@ class FmTicketApiTests(FmTicketTestDataMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.ticket.refresh_from_db()
         self.assertEqual(self.ticket.assignee, self.other_user)
+        self.assertEqual(self.ticket.status, FmTicket.Status.ASSIGNED)
+        self.assertEqual(
+            self.ticket.history_entries.filter(action="assigned").count(),
+            1,
+        )
+        self.assertEqual(
+            Notification.objects.filter(event_code=ASSIGNMENT_EVENT_CODE).count(),
+            1,
+        )
+
+    def test_assign_rejects_inactive_cross_tenant_global_and_invalid_role(self):
+        self.client.force_authenticate(self.user)
+
+        inactive = User.objects.create_user(
+            email="inactive-tech@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+            is_active=False,
+        )
+        response = self.client.post(
+            reverse("fm-ticket-assign", args=[self.ticket.id]),
+            {"assignee": str(inactive.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        other_tenant = Tenant.objects.create(name="Other", code="other-assign")
+        cross = User.objects.create_user(
+            email="cross-tech@example.com",
+            password="Password123!",
+            tenant=other_tenant,
+        )
+        response = self.client.post(
+            reverse("fm-ticket-assign", args=[self.ticket.id]),
+            {"assignee": str(cross.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        global_user = User.objects.create_user(
+            email="global-tech@example.com",
+            password="Password123!",
+        )
+        response = self.client.post(
+            reverse("fm-ticket-assign", args=[self.ticket.id]),
+            {"assignee": str(global_user.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        viewer_role = Role.objects.create(name="Viewer Role", code="viewer")
+        invalid_role_user = User.objects.create_user(
+            email="viewer-tech@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+        )
+        UserRole.objects.create(user=invalid_role_user, role=viewer_role)
+        response = self.client.post(
+            reverse("fm-ticket-assign", args=[self.ticket.id]),
+            {"assignee": str(invalid_role_user.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_assign_cross_tenant_ticket_returns_generic_404(self):
+        other_tenant = Tenant.objects.create(name="Assign Other", code="assign-other")
+        other_user = User.objects.create_user(
+            email="other-assigner@example.com",
+            password="Password123!",
+            tenant=other_tenant,
+        )
+        self.assign_permissions(
+            other_user,
+            "fm_tickets.view",
+            "fm_tickets.assign",
+        )
+        self.client.force_authenticate(other_user)
+        response = self.client.post(
+            reverse("fm-ticket-assign", args=[self.ticket.id]),
+            {"assignee": str(self.other_user.id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_escalate_endpoint_requires_manage_permission(self):
         self.client.force_authenticate(self.viewer)
@@ -647,7 +736,7 @@ class FmTicketNotificationIntegrationTests(FmTicketTestDataMixin, APITestCase):
 
         self.assertEqual(Notification.objects.count(), 0)
 
-    def test_inactive_assignee_receives_no_notification(self):
+    def test_inactive_assignee_is_rejected_and_creates_no_notification(self):
         inactive_assignee = User.objects.create_user(
             email="inactive-assignee@example.com",
             password="Password123!",
@@ -655,17 +744,18 @@ class FmTicketNotificationIntegrationTests(FmTicketTestDataMixin, APITestCase):
             is_active=False,
         )
 
-        assign_ticket(
-            ticket=self.ticket,
-            assigned_to=inactive_assignee,
-            assigned_by=self.actor,
-        )
+        with self.assertRaises(DjangoValidationError):
+            assign_ticket(
+                ticket=self.ticket,
+                assigned_to=inactive_assignee,
+                assigned_by=self.actor,
+            )
 
         self.assertEqual(Notification.objects.count(), 0)
         self.ticket.refresh_from_db()
-        self.assertEqual(self.ticket.assignee, inactive_assignee)
+        self.assertIsNone(self.ticket.assignee_id)
 
-    def test_cross_tenant_recipient_receives_no_tenant_bound_notification(self):
+    def test_cross_tenant_recipient_is_rejected_and_creates_no_notification(self):
         other_tenant = Tenant.objects.create(name="Other Tenant", code="other-tenant")
         cross_tenant_assignee = User.objects.create_user(
             email="cross-tenant@example.com",
@@ -673,25 +763,27 @@ class FmTicketNotificationIntegrationTests(FmTicketTestDataMixin, APITestCase):
             tenant=other_tenant,
         )
 
-        assign_ticket(
-            ticket=self.ticket,
-            assigned_to=cross_tenant_assignee,
-            assigned_by=self.actor,
-        )
+        with self.assertRaises(DjangoValidationError):
+            assign_ticket(
+                ticket=self.ticket,
+                assigned_to=cross_tenant_assignee,
+                assigned_by=self.actor,
+            )
 
         self.assertEqual(Notification.objects.count(), 0)
 
-    def test_global_recipient_receives_no_tenant_bound_notification(self):
+    def test_global_recipient_is_rejected_and_creates_no_notification(self):
         global_assignee = User.objects.create_user(
             email="global-assignee@example.com",
             password="Password123!",
         )
 
-        assign_ticket(
-            ticket=self.ticket,
-            assigned_to=global_assignee,
-            assigned_by=self.actor,
-        )
+        with self.assertRaises(DjangoValidationError):
+            assign_ticket(
+                ticket=self.ticket,
+                assigned_to=global_assignee,
+                assigned_by=self.actor,
+            )
 
         self.assertEqual(Notification.objects.count(), 0)
 
@@ -918,6 +1010,8 @@ class FmTicketGenerateWorkOrderTests(FmTicketTestDataMixin, APITestCase):
         )
         self.assign_permissions(self.requester, "fm_tickets.view", "fm_tickets.create")
         self.assign_permissions(self.technician, "fm_tickets.view")
+        technician_role = Role.objects.create(name="Technician", code="technician")
+        UserRole.objects.create(user=self.technician, role=technician_role)
 
         self.ticket = FmTicket.objects.create(
             tenant=self.tenant,
@@ -942,7 +1036,10 @@ class FmTicketGenerateWorkOrderTests(FmTicketTestDataMixin, APITestCase):
         )
 
     def test_eligible_ticket_generates_one_work_order(self):
-        from apps.maintenance.models import MaintenanceWorkOrder
+        from apps.maintenance.models import MaintenanceAssignment, MaintenanceWorkOrder
+        from apps.maintenance.notification_service import (
+            ASSIGNMENT_EVENT_CODE as MAINTENANCE_ASSIGNMENT_EVENT_CODE,
+        )
 
         self.client.force_authenticate(user=self.coordinator)
         response = self.client.post(self.generate_url, {}, format="json")
@@ -971,7 +1068,37 @@ class FmTicketGenerateWorkOrderTests(FmTicketTestDataMixin, APITestCase):
         self.assertTrue(
             work_order.history_entries.filter(action="generated_from_ticket").exists()
         )
-        self.assertEqual(work_order.status_history_entries.count(), 1)
+        self.assertTrue(
+            work_order.history_entries.filter(action="assignment_assigned").exists()
+        )
+        self.assertEqual(work_order.status_history_entries.count(), 2)
+
+        active_assignments = MaintenanceAssignment.objects.filter(
+            work_order=work_order,
+            is_active=True,
+        )
+        self.assertEqual(active_assignments.count(), 1)
+        active_assignment = active_assignments.get()
+        self.assertEqual(active_assignment.assigned_to_id, self.technician.id)
+        self.assertIsNone(active_assignment.supervisor_id)
+        self.assertEqual(active_assignment.assigned_by_id, self.coordinator.id)
+        self.assertTrue(
+            Notification.objects.filter(
+                event_code=MAINTENANCE_ASSIGNMENT_EVENT_CODE,
+                recipient=self.technician,
+                source_object_id=work_order.id,
+            ).exists()
+        )
+
+        ticket_detail = self.client.get(
+            reverse("fm-ticket-detail", args=[self.ticket.id])
+        )
+        self.assertEqual(ticket_detail.status_code, status.HTTP_200_OK)
+        self.assertEqual(str(ticket_detail.data["assignee"]), str(self.technician.id))
+        self.assertEqual(
+            ticket_detail.data["linked_work_order"]["id"],
+            str(work_order.id),
+        )
 
     def test_ticket_create_and_assignment_do_not_auto_generate_work_order(self):
         from apps.maintenance.models import MaintenanceWorkOrder
@@ -1151,3 +1278,116 @@ class FmTicketGenerateWorkOrderTests(FmTicketTestDataMixin, APITestCase):
             0,
         )
 
+    @patch("apps.fm_tickets.work_order_service.assign_work_order")
+    def test_assignment_failure_rolls_back_work_order_creation(self, mock_assign):
+        from apps.maintenance.models import MaintenanceAssignment, MaintenanceWorkOrder
+
+        mock_assign.side_effect = DjangoValidationError("assignment failed")
+        with self.assertRaises(DjangoValidationError):
+            from apps.fm_tickets.work_order_service import generate_work_order_from_ticket
+
+            generate_work_order_from_ticket(
+                ticket=self.ticket,
+                generated_by=self.coordinator,
+            )
+
+        self.assertEqual(MaintenanceWorkOrder.objects.count(), 0)
+        self.assertEqual(MaintenanceAssignment.objects.count(), 0)
+        self.assertEqual(
+            self.ticket.history_entries.filter(action="work_order_generated").count(),
+            0,
+        )
+
+    @patch(
+        "apps.maintenance.work_order_assignment_service.notify_maintenance_assigned"
+    )
+    def test_assignment_notification_failure_rolls_back_generation(
+        self, mock_notify
+    ):
+        from apps.maintenance.models import MaintenanceAssignment, MaintenanceWorkOrder
+
+        mock_notify.side_effect = DjangoValidationError("notification failed")
+        with self.assertRaises(DjangoValidationError):
+            from apps.fm_tickets.work_order_service import generate_work_order_from_ticket
+
+            generate_work_order_from_ticket(
+                ticket=self.ticket,
+                generated_by=self.coordinator,
+            )
+
+        self.assertEqual(MaintenanceWorkOrder.objects.count(), 0)
+        self.assertEqual(MaintenanceAssignment.objects.count(), 0)
+        self.assertEqual(Notification.objects.count(), 0)
+        self.assertEqual(
+            self.ticket.history_entries.filter(action="work_order_generated").count(),
+            0,
+        )
+
+    def test_repeated_generation_creates_no_duplicate_assignment_or_work_order(self):
+        from apps.maintenance.models import MaintenanceAssignment, MaintenanceWorkOrder
+
+        self.client.force_authenticate(user=self.coordinator)
+        first = self.client.post(self.generate_url, {}, format="json")
+        second = self.client.post(self.generate_url, {}, format="json")
+
+        self.assertEqual(first.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(MaintenanceWorkOrder.objects.count(), 1)
+        self.assertEqual(
+            MaintenanceAssignment.objects.filter(is_active=True).count(),
+            1,
+        )
+
+    def test_maintenance_detail_exposes_active_assignment_and_source_ticket(self):
+        from apps.maintenance.models import MaintenanceAssignment, MaintenanceWorkOrder
+
+        permission_specs = (
+            ("maintenance", "view", "View maintenance"),
+            ("maintenance.work_order", "view", "View maintenance work orders"),
+        )
+        coordinator_role = Role.objects.filter(
+            user_roles__user=self.coordinator
+        ).first()
+        for module, action, name in permission_specs:
+            permission, _ = Permission.objects.get_or_create(
+                code=f"{module}.{action}",
+                defaults={"module": module, "action": action, "name": name},
+            )
+            RolePermission.objects.get_or_create(
+                role=coordinator_role,
+                permission=permission,
+            )
+
+        self.client.force_authenticate(user=self.coordinator)
+        generate_response = self.client.post(self.generate_url, {}, format="json")
+        self.assertEqual(generate_response.status_code, status.HTTP_201_CREATED)
+
+        detail_response = self.client.get(
+            reverse(
+                "maintenance-work-order-detail",
+                args=[generate_response.data["id"]],
+            )
+        )
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            str(detail_response.data["assignee"]),
+            str(self.technician.id),
+        )
+        self.assertEqual(
+            detail_response.data["source_ticket"]["id"],
+            str(self.ticket.id),
+        )
+        self.assertEqual(
+            detail_response.data["source_ticket"]["ticket_number"],
+            self.ticket.ticket_number,
+        )
+        self.assertEqual(
+            detail_response.data["status"],
+            MaintenanceWorkOrder.Status.ASSIGNED,
+        )
+        active = MaintenanceAssignment.objects.get(
+            work_order_id=generate_response.data["id"],
+            is_active=True,
+        )
+        self.assertEqual(active.assigned_to_id, self.technician.id)
+        self.assertIsNone(active.supervisor_id)

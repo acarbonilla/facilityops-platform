@@ -7,7 +7,7 @@
     "build": "node scripts/runtime.mjs build",
     "start": "node scripts/runtime.mjs start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-    "test": "node --import tsx --test lib/fm-tickets/work-order-generation.test.ts lib/inspection/assignment.test.ts lib/inspection/form.test.ts lib/maintenance/form.test.ts lib/notifications/display.test.ts lib/notifications/preferences.test.ts lib/rbac/permissions-assignment.test.ts lib/rbac/roles.test.ts lib/users/directory.test.ts lib/users/form.test.ts lib/users/roles.test.ts"
+    "test": "node --import tsx --test lib/fm-tickets/assignment.test.ts lib/fm-tickets/work-order-generation.test.ts lib/inspection/assignment.test.ts lib/inspection/form.test.ts lib/maintenance/form.test.ts lib/notifications/display.test.ts lib/notifications/preferences.test.ts lib/rbac/permissions-assignment.test.ts lib/rbac/roles.test.ts lib/users/directory.test.ts lib/users/form.test.ts lib/users/roles.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

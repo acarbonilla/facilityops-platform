@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from apps.access_control.services import get_user_roles
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -17,6 +19,33 @@ from .notification_service import (
 
 
 SLA_AT_RISK_WINDOW = timedelta(hours=4)
+TICKET_ASSIGNEE_ROLES = {"technician", "facility_manager", "system_admin"}
+
+
+def _validate_ticket_assignee(*, assigned_to, ticket):
+    if not assigned_to.is_active:
+        raise ValidationError({"assignee": ["Assigned technician must be active."]})
+
+    assignee_tenant_id = getattr(assigned_to, "tenant_id", None)
+    if assignee_tenant_id is None:
+        raise ValidationError(
+            {"assignee": ["Assigned technician must belong to the ticket tenant."]}
+        )
+    if assignee_tenant_id != ticket.tenant_id:
+        raise ValidationError(
+            {"assignee": ["Assigned technician must belong to the ticket tenant."]}
+        )
+
+    role_codes = {role.code for role in get_user_roles(assigned_to)}
+    if role_codes and not role_codes.intersection(TICKET_ASSIGNEE_ROLES):
+        raise ValidationError(
+            {
+                "assignee": [
+                    "User must have one of these roles: "
+                    f"{', '.join(sorted(TICKET_ASSIGNEE_ROLES))}."
+                ]
+            }
+        )
 
 
 def record_ticket_history(
@@ -233,6 +262,8 @@ def change_ticket_status(*, ticket, to_status, changed_by=None, note=""):
 
 @transaction.atomic
 def assign_ticket(*, ticket, assigned_to, assigned_by=None, note=""):
+    _validate_ticket_assignee(assigned_to=assigned_to, ticket=ticket)
+
     previous_assignee_id = ticket.assignee_id
     previous_assignee = ticket.assignee
     ticket.assignee = assigned_to

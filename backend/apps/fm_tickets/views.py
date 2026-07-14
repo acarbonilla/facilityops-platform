@@ -215,14 +215,24 @@ class FmTicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):
         ticket = self.get_object()
+        if ticket.is_deleted:
+            raise Http404()
+        caller_tenant_id = getattr(request.user, "tenant_id", None)
+        if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
+            raise Http404()
+
         serializer = FmTicketAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        ticket = assign_ticket(
-            ticket=ticket,
-            assigned_to=serializer.validated_data["assignee"],
-            assigned_by=request.user,
-            note=serializer.validated_data.get("note", ""),
-        )
+        try:
+            ticket = assign_ticket(
+                ticket=ticket,
+                assigned_to=serializer.validated_data["assignee"],
+                assigned_by=request.user,
+                note=serializer.validated_data.get("note", ""),
+            )
+        except DjangoValidationError as exc:
+            detail = getattr(exc, "message_dict", None) or exc.messages
+            raise DRFValidationError(detail) from exc
         response_serializer = FmTicketDetailSerializer(ticket)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 

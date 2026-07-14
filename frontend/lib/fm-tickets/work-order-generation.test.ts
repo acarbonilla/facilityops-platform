@@ -7,7 +7,9 @@ import {
   canGenerateWorkOrderFromTicket,
   formatGenerateWorkOrderError,
   formatGenerateWorkOrderSuccess,
+  formatWorkOrderGenerationDisabledReason,
   getGenerateWorkOrderActionLabel,
+  getWorkOrderGenerationDisabledReason,
   WORK_ORDER_GENERATION_ELIGIBLE_STATUSES,
   WORK_ORDER_GENERATION_EXPLANATION,
 } from "./work-order-generation";
@@ -32,6 +34,73 @@ test("eligible assigned ticket can generate a work order", () => {
     "assigned",
     "in_progress",
   ]);
+});
+
+test("generation disabled reasons identify missing requirements", () => {
+  assert.equal(
+    getWorkOrderGenerationDisabledReason({
+      ...eligibleTicket,
+      assignee: null,
+    }),
+    "missing_assignee",
+  );
+  assert.equal(
+    formatWorkOrderGenerationDisabledReason("missing_assignee"),
+    "Assign a technician first.",
+  );
+  assert.equal(
+    getWorkOrderGenerationDisabledReason({
+      ...eligibleTicket,
+      asset: null,
+    }),
+    "missing_asset",
+  );
+  assert.equal(
+    formatWorkOrderGenerationDisabledReason("missing_asset"),
+    "Add an asset first.",
+  );
+  assert.equal(
+    getWorkOrderGenerationDisabledReason({
+      ...eligibleTicket,
+      status: "open",
+    }),
+    "invalid_status",
+  );
+  assert.equal(
+    formatWorkOrderGenerationDisabledReason("invalid_status"),
+    "Ticket must be Assigned or In Progress.",
+  );
+  assert.equal(
+    getWorkOrderGenerationDisabledReason({
+      ...eligibleTicket,
+      linked_work_order: {
+        id: "wo-1",
+        work_order_number: "MWO-1",
+        status: "assigned",
+        title: "Linked",
+      },
+    }),
+    "already_linked",
+  );
+  assert.equal(
+    getWorkOrderGenerationDisabledReason(eligibleTicket, false),
+    "missing_permission",
+  );
+  assert.equal(
+    formatWorkOrderGenerationDisabledReason("missing_permission"),
+    "You do not have permission to generate a Work Order.",
+  );
+});
+
+test("generation becomes enabled after valid assignment prerequisites", () => {
+  assert.equal(
+    canGenerateWorkOrderFromTicket({
+      ...eligibleTicket,
+      assignee: null,
+    }),
+    false,
+  );
+  assert.equal(canGenerateWorkOrderFromTicket(eligibleTicket), true);
 });
 
 test("missing assignee asset or existing link suppresses generation", () => {

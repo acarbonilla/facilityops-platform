@@ -13,12 +13,15 @@ import {
   canGenerateWorkOrderFromTicket,
   formatGenerateWorkOrderError,
   formatGenerateWorkOrderSuccess,
+  formatWorkOrderGenerationDisabledReason,
   getGenerateWorkOrderActionLabel,
+  getWorkOrderGenerationDisabledReason,
 } from "@/lib/fm-tickets/work-order-generation";
 import { generateWorkOrderFromTicket } from "@/services/api/fm-tickets";
 import {
   fmTicketsQueryKeys,
   maintenanceQueryKeys,
+  notificationQueryKeys,
 } from "@/services/api/query-keys";
 import type { FmTicketDetail } from "@/types/fm-tickets";
 
@@ -43,11 +46,16 @@ export function TicketGenerateWorkOrderPanel({
       setSuccessMessage(formatGenerateWorkOrderSuccess(workOrder));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: fmTicketsQueryKeys.detail(ticket.id) }),
+        queryClient.invalidateQueries({ queryKey: fmTicketsQueryKeys.history(ticket.id) }),
         queryClient.invalidateQueries({ queryKey: fmTicketsQueryKeys.all }),
         queryClient.invalidateQueries({ queryKey: maintenanceQueryKeys.all }),
         queryClient.invalidateQueries({
           queryKey: maintenanceQueryKeys.detail(workOrder.id),
         }),
+        queryClient.invalidateQueries({
+          queryKey: maintenanceQueryKeys.assignments(workOrder.id),
+        }),
+        queryClient.invalidateQueries({ queryKey: notificationQueryKeys.all }),
       ]);
     },
     onError: (error) => {
@@ -60,8 +68,15 @@ export function TicketGenerateWorkOrderPanel({
     return null;
   }
 
-  const isEligible = canGenerateWorkOrderFromTicket(ticket);
+  const disabledReason = getWorkOrderGenerationDisabledReason(
+    ticket,
+    canManageGeneration,
+  );
+  const isEligible = canGenerateWorkOrderFromTicket(ticket, canManageGeneration);
   const actionLabel = getGenerateWorkOrderActionLabel(ticket);
+  const disabledReasonMessage = formatWorkOrderGenerationDisabledReason(
+    disabledReason,
+  );
 
   function handleGenerate() {
     if (!isEligible || mutation.isPending) {
@@ -103,17 +118,22 @@ export function TicketGenerateWorkOrderPanel({
                   ticket.linked_work_order.id,
                 )}
               >
-                View work order
+                View Work Order
               </Link>
             }
           />
         </dl>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-slate-600">
-            Eligible when the ticket is assigned or in progress, has an assignee and
-            asset, and no work order is already linked.
-          </p>
+          {canManageGeneration && disabledReasonMessage ? (
+            <p className="text-sm text-amber-800" role="status">
+              {disabledReasonMessage}
+            </p>
+          ) : (
+            <p className="text-sm text-slate-600">
+              This ticket meets the requirements for work order generation.
+            </p>
+          )}
           {canManageGeneration ? (
             <button
               className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
