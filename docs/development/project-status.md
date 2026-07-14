@@ -14,7 +14,7 @@
 
 ## Current Module
 
-- FM Ticket ↔ Maintenance Integration (In Progress — FO-061/FO-061A foundation approved; FO-062 pending)
+- FM Ticket ↔ Maintenance Integration (In Progress — FO-061/FO-061A foundation approved; FO-062 status sync implemented; automatic Ticket closure deferred)
 
 ## Current Branch
 
@@ -76,6 +76,7 @@
 - FO-061 (FM Ticket to Maintenance Work Order Integration; cumulatively approved with FO-061A)
 - FO-061A (FM Ticket Assignment and Work Order Generation Reconciliation; cumulatively approved)
 - FO-061B (Final Validation and Review Reconciliation; 2026-07-14)
+- FO-062 (FM Ticket and Work Order Status Synchronization; on draft PR #36)
 
 ## Completed Governance Task
 
@@ -83,11 +84,12 @@
 
 ## Current Task
 
-- FO-062 — FM Ticket and Work Order Status Synchronization (ready to begin; not started)
+- FO-062 implemented on draft PR #36. Broader integration remains In Progress pending final QA. Automatic Ticket closure (FO-063) remains deferred.
 
 ## Next Milestone
 
-- FO-062 — FM Ticket and Work Order Status Synchronization on `feature/fm-ticket-maintenance-integration` / draft PR #36
+- Final integration QA on draft PR #36
+- FO-063 automatic Ticket closure remains deferred
 
 ## Known Issues
 
@@ -95,10 +97,11 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Manual browser smoke of FO-061A/FO-061B depended on seeded same-tenant technicians with `users.directory` on the coordinator; Codex did not execute the browser test.
+- FO-062 browser smoke is pending local environment confirmation (Codex did not execute it in this task).
 
 ## Last Reviewed Commit
 
-- FO-061B validation reconciliation on `feature/fm-ticket-maintenance-integration` (draft PR #36 remains open, draft, unmerged)
+- FO-062 status synchronization on `feature/fm-ticket-maintenance-integration` (draft PR #36 remains open, draft, unmerged)
 
 ## Last Merge
 
@@ -107,12 +110,3 @@
 ## Repository Version
 
 - `0.1.0` working branch baseline
-
-## FO-061B Validation Snapshot (2026-07-14)
-
-- Backend: `apps.fm_tickets` 63 OK; `apps.maintenance` 69 OK; `apps.notifications` 78 OK; `apps.accounts`+`apps.access_control` 109 OK; full suite `--parallel 4` 411 OK
-- Django check: no issues (exit 0)
-- Migration drift: `makemigrations --check --dry-run` — No changes detected (exit 0)
-- Frontend: `npm test` 122 pass; `npm run lint` exit 0; `npx tsc --noEmit` exit 0; `npm run build` exit 0 (FM Ticket and Maintenance routes included)
-- User-executed manual smoke test: passed (FM-20260714-0001 → MWO-20260714-0003; assignee `doejohn@gmail.com`; dual assignment notifications)
-- PR #36: remains draft and unmerged

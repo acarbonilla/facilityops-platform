@@ -14,6 +14,7 @@ import { useResumeWorkOrder } from "@/hooks/use-resume-work-order";
 import { useStartWorkOrder } from "@/hooks/use-start-work-order";
 import { useSubmitWorkOrder } from "@/hooks/use-submit-work-order";
 import { formatDateTime, formatMaintenanceLabel } from "@/lib/maintenance/display";
+import { getSourceTicketInvalidationId } from "@/lib/maintenance/ticket-sync";
 import { getMaintenanceWorkflowActions } from "@/lib/maintenance/workflow";
 import type {
   MaintenanceCancelPayload,
@@ -382,13 +383,14 @@ export function MaintenanceWorkflowActions({
   const [activeDialog, setActiveDialog] = useState<WorkflowDialogKey>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const sourceTicketId = getSourceTicketInvalidationId(workOrder.source_ticket);
   const submitMutation = useSubmitWorkOrder(workOrder.id);
-  const startMutation = useStartWorkOrder(workOrder.id);
-  const holdMutation = useHoldWorkOrder(workOrder.id);
-  const resumeMutation = useResumeWorkOrder(workOrder.id);
-  const completeMutation = useCompleteWorkOrder(workOrder.id);
-  const cancelMutation = useCancelWorkOrder(workOrder.id);
-  const reopenMutation = useReopenWorkOrder(workOrder.id);
+  const startMutation = useStartWorkOrder(workOrder.id, sourceTicketId);
+  const holdMutation = useHoldWorkOrder(workOrder.id, sourceTicketId);
+  const resumeMutation = useResumeWorkOrder(workOrder.id, sourceTicketId);
+  const completeMutation = useCompleteWorkOrder(workOrder.id, sourceTicketId);
+  const cancelMutation = useCancelWorkOrder(workOrder.id, sourceTicketId);
+  const reopenMutation = useReopenWorkOrder(workOrder.id, sourceTicketId);
 
   const allActions = useMemo(
     () => getMaintenanceWorkflowActions(workOrder.status),

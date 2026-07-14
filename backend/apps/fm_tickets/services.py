@@ -140,6 +140,16 @@ def _apply_status_timestamps(ticket, to_status):
         ticket.closed_at = now
     elif to_status == FmTicket.Status.CANCELLED:
         ticket.closed_at = now
+    elif to_status in {
+        FmTicket.Status.DRAFT,
+        FmTicket.Status.OPEN,
+        FmTicket.Status.ASSIGNED,
+        FmTicket.Status.IN_PROGRESS,
+        FmTicket.Status.ON_HOLD,
+    }:
+        # Reopen / re-activation clears terminal resolution timestamps.
+        ticket.resolved_at = None
+        ticket.closed_at = None
 
 
 def create_ticket(*, requester, data):

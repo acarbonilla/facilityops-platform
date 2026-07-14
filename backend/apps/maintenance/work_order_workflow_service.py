@@ -12,6 +12,7 @@ from .models import (
 )
 from .notification_service import notify_maintenance_status_changed
 from .services import calculate_sla, record_history, record_status_history
+from .ticket_sync_service import synchronize_source_ticket_status
 from .validators import validate_status_transition
 
 
@@ -103,6 +104,12 @@ def _transition_work_order(
             "reason": reason,
             "note": note,
         },
+    )
+    synchronize_source_ticket_status(
+        work_order=work_order,
+        previous_work_order_status=from_status,
+        actor=actor,
+        maintenance_action=action,
     )
     notify_maintenance_status_changed(
         work_order=work_order,

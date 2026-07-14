@@ -186,15 +186,16 @@ Manual smoke-test limitations: no automated browser/component harness; smoke cov
 ### Cumulative review status
 
 - FO-061B: Complete
-- FO-061 and FO-061A: cumulatively validated and approved as the stable foundation for FO-062
-- Broader FM Ticket ↔ Maintenance Integration feature: remains **In Progress** because FO-062 is pending
+- FO-061 and FO-061A: cumulatively validated and approved as the stable foundation for status synchronization
+- FO-062: implemented on draft PR #36 (one-way Work Order → Ticket status sync)
+- Broader FM Ticket ↔ Maintenance Integration feature: remains **In Progress** pending final QA; automatic Ticket closure remains deferred
 - Draft PR #36: remains open, draft, and unmerged
-- Next milestone: FO-062 — FM Ticket and Work Order Status Synchronization
+- Next milestone: final integration QA / FO-063 closure integration (deferred)
 
 ## Deferred Scope
 
-- FO-062 status synchronization
-- Automatic Ticket closure from Work Order completion
+- FO-062 status synchronization — implemented; see `docs/02-Development/FO-062 - FM Ticket and Work Order Status Synchronization.md`
+- Automatic Ticket closure from Work Order completion (FO-063)
 - Automatic Work Order creation on ticket create or assign
 - Supervisor inference
 - Attachment/comment/AI transfer
@@ -203,3 +204,4 @@ Manual smoke-test limitations: no automated browser/component harness; smoke cov
 - Assignment teams or maintenance trades
 - Broad Maintenance form redesign
 - External delivery channels
+- Reverse Ticket → Work Order status synchronization
