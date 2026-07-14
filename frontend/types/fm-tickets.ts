@@ -125,12 +125,28 @@ export interface FmTicketEscalation {
   resolved_by_email: string | null;
 }
 
+export interface LinkedMaintenanceWorkOrderSummary {
+  id: string;
+  work_order_number: string;
+  status: string;
+  title: string;
+}
+
+export interface GeneratedWorkOrderSummary {
+  id: string;
+  work_order_number: string;
+  status: string;
+  title: string;
+  source_ticket_id: string;
+}
+
 export interface FmTicketDetail extends FmTicketBaseRecord {
   department: string | null;
   department_name: string | null;
   description: string;
   sla: FmTicketSla;
   escalation_history: FmTicketEscalation[];
+  linked_work_order: LinkedMaintenanceWorkOrderSummary | null;
   resolved_at: string | null;
   closed_at: string | null;
   created_at: string;

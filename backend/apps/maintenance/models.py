@@ -89,6 +89,13 @@ class MaintenanceWorkOrder(BaseModel):
         blank=True,
         related_name="assigned_maintenance_work_orders",
     )
+    source_ticket = models.OneToOneField(
+        "fm_tickets.FmTicket",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="maintenance_work_order",
+    )
     work_order_number = models.CharField(
         max_length=32,
         unique=True,

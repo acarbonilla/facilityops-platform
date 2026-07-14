@@ -1,10 +1,13 @@
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.access_control.services import user_has_permission
 from common.pagination import StandardResultsSetPagination
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.http import Http404
 
 from .filters import apply_query_param_filters
 from .models import FmTicket
@@ -19,8 +22,13 @@ from .serializers import (
     FmTicketListSerializer,
     FmTicketStatusChangeSerializer,
     FmTicketUpdateSerializer,
+    GeneratedWorkOrderSummarySerializer,
 )
 from .services import assign_ticket, change_ticket_status
+from .work_order_service import (
+    WorkOrderAlreadyLinked,
+    generate_work_order_from_ticket,
+)
 
 
 class HasTicketPermission(BasePermission):
@@ -52,6 +60,7 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         "asset",
         "requester",
         "assignee",
+        "maintenance_work_order",
     )
     permission_classes = [IsAuthenticated, HasTicketPermission]
     pagination_class = StandardResultsSetPagination
@@ -98,6 +107,11 @@ class FmTicketViewSet(viewsets.ModelViewSet):
             )
         elif self.action == "assign":
             self.required_permission = "fm_tickets.assign"
+        elif self.action == "generate_work_order":
+            self.required_permissions_any = (
+                "fm_tickets.assign",
+                "fm_tickets.manage",
+            )
         elif self.action == "escalate":
             self.required_permission = "fm_tickets.manage"
         elif self.action == "change_status":
@@ -211,6 +225,31 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         )
         response_serializer = FmTicketDetailSerializer(ticket)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="generate-work-order")
+    def generate_work_order(self, request, pk=None):
+        ticket = self.get_object()
+        if ticket.is_deleted:
+            raise Http404()
+        caller_tenant_id = getattr(request.user, "tenant_id", None)
+        if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
+            raise Http404()
+
+        try:
+            work_order = generate_work_order_from_ticket(
+                ticket=ticket,
+                generated_by=request.user,
+            )
+        except FmTicket.DoesNotExist as exc:
+            raise Http404() from exc
+        except WorkOrderAlreadyLinked:
+            raise
+        except DjangoValidationError as exc:
+            detail = getattr(exc, "message_dict", None) or exc.messages
+            raise DRFValidationError(detail) from exc
+
+        response_serializer = GeneratedWorkOrderSummarySerializer(work_order)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="escalate")
     def escalate(self, request, pk=None):

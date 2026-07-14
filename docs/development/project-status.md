@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- Notifications (complete; awaiting PR cumulative review)
+- FM Ticket ↔ Maintenance Integration
 
 ## Current Branch
 
-- `feature/notifications`
+- `feature/fm-ticket-maintenance-integration`
 
 ## Completed Modules
 
@@ -71,34 +71,35 @@
 - FO-059A (module override semantics correction; independently approved)
 - FO-060 (Notifications Module QA and Stabilization)
 
+## Completed Integration Tasks
+
+- FO-061 (FM Ticket to Maintenance Work Order Integration)
+
 ## Completed Governance Task
 
 - FO-DOC-001
 
 ## Current Task
 
-- Notifications module implementation through FO-060 is complete. Draft PR #34 awaits Sol’s independent cumulative final review.
+- FO-061 FM Ticket to Maintenance Work Order Integration is complete on draft PR (unmerged).
 
 ## Next Milestone
 
-- Sol independent cumulative final review of PR #34.
+- Independent review of FO-061 draft PR.
 
 ## Known Issues
 
-- Frontend test coverage remains helper-level (`npm run test`, 109 tests); no component, integration, or browser harness exists yet.
+- Frontend test coverage remains helper-level; no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
-- Module merge workflow is still manual and depends on branch discipline plus
-  tracker accuracy.
-- Canonical full backend suite baseline for Roles and Permissions validation is 250 tests (`python manage.py test --parallel 4 --noinput` from `backend/`).
-- Canonical full backend suite for current repository validation discovers 391 tests under `python manage.py test --parallel 4 --noinput` in `backend/`; multiprocessing worker teardown trace output can intermittently appear in this environment during parallel execution.
+- Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 
 ## Last Reviewed Commit
 
-- `e9e6762` (FO-060 Notifications Module QA and Stabilization)
+- FO-061 HEAD recorded after push
 
 ## Last Merge
 
-- `ca67eeb2fd425d8582973fabbb222f026ef6a90d` (Merge pull request #33 into `main`)
+- `25c32bc` (Merge pull request #35 into `main`)
 
 ## Repository Version
 

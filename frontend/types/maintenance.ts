@@ -137,6 +137,12 @@ export interface MaintenanceWorkOrderListItem {
   requester_email: string;
   assignee: string | null;
   assignee_email: string | null;
+  source_ticket: {
+    id: string;
+    ticket_number: string;
+    status: string;
+    title: string;
+  } | null;
   requested_at: string;
   due_at: string | null;
   attachments_count: number;

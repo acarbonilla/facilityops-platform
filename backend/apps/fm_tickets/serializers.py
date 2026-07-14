@@ -1,6 +1,7 @@
 import copy
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
@@ -101,6 +102,7 @@ class FmTicketDetailSerializer(FmTicketListSerializer):
     updated_at = serializers.DateTimeField(read_only=True)
     sla = serializers.SerializerMethodField()
     escalation_history = serializers.SerializerMethodField()
+    linked_work_order = serializers.SerializerMethodField()
 
     class Meta(FmTicketListSerializer.Meta):
         fields = FmTicketListSerializer.Meta.fields + (
@@ -109,11 +111,26 @@ class FmTicketDetailSerializer(FmTicketListSerializer):
             "description",
             "sla",
             "escalation_history",
+            "linked_work_order",
             "resolved_at",
             "closed_at",
             "created_at",
             "updated_at",
         )
+
+    def get_linked_work_order(self, obj):
+        try:
+            work_order = obj.maintenance_work_order
+        except ObjectDoesNotExist:
+            return None
+        if work_order.is_deleted:
+            return None
+        return {
+            "id": str(work_order.id),
+            "work_order_number": work_order.work_order_number,
+            "status": work_order.status,
+            "title": work_order.title,
+        }
 
     def get_sla(self, obj):
         return {
@@ -307,6 +324,17 @@ class FmTicketAssignSerializer(serializers.Serializer):
 class FmTicketStatusChangeSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=FmTicket.Status.choices)
     note = serializers.CharField(required=False, allow_blank=True)
+
+
+class GeneratedWorkOrderSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    work_order_number = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    source_ticket_id = serializers.SerializerMethodField()
+
+    def get_source_ticket_id(self, obj):
+        return str(obj.source_ticket_id) if obj.source_ticket_id else None
 
 
 class FmTicketEscalationCreateSerializer(serializers.Serializer):
