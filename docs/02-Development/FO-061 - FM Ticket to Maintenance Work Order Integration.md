@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete (FO-061A reconciliation on draft PR #36; awaiting Sol cumulative review before independent approval)
+Complete — FO-061 and FO-061A cumulatively validated and approved as the foundation for status synchronization (FO-061B, 2026-07-14). Draft PR #36 remains open, draft, and unmerged. FO-062 remains pending.
 
 ## Purpose
 
@@ -41,9 +41,11 @@ A Work Order is generated only through an explicit authorized **Generate Work Or
 - Permissions: `fm_tickets.assign` for mutation; `users.directory` for picker population
 - Frontend reuses shared `UserDirectoryPicker` scoped to the ticket tenant (and organization when present)
 - Backend validates active, same-tenant, non-global assignee and eligible roles (`technician`, `facility_manager`, `system_admin`) using the same soft role-intersection rule as Maintenance
+- Soft-role compatibility rule (unchanged): users with **no assigned roles** remain eligible for assignment; only users with one or more explicit roles that do **not** intersect `{technician, facility_manager, system_admin}` are rejected
 - Assign endpoint enforces caller tenant match (generic 404 for inaccessible tickets)
 - Supports initial assignment and reassignment; optional note is accepted
 - Atomic ticket assignment, status/history updates, and FM assignment notification remain authoritative
+- Ticket assignment alone does **not** generate a Work Order
 
 ## Eligibility Rules
 
@@ -133,19 +135,61 @@ Backend: assignment authorization and isolation, generation with active Maintena
 
 Frontend helper tests: assignment permission state mapping, assign vs reassign labels, UUID payload normalization, generation disabled reasons, linked-record routes.
 
-## Validation
+## FO-061B Final Validation (2026-07-14)
 
-Backend:
+Validation, documentation reconciliation, and repository hygiene only. No production-code changes. No FO-061B migration. No FO-062 implementation.
 
-- `python manage.py test apps.fm_tickets --noinput` -> passed (63 tests)
-- Related suite results recorded during FO-061A validation run
-- `python manage.py check` -> passed
-- `python manage.py makemigrations --check --dry-run` -> no changes detected
+### Backend commands and results
 
-Frontend:
+| Command | Exit | Result |
+| --- | --- | --- |
+| `python manage.py test apps.fm_tickets --noinput` | 0 | Ran 63 tests — OK |
+| `python manage.py test apps.maintenance --noinput` | 0 | Ran 69 tests — OK |
+| `python manage.py test apps.notifications --noinput` | 0 | Ran 78 tests — OK |
+| `python manage.py test apps.accounts apps.access_control --noinput` | 0 | Ran 109 tests — OK |
+| `python manage.py test --parallel 4 --noinput` | 0 | Ran 411 tests — OK |
+| `python manage.py check` | 0 | System check identified no issues (0 silenced) |
+| `python manage.py makemigrations --check --dry-run` | 0 | No changes detected |
+| `python manage.py showmigrations fm_tickets maintenance` | 0 | `fm_tickets` 0001–0002 applied; `maintenance` 0001–0005 applied (`0005_work_order_source_ticket` present) |
 
-- Helper tests include FO-061A assignment and generation coverage
-- `npm run lint`, `npx tsc --noEmit`, and `npm run build` recorded during FO-061A validation run
+### Frontend commands and results
+
+| Command | Exit | Result |
+| --- | --- | --- |
+| `npm test` | 0 | 122 helper tests — pass 122, fail 0 |
+| `npm run lint` | 0 | ESLint passed |
+| `npx tsc --noEmit` | 0 | TypeScript passed |
+| `npm run build` | 0 | Production build passed; routes include `/fm-tickets`, `/fm-tickets/[id]`, `/maintenance/work-orders`, `/maintenance/work-orders/[id]` |
+
+### Schema and migration confirmation
+
+- `maintenance.0005_work_order_source_ticket` is the only FO-061 schema migration
+- `source_ticket` remains nullable OneToOne with `on_delete=PROTECT` and `related_name="maintenance_work_order"`
+- No FO-061A or FO-061B migration created
+- `makemigrations --check --dry-run` reports no changes
+
+### User-executed manual smoke test (2026-07-14)
+
+Recorded as **user-executed** browser acceptance (not Codex-executed):
+
+1. Same-tenant active technicians appeared in the FM Ticket picker
+2. Coordinator assigned `doejohn@gmail.com`
+3. FM Ticket `FM-20260714-0001` changed to Assigned
+4. Linked Work Order `MWO-20260714-0003` was generated
+5. “View Work Order” navigation worked
+6. Maintenance displayed `doejohn@gmail.com` as the assigned technician
+7. Technician received FM ticket assigned and Maintenance work order assigned notifications
+8. Same-tenant assignment behavior confirmed
+
+Manual smoke-test limitations: no automated browser/component harness; smoke covers one successful same-tenant path and does not exhaustively re-prove cross-tenant/global/inactive rejection matrix (covered by backend tests).
+
+### Cumulative review status
+
+- FO-061B: Complete
+- FO-061 and FO-061A: cumulatively validated and approved as the stable foundation for FO-062
+- Broader FM Ticket ↔ Maintenance Integration feature: remains **In Progress** because FO-062 is pending
+- Draft PR #36: remains open, draft, and unmerged
+- Next milestone: FO-062 — FM Ticket and Work Order Status Synchronization
 
 ## Deferred Scope
 
