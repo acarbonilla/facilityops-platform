@@ -16,14 +16,15 @@
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
-| Dashboard | Complete | Foundation metrics backend and frontend dashboard shell |
+| Dashboard | Complete | Foundation metrics backend and frontend dashboard shell. Review note: foundation counts are globally scoped and must not be reused by Reporting; any Foundation Dashboard correction requires a separate confirmed task |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment (FO-048 directory picker via FO-061A), SLA, escalation; explicit Ticket-to-Work-Order generation; same-tenant assignment reconciliation; one-to-one source Ticket linkage; FO-062 one-way Work Order → Ticket status sync; FO-062B UX/QA; FO-062C final cumulative review approved; automatic Ticket closure deferred (FO-063) |
-| Maintenance Work Order | Complete | FO-031 through FO-037 complete; nullable OneToOne `source_ticket` linkage; generated WOs through `assign_work_order()`; Work Order → Ticket status synchronization; standalone Work Orders remain supported (no Ticket sync); FO-062B form contract cleanup; FO-062C final cumulative review approved |
-| FM Ticket ↔ Maintenance Integration | Complete | Explicit Ticket-to-Work-Order generation, same-tenant assignment reconciliation, one-to-one source Ticket linkage, Work Order-to-Ticket status synchronization, and standalone Work Order support are implemented. Integration QA and Sol’s independent cumulative final review are complete (FO-062C). Automatic Ticket closure remains deferred (FO-063). Draft PR #36 remains open, draft, and unmerged pending the user’s final ready-for-review and merge action |
+| FM Ticketing | Complete | Explicit Work Order generation, linked Work Order navigation, and Work Order-to-Ticket status synchronization implemented; completion resolves but does not close the Ticket; FO-063 automatic closure remains deferred |
+| Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
+| FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains deferred |
+| Reporting and Operational Analytics | Selected (not started) | Repository review complete; selected as the next complete feature; FO-064 planned but not started; recommended future branch `feature/reporting`; no Reporting implementation, branch, or PR yet |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |

@@ -115,15 +115,28 @@ Recorded from FO-062B (not re-run for this documentation-only task unless produc
 - No dependency files changed.
 - No generated artifacts or secrets were added.
 
-## PR #36 State
+## PR #36 State (historical — as of FO-062C)
 
-- Remains **OPEN**
-- Remains **DRAFT**
-- Remains **UNMERGED**
+At the time FO-062C was committed, PR #36:
+
+- Remained **OPEN**
+- Remained **DRAFT**
+- Remained **UNMERGED**
 - Base: `main`
 - Head: `feature/fm-ticket-maintenance-integration`
-- Ready for the user’s final ready-for-review and merge decision
-- FO-062C does **not** mark the PR ready for review and does **not** merge it
+- Was ready for the user’s final ready-for-review and merge decision
+- FO-062C did **not** mark the PR ready for review and did **not** merge it
+
+## Post-Merge Reconciliation Note (FO-062D)
+
+After FO-062C:
+
+- PR #36 was subsequently marked ready for review.
+- PR #36 was merged into `main` using the normal merge-commit strategy.
+- Merge commit: `e509b4ff82d9d93302c0d2e1febe8ce62061b9c5` (merged at 2026-07-15T11:10:49Z).
+- Local `main` was synchronized with `origin/main`.
+- Local and remote `feature/fm-ticket-maintenance-integration` branches were deleted.
+- FO-062D reconciled the development trackers after merge.
 
 ## Explicit Confirmation
 
