@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/reporting` (FO-064 Reporting Backend Aggregation Foundation complete on branch)
+- `feature/reporting` (FO-064 + FO-064A complete on branch; draft PR #38)
 - Synchronized repository baseline before branch: `main` at merge commit `ae3d208663cf31937bee5a326ce339b14b78e918`
 
 ## Completed Modules
@@ -91,23 +91,25 @@
 ## Completed Reporting Tasks
 
 - FO-064 (Reporting Backend Aggregation Foundation; complete on `feature/reporting`)
+- FO-064A (Reporting API Contract Validation and Backend Reconciliation; complete on `feature/reporting`)
 
 ## Current Task
 
-- FO-064 complete on `feature/reporting`. Reporting backend aggregation foundation, `reporting.view` seed, and tenant-scoped overview API are implemented. Cumulative draft PR remains open/unmerged. Next milestone: FO-065 Reporting frontend operational overview.
+- FO-064A complete on `feature/reporting`. Overview contract validated (`date_from`, `date_to`, `building`, `organization`); `status`/`priority` deferred to FO-066. Cumulative draft PR #38 remains open/unmerged. FO-065 has not started.
 
 ## Next Milestone
 
-- FO-065 — Reporting Frontend Operational Overview
+- FO-065 — Reporting Frontend Operational Overview (not started; blocked until FO-064A review acceptance)
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Selected Next Feature — Reporting and Operational Analytics
 
 - Next feature: Reporting and Operational Analytics
 - Active branch: `feature/reporting`
-- First milestone: FO-064 — Reporting Backend Aggregation Foundation (complete on branch)
+- First milestone: FO-064 — Reporting Backend Aggregation Foundation (complete; reconciled by FO-064A)
 - Initial permission: `reporting.view` (seeded)
 - Overview API: `GET /api/reporting/overview/`
+- Supported filters: `date_from`, `date_to`, `building`, `organization`
 - Export: deferred from the first MVP slice
 - Chart dependency: not approved or required initially
 - Notifications analytics: deferred

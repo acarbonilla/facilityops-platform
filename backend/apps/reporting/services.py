@@ -1,16 +1,18 @@
 from datetime import timedelta
 from decimal import Decimal
+from uuid import UUID
 
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
 
 from apps.fm_tickets.models import FmTicket
 from apps.inspection.models import Inspection
 from apps.maintenance.models import MaintenanceWorkOrder
+from apps.master_data.models import Building, Organization
 
-from .tenant_scope import scope_queryset_to_user
+from .tenant_scope import has_global_reporting_scope, scope_queryset_to_user
 
 DEFAULT_DATE_RANGE_DAYS = 90
 MAX_DATE_RANGE_DAYS = 180
@@ -29,6 +31,8 @@ WORK_ORDER_TERMINAL_STATUSES = (
     MaintenanceWorkOrder.Status.CLOSED,
 )
 
+UNSUPPORTED_FILTER_PARAMS = ("status", "priority")
+
 
 def _parse_bound(raw_value, field_name):
     if raw_value in (None, ""):
@@ -41,12 +45,71 @@ def _parse_bound(raw_value, field_name):
     return parsed
 
 
-def resolve_reporting_filters(query_params):
+def _parse_optional_uuid(raw_value, field_name):
+    if raw_value in (None, ""):
+        return None
+    try:
+        return UUID(str(raw_value))
+    except (TypeError, ValueError, AttributeError):
+        raise ValidationError({field_name: ["Must be a valid UUID."]}) from None
+
+
+def _reject_unsupported_filters(query_params):
+    errors = {}
+    for field_name in UNSUPPORTED_FILTER_PARAMS:
+        if query_params.get(field_name) not in (None, ""):
+            errors[field_name] = [
+                "This filter is not supported by the current Reporting overview contract."
+            ]
+    if errors:
+        raise ValidationError(errors)
+
+
+def _eligible_master_data_queryset(model, user):
+    queryset = model.objects.filter(is_deleted=False, is_active=True)
+    if has_global_reporting_scope(user):
+        return queryset
+    tenant_id = getattr(user, "tenant_id", None)
+    if not tenant_id:
+        return queryset.none()
+    return queryset.filter(tenant_id=tenant_id)
+
+
+def _resolve_accessible_organization(user, organization_id):
+    if organization_id is None:
+        return None
+    organization = _eligible_master_data_queryset(Organization, user).filter(
+        id=organization_id
+    ).first()
+    if organization is None:
+        raise NotFound("Organization not found.")
+    return organization
+
+
+def _resolve_accessible_building(user, building_id):
+    if building_id is None:
+        return None
+    building = (
+        _eligible_master_data_queryset(Building, user)
+        .select_related("organization")
+        .filter(id=building_id)
+        .first()
+    )
+    if building is None:
+        raise NotFound("Building not found.")
+    return building
+
+
+def resolve_reporting_filters(query_params, user=None):
     """Normalize and validate overview query filters.
 
-    Date bounds default to the last 90 days through now. The inclusive span
-    must not exceed 180 days.
+    Supported public filters: date_from, date_to, building, organization.
+    Date bounds are inclusive on both ends (``__gte`` / ``__lte``).
+    Default period is the last 90 days through now. Inclusive span must not
+    exceed 180 days. Status and priority are rejected until FO-066.
     """
+    _reject_unsupported_filters(query_params)
+
     now = timezone.now()
     date_to = _parse_bound(query_params.get("date_to"), "date_to") or now
     date_from = _parse_bound(query_params.get("date_from"), "date_from")
@@ -66,22 +129,48 @@ def resolve_reporting_filters(query_params):
             }
         )
 
-    building_id = query_params.get("building") or None
-    organization_id = query_params.get("organization") or None
-    status = query_params.get("status") or None
-    priority = query_params.get("priority") or None
+    building_id = _parse_optional_uuid(query_params.get("building"), "building")
+    organization_id = _parse_optional_uuid(
+        query_params.get("organization"), "organization"
+    )
+
+    organization = None
+    building = None
+    if user is not None:
+        if building_id is not None or organization_id is not None:
+            if (
+                not has_global_reporting_scope(user)
+                and not getattr(user, "tenant_id", None)
+            ):
+                raise NotFound("Building not found." if building_id else "Organization not found.")
+
+        organization = _resolve_accessible_organization(user, organization_id)
+        building = _resolve_accessible_building(user, building_id)
+
+        if building is not None and organization is not None:
+            if building.organization_id != organization.id:
+                raise ValidationError(
+                    {
+                        "building": [
+                            "Building must belong to the selected organization."
+                        ]
+                    }
+                )
 
     return {
         "date_from": date_from,
         "date_to": date_to,
-        "building_id": building_id,
-        "organization_id": organization_id,
-        "status": status,
-        "priority": priority,
+        "building_id": building.id if building is not None else building_id,
+        "organization_id": (
+            organization.id if organization is not None else organization_id
+        ),
+        "building": building,
+        "organization": organization,
     }
 
 
 def _apply_common_filters(queryset, filters, *, date_field):
+    # Inclusive date bounds: date_from <= field <= date_to.
     queryset = queryset.filter(
         is_deleted=False,
         **{f"{date_field}__gte": filters["date_from"]},
@@ -91,10 +180,6 @@ def _apply_common_filters(queryset, filters, *, date_field):
         queryset = queryset.filter(building_id=filters["building_id"])
     if filters["organization_id"]:
         queryset = queryset.filter(organization_id=filters["organization_id"])
-    if filters["status"]:
-        queryset = queryset.filter(status=filters["status"])
-    if filters["priority"]:
-        queryset = queryset.filter(priority=filters["priority"])
     return queryset
 
 
@@ -218,7 +303,7 @@ def build_operational_overview(user, query_params):
     Aggregations are backend-authoritative. Callers must not trust frontend
     filter hints alone; every queryset is scoped before counting.
     """
-    filters = resolve_reporting_filters(query_params)
+    filters = resolve_reporting_filters(query_params, user=user)
     now = timezone.now()
 
     tickets = scope_queryset_to_user(FmTicket.objects.all(), user)
@@ -238,10 +323,14 @@ def build_operational_overview(user, query_params):
         "filters": {
             "date_from": filters["date_from"].isoformat(),
             "date_to": filters["date_to"].isoformat(),
-            "building": filters["building_id"],
-            "organization": filters["organization_id"],
-            "status": filters["status"],
-            "priority": filters["priority"],
+            "building": (
+                str(filters["building_id"]) if filters["building_id"] else None
+            ),
+            "organization": (
+                str(filters["organization_id"])
+                if filters["organization_id"]
+                else None
+            ),
         },
         "tickets": build_ticket_summary(tickets, now=now),
         "work_orders": build_work_order_summary(work_orders, now=now),
