@@ -14,11 +14,12 @@
 
 ## Current Module
 
-- FM Ticket ↔ Maintenance Integration (complete; Sol’s independent cumulative final review approved; draft PR #36 ready for the user’s final ready-for-review and merge decision; automatic Ticket closure deferred to FO-063)
+- Post-merge baseline reconciliation complete; Reporting and Operational Analytics selected as the next complete feature (FO-064 planned, not started)
 
 ## Current Branch
 
-- `feature/fm-ticket-maintenance-integration`
+- `docs/post-merge-baseline-reconciliation` (documentation-only FO-062D)
+- Synchronized repository baseline: `main` at merge commit `e509b4ff82d9d93302c0d2e1febe8ce62061b9c5`
 
 ## Completed Modules
 
@@ -38,6 +39,7 @@
 - UI Components
 - Configuration
 - Notifications
+- FM Ticket ↔ Maintenance Integration
 
 ## Completed FO Tasks
 
@@ -80,6 +82,7 @@
 - FO-062A (Standalone Work Order Creation Validation and Error Handling; complete)
 - FO-062B (FM Ticket Maintenance Integration QA and UX Reconciliation; complete)
 - FO-062C (Final Integration Review and Repository Reconciliation; Sol cumulative approval recorded)
+- FO-062D (Post-Merge Documentation and Baseline Reconciliation; complete)
 
 ## Completed Governance Task
 
@@ -87,12 +90,32 @@
 
 ## Current Task
 
-- FO-061 through FO-062C complete. Sol’s independent cumulative final review is approved. Reviewed implementation HEAD: `04ccfef9c68658e7fb9baaa18a6a8bfb67fa4078`. The FM Ticket–Maintenance Integration feature is complete. Draft PR #36 remains open, draft, and unmerged; ready for the user’s final ready-for-review and merge decision. Automatic Ticket closure (FO-063) remains deferred.
+- FO-062D post-merge documentation and baseline reconciliation. PR #36 is merged. FM Ticket–Maintenance Integration (FO-061 through FO-062C) is complete on `main`. Reporting and Operational Analytics is the selected next complete feature; FO-064 is planned but not started. No Reporting implementation, `feature/reporting` branch, or Reporting PR exists yet.
 
 ## Next Milestone
 
-- User final ready-for-review and merge decision for draft PR #36
-- FO-063 automatic Ticket closure remains deferred
+- Merge FO-062D documentation PR when ready
+- FO-064 — Reporting Backend Aggregation Foundation (planned; not started)
+- FO-063 automatic Ticket closure remains reserved and deferred
+
+## Selected Next Feature — Reporting and Operational Analytics
+
+- Next feature: Reporting and Operational Analytics
+- Recommended branch: `feature/reporting` (not created yet)
+- First milestone: FO-064 — Reporting Backend Aggregation Foundation (planned; not started)
+- Initial permission: `reporting.view` (not created yet)
+- Export: deferred from the first MVP slice
+- Chart dependency: not approved or required initially
+- Notifications analytics: deferred
+- FO-063: remains separately reserved for automatic FM Ticket closure
+
+## Foundation Dashboard Security Note (review item only)
+
+- The existing Foundation Dashboard uses globally scoped counts.
+- This pattern must not be reused by Reporting.
+- Reporting aggregations must be tenant-scoped and backend-authoritative.
+- Any correction to the Foundation Dashboard requires a separate confirmed task.
+- No Dashboard code was changed during FO-062D.
 
 ## Known Issues
 
@@ -105,12 +128,13 @@
 
 ## Last Reviewed Commit
 
-- Approved implementation HEAD `04ccfef9c68658e7fb9baaa18a6a8bfb67fa4078` on `feature/fm-ticket-maintenance-integration` (FO-062C documentation reconciliation records Sol’s cumulative approval; draft PR #36 remains open, draft, unmerged)
+- Integration approved implementation HEAD `04ccfef9c68658e7fb9baaa18a6a8bfb67fa4078` (FO-062C); subsequently merged to `main` via PR #36
 
 ## Last Merge
 
-- `25c32bc` (Merge pull request #35 into `main`)
+- `e509b4ff82d9d93302c0d2e1febe8ce62061b9c5` (Merge pull request #36 into `main`; 2026-07-15T11:10:49Z)
+- Previous integration feature branch `feature/fm-ticket-maintenance-integration` deleted locally and remotely after merge
 
 ## Repository Version
 
-- `0.1.0` working branch baseline
+- `0.1.0` synchronized `main` baseline
