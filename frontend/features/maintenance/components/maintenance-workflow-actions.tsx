@@ -62,10 +62,10 @@ function MaintenanceWorkflowConfirmDialog({
       <div
         aria-labelledby="maintenance-workflow-dialog-title"
         aria-modal="true"
-        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl"
+        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
         role="dialog"
       >
-        <div>
+        <div className="shrink-0 border-b border-slate-200 px-6 py-5">
           <h3
             className="text-xl font-semibold tracking-tight text-slate-950"
             id="maintenance-workflow-dialog-title"
@@ -74,8 +74,12 @@ function MaintenanceWorkflowConfirmDialog({
           </h3>
           <p className="mt-2 text-sm text-slate-600">{description}</p>
         </div>
-        {children ? <div className="mt-5 space-y-4">{children}</div> : null}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        {children ? (
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            {children}
+          </div>
+        ) : null}
+        <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-6 py-4 sm:flex-row sm:justify-end">
           <button
             className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             onClick={onClose}
