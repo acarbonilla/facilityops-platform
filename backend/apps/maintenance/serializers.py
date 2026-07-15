@@ -455,6 +455,7 @@ class WorkOrderListSerializer(serializers.ModelSerializer):
     sla_status = serializers.SerializerMethodField()
     sla_is_overdue = serializers.SerializerMethodField()
     has_active_escalation = serializers.SerializerMethodField()
+    source_ticket = serializers.SerializerMethodField()
 
     def _sla(self, obj):
         try:
@@ -472,6 +473,17 @@ class WorkOrderListSerializer(serializers.ModelSerializer):
 
     def get_has_active_escalation(self, obj):
         return bool(getattr(obj, "active_escalation_count", 0))
+
+    def get_source_ticket(self, obj):
+        ticket = obj.source_ticket
+        if ticket is None or ticket.is_deleted:
+            return None
+        return {
+            "id": str(ticket.id),
+            "ticket_number": ticket.ticket_number,
+            "status": ticket.status,
+            "title": ticket.title,
+        }
 
     class Meta:
         model = MaintenanceWorkOrder
@@ -500,6 +512,7 @@ class WorkOrderListSerializer(serializers.ModelSerializer):
             "requester_email",
             "assignee",
             "assignee_email",
+            "source_ticket",
             "requested_at",
             "due_at",
             "sla_status",

@@ -69,6 +69,7 @@ class MaintenanceWorkOrderViewSet(viewsets.ModelViewSet):
         "asset",
         "requester",
         "assignee",
+        "source_ticket",
         "sla_record",
         "completion_record",
         "ai_summary",

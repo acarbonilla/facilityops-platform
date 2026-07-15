@@ -13,8 +13,12 @@ import { useReopenWorkOrder } from "@/hooks/use-reopen-work-order";
 import { useResumeWorkOrder } from "@/hooks/use-resume-work-order";
 import { useStartWorkOrder } from "@/hooks/use-start-work-order";
 import { useSubmitWorkOrder } from "@/hooks/use-submit-work-order";
-import { formatDateTime, formatMaintenanceLabel } from "@/lib/maintenance/display";
-import { getMaintenanceWorkflowActions } from "@/lib/maintenance/workflow";
+import { formatDateTime, formatMaintenanceError, formatMaintenanceLabel } from "@/lib/maintenance/display";
+import { getSourceTicketInvalidationId } from "@/lib/maintenance/ticket-sync";
+import {
+  getMaintenanceWorkflowActions,
+  getMaintenanceWorkflowSuccessMessage,
+} from "@/lib/maintenance/workflow";
 import type {
   MaintenanceCancelPayload,
   MaintenanceCompletePayload,
@@ -61,10 +65,10 @@ function MaintenanceWorkflowConfirmDialog({
       <div
         aria-labelledby="maintenance-workflow-dialog-title"
         aria-modal="true"
-        className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-2xl"
+        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
         role="dialog"
       >
-        <div>
+        <div className="shrink-0 border-b border-slate-200 px-6 py-5">
           <h3
             className="text-xl font-semibold tracking-tight text-slate-950"
             id="maintenance-workflow-dialog-title"
@@ -73,8 +77,12 @@ function MaintenanceWorkflowConfirmDialog({
           </h3>
           <p className="mt-2 text-sm text-slate-600">{description}</p>
         </div>
-        {children ? <div className="mt-5 space-y-4">{children}</div> : null}
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        {children ? (
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            {children}
+          </div>
+        ) : null}
+        <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-6 py-4 sm:flex-row sm:justify-end">
           <button
             className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             onClick={onClose}
@@ -382,13 +390,14 @@ export function MaintenanceWorkflowActions({
   const [activeDialog, setActiveDialog] = useState<WorkflowDialogKey>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const sourceTicketId = getSourceTicketInvalidationId(workOrder.source_ticket);
   const submitMutation = useSubmitWorkOrder(workOrder.id);
-  const startMutation = useStartWorkOrder(workOrder.id);
-  const holdMutation = useHoldWorkOrder(workOrder.id);
-  const resumeMutation = useResumeWorkOrder(workOrder.id);
-  const completeMutation = useCompleteWorkOrder(workOrder.id);
-  const cancelMutation = useCancelWorkOrder(workOrder.id);
-  const reopenMutation = useReopenWorkOrder(workOrder.id);
+  const startMutation = useStartWorkOrder(workOrder.id, sourceTicketId);
+  const holdMutation = useHoldWorkOrder(workOrder.id, sourceTicketId);
+  const resumeMutation = useResumeWorkOrder(workOrder.id, sourceTicketId);
+  const completeMutation = useCompleteWorkOrder(workOrder.id, sourceTicketId);
+  const cancelMutation = useCancelWorkOrder(workOrder.id, sourceTicketId);
+  const reopenMutation = useReopenWorkOrder(workOrder.id, sourceTicketId);
 
   const allActions = useMemo(
     () => getMaintenanceWorkflowActions(workOrder.status),
@@ -426,36 +435,74 @@ export function MaintenanceWorkflowActions({
     cancelMutation.isPending ||
     reopenMutation.isPending;
 
+  function resetWorkflowMutations() {
+    submitMutation.reset();
+    startMutation.reset();
+    holdMutation.reset();
+    resumeMutation.reset();
+    completeMutation.reset();
+    cancelMutation.reset();
+    reopenMutation.reset();
+  }
+
+  async function runWorkflowMutation(
+    mutationFn: () => Promise<unknown>,
+    successText: string,
+  ) {
+    setSuccessMessage(null);
+
+    try {
+      await mutationFn();
+      setSuccessMessage(successText);
+      setActiveDialog(null);
+    } catch {
+      // React Query records mutation.error for inline display.
+    }
+  }
+
   async function handleSimpleAction(
     action: MaintenanceWorkflowAction,
     payload?: MaintenanceSimpleWorkflowPayload,
   ) {
-    setSuccessMessage(null);
-
     if (action.key === "submit") {
-      await submitMutation.mutateAsync(payload);
-    } else if (action.key === "start") {
-      await startMutation.mutateAsync(payload);
-    } else if (action.key === "resume") {
-      await resumeMutation.mutateAsync(payload);
+      await runWorkflowMutation(
+        () => submitMutation.mutateAsync(payload),
+        getMaintenanceWorkflowSuccessMessage("submit"),
+      );
+      return;
     }
 
-    setSuccessMessage(`${action.label} completed successfully.`);
-    setActiveDialog(null);
+    if (action.key === "start") {
+      await runWorkflowMutation(
+        () => startMutation.mutateAsync(payload),
+        getMaintenanceWorkflowSuccessMessage("start"),
+      );
+      return;
+    }
+
+    if (action.key === "resume") {
+      await runWorkflowMutation(
+        () => resumeMutation.mutateAsync(payload),
+        getMaintenanceWorkflowSuccessMessage("resume"),
+      );
+    }
   }
+
+  const workflowErrorMessage = workflowError
+    ? formatMaintenanceError(
+        workflowError,
+        "The maintenance workflow action could not be completed.",
+      )
+    : null;
 
   return (
     <SectionCard
       title="Workflow Actions"
       description="Available actions depend on the current status and maintenance workflow permissions. All actions remain enforced by the backend even if a user calls the API directly."
     >
-      {workflowError ? (
+      {workflowErrorMessage ? (
         <ErrorState
-          message={
-            workflowError instanceof Error
-              ? workflowError.message
-              : "The maintenance workflow action could not be completed."
-          }
+          message={workflowErrorMessage}
           title="Workflow action failed"
         />
       ) : null}
@@ -488,6 +535,7 @@ export function MaintenanceWorkflowActions({
               key={action.key}
               onClick={() => {
                 setSuccessMessage(null);
+                resetWorkflowMutations();
                 setActiveDialog(action.key);
               }}
               type="button"
@@ -504,7 +552,10 @@ export function MaintenanceWorkflowActions({
           confirmLabel="Submit work order"
           description="Submit this draft work order into the active maintenance queue."
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
+          onClose={() => {
+            resetWorkflowMutations();
+            setActiveDialog(null);
+          }}
           onConfirm={async () => {
             await handleSimpleAction(
               availableActions.find((action) => action.key === "submit")!,
@@ -519,7 +570,10 @@ export function MaintenanceWorkflowActions({
           confirmLabel="Start work order"
           description="Move this assigned work order into active execution."
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
+          onClose={() => {
+            resetWorkflowMutations();
+            setActiveDialog(null);
+          }}
           onConfirm={async () => {
             await handleSimpleAction(
               availableActions.find((action) => action.key === "start")!,
@@ -532,12 +586,15 @@ export function MaintenanceWorkflowActions({
       {activeDialog === "hold" ? (
         <MaintenanceHoldDialog
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
-          onConfirm={async (payload) => {
-            setSuccessMessage(null);
-            await holdMutation.mutateAsync(payload);
-            setSuccessMessage("Work order placed on hold successfully.");
+          onClose={() => {
+            resetWorkflowMutations();
             setActiveDialog(null);
+          }}
+          onConfirm={async (payload) => {
+            await runWorkflowMutation(
+              () => holdMutation.mutateAsync(payload),
+              getMaintenanceWorkflowSuccessMessage("hold"),
+            );
           }}
         />
       ) : null}
@@ -547,7 +604,10 @@ export function MaintenanceWorkflowActions({
           confirmLabel="Resume work order"
           description="Resume this on-hold work order and return it to active execution."
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
+          onClose={() => {
+            resetWorkflowMutations();
+            setActiveDialog(null);
+          }}
           onConfirm={async () => {
             await handleSimpleAction(
               availableActions.find((action) => action.key === "resume")!,
@@ -560,12 +620,15 @@ export function MaintenanceWorkflowActions({
       {activeDialog === "complete" ? (
         <MaintenanceCompleteDialog
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
-          onConfirm={async (payload) => {
-            setSuccessMessage(null);
-            await completeMutation.mutateAsync(payload);
-            setSuccessMessage("Work order completed successfully.");
+          onClose={() => {
+            resetWorkflowMutations();
             setActiveDialog(null);
+          }}
+          onConfirm={async (payload) => {
+            await runWorkflowMutation(
+              () => completeMutation.mutateAsync(payload),
+              getMaintenanceWorkflowSuccessMessage("complete"),
+            );
           }}
         />
       ) : null}
@@ -573,12 +636,15 @@ export function MaintenanceWorkflowActions({
       {activeDialog === "cancel" ? (
         <MaintenanceCancelDialog
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
-          onConfirm={async (payload) => {
-            setSuccessMessage(null);
-            await cancelMutation.mutateAsync(payload);
-            setSuccessMessage("Work order cancelled successfully.");
+          onClose={() => {
+            resetWorkflowMutations();
             setActiveDialog(null);
+          }}
+          onConfirm={async (payload) => {
+            await runWorkflowMutation(
+              () => cancelMutation.mutateAsync(payload),
+              getMaintenanceWorkflowSuccessMessage("cancel"),
+            );
           }}
         />
       ) : null}
@@ -586,12 +652,15 @@ export function MaintenanceWorkflowActions({
       {activeDialog === "reopen" ? (
         <MaintenanceReopenDialog
           isBusy={isBusy}
-          onClose={() => setActiveDialog(null)}
-          onConfirm={async (payload) => {
-            setSuccessMessage(null);
-            await reopenMutation.mutateAsync(payload);
-            setSuccessMessage("Work order reopened successfully.");
+          onClose={() => {
+            resetWorkflowMutations();
             setActiveDialog(null);
+          }}
+          onConfirm={async (payload) => {
+            await runWorkflowMutation(
+              () => reopenMutation.mutateAsync(payload),
+              getMaintenanceWorkflowSuccessMessage("reopen"),
+            );
           }}
         />
       ) : null}

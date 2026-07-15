@@ -1,9 +1,5 @@
 import type { AuthUser } from "@/types/auth";
 import type {
-  MaintenanceFormOptions,
-  MaintenanceLaborFormValues,
-  MaintenanceMaterialFormValues,
-  MaintenanceTaskFormValues,
   MaintenanceWorkOrderCreatePayload,
   MaintenanceWorkOrderDetail,
   MaintenanceWorkOrderFormValues,
@@ -12,35 +8,14 @@ import type {
 
 const MAINTENANCE_FORM_FLASH_KEY = "maintenance-work-order-flash";
 
-export function createEmptyMaintenanceTask(
-  sequence = 1,
-): MaintenanceTaskFormValues {
-  return {
-    title: "",
-    description: "",
-    estimated_hours: "",
-    sequence: String(sequence),
-    required: true,
-  };
-}
+export const MAINTENANCE_FORM_WORKFLOW_GUIDANCE =
+  "After creation, use Work Order Details to assign personnel and perform status actions. To create work from an FM Ticket, use Generate Work Order from the Ticket instead.";
 
-export function createEmptyMaintenanceMaterial(): MaintenanceMaterialFormValues {
-  return {
-    name: "",
-    quantity: "",
-    unit: "unit",
-    estimated_cost: "",
-    notes: "",
-  };
-}
+export const MAINTENANCE_FORM_ASSIGNMENT_GUIDANCE =
+  "Create the Work Order first. Technician and Supervisor assignments are managed from the Work Order Details page.";
 
-export function createEmptyMaintenanceLabor(): MaintenanceLaborFormValues {
-  return {
-    estimated_hours: "",
-    rate: "",
-    notes: "",
-  };
-}
+export const MAINTENANCE_FORM_ATTACHMENT_GUIDANCE =
+  "Attachments can be added when the Maintenance upload workflow becomes available.";
 
 function formatDateTimeLocalValue(value?: string | null): string {
   if (!value) {
@@ -76,33 +51,6 @@ function normalizeDateTime(value: string): string | null {
   return parsed.toISOString();
 }
 
-function taskHasContent(task: MaintenanceTaskFormValues) {
-  return Boolean(
-    task.title.trim() ||
-      task.description.trim() ||
-      task.estimated_hours.trim() ||
-      task.sequence.trim(),
-  );
-}
-
-function materialHasContent(material: MaintenanceMaterialFormValues) {
-  return Boolean(
-    material.name.trim() ||
-      material.quantity.trim() ||
-      material.unit.trim() ||
-      material.estimated_cost.trim() ||
-      material.notes.trim(),
-  );
-}
-
-function laborHasContent(entry: MaintenanceLaborFormValues) {
-  return Boolean(
-    entry.estimated_hours.trim() ||
-      entry.rate.trim() ||
-      entry.notes.trim(),
-  );
-}
-
 export function sanitizeMaintenanceFormValues(
   values: MaintenanceWorkOrderFormValues,
 ): MaintenanceWorkOrderFormValues {
@@ -110,31 +58,12 @@ export function sanitizeMaintenanceFormValues(
     ...values,
     title: values.title.trim(),
     description: values.description.trim(),
-    notes: values.notes.trim(),
-    location_description: values.location_description.trim(),
     requested_by: values.requested_by.trim(),
-    assignment_team: values.assignment_team.trim(),
-    tasks: values.tasks.filter(taskHasContent).map((task) => ({
-      ...task,
-      title: task.title.trim(),
-      description: task.description.trim(),
-      estimated_hours: task.estimated_hours.trim(),
-      sequence: task.sequence.trim(),
-    })),
-    materials: values.materials.filter(materialHasContent).map((material) => ({
-      ...material,
-      name: material.name.trim(),
-      quantity: material.quantity.trim(),
-      unit: material.unit.trim(),
-      estimated_cost: material.estimated_cost.trim(),
-      notes: material.notes.trim(),
-    })),
-    labor: values.labor.filter(laborHasContent).map((entry) => ({
-      ...entry,
-      estimated_hours: entry.estimated_hours.trim(),
-      rate: entry.rate.trim(),
-      notes: entry.notes.trim(),
-    })),
+    department: values.department.trim(),
+    floor: values.floor.trim(),
+    area: values.area.trim(),
+    estimated_start_at: values.estimated_start_at.trim(),
+    estimated_completion_at: values.estimated_completion_at.trim(),
   };
 }
 
@@ -171,6 +100,26 @@ export function mapMaintenanceFormValuesToUpdatePayload(
   };
 }
 
+/** Maps backend create/update error keys onto maintenance form field paths. */
+export const MAINTENANCE_FORM_API_FIELD_MAP: Record<
+  string,
+  keyof MaintenanceWorkOrderFormValues
+> = {
+  tenant: "tenant",
+  organization: "organization",
+  department: "department",
+  building: "building",
+  floor: "floor",
+  area: "area",
+  asset: "asset",
+  title: "title",
+  description: "description",
+  priority: "priority",
+  due_at: "due_at",
+  scheduled_start_at: "estimated_start_at",
+  scheduled_end_at: "estimated_completion_at",
+};
+
 export function buildMaintenanceFormDefaults(
   user: AuthUser | null,
 ): MaintenanceWorkOrderFormValues {
@@ -187,24 +136,15 @@ export function buildMaintenanceFormDefaults(
     requested_by: requestedBy,
     title: "",
     description: "",
-    category: "preventive",
-    maintenance_type: "planned",
     priority: "medium",
-    notes: "",
     asset: "",
     building: "",
     floor: "",
     area: "",
-    location_description: "",
     requested_at: requestedAt,
     due_at: "",
     estimated_start_at: "",
     estimated_completion_at: "",
-    estimated_hours: "",
-    assignment_team: "",
-    tasks: [createEmptyMaintenanceTask(1)],
-    materials: [createEmptyMaintenanceMaterial()],
-    labor: [createEmptyMaintenanceLabor()],
   };
 }
 
@@ -218,49 +158,15 @@ export function mapMaintenanceDetailToFormValues(
     requested_by: detail.requester_email,
     title: detail.title,
     description: detail.description,
-    category: "preventive",
-    maintenance_type: "planned",
     priority: detail.priority,
-    notes: "",
     asset: detail.asset,
     building: detail.building,
     floor: detail.floor ?? "",
     area: detail.area ?? "",
-    location_description: "",
     requested_at: formatDateTimeLocalValue(detail.requested_at),
     due_at: formatDateTimeLocalValue(detail.due_at),
     estimated_start_at: formatDateTimeLocalValue(detail.scheduled_start_at),
     estimated_completion_at: formatDateTimeLocalValue(detail.scheduled_end_at),
-    estimated_hours: "",
-    assignment_team: detail.department_name ?? "",
-    tasks:
-      detail.tasks.length > 0
-          ? detail.tasks.map((task) => ({
-            title: task.title,
-            description: task.description,
-            estimated_hours: "",
-            sequence: String(task.sequence),
-            required: true,
-          }))
-        : [createEmptyMaintenanceTask(1)],
-    materials:
-      detail.materials.length > 0
-        ? detail.materials.map((material) => ({
-            name: material.name,
-            quantity: material.quantity,
-            unit: material.unit,
-            estimated_cost: "",
-            notes: material.notes,
-          }))
-        : [createEmptyMaintenanceMaterial()],
-    labor:
-      detail.labor_entries.length > 0
-        ? detail.labor_entries.map((entry) => ({
-            estimated_hours: entry.hours,
-            rate: "",
-            notes: entry.description,
-          }))
-        : [createEmptyMaintenanceLabor()],
   };
 }
 
@@ -284,22 +190,9 @@ export function readMaintenanceFormFlash() {
   return message;
 }
 
-export function getMaintenanceCapabilityNotes(options: MaintenanceFormOptions) {
+export function getMaintenanceCapabilityNotes() {
   return {
-    attachments: options.supports_attachments
-      ? null
-      : "Attachment upload is pending because the current backend foundation does not expose an upload endpoint.",
-    assignments: options.supports_assignment_persistence
-      ? null
-      : "Assignment planning fields are visible, but persistence is deferred to later maintenance workflow APIs.",
-    tasks:
-      options.supports_task_persistence &&
-      options.supports_material_persistence &&
-      options.supports_labor_persistence
-        ? null
-        : "Task, material, and labor rows are planning-only in this form because the current create/update endpoints do not save line items yet.",
-    draft: options.supports_save_draft
-      ? null
-      : "Save draft is unavailable because the backend create endpoint still creates open work orders directly.",
+    attachments: MAINTENANCE_FORM_ATTACHMENT_GUIDANCE,
+    assignments: MAINTENANCE_FORM_ASSIGNMENT_GUIDANCE,
   };
 }

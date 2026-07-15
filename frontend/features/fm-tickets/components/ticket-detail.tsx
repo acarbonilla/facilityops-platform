@@ -17,6 +17,7 @@ import { TicketComments } from "./ticket-comments";
 import { TicketAssignmentPanel } from "./ticket-assignment-panel";
 import { TicketEscalationForm } from "./ticket-escalation-form";
 import { TicketEscalationHistory } from "./ticket-escalation-history";
+import { TicketGenerateWorkOrderPanel } from "./ticket-generate-work-order-panel";
 import { TicketHistory } from "./ticket-history";
 import { TicketPriorityBadge } from "./ticket-priority-badge";
 import { TicketSlaPanel } from "./ticket-sla-panel";
@@ -148,6 +149,7 @@ export function TicketDetailScreen({ id }: { id: string }) {
       </SectionCard>
 
       <TicketAssignmentPanel ticket={ticket} />
+      <TicketGenerateWorkOrderPanel ticket={ticket} />
       <TicketSlaPanel ticket={ticket} />
 
       <SectionCard title="Dates">

@@ -79,7 +79,18 @@ class Command(BaseCommand):
         if requester is None:
             raise CommandError("At least one user is required before seeding FM tickets.")
 
-        assignee = User.objects.exclude(id=requester.id).order_by("created_at").first()
+        assignee = (
+            User.objects.filter(is_active=True, tenant_id=tenant.id)
+            .exclude(id=requester.id)
+            .order_by("created_at")
+            .first()
+        )
+        if assignee is None:
+            assignee = (
+                User.objects.filter(is_active=True, tenant_id=tenant.id)
+                .order_by("created_at")
+                .first()
+            )
         created_tickets = 0
         now = timezone.now()
 

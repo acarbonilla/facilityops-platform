@@ -22,6 +22,7 @@ import {
   formatMaintenanceLabel,
   formatPersonLabel,
 } from "@/lib/maintenance/display";
+import { getLinkedWorkOrderSyncMessage } from "@/lib/maintenance/ticket-sync";
 import type {
   MaintenanceAttachment,
   MaintenanceLabor,
@@ -295,6 +296,44 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
           ]}
         />
       </SectionCard>
+
+      {workOrder.source_ticket ? (
+        <SectionCard
+          title="Source FM Ticket"
+          description="This work order was generated from an FM ticket by a coordinator."
+        >
+          <p className="mb-4 text-sm text-slate-600" role="note">
+            {getLinkedWorkOrderSyncMessage(workOrder.source_ticket)}
+          </p>
+          <MetadataList
+            items={[
+              {
+                label: "Ticket number",
+                value: workOrder.source_ticket.ticket_number,
+              },
+              {
+                label: "Ticket status",
+                value: formatMaintenanceLabel(workOrder.source_ticket.status),
+              },
+              {
+                label: "Ticket title",
+                value: workOrder.source_ticket.title,
+              },
+              {
+                label: "Open ticket",
+                value: (
+                  <Link
+                    className="text-sm font-medium text-blue-700 underline-offset-2 hover:underline"
+                    href={`/fm-tickets/${workOrder.source_ticket.id}`}
+                  >
+                    View FM ticket
+                  </Link>
+                ),
+              },
+            ]}
+          />
+        </SectionCard>
+      ) : null}
 
       <SectionCard
         title="Basic Information"

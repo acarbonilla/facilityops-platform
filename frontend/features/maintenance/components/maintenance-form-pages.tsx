@@ -17,6 +17,7 @@ import {
   mapMaintenanceFormValuesToUpdatePayload,
   writeMaintenanceFormFlash,
 } from "@/lib/maintenance/form";
+import { formatMaintenanceError } from "@/lib/maintenance/display";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
 
 import {
@@ -107,7 +108,7 @@ function MaintenanceProtectedFormState({
 }
 
 function extractErrorMessage(error: unknown, fallback: string) {
-  return getFirstQueryErrorMessage([error], fallback);
+  return formatMaintenanceError(error, fallback);
 }
 
 export function MaintenanceCreatePageContent() {
@@ -145,7 +146,7 @@ export function MaintenanceCreatePageContent() {
   return (
     <MaintenanceProtectedFormState requiredPermission="maintenance.create">
       <MaintenanceFormLayout
-        description="Create a maintenance work order using the current backend foundation. Planning sections remain visible where later workflow APIs are still pending."
+        description="Create a standalone work order that is not generated from an FM Ticket. After creation, use Work Order Details to assign personnel and perform status actions. To create work from an FM Ticket, use Generate Work Order from the Ticket instead."
         errorMessage={
           mutation.isError
             ? extractErrorMessage(
@@ -154,7 +155,7 @@ export function MaintenanceCreatePageContent() {
               )
             : null
         }
-        title="New Work Order"
+        title="Create Standalone Work Order"
       >
         <MaintenanceWorkOrderForm
           cancelHref="/maintenance/work-orders"
@@ -169,7 +170,7 @@ export function MaintenanceCreatePageContent() {
             router.replace(`/maintenance/work-orders/${createdWorkOrder.id}`);
             router.refresh();
           }}
-          submitLabel="Create work order"
+          submitLabel="Create standalone work order"
         />
       </MaintenanceFormLayout>
     </MaintenanceProtectedFormState>
@@ -217,7 +218,7 @@ export function MaintenanceEditPageContent({ id }: { id: string }) {
   return (
     <MaintenanceProtectedFormState requiredPermission="maintenance.update">
       <MaintenanceFormLayout
-        description="Update the selected maintenance work order without entering later workflow actions such as status changes, approvals, or completion."
+        description="Update persisted work-order fields only. Technician and Supervisor assignment, status actions, and attachments are managed from Work Order Details."
         errorMessage={
           mutation.isError
             ? extractErrorMessage(

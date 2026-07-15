@@ -5,9 +5,10 @@ import type { MaintenanceSimpleWorkflowPayload } from "@/types/maintenance";
 
 import { useMaintenanceWorkflowMutation } from "./use-maintenance-workflow-mutation";
 
-export function useResumeWorkOrder(id: string) {
+export function useResumeWorkOrder(id: string, sourceTicketId?: string | null) {
   return useMaintenanceWorkflowMutation<MaintenanceSimpleWorkflowPayload | undefined>(
     id,
     (payload) => resumeWorkOrder(id, payload),
+    { sourceTicketId },
   );
 }

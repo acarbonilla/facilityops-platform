@@ -164,6 +164,42 @@ export function calculateTaskCompletionPercent(
   return "0%";
 }
 
+const MAINTENANCE_FORM_API_FIELD_LABELS: Record<string, string> = {
+  tenant: "Tenant",
+  organization: "Organization",
+  department: "Department",
+  building: "Building",
+  floor: "Floor",
+  area: "Area",
+  asset: "Asset",
+  title: "Title",
+  description: "Description",
+  priority: "Priority",
+  due_at: "Due date",
+  scheduled_start_at: "Estimated start date",
+  scheduled_end_at: "Estimated completion date",
+  non_field_errors: "Form",
+};
+
+export function formatMaintenanceApiFieldLabel(field: string): string {
+  return (
+    MAINTENANCE_FORM_API_FIELD_LABELS[field] ??
+    formatMaintenanceLabel(field, field)
+  );
+}
+
+export function formatMaintenanceValidationMessages(
+  errors: Record<string, string[]>,
+): string[] {
+  return Object.entries(errors).flatMap(([field, messages]) =>
+    messages
+      .filter((message) => Boolean(message?.trim()))
+      .map(
+        (message) => `${formatMaintenanceApiFieldLabel(field)}: ${message}`,
+      ),
+  );
+}
+
 export function formatMaintenanceError(
   error: unknown,
   fallback: string,
@@ -181,6 +217,14 @@ export function formatMaintenanceError(
     if (error.status >= 500) {
       return "The backend failed while loading maintenance data.";
     }
+
+    const validationMessages = formatMaintenanceValidationMessages(
+      error.details?.errors ?? {},
+    );
+    if (validationMessages.length > 0) {
+      return validationMessages.join(" ");
+    }
+
     return error.message;
   }
 

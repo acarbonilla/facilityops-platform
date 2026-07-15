@@ -18,6 +18,7 @@ import {
   formatMaintenanceLabel,
   formatPersonLabel,
 } from "@/lib/maintenance/display";
+import { getMaintenanceWorkflowSuccessMessage } from "@/lib/maintenance/workflow";
 import type {
   MaintenanceAssignment,
   MaintenanceAssignmentCandidate,
@@ -312,13 +313,13 @@ export function MaintenanceAssignmentCard({ workOrder }: { workOrder: Maintenanc
         setSuccess(null);
         if (dialog === "assign") await assignMutation.mutateAsync(payload as MaintenanceAssignPayload);
         else await reassignMutation.mutateAsync(payload as MaintenanceReassignPayload);
-        setSuccess(dialog === "assign" ? "Work order assigned successfully." : "Work order reassigned successfully.");
+        setSuccess(dialog === "assign" ? getMaintenanceWorkflowSuccessMessage("assign") : getMaintenanceWorkflowSuccessMessage("reassign"));
         setDialog(null);
       }} /> : null}
       {dialog === "unassign" ? <MaintenanceUnassignDialog error={error} isBusy={isBusy} onClose={() => setDialog(null)} onConfirm={async (payload) => {
         setSuccess(null);
         await unassignMutation.mutateAsync(payload);
-        setSuccess("Work order unassigned successfully.");
+        setSuccess(getMaintenanceWorkflowSuccessMessage("unassign"));
         setDialog(null);
       }} /> : null}
     </SectionCard>

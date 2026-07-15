@@ -51,6 +51,8 @@ export const API_ENDPOINTS = {
     escalate: (id: string) => `/fm-tickets/tickets/${id}/escalate/`,
     assign: (id: string) => `/fm-tickets/tickets/${id}/assign/`,
     changeStatus: (id: string) => `/fm-tickets/tickets/${id}/change-status/`,
+    generateWorkOrder: (id: string) =>
+      `/fm-tickets/tickets/${id}/generate-work-order/`,
   },
   maintenance: {
     dashboard: "/maintenance/work-orders/dashboard/",

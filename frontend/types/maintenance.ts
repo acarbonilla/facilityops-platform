@@ -137,6 +137,12 @@ export interface MaintenanceWorkOrderListItem {
   requester_email: string;
   assignee: string | null;
   assignee_email: string | null;
+  source_ticket: {
+    id: string;
+    ticket_number: string;
+    status: string;
+    title: string;
+  } | null;
   requested_at: string;
   due_at: string | null;
   attachments_count: number;
@@ -377,28 +383,6 @@ export interface MaintenanceTimelineEvent {
   metadata?: Record<string, unknown>;
 }
 
-export interface MaintenanceTaskFormValues {
-  title: string;
-  description: string;
-  estimated_hours: string;
-  sequence: string;
-  required: boolean;
-}
-
-export interface MaintenanceMaterialFormValues {
-  name: string;
-  quantity: string;
-  unit: string;
-  estimated_cost: string;
-  notes: string;
-}
-
-export interface MaintenanceLaborFormValues {
-  estimated_hours: string;
-  rate: string;
-  notes: string;
-}
-
 export interface MaintenanceWorkOrderFormValues {
   tenant: string;
   organization: string;
@@ -406,24 +390,15 @@ export interface MaintenanceWorkOrderFormValues {
   requested_by: string;
   title: string;
   description: string;
-  category: MaintenanceCategory;
-  maintenance_type: MaintenanceType;
   priority: MaintenanceWorkOrderPriority;
-  notes: string;
   asset: string;
   building: string;
   floor: string;
   area: string;
-  location_description: string;
   requested_at: string;
   due_at: string;
   estimated_start_at: string;
   estimated_completion_at: string;
-  estimated_hours: string;
-  assignment_team: string;
-  tasks: MaintenanceTaskFormValues[];
-  materials: MaintenanceMaterialFormValues[];
-  labor: MaintenanceLaborFormValues[];
 }
 
 export interface MaintenanceWorkOrderCreatePayload {

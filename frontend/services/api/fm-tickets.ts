@@ -16,6 +16,7 @@ import type {
   FmTicketListParams,
   FmTicketStatusUpdatePayload,
   FmTicketUpdatePayload,
+  GeneratedWorkOrderSummary,
 } from "@/types/fm-tickets";
 
 export function getFmTickets(
@@ -139,4 +140,16 @@ export function changeFmTicketStatus(
       note: payload.note ?? "",
     },
   });
+}
+
+export function generateWorkOrderFromTicket(
+  ticketId: string,
+): Promise<GeneratedWorkOrderSummary> {
+  return apiClient<GeneratedWorkOrderSummary>(
+    API_ENDPOINTS.fmTickets.generateWorkOrder(ticketId),
+    {
+      method: "POST",
+      body: {},
+    },
+  );
 }

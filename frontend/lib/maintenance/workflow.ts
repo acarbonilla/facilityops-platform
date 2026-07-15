@@ -3,6 +3,28 @@ import type {
   MaintenanceWorkflowAction,
 } from "@/types/maintenance";
 
+export const MAINTENANCE_WORKFLOW_SUCCESS_MESSAGES = {
+  submit: "Work order submitted successfully.",
+  start: "Work order started successfully.",
+  hold: "Work order placed on hold successfully.",
+  resume: "Work order resumed successfully.",
+  complete: "Work order completed successfully.",
+  cancel: "Work order cancelled successfully.",
+  reopen: "Work order reopened successfully.",
+  assign: "Work order assigned successfully.",
+  reassign: "Work order reassigned successfully.",
+  unassign: "Work order unassigned successfully.",
+} as const;
+
+export type MaintenanceWorkflowSuccessKey =
+  keyof typeof MAINTENANCE_WORKFLOW_SUCCESS_MESSAGES;
+
+export function getMaintenanceWorkflowSuccessMessage(
+  action: MaintenanceWorkflowSuccessKey,
+): string {
+  return MAINTENANCE_WORKFLOW_SUCCESS_MESSAGES[action];
+}
+
 const ACTIONS_BY_STATUS: Record<
   MaintenanceWorkOrderStatus,
   MaintenanceWorkflowAction[]

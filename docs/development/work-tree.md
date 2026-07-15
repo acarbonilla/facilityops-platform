@@ -21,13 +21,14 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment, SLA, escalation |
-| Maintenance Work Order | Complete | FO-031 through FO-037 backend, frontend, workflows, tenant security, SLA/escalation, QA, and stabilization are complete |
+| FM Ticketing | Complete | Backend workflows plus frontend read, create, edit, comments, assignment (FO-048 directory picker via FO-061A), SLA, escalation; explicit Ticket-to-Work-Order generation; same-tenant assignment reconciliation; one-to-one source Ticket linkage; FO-062 one-way Work Order → Ticket status sync; FO-062B UX/QA; FO-062C final cumulative review approved; automatic Ticket closure deferred (FO-063) |
+| Maintenance Work Order | Complete | FO-031 through FO-037 complete; nullable OneToOne `source_ticket` linkage; generated WOs through `assign_work_order()`; Work Order → Ticket status synchronization; standalone Work Orders remain supported (no Ticket sync); FO-062B form contract cleanup; FO-062C final cumulative review approved |
+| FM Ticket ↔ Maintenance Integration | Complete | Explicit Ticket-to-Work-Order generation, same-tenant assignment reconciliation, one-to-one source Ticket linkage, Work Order-to-Ticket status synchronization, and standalone Work Order support are implemented. Integration QA and Sol’s independent cumulative final review are complete (FO-062C). Automatic Ticket closure remains deferred (FO-063). Draft PR #36 remains open, draft, and unmerged pending the user’s final ready-for-review and merge action |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete | Backend FO-060 gates pass at 78 Notifications tests, 176 combined business-module tests, 109 Accounts+Access Control tests, and 391 full parallel suite tests; Frontend: 109 helper tests, ESLint, TypeScript, and production build pass; no component/integration harness exists yet |
+| Testing | Complete | FO-062B (2026-07-15): Backend `apps.fm_tickets` 63, `apps.maintenance` 84, `apps.notifications` 78, `apps.accounts`+`access_control` 109, full `--parallel 4` 426 OK; Frontend: 135 helper tests, ESLint, TypeScript, and production build pass; no component/integration harness exists yet |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
