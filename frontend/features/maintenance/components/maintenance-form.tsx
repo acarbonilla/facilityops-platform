@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useFieldArray,
   useForm,
@@ -17,12 +17,17 @@ import { LoadingState } from "@/components/common/loading-state";
 import { SelectField } from "@/components/common/select-field";
 import { SwitchField } from "@/components/common/switch-field";
 import { useUnsavedChangesPrompt } from "@/hooks/use-unsaved-changes-prompt";
+import {
+  formatMaintenanceError,
+  formatMaintenanceValidationMessages,
+} from "@/lib/maintenance/display";
 import { maintenanceWorkOrderSchema } from "@/lib/validations/maintenance";
 import {
   createEmptyMaintenanceLabor,
   createEmptyMaintenanceMaterial,
   createEmptyMaintenanceTask,
   getMaintenanceCapabilityNotes,
+  MAINTENANCE_FORM_API_FIELD_MAP,
   sanitizeMaintenanceFormValues,
 } from "@/lib/maintenance/form";
 import {
@@ -35,6 +40,7 @@ import {
   TextAreaField,
   TextInputField,
 } from "@/features/master-data/components/shared";
+import { ApiError } from "@/services/api/types";
 import type {
   Area,
   Asset,
@@ -403,11 +409,11 @@ export function MaintenanceLocationSection({
           label="Location description"
         />
         <SelectField
+          description="Required by the current backend foundation."
           error={getFieldErrorMessage(errors.building?.message)}
           id="maintenance-building"
           label="Building"
           options={buildingOptions}
-          placeholder="Optional building"
           {...register("building")}
         />
         <SelectField
@@ -888,12 +894,14 @@ export function MaintenanceWorkOrderForm({
   onSubmit,
   submitLabel,
 }: MaintenanceWorkOrderFormProps) {
+  const [formError, setFormError] = useState<string | null>(null);
   const {
     control,
     formState: { errors, isDirty },
     handleSubmit,
     register,
     reset,
+    setError,
     setValue,
   } = useForm<MaintenanceWorkOrderFormValues>({
     resolver: zodResolver(maintenanceWorkOrderSchema),
@@ -965,9 +973,58 @@ export function MaintenanceWorkOrderForm({
     <form
       className="space-y-5"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit(sanitizeMaintenanceFormValues(values));
+        setFormError(null);
+        try {
+          await onSubmit(sanitizeMaintenanceFormValues(values));
+        } catch (error) {
+          if (error instanceof ApiError) {
+            const unmatchedMessages: string[] = [];
+
+            for (const [field, messages] of Object.entries(
+              error.details?.errors ?? {},
+            )) {
+              const formField = MAINTENANCE_FORM_API_FIELD_MAP[field];
+              if (formField && messages[0]) {
+                setError(formField, {
+                  message: messages[0],
+                  type: "server",
+                });
+              } else {
+                unmatchedMessages.push(
+                  ...formatMaintenanceValidationMessages({
+                    [field]: messages,
+                  }),
+                );
+              }
+            }
+
+            setFormError(
+              unmatchedMessages[0] ??
+                formatMaintenanceError(
+                  error,
+                  "The maintenance work order could not be saved.",
+                ),
+            );
+            return;
+          }
+
+          setFormError(
+            formatMaintenanceError(
+              error,
+              "The maintenance work order could not be saved.",
+            ),
+          );
+        }
       })}
     >
+      {formError ? (
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+          role="alert"
+        >
+          {formError}
+        </p>
+      ) : null}
       <MaintenanceBasicInfoSection
         currentStatus={currentStatus}
         errors={errors}

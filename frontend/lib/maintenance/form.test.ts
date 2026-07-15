@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { maintenanceWorkOrderSchema } from "@/lib/validations/maintenance";
+
 import {
   buildMaintenanceFormDefaults,
   mapMaintenanceFormValuesToCreatePayload,
@@ -14,9 +16,11 @@ function buildValues() {
     organization: "organization-1",
     building: "building-1",
     asset: "asset-1",
+    requested_by: "requester@example.com",
     title: "Payload contract",
     description: "Maintenance payload remains unchanged.",
-    due_at: "2026-07-12T08:00",
+    requested_at: "2026-07-12T08:00",
+    due_at: "2026-07-15T08:00",
   };
 }
 
@@ -39,4 +43,35 @@ test("maintenance update payload remains the create contract plus cancellation r
     ...createPayload,
     cancellation_reason: "",
   });
+});
+
+test("maintenance schema requires asset instead of location-only context", () => {
+  const result = maintenanceWorkOrderSchema.safeParse({
+    ...buildValues(),
+    asset: "",
+    building: "building-1",
+    location_description: "Lobby",
+  });
+
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.equal(
+      result.error.issues.some(
+        (issue) =>
+          issue.path.join(".") === "asset" &&
+          issue.message === "Asset is required.",
+      ),
+      true,
+    );
+  }
+});
+
+test("maintenance schema accepts a complete backend-required create contract", () => {
+  const result = maintenanceWorkOrderSchema.safeParse({
+    ...buildValues(),
+    tasks: [],
+    materials: [],
+    labor: [],
+  });
+  assert.equal(result.success, true);
 });

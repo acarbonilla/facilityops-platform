@@ -108,8 +108,8 @@ export const maintenanceWorkOrderSchema = z
     ]),
     priority: z.enum(["low", "medium", "high", "critical"]),
     notes: optionalString,
-    asset: optionalString,
-    building: optionalString,
+    asset: requiredString("Asset"),
+    building: requiredString("Building"),
     floor: optionalString,
     area: optionalString,
     location_description: optionalString,
@@ -124,20 +124,6 @@ export const maintenanceWorkOrderSchema = z
     labor: z.array(maintenanceLaborSchema),
   })
   .superRefine((values, ctx) => {
-    if (
-      !values.asset &&
-      !values.building &&
-      !values.floor &&
-      !values.area &&
-      !values.location_description
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Select an asset or provide location context.",
-        path: ["asset"],
-      });
-    }
-
     const requestedAt = parseDate(values.requested_at);
     const dueAt = parseDate(values.due_at);
     if (requestedAt && dueAt && dueAt < requestedAt) {

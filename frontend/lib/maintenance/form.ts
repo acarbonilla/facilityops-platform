@@ -171,6 +171,26 @@ export function mapMaintenanceFormValuesToUpdatePayload(
   };
 }
 
+/** Maps backend create/update error keys onto maintenance form field paths. */
+export const MAINTENANCE_FORM_API_FIELD_MAP: Record<
+  string,
+  keyof MaintenanceWorkOrderFormValues
+> = {
+  tenant: "tenant",
+  organization: "organization",
+  department: "department",
+  building: "building",
+  floor: "floor",
+  area: "area",
+  asset: "asset",
+  title: "title",
+  description: "description",
+  priority: "priority",
+  due_at: "due_at",
+  scheduled_start_at: "estimated_start_at",
+  scheduled_end_at: "estimated_completion_at",
+};
+
 export function buildMaintenanceFormDefaults(
   user: AuthUser | null,
 ): MaintenanceWorkOrderFormValues {

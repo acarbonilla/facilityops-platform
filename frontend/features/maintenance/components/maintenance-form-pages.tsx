@@ -17,6 +17,7 @@ import {
   mapMaintenanceFormValuesToUpdatePayload,
   writeMaintenanceFormFlash,
 } from "@/lib/maintenance/form";
+import { formatMaintenanceError } from "@/lib/maintenance/display";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
 
 import {
@@ -107,7 +108,7 @@ function MaintenanceProtectedFormState({
 }
 
 function extractErrorMessage(error: unknown, fallback: string) {
-  return getFirstQueryErrorMessage([error], fallback);
+  return formatMaintenanceError(error, fallback);
 }
 
 export function MaintenanceCreatePageContent() {
