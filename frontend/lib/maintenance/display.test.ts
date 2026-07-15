@@ -36,6 +36,18 @@ test("formatMaintenanceError preserves field-specific backend validation", () =>
   );
 });
 
+test("formatMaintenanceError maps authentication failures to a session message", () => {
+  const error = new ApiError(
+    "Authentication is required or the session has expired.",
+    401,
+  );
+
+  assert.equal(
+    formatMaintenanceError(error, "Fallback"),
+    "Your session expired or authentication is required.",
+  );
+});
+
 test("formatMaintenanceError joins multiple validation fields", () => {
   const error = new ApiError("Validation failed", 400, {
     message: "Validation failed",
