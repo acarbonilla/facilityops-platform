@@ -146,7 +146,7 @@ export function MaintenanceCreatePageContent() {
   return (
     <MaintenanceProtectedFormState requiredPermission="maintenance.create">
       <MaintenanceFormLayout
-        description="Create a standalone work order that is not generated from an FM Ticket. Required fields still apply."
+        description="Create a standalone work order that is not generated from an FM Ticket. After creation, use Work Order Details to assign personnel and perform status actions. To create work from an FM Ticket, use Generate Work Order from the Ticket instead."
         errorMessage={
           mutation.isError
             ? extractErrorMessage(
@@ -218,7 +218,7 @@ export function MaintenanceEditPageContent({ id }: { id: string }) {
   return (
     <MaintenanceProtectedFormState requiredPermission="maintenance.update">
       <MaintenanceFormLayout
-        description="Update the selected maintenance work order without entering later workflow actions such as status changes, approvals, or completion."
+        description="Update persisted work-order fields only. Technician and Supervisor assignment, status actions, and attachments are managed from Work Order Details."
         errorMessage={
           mutation.isError
             ? extractErrorMessage(

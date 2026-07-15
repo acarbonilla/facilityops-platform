@@ -14,7 +14,7 @@
 
 ## Current Module
 
-- FM Ticket ↔ Maintenance Integration (In Progress — FO-061/FO-061A foundation approved; FO-062 status sync implemented; automatic Ticket closure deferred)
+- FM Ticket ↔ Maintenance Integration (Implementation complete on draft PR #36; awaits Sol’s final cumulative PR review; automatic Ticket closure deferred)
 
 ## Current Branch
 
@@ -76,7 +76,9 @@
 - FO-061 (FM Ticket to Maintenance Work Order Integration; cumulatively approved with FO-061A)
 - FO-061A (FM Ticket Assignment and Work Order Generation Reconciliation; cumulatively approved)
 - FO-061B (Final Validation and Review Reconciliation; 2026-07-14)
-- FO-062 (FM Ticket and Work Order Status Synchronization; on draft PR #36)
+- FO-062 (FM Ticket and Work Order Status Synchronization; complete)
+- FO-062A (Standalone Work Order Creation Validation and Error Handling; complete)
+- FO-062B (FM Ticket Maintenance Integration QA and UX Reconciliation; complete)
 
 ## Completed Governance Task
 
@@ -84,11 +86,11 @@
 
 ## Current Task
 
-- FO-062 implemented on draft PR #36. Broader integration remains In Progress pending final QA. Automatic Ticket closure (FO-063) remains deferred.
+- FO-061 through FO-062B implementation complete on draft PR #36. Awaiting Sol’s final cumulative PR review. Automatic Ticket closure (FO-063) remains deferred.
 
 ## Next Milestone
 
-- Final integration QA on draft PR #36
+- Sol final cumulative review of draft PR #36
 - FO-063 automatic Ticket closure remains deferred
 
 ## Known Issues
@@ -96,12 +98,12 @@
 - Frontend test coverage remains helper-level; no component, integration, or browser harness exists yet.
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
-- Manual browser smoke of FO-061A/FO-061B depended on seeded same-tenant technicians with `users.directory` on the coordinator; Codex did not execute the browser test.
-- FO-062 browser smoke is pending local environment confirmation (Codex did not execute it in this task).
+- Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
+- Attachment upload remains deferred and is guidance-only in Maintenance Create/Edit.
 
 ## Last Reviewed Commit
 
-- FO-062 status synchronization on `feature/fm-ticket-maintenance-integration` (draft PR #36 remains open, draft, unmerged)
+- FO-062B QA and UX reconciliation on `feature/fm-ticket-maintenance-integration` (draft PR #36 remains open, draft, unmerged)
 
 ## Last Merge
 

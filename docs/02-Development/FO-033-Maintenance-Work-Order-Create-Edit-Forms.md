@@ -61,34 +61,18 @@ The current backend create and update serializers still only persist the core wo
 - scheduled start/end
 - due date
 
-The following form areas are intentionally visible but marked as pending or planning-only because the backend contract does not persist them yet:
-
-- maintenance category
-- maintenance type
-- notes
-- assignment planning fields
-- task rows
-- material rows
-- labor rows
-- attachments
-- save draft
-
-This keeps the UI aligned with the approved FO-033 scope without faking backend support that does not exist yet.
+FO-062B removed non-persisted planning-only controls from the Create/Edit form. Technician and Supervisor assignment is managed from Work Order Details (FO-035 / FO-061A). Attachments, save draft, and create/update line-item persistence remain deferred and are documented as informational guidance rather than interactive fake controls.
 
 ## Validation Behavior
 
 - Title is required
-- Maintenance type is required
 - Priority is required
-- Requested by is required
-- Asset or location context is required
+- Requested by is required (display; requester ownership remains session-driven)
+- Asset is required
+- Building is required
 - Due date cannot be before requested date
 - Estimated completion date cannot be before estimated start date
-- Estimated hours must be positive when provided
-- Task estimated hours must be positive
-- Material quantity must be positive
-- Labor estimated hours must be positive
-- Empty task, material, and labor rows are filtered out before submit
+- Empty optional location/date fields normalize to null before submit
 
 ## RBAC Behavior
 
@@ -116,4 +100,4 @@ npm run lint
 
 ## Outcome
 
-FO-033 is complete for the approved frontend create/edit scope. The repository is ready to proceed to later maintenance workflow tasks, with the known limitation that richer planning fields still need backend write support before they can persist beyond the current form session.
+FO-033 remains complete for the approved frontend create/edit scope. FO-062B subsequently removes non-persisted planning controls from the visible form so Create/Edit matches the current create/update API contract. Assignment and status workflows remain on Work Order Details; attachments and line-item persistence remain deferred.

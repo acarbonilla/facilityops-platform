@@ -15,7 +15,10 @@ import { useStartWorkOrder } from "@/hooks/use-start-work-order";
 import { useSubmitWorkOrder } from "@/hooks/use-submit-work-order";
 import { formatDateTime, formatMaintenanceError, formatMaintenanceLabel } from "@/lib/maintenance/display";
 import { getSourceTicketInvalidationId } from "@/lib/maintenance/ticket-sync";
-import { getMaintenanceWorkflowActions } from "@/lib/maintenance/workflow";
+import {
+  getMaintenanceWorkflowActions,
+  getMaintenanceWorkflowSuccessMessage,
+} from "@/lib/maintenance/workflow";
 import type {
   MaintenanceCancelPayload,
   MaintenanceCompletePayload,
@@ -464,7 +467,7 @@ export function MaintenanceWorkflowActions({
     if (action.key === "submit") {
       await runWorkflowMutation(
         () => submitMutation.mutateAsync(payload),
-        `${action.label} completed successfully.`,
+        getMaintenanceWorkflowSuccessMessage("submit"),
       );
       return;
     }
@@ -472,7 +475,7 @@ export function MaintenanceWorkflowActions({
     if (action.key === "start") {
       await runWorkflowMutation(
         () => startMutation.mutateAsync(payload),
-        `${action.label} completed successfully.`,
+        getMaintenanceWorkflowSuccessMessage("start"),
       );
       return;
     }
@@ -480,7 +483,7 @@ export function MaintenanceWorkflowActions({
     if (action.key === "resume") {
       await runWorkflowMutation(
         () => resumeMutation.mutateAsync(payload),
-        `${action.label} completed successfully.`,
+        getMaintenanceWorkflowSuccessMessage("resume"),
       );
     }
   }
@@ -590,7 +593,7 @@ export function MaintenanceWorkflowActions({
           onConfirm={async (payload) => {
             await runWorkflowMutation(
               () => holdMutation.mutateAsync(payload),
-              "Work order placed on hold successfully.",
+              getMaintenanceWorkflowSuccessMessage("hold"),
             );
           }}
         />
@@ -624,7 +627,7 @@ export function MaintenanceWorkflowActions({
           onConfirm={async (payload) => {
             await runWorkflowMutation(
               () => completeMutation.mutateAsync(payload),
-              "Work order completed successfully.",
+              getMaintenanceWorkflowSuccessMessage("complete"),
             );
           }}
         />
@@ -640,7 +643,7 @@ export function MaintenanceWorkflowActions({
           onConfirm={async (payload) => {
             await runWorkflowMutation(
               () => cancelMutation.mutateAsync(payload),
-              "Work order cancelled successfully.",
+              getMaintenanceWorkflowSuccessMessage("cancel"),
             );
           }}
         />
@@ -656,7 +659,7 @@ export function MaintenanceWorkflowActions({
           onConfirm={async (payload) => {
             await runWorkflowMutation(
               () => reopenMutation.mutateAsync(payload),
-              "Work order reopened successfully.",
+              getMaintenanceWorkflowSuccessMessage("reopen"),
             );
           }}
         />

@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete on draft PR #36 (implementation + automated validation). Broader FM Ticket ↔ Maintenance Integration remains **In Progress** until final QA. Automatic Ticket closure remains deferred (FO-063).
+Complete on draft PR #36 (implementation + FO-062A/FO-062B QA and UX reconciliation). FM Ticket–Maintenance Integration implementation is complete; PR #36 remains draft pending Sol’s final cumulative PR review. Automatic Ticket closure remains deferred (FO-063).
 
 ## Business Outcome
 
@@ -146,12 +146,16 @@ Frontend helper tests cover linked Ticket invalidation targets, sync messaging, 
 | `python manage.py test --parallel 4 --noinput` | 0 | Ran 426 — OK |
 | `python manage.py check` | 0 | No issues |
 | `python manage.py makemigrations --check --dry-run` | 0 | No changes detected |
-| `npm test` | 0 | 126 helper tests pass |
+| `npm test` | 0 | 126 helper tests pass (FO-062 baseline; FO-062B later records 135) |
 | `npm run lint` | 0 | ESLint passed |
 | `npx tsc --noEmit` | 0 | TypeScript passed |
 | `npm run build` | 0 | Production build passed |
 
-Manual browser smoke: not Codex-executed in this task (pending local user confirmation).
+Manual browser smoke: user-executed on 2026-07-15 and recorded in FO-062B. Codex did not execute these browser tests.
+
+## FO-062B Follow-up
+
+See `docs/02-Development/FO-062B - FM Ticket Maintenance Integration QA and UX Reconciliation.md` for cumulative QA, UX form simplification, success-message corrections, realtime/attachment limitations, and final status conclusions.
 
 ## Deferred Scope
 

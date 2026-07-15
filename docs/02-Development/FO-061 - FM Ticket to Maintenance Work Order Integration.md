@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete — FO-061 and FO-061A cumulatively validated and approved as the foundation for status synchronization (FO-061B, 2026-07-14). Draft PR #36 remains open, draft, and unmerged. FO-062 remains pending.
+Complete — FO-061 and FO-061A cumulatively validated and approved as the foundation for status synchronization (FO-061B, 2026-07-14). FO-062 / FO-062A / FO-062B complete on draft PR #36 (2026-07-15). Draft PR #36 remains open, draft, and unmerged pending Sol’s final cumulative PR review.
 
 ## Purpose
 
@@ -187,14 +187,14 @@ Manual smoke-test limitations: no automated browser/component harness; smoke cov
 
 - FO-061B: Complete
 - FO-061 and FO-061A: cumulatively validated and approved as the stable foundation for status synchronization
-- FO-062: implemented on draft PR #36 (one-way Work Order → Ticket status sync)
-- Broader FM Ticket ↔ Maintenance Integration feature: remains **In Progress** pending final QA; automatic Ticket closure remains deferred
+- FO-062 / FO-062A / FO-062B: complete on draft PR #36
+- FM Ticket ↔ Maintenance Integration implementation: Complete; awaiting Sol’s final cumulative PR review
+- Automatic Ticket closure remains deferred (FO-063)
 - Draft PR #36: remains open, draft, and unmerged
-- Next milestone: final integration QA / FO-063 closure integration (deferred)
+- Next milestone: Sol final cumulative review of draft PR #36; FO-063 remains deferred
 
 ## Deferred Scope
 
-- FO-062 status synchronization — implemented; see `docs/02-Development/FO-062 - FM Ticket and Work Order Status Synchronization.md`
 - Automatic Ticket closure from Work Order completion (FO-063)
 - Automatic Work Order creation on ticket create or assign
 - Supervisor inference
@@ -202,6 +202,6 @@ Manual smoke-test limitations: no automated browser/component harness; smoke cov
 - Work Order deletion/unlinking
 - Multiple Work Orders per Ticket
 - Assignment teams or maintenance trades
-- Broad Maintenance form redesign
 - External delivery channels
 - Reverse Ticket → Work Order status synchronization
+- Cross-tab realtime refresh (WebSocket/SSE/polling)
