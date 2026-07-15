@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.maintenance",
     "apps.master_data",
     "apps.notifications",
+    "apps.reporting",
     "apps.core",
 ]
 

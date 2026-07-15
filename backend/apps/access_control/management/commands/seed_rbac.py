@@ -109,6 +109,7 @@ PERMISSION_DEFINITIONS = [
         "Manage inspection corrective actions",
     ),
     ("inspection", "manage", "Manage inspections"),
+    ("reporting", "view", "View operational reporting"),
 ]
 
 ROLE_PERMISSION_CODES = {
@@ -177,6 +178,7 @@ ROLE_PERMISSION_CODES = {
         "inspection.view_ai",
         "inspection.manage_corrective_action",
         "inspection.manage",
+        "reporting.view",
     },
     "facility_manager": {
         "users.directory",
@@ -231,6 +233,7 @@ ROLE_PERMISSION_CODES = {
         "inspection.assign",
         "inspection.view_ai",
         "inspection.manage_corrective_action",
+        "reporting.view",
     },
     "technician": {
         "fm_tickets.view",
@@ -267,6 +270,7 @@ ROLE_PERMISSION_CODES = {
         "maintenance.view",
         "maintenance.work_order.view",
         "inspection.view",
+        "reporting.view",
     },
 }
 
