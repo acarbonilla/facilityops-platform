@@ -205,7 +205,7 @@ From `frontend/`:
 
 ## Commit SHA
 
-Recorded after commit in the final FO-065 report.
+- `f0ba1487371d988d4c0b6b2b80a405f32be16128` — `FO-065: add reporting operational overview frontend`
 
 ## Draft PR State
 
