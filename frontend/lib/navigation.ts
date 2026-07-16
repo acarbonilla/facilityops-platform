@@ -32,6 +32,13 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "prefix",
   },
   {
+    label: "Reporting",
+    href: "/reporting",
+    authenticatedOnly: true,
+    requiredPermissions: ["reporting.view"],
+    matchStrategy: "exact",
+  },
+  {
     label: "Master Data",
     href: "/master-data",
     authenticatedOnly: true,

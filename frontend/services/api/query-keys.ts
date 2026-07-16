@@ -5,6 +5,7 @@ import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
+import type { ReportingOverviewParams } from "@/types/reporting";
 
 function stripNilParams<T extends object>(
   params?: T,
@@ -18,6 +19,29 @@ function stripNilParams<T extends object>(
       ([, value]) => value !== undefined && value !== null,
     ),
   ) as T;
+}
+
+function normalizeReportingParams(
+  params?: ReportingOverviewParams,
+): ReportingOverviewParams | Record<string, never> {
+  if (!params) {
+    return {};
+  }
+
+  const normalized: ReportingOverviewParams = {};
+
+  for (const key of ["date_from", "date_to", "building", "organization"] as const) {
+    const value = params[key];
+    if (typeof value !== "string") {
+      continue;
+    }
+    const trimmed = value.trim();
+    if (trimmed) {
+      normalized[key] = trimmed;
+    }
+  }
+
+  return normalized;
 }
 
 function normalizeParams(params?: MasterDataListParams): MasterDataListParams {
@@ -149,4 +173,11 @@ export const inspectionQueryKeys = {
   correctiveActions: (id: string) =>
     ["inspection", "corrective-actions", id] as const,
   aiAnalysis: (id: string) => ["inspection", "ai-analysis", id] as const,
+};
+
+export const reportingQueryKeys = {
+  all: ["reporting"] as const,
+  overviews: () => ["reporting", "overview"] as const,
+  overview: (params?: ReportingOverviewParams) =>
+    ["reporting", "overview", normalizeReportingParams(params)] as const,
 };

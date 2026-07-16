@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/reporting` (FO-064 + FO-064A complete on branch; draft PR #38)
+- `feature/reporting` (FO-064 + FO-064A + FO-065 complete on branch; draft PR #38)
 - Synchronized repository baseline before branch: `main` at merge commit `ae3d208663cf31937bee5a326ce339b14b78e918`
 
 ## Completed Modules
@@ -92,28 +92,32 @@
 
 - FO-064 (Reporting Backend Aggregation Foundation; complete on `feature/reporting`)
 - FO-064A (Reporting API Contract Validation and Backend Reconciliation; complete on `feature/reporting`)
+- FO-065 (Reporting Operational Overview Frontend; complete on `feature/reporting`)
 
 ## Current Task
 
-- FO-064A complete on `feature/reporting`. Overview contract validated (`date_from`, `date_to`, `building`, `organization`); `status`/`priority` deferred to FO-066. Cumulative draft PR #38 remains open/unmerged. FO-065 has not started.
+- FO-065 complete on `feature/reporting`. Operational overview frontend at `/reporting` with advisory `reporting.view` gating, date/organization/building filters, and FO-064A-aligned overview consumption. Cumulative draft PR #38 remains open/unmerged. FO-066 has not started.
 
 ## Next Milestone
 
-- FO-065 — Reporting Frontend Operational Overview (not started; blocked until FO-064A review acceptance)
+- FO-066 — Reporting cross-module filters and drill-down workflows (not started)
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Selected Next Feature — Reporting and Operational Analytics
 
 - Next feature: Reporting and Operational Analytics
 - Active branch: `feature/reporting`
-- First milestone: FO-064 — Reporting Backend Aggregation Foundation (complete; reconciled by FO-064A)
+- FO-064 / FO-064A: approved backend aggregation and contract validation (complete)
+- FO-065: Reporting Operational Overview Frontend (complete on branch)
 - Initial permission: `reporting.view` (seeded)
 - Overview API: `GET /api/reporting/overview/`
 - Supported filters: `date_from`, `date_to`, `building`, `organization`
+- Frontend route: `/reporting`
 - Export: deferred from the first MVP slice
 - Chart dependency: not approved or required initially
 - Notifications analytics: deferred
 - FO-063: remains separately reserved for automatic FM Ticket closure
+- Reporting module status: In Progress (FO-066 onward pending)
 
 ## Foundation Dashboard Security Note (review item only)
 

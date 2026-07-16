@@ -113,4 +113,7 @@ export const API_ENDPOINTS = {
     cancel: (id: string) => `/inspection/inspections/${id}/cancel/`,
     reopen: (id: string) => `/inspection/inspections/${id}/reopen/`,
   },
+  reporting: {
+    overview: "/reporting/overview/",
+  },
 } as const;
