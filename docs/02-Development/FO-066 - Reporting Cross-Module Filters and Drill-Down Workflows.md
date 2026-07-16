@@ -182,7 +182,7 @@ Reporting services, serializer and tests; Reporting frontend types, helpers, UI 
 
 ## Commit SHA
 
-Pending commit on `feature/reporting`.
+`443a8edbb7924c12a0c49a4fd86091efdaad6ec7`
 
 ## PR #38 State
 
