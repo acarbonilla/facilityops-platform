@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "./endpoints";
 
 import { omitBlankReportingParams } from "@/lib/reporting/filters";
 import type {
+  ReportingFilterOptionsResponse,
   ReportingOperationalOverview,
   ReportingOverviewParams,
 } from "@/types/reporting";
@@ -17,6 +18,15 @@ export function getReportingOverview(
     {
       method: "GET",
       query,
+    },
+  );
+}
+
+export function getReportingFilterOptions(): Promise<ReportingFilterOptionsResponse> {
+  return apiClient<ReportingFilterOptionsResponse>(
+    API_ENDPOINTS.reporting.filterOptions,
+    {
+      method: "GET",
     },
   );
 }

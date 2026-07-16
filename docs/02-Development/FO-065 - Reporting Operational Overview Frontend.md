@@ -2,7 +2,7 @@
 
 ## Status
 
-Complete (on `feature/reporting`)
+Complete on branch after FO-065A reconciliation (manual acceptance identified a filter-options access defect; FO-065A corrected it)
 
 ## Objective
 
@@ -14,6 +14,9 @@ The page provides management users with an operational summary of:
 - Maintenance Work Orders
 - 5S Inspections
 
+## Manual Acceptance Note
+
+FO-065 manual browser acceptance identified that Organization/Building selectors failed for users with `reporting.view` but without `settings.view`, because FO-065 initially reused administrative Master Data list APIs. FO-065A replaces those calls with `GET /api/reporting/filter-options/` and corrects duplicated “Current period: Period …” copy. See `docs/02-Development/FO-065A - Reporting Filter Options Access and UX Reconciliation.md`.
 ## Preflight Findings
 
 - Branch: `feature/reporting`
@@ -29,7 +32,7 @@ The page provides management users with an operational summary of:
 - `ProtectedPermissionRoute` + `PermissionGuard` / `UnauthorizedState`
 - `APP_NAVIGATION` + permission-filtered `Sidebar`
 - Shared `apiClient`, `API_ENDPOINTS`, TanStack Query, query-key factories
-- Master Data `getOrganizations` / `getBuildings` and `filterBuildingsByOrganization`
+- Master Data `getOrganizations` / `getBuildings` (superseded for Reporting selectors by FO-065A `GET /api/reporting/filter-options/`)
 - Shared `PageHeader`, `EmptyState`, `ErrorState`, `LoadingState`, `SelectField`, `FormField`, `AppShell`
 - Metric-card visual pattern (Reporting uses string-capable cards so average score can show a neutral empty label)
 - Helper-level Node test harness (`node --import tsx --test`)

@@ -336,3 +336,37 @@ def build_operational_overview(user, query_params):
         "work_orders": build_work_order_summary(work_orders, now=now),
         "inspections": build_inspection_summary(inspections),
     }
+
+
+def build_reporting_filter_options(user):
+    """Return read-only Organization/Building options for Reporting filters.
+
+    Protected by ``reporting.view`` at the view layer. Does not require
+    ``settings.view``. Options are limited to active, non-deleted rows and
+    follow the same tenant/global Reporting scope rules as the overview.
+    """
+    organizations = list(
+        _eligible_master_data_queryset(Organization, user)
+        .order_by("name", "id")
+        .values("id", "name")
+    )
+    buildings = list(
+        _eligible_master_data_queryset(Building, user)
+        .filter(organization__is_deleted=False, organization__is_active=True)
+        .order_by("name", "id")
+        .values("id", "name", "organization_id")
+    )
+
+    return {
+        "organizations": [
+            {"id": str(item["id"]), "name": item["name"]} for item in organizations
+        ],
+        "buildings": [
+            {
+                "id": str(item["id"]),
+                "name": item["name"],
+                "organization_id": str(item["organization_id"]),
+            }
+            for item in buildings
+        ],
+    }

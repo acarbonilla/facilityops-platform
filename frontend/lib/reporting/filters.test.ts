@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { API_ENDPOINTS } from "@/services/api/endpoints";
+import { reportingQueryKeys } from "@/services/api/query-keys";
+
 import {
   canApplyReportingFilters,
   clearIncompatibleBuilding,
   createDefaultReportingFilters,
+  filterReportingBuildingsByOrganization,
   formatActiveReportingFilterSummary,
+  formatCurrentReportingPeriodLabel,
+  formatReportingActivePeriod,
   omitBlankReportingParams,
   resetReportingFilters,
   serializeReportingOverviewParams,
@@ -48,21 +54,39 @@ test("only approved parameters are serialized", () => {
   assert.equal("tenant" in (params as object), false);
 });
 
-test("organization change clears incompatible building", () => {
+test("organization change clears incompatible building using organization_id", () => {
   const buildings = [
     {
       id: "b1",
-      organization: "org-a",
+      organization_id: "org-a",
     },
     {
       id: "b2",
-      organization: "org-b",
+      organization_id: "org-b",
     },
   ];
 
   assert.equal(clearIncompatibleBuilding("org-a", "b1", buildings), "b1");
   assert.equal(clearIncompatibleBuilding("org-a", "b2", buildings), "");
   assert.equal(clearIncompatibleBuilding("", "b2", buildings), "b2");
+});
+
+test("buildings narrow by selected organization_id", () => {
+  const buildings = [
+    { id: "b1", name: "North", organization_id: "org-a" },
+    { id: "b2", name: "South", organization_id: "org-b" },
+  ];
+
+  assert.deepEqual(
+    filterReportingBuildingsByOrganization(buildings, "org-a").map(
+      (item) => item.id,
+    ),
+    ["b1"],
+  );
+  assert.equal(
+    filterReportingBuildingsByOrganization(buildings, "").length,
+    2,
+  );
 });
 
 test("reset returns default dates and clears master-data filters", () => {
@@ -77,7 +101,15 @@ test("reset returns default dates and clears master-data filters", () => {
   assert.equal(reset.dateTo, "2026-07-16");
 });
 
-test("active filter summary formatting includes period and optional master-data labels", () => {
+test("active filter summary does not duplicate Current period Period wording", () => {
+  assert.equal(
+    formatReportingActivePeriod({
+      dateFrom: "2026-04-17",
+      dateTo: "2026-07-16",
+    }),
+    "2026-04-17 to 2026-07-16",
+  );
+
   assert.equal(
     formatActiveReportingFilterSummary({
       dateFrom: "2026-04-17",
@@ -85,7 +117,27 @@ test("active filter summary formatting includes period and optional master-data 
       organization: "",
       building: "",
     }),
-    "Period 2026-04-17 to 2026-07-16",
+    "2026-04-17 to 2026-07-16",
+  );
+
+  assert.equal(
+    formatCurrentReportingPeriodLabel({
+      dateFrom: "2026-04-17",
+      dateTo: "2026-07-16",
+      organization: "",
+      building: "",
+    }),
+    "Current period: 2026-04-17 to 2026-07-16",
+  );
+
+  assert.equal(
+    formatCurrentReportingPeriodLabel({
+      dateFrom: "2026-04-17",
+      dateTo: "2026-07-16",
+      organization: "",
+      building: "",
+    }).includes("Current period: Period"),
+    false,
   );
 
   assert.equal(
@@ -101,7 +153,7 @@ test("active filter summary formatting includes period and optional master-data 
         buildingName: "North Wing",
       },
     ),
-    "Period 2026-04-17 to 2026-07-16 · Organization: Acme Facilities · Building: North Wing",
+    "2026-04-17 to 2026-07-16 · Organization: Acme Facilities · Building: North Wing",
   );
 });
 
@@ -134,6 +186,21 @@ test("apply is disabled for invalid dates or unavailable option selections", () 
   );
 
   assert.equal(
+    canApplyReportingFilters(
+      {
+        dateFrom: "2026-04-17",
+        dateTo: "2026-07-16",
+        organization: "stale-org",
+        building: "",
+      },
+      {
+        optionsReady: false,
+      },
+    ),
+    false,
+  );
+
+  assert.equal(
     canApplyReportingFilters({
       dateFrom: "2026-04-17",
       dateTo: "2026-07-16",
@@ -141,5 +208,20 @@ test("apply is disabled for invalid dates or unavailable option selections", () 
       building: "",
     }),
     true,
+  );
+});
+
+test("reporting filter-options endpoint constant and query key are stable", () => {
+  assert.equal(
+    API_ENDPOINTS.reporting.filterOptions,
+    "/reporting/filter-options/",
+  );
+  assert.deepEqual(reportingQueryKeys.filterOptions(), [
+    "reporting",
+    "filter-options",
+  ]);
+  assert.equal(
+    API_ENDPOINTS.reporting.filterOptions.includes("master-data"),
+    false,
   );
 });

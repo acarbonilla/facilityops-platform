@@ -180,4 +180,5 @@ export const reportingQueryKeys = {
   overviews: () => ["reporting", "overview"] as const,
   overview: (params?: ReportingOverviewParams) =>
     ["reporting", "overview", normalizeReportingParams(params)] as const,
+  filterOptions: () => ["reporting", "filter-options"] as const,
 };

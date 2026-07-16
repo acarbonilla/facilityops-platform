@@ -8,6 +8,22 @@ export interface ReportingOverviewParams
   organization?: string;
 }
 
+export interface ReportingOrganizationOption {
+  id: string;
+  name: string;
+}
+
+export interface ReportingBuildingOption {
+  id: string;
+  name: string;
+  organization_id: string;
+}
+
+export interface ReportingFilterOptionsResponse {
+  organizations: ReportingOrganizationOption[];
+  buildings: ReportingBuildingOption[];
+}
+
 export interface ReportingFiltersEcho {
   date_from: string;
   date_to: string;

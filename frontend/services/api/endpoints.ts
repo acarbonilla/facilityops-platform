@@ -115,5 +115,6 @@ export const API_ENDPOINTS = {
   },
   reporting: {
     overview: "/reporting/overview/",
+    filterOptions: "/reporting/filter-options/",
   },
 } as const;

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
@@ -9,7 +8,10 @@ import { FormField } from "@/components/common/form-field";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { SelectField } from "@/components/common/select-field";
-import { useReportingOverview } from "@/hooks/use-reporting-overview";
+import {
+  useReportingFilterOptions,
+  useReportingOverview,
+} from "@/hooks/use-reporting-overview";
 import {
   formatReportingAverageScore,
   formatReportingCategoryLabel,
@@ -26,15 +28,13 @@ import {
   canApplyReportingFilters,
   clearIncompatibleBuilding,
   createDefaultReportingFilters,
-  formatActiveReportingFilterSummary,
+  filterReportingBuildingsByOrganization,
+  formatCurrentReportingPeriodLabel,
   hasActiveMasterDataFilters,
   resetReportingFilters,
   serializeReportingOverviewParams,
 } from "@/lib/reporting/filters";
 import { validateReportingDateRange } from "@/lib/reporting/dates";
-import { filterBuildingsByOrganization } from "@/features/master-data/components/shared";
-import { getBuildings, getOrganizations } from "@/services/api/master-data";
-import { masterDataQueryKeys } from "@/services/api/query-keys";
 import type {
   ReportingActiveFilters,
   ReportingFilterDraft,
@@ -170,25 +170,10 @@ export function ReportingOverviewScreen() {
   const [draft, setDraft] = useState<ReportingFilterDraft>(defaults);
   const [applied, setApplied] = useState<ReportingActiveFilters>(defaults);
 
-  const organizationsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("organizations", {
-      page_size: 100,
-      is_active: true,
-    }),
-    queryFn: () => getOrganizations({ page_size: 100, is_active: true }),
-  });
-
-  const buildingsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("buildings", {
-      page_size: 100,
-      is_active: true,
-    }),
-    queryFn: () => getBuildings({ page_size: 100, is_active: true }),
-  });
-
-  const organizations = organizationsQuery.data?.results ?? [];
-  const buildings = buildingsQuery.data?.results ?? [];
-  const buildingOptions = filterBuildingsByOrganization(
+  const filterOptionsQuery = useReportingFilterOptions();
+  const organizations = filterOptionsQuery.data?.organizations ?? [];
+  const buildings = filterOptionsQuery.data?.buildings ?? [];
+  const buildingOptions = filterReportingBuildingsByOrganization(
     buildings,
     draft.organization,
   );
@@ -202,12 +187,11 @@ export function ReportingOverviewScreen() {
 
   const organizationIds = organizations.map((item) => item.id);
   const buildingIds = buildingOptions.map((item) => item.id);
-  const optionsReady =
-    !organizationsQuery.isPending && !buildingsQuery.isPending;
+  const optionsReady = filterOptionsQuery.isSuccess;
   const applyEnabled = canApplyReportingFilters(draft, {
     organizationIds,
     buildingIds,
-    optionsReady,
+    optionsReady: optionsReady || (!draft.organization && !draft.building),
   });
   const validationMessage = dateValidationMessage(draft);
 
@@ -263,14 +247,11 @@ export function ReportingOverviewScreen() {
         title="Reporting and Operational Analytics"
       >
         <div className="space-y-2 text-sm text-slate-600">
-          <p>
-            Current period:{" "}
-            <span className="font-medium text-slate-900">
-              {formatActiveReportingFilterSummary(applied, {
-                organizationName,
-                buildingName,
-              })}
-            </span>
+          <p className="font-medium text-slate-900">
+            {formatCurrentReportingPeriodLabel(applied, {
+              organizationName,
+              buildingName,
+            })}
           </p>
           {hasActiveMasterDataFilters(applied) ? (
             <p className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-blue-900">
@@ -284,6 +265,13 @@ export function ReportingOverviewScreen() {
         description="Choose a reporting period and optional organization or building scope, then apply filters."
         title="Filters"
       >
+        {filterOptionsQuery.isPending ? (
+          <LoadingState
+            message="Loading Organization and Building filter options."
+            title="Loading filter options"
+          />
+        ) : null}
+
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <FormField htmlFor="reporting-date-from" label="Date From">
             <input
@@ -314,7 +302,7 @@ export function ReportingOverviewScreen() {
             />
           </FormField>
           <SelectField
-            disabled={organizationsQuery.isPending}
+            disabled={filterOptionsQuery.isPending || filterOptionsQuery.isError}
             id="reporting-organization"
             label="Organization"
             onChange={(event) => handleOrganizationChange(event.target.value)}
@@ -326,7 +314,7 @@ export function ReportingOverviewScreen() {
             value={draft.organization}
           />
           <SelectField
-            disabled={buildingsQuery.isPending}
+            disabled={filterOptionsQuery.isPending || filterOptionsQuery.isError}
             id="reporting-building"
             label="Building"
             onChange={(event) =>
@@ -350,12 +338,33 @@ export function ReportingOverviewScreen() {
           </p>
         ) : null}
 
-        {(organizationsQuery.isError || buildingsQuery.isError) && (
-          <p className="text-sm text-amber-800" role="status">
-            Organization or Building options could not be fully loaded. You can
-            still apply a date-only overview, or retry after refreshing the page.
-          </p>
-        )}
+        {filterOptionsQuery.isError ? (
+          <ErrorState
+            message={formatReportingError(
+              filterOptionsQuery.error,
+              "Organization and Building options could not be loaded.",
+            )}
+            title="Unable to load filter options"
+            action={
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800"
+                  onClick={() => void filterOptionsQuery.refetch()}
+                  type="button"
+                >
+                  Retry
+                </button>
+                <button
+                  className="rounded-md border border-red-300 bg-white px-3 py-2 text-sm font-medium text-red-900 hover:bg-red-50"
+                  onClick={handleReset}
+                  type="button"
+                >
+                  Reset filters
+                </button>
+              </div>
+            }
+          />
+        ) : null}
 
         <div className="flex flex-wrap gap-3">
           <button

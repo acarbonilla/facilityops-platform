@@ -171,6 +171,14 @@ test("reporting error formatting covers field errors, 403, 404, and network fail
     formatReportingError(new Error("Failed to fetch")),
     "Failed to fetch",
   );
+
+  assert.equal(
+    formatReportingError(
+      new ApiError("Forbidden", 403),
+      "Organization and Building options could not be loaded.",
+    ),
+    "Your account does not have permission to view reporting data.",
+  );
 });
 
 test("reporting navigation entry is permission gated", () => {
@@ -191,4 +199,10 @@ test("reporting navigation entry is permission gated", () => {
     withoutPermission.some((item) => item.href === "/reporting"),
     false,
   );
+});
+
+test("reporting filter-options query key does not encode a tenant parameter", () => {
+  const key = reportingQueryKeys.filterOptions();
+  assert.deepEqual(key, ["reporting", "filter-options"]);
+  assert.equal(JSON.stringify(key).includes("tenant"), false);
 });

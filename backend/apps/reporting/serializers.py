@@ -46,3 +46,19 @@ class OperationalOverviewSerializer(serializers.Serializer):
     tickets = TicketReportingSummarySerializer()
     work_orders = WorkOrderReportingSummarySerializer()
     inspections = InspectionReportingSummarySerializer()
+
+
+class ReportingOrganizationOptionSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+
+
+class ReportingBuildingOptionSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    organization_id = serializers.CharField()
+
+
+class ReportingFilterOptionsSerializer(serializers.Serializer):
+    organizations = ReportingOrganizationOptionSerializer(many=True)
+    buildings = ReportingBuildingOptionSerializer(many=True)

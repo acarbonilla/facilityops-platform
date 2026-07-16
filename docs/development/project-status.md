@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/reporting` (FO-064 + FO-064A + FO-065 complete on branch; draft PR #38)
+- `feature/reporting` (FO-064 + FO-064A + FO-065 + FO-065A complete on branch; draft PR #38)
 - Synchronized repository baseline before branch: `main` at merge commit `ae3d208663cf31937bee5a326ce339b14b78e918`
 
 ## Completed Modules
@@ -92,11 +92,12 @@
 
 - FO-064 (Reporting Backend Aggregation Foundation; complete on `feature/reporting`)
 - FO-064A (Reporting API Contract Validation and Backend Reconciliation; complete on `feature/reporting`)
-- FO-065 (Reporting Operational Overview Frontend; complete on `feature/reporting`)
+- FO-065 (Reporting Operational Overview Frontend; complete on branch after FO-065A reconciliation)
+- FO-065A (Reporting Filter Options Access and UX Reconciliation; complete on `feature/reporting`)
 
 ## Current Task
 
-- FO-065 complete on `feature/reporting`. Operational overview frontend at `/reporting` with advisory `reporting.view` gating, date/organization/building filters, and FO-064A-aligned overview consumption. Cumulative draft PR #38 remains open/unmerged. FO-066 has not started.
+- FO-065A complete on `feature/reporting`. Manual acceptance of FO-065 identified that Organization/Building selectors incorrectly required Master Data `settings.view`. FO-065A adds `GET /api/reporting/filter-options/` under `reporting.view`, reconciles period copy, and keeps Reporting In Progress. Cumulative draft PR #38 remains open/unmerged. FO-066 has not started.
 
 ## Next Milestone
 
@@ -108,9 +109,10 @@
 - Next feature: Reporting and Operational Analytics
 - Active branch: `feature/reporting`
 - FO-064 / FO-064A: approved backend aggregation and contract validation (complete)
-- FO-065: Reporting Operational Overview Frontend (complete on branch)
+- FO-065 / FO-065A: Reporting overview frontend plus filter-options access/UX reconciliation (complete on branch)
 - Initial permission: `reporting.view` (seeded)
 - Overview API: `GET /api/reporting/overview/`
+- Filter options API: `GET /api/reporting/filter-options/`
 - Supported filters: `date_from`, `date_to`, `building`, `organization`
 - Frontend route: `/reporting`
 - Export: deferred from the first MVP slice

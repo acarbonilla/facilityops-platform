@@ -31,7 +31,7 @@ export function resetReportingFilters(
 export function clearIncompatibleBuilding(
   organizationId: string,
   buildingId: string,
-  buildings: Array<{ id: string; organization: string }>,
+  buildings: Array<{ id: string; organization_id: string }>,
 ): string {
   if (!buildingId) {
     return "";
@@ -42,11 +42,24 @@ export function clearIncompatibleBuilding(
   }
 
   const selected = buildings.find((building) => building.id === buildingId);
-  if (!selected || selected.organization !== organizationId) {
+  if (!selected || selected.organization_id !== organizationId) {
     return "";
   }
 
   return buildingId;
+}
+
+export function filterReportingBuildingsByOrganization(
+  buildings: Array<{ id: string; name: string; organization_id: string }>,
+  organizationId: string,
+) {
+  if (!organizationId) {
+    return buildings;
+  }
+
+  return buildings.filter(
+    (building) => building.organization_id === organizationId,
+  );
 }
 
 export function serializeReportingOverviewParams(
@@ -129,6 +142,18 @@ export function canApplyReportingFilters(
   return true;
 }
 
+/** Period fragment without a leading "Period" label (for "Current period: …"). */
+export function formatReportingActivePeriod(
+  filters: Pick<ReportingActiveFilters, "dateFrom" | "dateTo">,
+): string {
+  return `${filters.dateFrom} to ${filters.dateTo}`;
+}
+
+/**
+ * Active-filter summary. Period text does not include a "Period" prefix so
+ * callers can render "Current period: {summary}" without duplication.
+ * Independent callers that want an explicit Period label should prepend it.
+ */
 export function formatActiveReportingFilterSummary(
   filters: ReportingActiveFilters,
   labels?: {
@@ -136,9 +161,7 @@ export function formatActiveReportingFilterSummary(
     buildingName?: string | null;
   },
 ): string {
-  const parts: string[] = [
-    `Period ${filters.dateFrom} to ${filters.dateTo}`,
-  ];
+  const parts: string[] = [formatReportingActivePeriod(filters)];
 
   if (filters.organization) {
     parts.push(
@@ -153,6 +176,16 @@ export function formatActiveReportingFilterSummary(
   }
 
   return parts.join(" · ");
+}
+
+export function formatCurrentReportingPeriodLabel(
+  filters: ReportingActiveFilters,
+  labels?: {
+    organizationName?: string | null;
+    buildingName?: string | null;
+  },
+): string {
+  return `Current period: ${formatActiveReportingFilterSummary(filters, labels)}`;
 }
 
 export function hasActiveMasterDataFilters(

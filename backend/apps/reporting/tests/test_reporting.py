@@ -822,3 +822,236 @@ class ReportingSeedRbacTests(APITestCase):
         self.assertNotIn(
             "reporting.view", ROLE_PERMISSION_CODES.get("inspector", set())
         )
+
+
+class ReportingFilterOptionsTests(ReportingTestDataMixin, APITestCase):
+    def setUp(self):
+        self.permission = self.create_reporting_permission()
+        self.settings_permission, _ = Permission.objects.get_or_create(
+            code="settings.view",
+            defaults={
+                "name": "View settings",
+                "module": "settings",
+                "action": "view",
+                "description": "View settings and master data.",
+                "is_active": True,
+            },
+        )
+        self.data = self.create_master_data(suffix="primary")
+        self.other_data = self.create_master_data(suffix="other")
+        self.now = timezone.now()
+
+        self.viewer = User.objects.create_user(
+            email="reporting-filter-viewer@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
+        self.denied = User.objects.create_user(
+            email="reporting-filter-denied@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
+        self.settings_only = User.objects.create_user(
+            email="reporting-settings-only@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
+        self.assign_permissions(self.viewer, "reporting.view")
+        self.assign_permissions(self.settings_only, "settings.view")
+
+        inactive_org = Organization.objects.create(
+            tenant=self.data["tenant"],
+            name="Inactive Organization",
+            code="inactive-organization",
+            is_active=False,
+        )
+        deleted_org = Organization.objects.create(
+            tenant=self.data["tenant"],
+            name="Deleted Organization",
+            code="deleted-organization",
+            is_deleted=True,
+        )
+        Building.objects.create(
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+            name="Inactive Building",
+            code="inactive-building",
+            is_active=False,
+        )
+        Building.objects.create(
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+            name="Deleted Building",
+            code="deleted-building",
+            is_deleted=True,
+        )
+        Building.objects.create(
+            tenant=self.data["tenant"],
+            organization=inactive_org,
+            name="Building under inactive org",
+            code="building-inactive-org",
+        )
+        self.inactive_org = inactive_org
+        self.deleted_org = deleted_org
+
+    def filter_options_url(self):
+        return reverse("reporting-filter-options")
+
+    def test_unauthenticated_request_is_rejected(self):
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_authenticated_user_without_reporting_view_is_rejected(self):
+        self.client.force_authenticate(self.denied)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_reporting_view_succeeds_without_settings_view(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("organizations", response.data)
+        self.assertIn("buildings", response.data)
+
+    def test_settings_view_alone_does_not_grant_access(self):
+        self.client.force_authenticate(self.settings_only)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_same_tenant_options_are_included(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        organization_ids = {item["id"] for item in response.data["organizations"]}
+        building_ids = {item["id"] for item in response.data["buildings"]}
+        self.assertIn(str(self.data["organization"].id), organization_ids)
+        self.assertIn(str(self.data["building"].id), building_ids)
+
+    def test_cross_tenant_options_are_excluded(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        organization_ids = {item["id"] for item in response.data["organizations"]}
+        building_ids = {item["id"] for item in response.data["buildings"]}
+        self.assertNotIn(str(self.other_data["organization"].id), organization_ids)
+        self.assertNotIn(str(self.other_data["building"].id), building_ids)
+
+    def test_inactive_and_deleted_options_are_excluded(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        organization_names = {item["name"] for item in response.data["organizations"]}
+        building_names = {item["name"] for item in response.data["buildings"]}
+        self.assertNotIn("Inactive Organization", organization_names)
+        self.assertNotIn("Deleted Organization", organization_names)
+        self.assertNotIn("Inactive Building", building_names)
+        self.assertNotIn("Deleted Building", building_names)
+        self.assertNotIn("Building under inactive org", building_names)
+
+    def test_tenantless_non_global_user_receives_empty_arrays(self):
+        self.viewer.tenant = None
+        self.viewer.organization = None
+        self.viewer.save(update_fields=("tenant", "organization", "updated_at"))
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["organizations"], [])
+        self.assertEqual(response.data["buildings"], [])
+
+    def test_system_admin_sees_eligible_global_options(self):
+        admin = User.objects.create_user(
+            email="reporting-filter-admin@example.com",
+            password="Password123!",
+        )
+        self.assign_permissions(admin, "reporting.view")
+        self.assign_system_admin_role(admin)
+        self.client.force_authenticate(admin)
+
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        organization_ids = {item["id"] for item in response.data["organizations"]}
+        building_ids = {item["id"] for item in response.data["buildings"]}
+        self.assertIn(str(self.data["organization"].id), organization_ids)
+        self.assertIn(str(self.other_data["organization"].id), organization_ids)
+        self.assertIn(str(self.data["building"].id), building_ids)
+        self.assertIn(str(self.other_data["building"].id), building_ids)
+
+    def test_superuser_sees_eligible_global_options(self):
+        superuser = User.objects.create_superuser(
+            email="reporting-filter-super@example.com",
+            password="Password123!",
+        )
+        self.client.force_authenticate(superuser)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        organization_ids = {item["id"] for item in response.data["organizations"]}
+        self.assertIn(str(self.data["organization"].id), organization_ids)
+        self.assertIn(str(self.other_data["organization"].id), organization_ids)
+
+    def test_response_shape_and_building_organization_relationship(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        organization = response.data["organizations"][0]
+        building = next(
+            item
+            for item in response.data["buildings"]
+            if item["id"] == str(self.data["building"].id)
+        )
+        self.assertEqual(set(organization.keys()), {"id", "name"})
+        self.assertEqual(set(building.keys()), {"id", "name", "organization_id"})
+        self.assertEqual(
+            building["organization_id"], str(self.data["organization"].id)
+        )
+        self.assertNotIn("tenant", organization)
+        self.assertNotIn("tenant_id", building)
+        self.assertNotIn("code", organization)
+        self.assertNotIn("address", building)
+
+    def test_options_are_ordered_by_name_then_id(self):
+        Organization.objects.create(
+            tenant=self.data["tenant"],
+            name="Alpha Organization",
+            code="alpha-organization",
+        )
+        Organization.objects.create(
+            tenant=self.data["tenant"],
+            name="Zulu Organization",
+            code="zulu-organization",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        names = [item["name"] for item in response.data["organizations"]]
+        self.assertEqual(names, sorted(names))
+
+    def test_filter_options_are_read_only(self):
+        organization_count = Organization.objects.count()
+        building_count = Building.objects.count()
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.filter_options_url())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Organization.objects.count(), organization_count)
+        self.assertEqual(Building.objects.count(), building_count)
+
+    def test_overview_behavior_remains_available(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(self.overview_url(), self.date_window())
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("tickets", response.data)
+
+    def test_seed_rbac_does_not_add_settings_view_for_viewer_reporting(self):
+        call_command("seed_rbac")
+        self.assertIn("reporting.view", ROLE_PERMISSION_CODES["viewer"])
+        self.assertNotIn("settings.view", ROLE_PERMISSION_CODES.get("viewer", set()))
+        self.assertNotIn(
+            "settings.view",
+            ROLE_PERMISSION_CODES.get("facility_manager", set()),
+        )
