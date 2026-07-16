@@ -7,6 +7,7 @@ import {
   isReportingWorkOrderStatus,
 } from "@/lib/reporting/options";
 import type { ReportingActiveFilters } from "@/types/reporting";
+import { isValidDateOnly } from "@/lib/reporting/dates";
 
 function appendParam(
   params: URLSearchParams,
@@ -21,7 +22,7 @@ function appendParam(
 
 function toDateOnly(value: string): string | null {
   const trimmed = value.trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null;
+  return isValidDateOnly(trimmed) ? trimmed : null;
 }
 
 function buildInternalUrl(pathname: string, params: URLSearchParams): string | null {
@@ -63,10 +64,10 @@ export function buildWorkOrderDrillDownHref(
   }
   appendParam(params, "organization", filters.organization);
   appendParam(params, "building", filters.building);
-  const createdFrom = toDateOnly(filters.dateFrom);
-  const createdTo = toDateOnly(filters.dateTo);
-  if (createdFrom) appendParam(params, "created_from", createdFrom);
-  if (createdTo) appendParam(params, "created_to", createdTo);
+  const requestedFrom = toDateOnly(filters.dateFrom);
+  const requestedTo = toDateOnly(filters.dateTo);
+  if (requestedFrom) appendParam(params, "requested_from", requestedFrom);
+  if (requestedTo) appendParam(params, "requested_to", requestedTo);
   appendParam(params, "from", "reporting");
   return buildInternalUrl("/maintenance/work-orders", params);
 }

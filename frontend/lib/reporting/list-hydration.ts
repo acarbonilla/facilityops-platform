@@ -12,6 +12,7 @@ import type {
 } from "@/types/fm-tickets";
 import type { InspectionListFilters } from "@/types/inspection";
 import type { MaintenanceListFilters } from "@/types/maintenance";
+import { isValidDateOnly } from "@/lib/reporting/dates";
 
 export interface TicketListHydrationFilters {
   search: string;
@@ -40,10 +41,6 @@ function isUuid(value: string): boolean {
   );
 }
 
-function isDateOnly(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
-}
-
 export function hydrateTicketListFilters(
   params: URLSearchParams | Record<string, string | null | undefined>,
   defaults: TicketListHydrationFilters,
@@ -69,8 +66,8 @@ export function hydrateMaintenanceListFilters(
   const priority = readParam(params, "priority");
   const building = readParam(params, "building");
   const organization = readParam(params, "organization");
-  const createdFrom = readParam(params, "created_from");
-  const createdTo = readParam(params, "created_to");
+  const requestedFrom = readParam(params, "requested_from");
+  const requestedTo = readParam(params, "requested_to");
   return {
     ...defaults,
     status: isReportingWorkOrderStatus(status) ? status : defaults.status,
@@ -79,8 +76,12 @@ export function hydrateMaintenanceListFilters(
       : defaults.priority,
     building: isUuid(building) ? building : defaults.building,
     organization: isUuid(organization) ? organization : defaults.organization,
-    createdFrom: isDateOnly(createdFrom) ? createdFrom : defaults.createdFrom,
-    createdTo: isDateOnly(createdTo) ? createdTo : defaults.createdTo,
+    requestedFrom: isValidDateOnly(requestedFrom)
+      ? requestedFrom
+      : defaults.requestedFrom,
+    requestedTo: isValidDateOnly(requestedTo)
+      ? requestedTo
+      : defaults.requestedTo,
   };
 }
 

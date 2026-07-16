@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getCalendarDaySpan,
   getDefaultReportingDateRange,
+  isValidDateOnly,
   REPORTING_MAX_RANGE_DAYS,
   toLocalEndOfDayIso,
   toLocalStartOfDayIso,
@@ -18,6 +19,14 @@ test("default reporting range covers the most recent 90 calendar days", () => {
   assert.equal(range.dateTo, "2026-07-16");
   assert.equal(range.dateFrom, "2026-04-17");
   assert.equal(getCalendarDaySpan(range.dateFrom, range.dateTo), 90);
+});
+
+test("date-only validation rejects impossible dates and supports leap years", () => {
+  assert.equal(isValidDateOnly("2024-02-29"), true);
+  assert.equal(isValidDateOnly("2023-02-29"), false);
+  assert.equal(isValidDateOnly("2026-02-30"), false);
+  assert.equal(isValidDateOnly("2026-99-99"), false);
+  assert.equal(isValidDateOnly("2026-7-16"), false);
 });
 
 test("local start-of-day conversion preserves the selected local calendar day", () => {

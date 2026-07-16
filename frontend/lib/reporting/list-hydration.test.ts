@@ -35,6 +35,8 @@ const WORK_ORDER: MaintenanceListFilters = {
   slaStatus: "",
   hasActiveEscalation: false,
   hasAttachments: false,
+  requestedFrom: "",
+  requestedTo: "",
   createdFrom: "",
   createdTo: "",
   sort: "-updated",
@@ -85,25 +87,37 @@ test("work order list hydrates supported URL parameters", () => {
       priority: "critical",
       organization: ORG,
       building: BUILDING,
-      created_from: "2026-04-17",
-      created_to: "2026-07-16",
+      requested_from: "2026-04-17",
+      requested_to: "2026-07-16",
     }),
     WORK_ORDER,
   );
   assert.equal(result.status, "in_progress");
   assert.equal(result.priority, "critical");
-  assert.equal(result.createdFrom, "2026-04-17");
-  assert.equal(result.createdTo, "2026-07-16");
+  assert.equal(result.requestedFrom, "2026-04-17");
+  assert.equal(result.requestedTo, "2026-07-16");
 });
 
 test("work order invalid URL values fail safely", () => {
   assert.deepEqual(
     hydrateMaintenanceListFilters(
-      { status: "bad", priority: "bad", created_from: "bad" },
+      { status: "bad", priority: "bad", requested_from: "bad" },
       WORK_ORDER,
     ),
     WORK_ORDER,
   );
+});
+
+test("work order hydration rejects impossible dates and accepts leap day", () => {
+  const result = hydrateMaintenanceListFilters(
+    {
+      requested_from: "2026-02-30",
+      requested_to: "2024-02-29",
+    },
+    WORK_ORDER,
+  );
+  assert.equal(result.requestedFrom, "");
+  assert.equal(result.requestedTo, "2024-02-29");
 });
 
 test("inspection list hydrates supported URL parameters", () => {

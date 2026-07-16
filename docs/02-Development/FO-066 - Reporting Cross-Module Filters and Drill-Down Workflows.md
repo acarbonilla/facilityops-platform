@@ -71,7 +71,7 @@ Active-filter summary uses module-qualified labels and Organization/Building dis
 ## Drill-Down Mappings
 
 - `/fm-tickets`: `status`, `priority`, `organization`, `building`, plus fixed `from=reporting`
-- `/maintenance/work-orders`: `status`, `priority`, `organization`, `building`, `created_from`, `created_to`, plus fixed `from=reporting`
+- `/maintenance/work-orders`: `status`, `priority`, `organization`, `building`, `requested_from`, `requested_to`, plus fixed `from=reporting`
 - `/inspection/inspections`: `status`, `organization`, `building`, plus fixed `from=reporting`
 
 Rules:
@@ -82,14 +82,14 @@ Rules:
 - Malformed enum/date values fail closed
 - Internal relative URLs only
 - Ticket and Inspection Reporting date ranges are omitted because those destination lists expose no matching date controls
-- Work Order dates map to list `created_*` parameters while Reporting aggregates on `requested_at`, so exact date parity is not claimed
+- Work Order dates map to list `requested_*` parameters so the destination list uses the same `requested_at` basis as Reporting (FO-066A)
 
 ## Destination Hydration Behavior
 
 Destination list pages minimally hydrate supported URL filters on initial state:
 
 - Ticket: status, priority, organization, building
-- Work Order: status, priority, organization, building, createdFrom/createdTo
+- Work Order: status, priority, organization, building, requestedFrom/requestedTo
 - Inspection: status, organization, building
 
 Invalid URL values fail safely to defaults. Fixed `from=reporting` shows a “Back to Reporting” link. Browser Back remains available.
@@ -174,7 +174,7 @@ Manual acceptance and final Reporting QA remain pending.
 
 ## Deferred Scope and Known Limitations
 
-Exports, charts, scheduled reports, Notification analytics, AI/realtime, Foundation Dashboard changes, FO-063, inspection priority, and exact cross-list date parity remain deferred.
+Exports, charts, scheduled reports, Notification analytics, AI/realtime, Foundation Dashboard changes, FO-063, and inspection priority remain deferred. Work Order date parity was reconciled by FO-066A.
 
 ## Files Changed
 

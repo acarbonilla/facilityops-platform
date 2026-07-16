@@ -22,26 +22,23 @@ def _parse_date_like(value, *, end_of_day=False):
     if not value:
         return None
 
-    parsed_datetime = parse_datetime(value)
-    if parsed_datetime is not None:
-        return parsed_datetime
-
     parsed_date = parse_date(value)
-    if parsed_date is None:
-        return None
-
-    if end_of_day:
+    if parsed_date is not None:
         return datetime.combine(
             parsed_date,
-            time.max,
+            time.max if end_of_day else time.min,
             tzinfo=timezone.get_current_timezone(),
         )
 
-    return datetime.combine(
-        parsed_date,
-        time.min,
-        tzinfo=timezone.get_current_timezone(),
-    )
+    parsed_datetime = parse_datetime(value)
+    if parsed_datetime is None:
+        return None
+    if timezone.is_naive(parsed_datetime):
+        return timezone.make_aware(
+            parsed_datetime,
+            timezone.get_current_timezone(),
+        )
+    return parsed_datetime
 
 
 def apply_maintenance_search(queryset, search_term):

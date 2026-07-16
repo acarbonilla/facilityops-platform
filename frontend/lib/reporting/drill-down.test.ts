@@ -36,13 +36,14 @@ test("ticket drill-down maps only supported ticket filters", () => {
   assert.equal(url.searchParams.get("date_from"), null);
 });
 
-test("work order drill-down maps supported filters and created dates", () => {
+test("work order drill-down maps supported filters to requested dates", () => {
   const url = parse(buildWorkOrderDrillDownHref(FILTERS));
   assert.equal(url.pathname, "/maintenance/work-orders");
   assert.equal(url.searchParams.get("status"), "in_progress");
   assert.equal(url.searchParams.get("priority"), "high");
-  assert.equal(url.searchParams.get("created_from"), "2026-04-17");
-  assert.equal(url.searchParams.get("created_to"), "2026-07-16");
+  assert.equal(url.searchParams.get("requested_from"), "2026-04-17");
+  assert.equal(url.searchParams.get("requested_to"), "2026-07-16");
+  assert.equal(url.searchParams.get("created_from"), null);
   assert.equal(url.searchParams.get("ticket_status"), null);
 });
 
@@ -51,7 +52,19 @@ test("inspection drill-down maps inspection status and omits dates", () => {
   assert.equal(url.pathname, "/inspection/inspections");
   assert.equal(url.searchParams.get("status"), "scheduled");
   assert.equal(url.searchParams.get("priority"), null);
-  assert.equal(url.searchParams.get("created_from"), null);
+  assert.equal(url.searchParams.get("requested_from"), null);
+});
+
+test("work order drill-down rejects impossible calendar dates", () => {
+  const url = parse(
+    buildWorkOrderDrillDownHref({
+      ...FILTERS,
+      dateFrom: "2026-02-30",
+      dateTo: "2026-99-99",
+    }),
+  );
+  assert.equal(url.searchParams.get("requested_from"), null);
+  assert.equal(url.searchParams.get("requested_to"), null);
 });
 
 test("blank filters are omitted", () => {

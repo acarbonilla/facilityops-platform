@@ -38,6 +38,10 @@ export function parseLocalDateInput(value: string): Date | null {
   return parsed;
 }
 
+export function isValidDateOnly(value: string): boolean {
+  return parseLocalDateInput(value) !== null;
+}
+
 export function toLocalStartOfDayIso(dateInput: string): string | null {
   const parsed = parseLocalDateInput(dateInput);
   if (!parsed) {
