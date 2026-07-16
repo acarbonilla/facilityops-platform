@@ -12,6 +12,10 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { usePermissions } from "@/hooks/use-permissions";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
+import {
+  hydrateTicketListFilters,
+  isReportingReturnParam,
+} from "@/lib/reporting/list-hydration";
 import { getFmTickets } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 import type { SelectOption } from "@/components/common/select-field";
@@ -35,9 +39,17 @@ const DEFAULT_FILTERS: TicketFilterValues = {
   status: "",
   priority: "",
   category: "",
+  organization: "",
   building: "",
   assignee: "",
 };
+
+function readWindowSearchParams(): URLSearchParams {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+  return new URLSearchParams(window.location.search);
+}
 
 function CellStack({
   primary,
@@ -81,7 +93,10 @@ export function TicketListScreen() {
   const { hasPermission } = usePermissions();
   const canCreate = hasPermission("fm_tickets.create");
   const canUpdate = hasPermission("fm_tickets.update");
-  const [filters, setFilters] = useState<TicketFilterValues>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<TicketFilterValues>(() =>
+    hydrateTicketListFilters(readWindowSearchParams(), DEFAULT_FILTERS),
+  );
+  const fromReporting = isReportingReturnParam(readWindowSearchParams());
   const deferredSearch = useDeferredValue(filters.search.trim().toLowerCase());
 
   const queryParams: FmTicketListParams = {
@@ -89,6 +104,7 @@ export function TicketListScreen() {
     status: filters.status || undefined,
     priority: filters.priority || undefined,
     category: filters.category || undefined,
+    organization: filters.organization || undefined,
     building: filters.building || undefined,
     assignee: filters.assignee || undefined,
   };
@@ -210,17 +226,34 @@ export function TicketListScreen() {
           <DetailField label="Loaded rows" value={tickets.length} />
           <DetailField label="Total records" value={ticketsQuery.data?.count ?? 0} />
         </dl>
-        {canCreate ? (
-          <div className="mt-4">
+        <div className="mt-4 flex flex-wrap gap-3">
+          {fromReporting ? (
+            <Link
+              className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              href="/reporting"
+            >
+              Back to Reporting
+            </Link>
+          ) : null}
+          {canCreate ? (
             <Link
               className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
               href="/fm-tickets/new"
             >
               New Ticket
             </Link>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </PageHeader>
+
+      {filters.organization ? (
+        <p
+          className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900"
+          role="status"
+        >
+          Organization filter from Reporting is active for this list.
+        </p>
+      ) : null}
 
       <TicketFilters
         assigneeOptions={assigneeOptions}

@@ -45,6 +45,13 @@ const FIELD_LABELS: Record<string, string> = {
   date_to: "Date To",
   building: "Building",
   organization: "Organization",
+  ticket_status: "Ticket Status",
+  ticket_priority: "Ticket Priority",
+  work_order_status: "Work Order Status",
+  work_order_priority: "Work Order Priority",
+  inspection_status: "Inspection Status",
+  status: "Status",
+  priority: "Priority",
   non_field_errors: "Filters",
 };
 

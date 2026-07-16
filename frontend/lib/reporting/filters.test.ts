@@ -225,3 +225,52 @@ test("reporting filter-options endpoint constant and query key are stable", () =
     false,
   );
 });
+
+test("module filters serialize canonically and reset to blanks", () => {
+  const params = serializeReportingOverviewParams({
+    dateFrom: "2026-04-17",
+    dateTo: "2026-07-16",
+    organization: "",
+    building: "",
+    ticketStatus: "assigned",
+    ticketPriority: "medium",
+    workOrderStatus: "in_progress",
+    workOrderPriority: "critical",
+    inspectionStatus: "scheduled",
+  });
+  assert.equal(params?.ticket_status, "assigned");
+  assert.equal(params?.ticket_priority, "medium");
+  assert.equal(params?.work_order_status, "in_progress");
+  assert.equal(params?.work_order_priority, "critical");
+  assert.equal(params?.inspection_status, "scheduled");
+  const reset = resetReportingFilters(new Date(2026, 6, 16));
+  assert.equal(reset.ticketStatus, "");
+  assert.equal(reset.workOrderPriority, "");
+  assert.equal(reset.inspectionStatus, "");
+});
+
+test("module query keys are stable, distinct, and summaries are qualified", () => {
+  const ticket = reportingQueryKeys.overview({
+    ticket_status: " assigned ",
+    ticket_priority: "",
+  });
+  const equivalent = reportingQueryKeys.overview({
+    ticket_status: "assigned",
+  });
+  const workOrder = reportingQueryKeys.overview({
+    work_order_status: "assigned",
+  });
+  assert.deepEqual(ticket, equivalent);
+  assert.notDeepEqual(ticket, workOrder);
+  assert.equal(
+    formatActiveReportingFilterSummary({
+      dateFrom: "2026-04-17",
+      dateTo: "2026-07-16",
+      organization: "",
+      building: "",
+      ticketStatus: "assigned",
+      workOrderPriority: "critical",
+    }),
+    "2026-04-17 to 2026-07-16 · Ticket Status: Assigned · Work Order Priority: Critical",
+  );
+});

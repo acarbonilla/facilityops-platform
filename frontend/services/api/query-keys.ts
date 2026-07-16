@@ -30,7 +30,17 @@ function normalizeReportingParams(
 
   const normalized: ReportingOverviewParams = {};
 
-  for (const key of ["date_from", "date_to", "building", "organization"] as const) {
+  for (const key of [
+    "date_from",
+    "date_to",
+    "building",
+    "organization",
+    "ticket_status",
+    "ticket_priority",
+    "work_order_status",
+    "work_order_priority",
+    "inspection_status",
+  ] as const) {
     const value = params[key];
     if (typeof value !== "string") {
       continue;

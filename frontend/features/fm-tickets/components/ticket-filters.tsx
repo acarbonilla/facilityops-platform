@@ -14,6 +14,7 @@ export interface TicketFilterValues {
   status: FmTicketStatus | "";
   priority: FmTicketPriority | "";
   category: FmTicketCategory | "";
+  organization: string;
   building: string;
   assignee: string;
 }

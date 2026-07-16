@@ -19,6 +19,10 @@ import {
 } from "@/services/api/master-data";
 import { masterDataQueryKeys } from "@/services/api/query-keys";
 import { formatDateTime, formatLocationLabel, formatMaintenanceError, formatPersonLabel } from "@/lib/maintenance/display";
+import {
+  hydrateMaintenanceListFilters,
+  isReportingReturnParam,
+} from "@/lib/reporting/list-hydration";
 import type { SelectOption } from "@/components/common/select-field";
 import type { Area, Building, Department, Floor } from "@/types/master-data";
 import type {
@@ -43,6 +47,7 @@ const DEFAULT_FILTERS: MaintenanceListFilters = {
   status: "",
   priority: "",
   department: "",
+  organization: "",
   building: "",
   floor: "",
   area: "",
@@ -57,6 +62,13 @@ const DEFAULT_FILTERS: MaintenanceListFilters = {
   sort: "-updated",
   pageSize: 20,
 };
+
+function readWindowSearchParams(): URLSearchParams {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+  return new URLSearchParams(window.location.search);
+}
 
 function toOptions<T extends Department | Building | Floor | Area>(items: T[]): SelectOption[] {
   return items.map((item) => ({
@@ -77,6 +89,7 @@ function buildQueryParams(
     status: filters.status || undefined,
     priority: filters.priority || undefined,
     department: filters.department || undefined,
+    organization: filters.organization || undefined,
     building: filters.building || undefined,
     floor: filters.floor || undefined,
     area: filters.area || undefined,
@@ -94,7 +107,10 @@ function buildQueryParams(
 
 export function MaintenanceListScreen() {
   const { hasPermission, permissionsLoading } = usePermissions();
-  const [filters, setFilters] = useState<MaintenanceListFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<MaintenanceListFilters>(() =>
+    hydrateMaintenanceListFilters(readWindowSearchParams(), DEFAULT_FILTERS),
+  );
+  const fromReporting = isReportingReturnParam(readWindowSearchParams());
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(filters.search.trim());
 
@@ -220,17 +236,35 @@ export function MaintenanceListScreen() {
             <DetailField label="Current page" value={page} />
             <DetailField label="Total records" value={listQuery.data?.count ?? 0} />
           </dl>
-          {!permissionsLoading &&
-          (hasPermission("maintenance.create") ||
-            hasPermission("maintenance.work_order.create")) ? (
-            <Link
-              className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-              href="/maintenance/work-orders/new"
-            >
-              Create Standalone Work Order
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap gap-3">
+            {fromReporting ? (
+              <Link
+                className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                href="/reporting"
+              >
+                Back to Reporting
+              </Link>
+            ) : null}
+            {!permissionsLoading &&
+            (hasPermission("maintenance.create") ||
+              hasPermission("maintenance.work_order.create")) ? (
+              <Link
+                className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                href="/maintenance/work-orders/new"
+              >
+                Create Standalone Work Order
+              </Link>
+            ) : null}
+          </div>
         </div>
+        {filters.organization ? (
+          <p
+            className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900"
+            role="status"
+          >
+            Organization filter from Reporting is active for this list.
+          </p>
+        ) : null}
       </PageHeader>
 
       <MaintenanceFilters

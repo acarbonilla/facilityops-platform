@@ -12,6 +12,10 @@ import { PageHeader } from "@/components/common/page-header";
 import { useInspectionList } from "@/hooks/use-inspection-list";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
+  hydrateInspectionListFilters,
+  isReportingReturnParam,
+} from "@/lib/reporting/list-hydration";
+import {
   getAreas,
   getBuildings,
   getDepartments,
@@ -39,12 +43,20 @@ const DEFAULT_FILTERS: InspectionListFilters = {
   fiveSCategory: "",
   inspectionType: "",
   department: "",
+  organization: "",
   building: "",
   floor: "",
   area: "",
   sort: "-updated",
   pageSize: 20,
 };
+
+function readWindowSearchParams(): URLSearchParams {
+  if (typeof window === "undefined") {
+    return new URLSearchParams();
+  }
+  return new URLSearchParams(window.location.search);
+}
 
 function toOptions<T extends Department | Building | Floor | Area>(items: T[]): SelectOption[] {
   return items.map((item) => ({
@@ -107,6 +119,7 @@ function buildQueryParams(
     five_s_category: filters.fiveSCategory || undefined,
     inspection_type: filters.inspectionType || undefined,
     department: filters.department || undefined,
+    organization: filters.organization || undefined,
     building: filters.building || undefined,
     floor: filters.floor || undefined,
     area: filters.area || undefined,
@@ -116,7 +129,10 @@ function buildQueryParams(
 
 export function InspectionListScreen() {
   const { hasPermission, permissionsLoading } = usePermissions();
-  const [filters, setFilters] = useState<InspectionListFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<InspectionListFilters>(() =>
+    hydrateInspectionListFilters(readWindowSearchParams(), DEFAULT_FILTERS),
+  );
+  const fromReporting = isReportingReturnParam(readWindowSearchParams());
   const [page, setPage] = useState(1);
   const deferredSearch = useDeferredValue(filters.search.trim());
 
@@ -226,17 +242,35 @@ export function InspectionListScreen() {
             <DetailField label="Current page" value={page} />
             <DetailField label="Total records" value={listQuery.data?.count ?? 0} />
           </div>
-          {!permissionsLoading &&
-          (hasPermission("inspection.create") ||
-            hasPermission("inspection.manage")) ? (
-            <Link
-              className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-              href="/inspection/inspections/new"
-            >
-              New Inspection
-            </Link>
-          ) : null}
+          <div className="flex flex-wrap gap-3">
+            {fromReporting ? (
+              <Link
+                className="inline-flex items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                href="/reporting"
+              >
+                Back to Reporting
+              </Link>
+            ) : null}
+            {!permissionsLoading &&
+            (hasPermission("inspection.create") ||
+              hasPermission("inspection.manage")) ? (
+              <Link
+                className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                href="/inspection/inspections/new"
+              >
+                New Inspection
+              </Link>
+            ) : null}
+          </div>
         </div>
+        {filters.organization ? (
+          <p
+            className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900"
+            role="status"
+          >
+            Organization filter from Reporting is active for this list.
+          </p>
+        ) : null}
       </PageHeader>
 
       <InspectionFilters

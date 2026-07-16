@@ -72,6 +72,7 @@ export interface MaintenanceListParams
   status?: MaintenanceWorkOrderStatus;
   priority?: MaintenanceWorkOrderPriority;
   department?: string;
+  organization?: string;
   building?: string;
   floor?: string;
   area?: string;
@@ -97,6 +98,7 @@ export interface MaintenanceListFilters {
   status: MaintenanceWorkOrderStatus | "";
   priority: MaintenanceWorkOrderPriority | "";
   department: string;
+  organization: string;
   building: string;
   floor: string;
   area: string;

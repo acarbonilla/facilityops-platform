@@ -1055,3 +1055,115 @@ class ReportingFilterOptionsTests(ReportingTestDataMixin, APITestCase):
             "settings.view",
             ROLE_PERMISSION_CODES.get("facility_manager", set()),
         )
+
+
+class ReportingModuleFilterTests(ReportingTestDataMixin, APITestCase):
+    def setUp(self):
+        ReportingFoundationTests.setUp(self)
+
+    def get_overview(self, **filters):
+        self.client.force_authenticate(self.viewer)
+        return self.client.get(
+            self.overview_url(),
+            {**self.date_window(), **filters},
+        )
+
+    def assert_invalid(self, field, value):
+        response = self.get_overview(**{field: value})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(field, response.data)
+
+    def test_valid_ticket_status_filters_tickets_only(self):
+        response = self.get_overview(ticket_status=FmTicket.Status.OPEN)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["tickets"]["total"], 1)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+        self.assertEqual(response.data["inspections"]["total"], 1)
+        self.assertEqual(response.data["filters"]["ticket_status"], "open")
+
+    def test_invalid_ticket_status_returns_400(self):
+        self.assert_invalid("ticket_status", "not-a-status")
+
+    def test_valid_ticket_priority_filters_tickets_only(self):
+        response = self.get_overview(ticket_priority=FmTicket.Priority.HIGH)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["tickets"]["total"], 1)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+
+    def test_invalid_ticket_priority_returns_400(self):
+        self.assert_invalid("ticket_priority", "critical")
+
+    def test_valid_work_order_status_filters_work_orders_only(self):
+        response = self.get_overview(
+            work_order_status=MaintenanceWorkOrder.Status.IN_PROGRESS
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+        self.assertEqual(response.data["tickets"]["total"], 1)
+
+    def test_invalid_work_order_status_returns_400(self):
+        self.assert_invalid("work_order_status", "resolved")
+
+    def test_valid_work_order_priority_filters_work_orders_only(self):
+        response = self.get_overview(
+            work_order_priority=MaintenanceWorkOrder.Priority.CRITICAL
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+        self.assertEqual(response.data["inspections"]["total"], 1)
+
+    def test_invalid_work_order_priority_returns_400(self):
+        self.assert_invalid("work_order_priority", "urgent")
+
+    def test_valid_inspection_status_filters_inspections_only(self):
+        response = self.get_overview(inspection_status=Inspection.Status.COMPLETED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["inspections"]["total"], 1)
+        self.assertEqual(response.data["tickets"]["total"], 1)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+
+    def test_invalid_inspection_status_returns_400(self):
+        self.assert_invalid("inspection_status", "open")
+
+    def test_generic_status_remains_rejected(self):
+        self.assert_invalid("status", "open")
+
+    def test_generic_priority_remains_rejected(self):
+        self.assert_invalid("priority", "high")
+
+    def test_multiple_module_filters_operate_independently(self):
+        response = self.get_overview(
+            ticket_status=FmTicket.Status.OPEN,
+            work_order_priority=MaintenanceWorkOrder.Priority.CRITICAL,
+            inspection_status=Inspection.Status.COMPLETED,
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["tickets"]["total"], 1)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+        self.assertEqual(response.data["inspections"]["total"], 1)
+
+    def test_empty_module_filters_echo_null(self):
+        response = self.get_overview()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        for field in (
+            "ticket_status",
+            "ticket_priority",
+            "work_order_status",
+            "work_order_priority",
+            "inspection_status",
+        ):
+            self.assertIsNone(response.data["filters"][field])
+
+    def test_zero_result_module_filter_remains_valid(self):
+        response = self.get_overview(ticket_status=FmTicket.Status.CLOSED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["tickets"]["total"], 0)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+        self.assertEqual(response.data["inspections"]["total"], 1)
+
+    def test_filter_options_endpoint_unchanged_by_module_filters(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(reverse("reporting-filter-options"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("organizations", response.data)
+        self.assertIn("buildings", response.data)

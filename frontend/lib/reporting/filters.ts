@@ -3,12 +3,31 @@ import {
   toReportingApiDateBounds,
   validateReportingDateRange,
 } from "./dates";
+import {
+  formatReportingPriorityLabel,
+  formatReportingStatusLabel,
+} from "./display";
+import {
+  isReportingInspectionStatus,
+  isReportingTicketPriority,
+  isReportingTicketStatus,
+  isReportingWorkOrderPriority,
+  isReportingWorkOrderStatus,
+} from "./options";
 
 import type {
   ReportingActiveFilters,
   ReportingFilterDraft,
   ReportingOverviewParams,
 } from "@/types/reporting";
+
+const EMPTY_MODULE_FILTERS = {
+  ticketStatus: "",
+  ticketPriority: "",
+  workOrderStatus: "",
+  workOrderPriority: "",
+  inspectionStatus: "",
+} as const;
 
 export function createDefaultReportingFilters(
   reference: Date = new Date(),
@@ -19,6 +38,7 @@ export function createDefaultReportingFilters(
     dateTo,
     organization: "",
     building: "",
+    ...EMPTY_MODULE_FILTERS,
   };
 }
 
@@ -86,7 +106,55 @@ export function serializeReportingOverviewParams(
     params.building = building;
   }
 
+  appendCanonicalModuleParam(
+    params,
+    "ticket_status",
+    filters.ticketStatus ?? "",
+    isReportingTicketStatus,
+  );
+  appendCanonicalModuleParam(
+    params,
+    "ticket_priority",
+    filters.ticketPriority ?? "",
+    isReportingTicketPriority,
+  );
+  appendCanonicalModuleParam(
+    params,
+    "work_order_status",
+    filters.workOrderStatus ?? "",
+    isReportingWorkOrderStatus,
+  );
+  appendCanonicalModuleParam(
+    params,
+    "work_order_priority",
+    filters.workOrderPriority ?? "",
+    isReportingWorkOrderPriority,
+  );
+  appendCanonicalModuleParam(
+    params,
+    "inspection_status",
+    filters.inspectionStatus ?? "",
+    isReportingInspectionStatus,
+  );
+
   return params;
+}
+
+function appendCanonicalModuleParam(
+  params: ReportingOverviewParams,
+  key:
+    | "ticket_status"
+    | "ticket_priority"
+    | "work_order_status"
+    | "work_order_priority"
+    | "inspection_status",
+  value: string,
+  isValid: (candidate: string) => boolean,
+) {
+  const trimmed = value.trim();
+  if (trimmed && isValid(trimmed)) {
+    params[key] = trimmed;
+  }
 }
 
 export function omitBlankReportingParams(
@@ -114,6 +182,31 @@ export function canApplyReportingFilters(
   },
 ): boolean {
   if (validateReportingDateRange(draft.dateFrom, draft.dateTo)) {
+    return false;
+  }
+
+  if (draft.ticketStatus && !isReportingTicketStatus(draft.ticketStatus)) {
+    return false;
+  }
+  if (draft.ticketPriority && !isReportingTicketPriority(draft.ticketPriority)) {
+    return false;
+  }
+  if (
+    draft.workOrderStatus &&
+    !isReportingWorkOrderStatus(draft.workOrderStatus)
+  ) {
+    return false;
+  }
+  if (
+    draft.workOrderPriority &&
+    !isReportingWorkOrderPriority(draft.workOrderPriority)
+  ) {
+    return false;
+  }
+  if (
+    draft.inspectionStatus &&
+    !isReportingInspectionStatus(draft.inspectionStatus)
+  ) {
     return false;
   }
 
@@ -175,6 +268,32 @@ export function formatActiveReportingFilterSummary(
     );
   }
 
+  if (filters.ticketStatus) {
+    parts.push(
+      `Ticket Status: ${formatReportingStatusLabel(filters.ticketStatus)}`,
+    );
+  }
+  if (filters.ticketPriority) {
+    parts.push(
+      `Ticket Priority: ${formatReportingPriorityLabel(filters.ticketPriority)}`,
+    );
+  }
+  if (filters.workOrderStatus) {
+    parts.push(
+      `Work Order Status: ${formatReportingStatusLabel(filters.workOrderStatus)}`,
+    );
+  }
+  if (filters.workOrderPriority) {
+    parts.push(
+      `Work Order Priority: ${formatReportingPriorityLabel(filters.workOrderPriority)}`,
+    );
+  }
+  if (filters.inspectionStatus) {
+    parts.push(
+      `Inspection Status: ${formatReportingStatusLabel(filters.inspectionStatus)}`,
+    );
+  }
+
   return parts.join(" · ");
 }
 
@@ -192,6 +311,25 @@ export function hasActiveMasterDataFilters(
   filters: Pick<ReportingActiveFilters, "organization" | "building">,
 ): boolean {
   return Boolean(filters.organization.trim() || filters.building.trim());
+}
+
+export function hasActiveModuleFilters(
+  filters: Pick<
+    ReportingActiveFilters,
+    | "ticketStatus"
+    | "ticketPriority"
+    | "workOrderStatus"
+    | "workOrderPriority"
+    | "inspectionStatus"
+  >,
+): boolean {
+  return Boolean(
+    filters.ticketStatus?.trim() ||
+      filters.ticketPriority?.trim() ||
+      filters.workOrderStatus?.trim() ||
+      filters.workOrderPriority?.trim() ||
+      filters.inspectionStatus?.trim(),
+  );
 }
 
 function toIdSet(ids: Set<string> | string[]): Set<string> {

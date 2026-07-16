@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/reporting` (FO-064 + FO-064A + FO-065 + FO-065A complete on branch; draft PR #38)
+- `feature/reporting` (FO-064 + FO-064A + FO-065 + FO-065A + FO-066 complete on branch; draft PR #38)
 - Synchronized repository baseline before branch: `main` at merge commit `ae3d208663cf31937bee5a326ce339b14b78e918`
 
 ## Completed Modules
@@ -94,14 +94,15 @@
 - FO-064A (Reporting API Contract Validation and Backend Reconciliation; complete on `feature/reporting`)
 - FO-065 (Reporting Operational Overview Frontend; complete on branch after FO-065A reconciliation)
 - FO-065A (Reporting Filter Options Access and UX Reconciliation; complete on `feature/reporting`)
+- FO-066 (Reporting Cross-Module Filters and Drill-Down Workflows; complete on `feature/reporting`)
 
 ## Current Task
 
-- FO-065A complete on `feature/reporting`. Manual acceptance of FO-065 identified that Organization/Building selectors incorrectly required Master Data `settings.view`. FO-065A adds `GET /api/reporting/filter-options/` under `reporting.view`, reconciles period copy, and keeps Reporting In Progress. Cumulative draft PR #38 remains open/unmerged. FO-066 has not started.
+- FO-066 complete on `feature/reporting`. Module-scoped Reporting filters and safe drill-down workflows are implemented. Manual acceptance and later Reporting QA remain pending. Cumulative draft PR #38 remains open/unmerged.
 
 ## Next Milestone
 
-- FO-066 — Reporting cross-module filters and drill-down workflows (not started)
+- Reporting manual acceptance and final QA (pending)
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Selected Next Feature — Reporting and Operational Analytics
@@ -110,16 +111,17 @@
 - Active branch: `feature/reporting`
 - FO-064 / FO-064A: approved backend aggregation and contract validation (complete)
 - FO-065 / FO-065A: Reporting overview frontend plus filter-options access/UX reconciliation (complete on branch)
+- FO-066: module-scoped filters and drill-down workflows (complete on branch; manual acceptance pending)
 - Initial permission: `reporting.view` (seeded)
 - Overview API: `GET /api/reporting/overview/`
 - Filter options API: `GET /api/reporting/filter-options/`
-- Supported filters: `date_from`, `date_to`, `building`, `organization`
+- Supported filters: `date_from`, `date_to`, `building`, `organization`, `ticket_status`, `ticket_priority`, `work_order_status`, `work_order_priority`, `inspection_status`
 - Frontend route: `/reporting`
 - Export: deferred from the first MVP slice
 - Chart dependency: not approved or required initially
 - Notifications analytics: deferred
 - FO-063: remains separately reserved for automatic FM Ticket closure
-- Reporting module status: In Progress (FO-066 onward pending)
+- Reporting module status: In Progress (manual acceptance / final QA pending)
 
 ## Foundation Dashboard Security Note (review item only)
 

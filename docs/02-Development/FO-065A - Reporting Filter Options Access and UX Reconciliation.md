@@ -163,9 +163,8 @@ No dependencies added.
 
 ## Deferred Scope
 
-- FO-066 cross-module filters and drill-down
+- FO-066 cross-module filters and drill-down (implemented separately; see FO-066)
 - Exports, charts, scheduled reports
-- Status / priority filters
 - Foundation Dashboard corrections
 - FO-063 automatic Ticket closure
 

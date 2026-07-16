@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { EmptyState } from "@/components/common/empty-state";
@@ -12,6 +13,7 @@ import {
   useReportingFilterOptions,
   useReportingOverview,
 } from "@/hooks/use-reporting-overview";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   formatReportingAverageScore,
   formatReportingCategoryLabel,
@@ -25,15 +27,29 @@ import {
   isReportingOverviewEmpty,
 } from "@/lib/reporting/display";
 import {
+  buildInspectionDrillDownHref,
+  buildTicketDrillDownHref,
+  buildWorkOrderDrillDownHref,
+} from "@/lib/reporting/drill-down";
+import { getReportingDrillDownVisibility } from "@/lib/reporting/drill-down-visibility";
+import {
   canApplyReportingFilters,
   clearIncompatibleBuilding,
   createDefaultReportingFilters,
   filterReportingBuildingsByOrganization,
   formatCurrentReportingPeriodLabel,
   hasActiveMasterDataFilters,
+  hasActiveModuleFilters,
   resetReportingFilters,
   serializeReportingOverviewParams,
 } from "@/lib/reporting/filters";
+import {
+  REPORTING_INSPECTION_STATUS_OPTIONS,
+  REPORTING_TICKET_PRIORITY_OPTIONS,
+  REPORTING_TICKET_STATUS_OPTIONS,
+  REPORTING_WORK_ORDER_PRIORITY_OPTIONS,
+  REPORTING_WORK_ORDER_STATUS_OPTIONS,
+} from "@/lib/reporting/options";
 import { validateReportingDateRange } from "@/lib/reporting/dates";
 import type {
   ReportingActiveFilters,
@@ -169,6 +185,8 @@ export function ReportingOverviewScreen() {
   const defaults = useMemo(() => createDefaultReportingFilters(), []);
   const [draft, setDraft] = useState<ReportingFilterDraft>(defaults);
   const [applied, setApplied] = useState<ReportingActiveFilters>(defaults);
+  const { hasPermission, hasAnyPermission, permissionsLoading } =
+    usePermissions();
 
   const filterOptionsQuery = useReportingFilterOptions();
   const organizations = filterOptionsQuery.data?.organizations ?? [];
@@ -202,6 +220,28 @@ export function ReportingOverviewScreen() {
     (item) => item.id === applied.building,
   )?.name;
 
+  const drillDownVisibility = getReportingDrillDownVisibility({
+    permissionsLoading,
+    canViewTickets: hasPermission("fm_tickets.view"),
+    canViewWorkOrders: hasAnyPermission([
+      "maintenance.view",
+      "maintenance.work_order.view",
+    ]),
+    canViewInspections: hasAnyPermission([
+      "inspection.view",
+      "inspection.manage",
+    ]),
+  });
+  const ticketDrillDownHref = drillDownVisibility.tickets
+    ? buildTicketDrillDownHref(applied)
+    : null;
+  const workOrderDrillDownHref = drillDownVisibility.workOrders
+    ? buildWorkOrderDrillDownHref(applied)
+    : null;
+  const inspectionDrillDownHref = drillDownVisibility.inspections
+    ? buildInspectionDrillDownHref(applied)
+    : null;
+
   function handleOrganizationChange(organization: string) {
     setDraft((current) => ({
       ...current,
@@ -218,12 +258,7 @@ export function ReportingOverviewScreen() {
     if (!applyEnabled) {
       return;
     }
-    setApplied({
-      dateFrom: draft.dateFrom,
-      dateTo: draft.dateTo,
-      organization: draft.organization,
-      building: draft.building,
-    });
+    setApplied({ ...draft });
   }
 
   function handleReset() {
@@ -253,16 +288,18 @@ export function ReportingOverviewScreen() {
               buildingName,
             })}
           </p>
-          {hasActiveMasterDataFilters(applied) ? (
+          {hasActiveMasterDataFilters(applied) ||
+          hasActiveModuleFilters(applied) ? (
             <p className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-blue-900">
-              Organization and/or Building filters are active for this overview.
+              Active filters are applied. Module-specific status and priority
+              filters affect only their corresponding module totals.
             </p>
           ) : null}
         </div>
       </PageHeader>
 
       <SectionCard
-        description="Choose a reporting period and optional organization or building scope, then apply filters."
+        description="Common scope applies to every module. Module-specific status and priority filters affect only that module."
         title="Filters"
       >
         {filterOptionsQuery.isPending ? (
@@ -272,7 +309,11 @@ export function ReportingOverviewScreen() {
           />
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-900">
+            Common Scope
+          </legend>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <FormField htmlFor="reporting-date-from" label="Date From">
             <input
               className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
@@ -330,7 +371,95 @@ export function ReportingOverviewScreen() {
             placeholder="All buildings"
             value={draft.building}
           />
-        </div>
+          </div>
+        </fieldset>
+
+        <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-900">
+            FM Tickets
+          </legend>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SelectField
+              id="reporting-ticket-status"
+              label="Ticket Status"
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  ticketStatus: event.target.value,
+                }))
+              }
+              options={REPORTING_TICKET_STATUS_OPTIONS}
+              placeholder="All Ticket statuses"
+              value={draft.ticketStatus}
+            />
+            <SelectField
+              id="reporting-ticket-priority"
+              label="Ticket Priority"
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  ticketPriority: event.target.value,
+                }))
+              }
+              options={REPORTING_TICKET_PRIORITY_OPTIONS}
+              placeholder="All Ticket priorities"
+              value={draft.ticketPriority}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-900">
+            Maintenance Work Orders
+          </legend>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SelectField
+              id="reporting-work-order-status"
+              label="Work Order Status"
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  workOrderStatus: event.target.value,
+                }))
+              }
+              options={REPORTING_WORK_ORDER_STATUS_OPTIONS}
+              placeholder="All Work Order statuses"
+              value={draft.workOrderStatus}
+            />
+            <SelectField
+              id="reporting-work-order-priority"
+              label="Work Order Priority"
+              onChange={(event) =>
+                setDraft((current) => ({
+                  ...current,
+                  workOrderPriority: event.target.value,
+                }))
+              }
+              options={REPORTING_WORK_ORDER_PRIORITY_OPTIONS}
+              placeholder="All Work Order priorities"
+              value={draft.workOrderPriority}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="space-y-3 rounded-lg border border-slate-200 p-4">
+          <legend className="px-1 text-sm font-semibold text-slate-900">
+            5S Inspections
+          </legend>
+          <SelectField
+            id="reporting-inspection-status"
+            label="Inspection Status"
+            onChange={(event) =>
+              setDraft((current) => ({
+                ...current,
+                inspectionStatus: event.target.value,
+              }))
+            }
+            options={REPORTING_INSPECTION_STATUS_OPTIONS}
+            placeholder="All Inspection statuses"
+            value={draft.inspectionStatus}
+          />
+        </fieldset>
 
         {validationMessage ? (
           <p className="text-sm text-red-700" id="reporting-filter-validation" role="alert">
@@ -423,11 +552,11 @@ export function ReportingOverviewScreen() {
         <>
           {showEmpty ? (
             <EmptyState
-              message="No operational data was found for the selected period and filters."
+              message="No operational data was found for the selected period and filters. Drill-down actions remain available when you have module access."
               title="No reporting data"
             />
-          ) : (
-            <>
+          ) : null}
+          <>
               <SectionCard title="Executive Summary">
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <ReportingMetricCard
@@ -468,11 +597,19 @@ export function ReportingOverviewScreen() {
                 ) : null}
               </SectionCard>
 
-              <TicketSummarySection overview={overview} />
-              <WorkOrderSummarySection overview={overview} />
-              <InspectionSummarySection overview={overview} />
-            </>
-          )}
+              <TicketSummarySection
+                drillDownHref={ticketDrillDownHref}
+                overview={overview}
+              />
+              <WorkOrderSummarySection
+                drillDownHref={workOrderDrillDownHref}
+                overview={overview}
+              />
+              <InspectionSummarySection
+                drillDownHref={inspectionDrillDownHref}
+                overview={overview}
+              />
+          </>
 
           {showEmpty ? (
             <p className="text-sm text-slate-500">
@@ -489,16 +626,39 @@ export function ReportingOverviewScreen() {
   );
 }
 
+function DrillDownAction({
+  href,
+  label,
+}: {
+  href: string | null;
+  label: string;
+}) {
+  if (!href) {
+    return null;
+  }
+  return (
+    <Link
+      className="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+      href={href}
+    >
+      {label}
+    </Link>
+  );
+}
+
 function TicketSummarySection({
   overview,
+  drillDownHref,
 }: {
   overview: ReportingOperationalOverview;
+  drillDownHref: string | null;
 }) {
   return (
     <SectionCard
-      description="FM Ticket volume, status mix, priority mix, category mix, and SLA outcomes."
+      description="FM Ticket volume, status mix, priority mix, category mix, and SLA outcomes. Ticket filters affect only this section."
       title="FM Ticket Summary"
     >
+      <DrillDownAction href={drillDownHref} label="View FM Tickets" />
       <DefinitionGrid
         items={[
           {
@@ -575,14 +735,17 @@ function TicketSummarySection({
 
 function WorkOrderSummarySection({
   overview,
+  drillDownHref,
 }: {
   overview: ReportingOperationalOverview;
+  drillDownHref: string | null;
 }) {
   return (
     <SectionCard
-      description="Maintenance Work Order volume, overdue load, status and priority mix, and Ticket linkage."
+      description="Maintenance Work Order volume, overdue load, status and priority mix, and Ticket linkage. Work Order filters affect only this section."
       title="Maintenance Work Order Summary"
     >
+      <DrillDownAction href={drillDownHref} label="View Work Orders" />
       <DefinitionGrid
         items={[
           {
@@ -625,14 +788,17 @@ function WorkOrderSummarySection({
 
 function InspectionSummarySection({
   overview,
+  drillDownHref,
 }: {
   overview: ReportingOperationalOverview;
+  drillDownHref: string | null;
 }) {
   return (
     <SectionCard
-      description="5S Inspection volume, status mix, and scoring coverage."
+      description="5S Inspection volume, status mix, and scoring coverage. Inspection status filters affect only this section."
       title="5S Inspection Summary"
     >
+      <DrillDownAction href={drillDownHref} label="View 5S Inspections" />
       <DefinitionGrid
         items={[
           {

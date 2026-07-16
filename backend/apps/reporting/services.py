@@ -33,6 +33,14 @@ WORK_ORDER_TERMINAL_STATUSES = (
 
 UNSUPPORTED_FILTER_PARAMS = ("status", "priority")
 
+MODULE_FILTER_FIELDS = (
+    "ticket_status",
+    "ticket_priority",
+    "work_order_status",
+    "work_order_priority",
+    "inspection_status",
+)
+
 
 def _parse_bound(raw_value, field_name):
     if raw_value in (None, ""):
@@ -59,10 +67,66 @@ def _reject_unsupported_filters(query_params):
     for field_name in UNSUPPORTED_FILTER_PARAMS:
         if query_params.get(field_name) not in (None, ""):
             errors[field_name] = [
-                "This filter is not supported by the current Reporting overview contract."
+                "Generic status/priority filters are not supported. "
+                "Use module-specific parameters such as ticket_status, "
+                "work_order_status, or inspection_status."
             ]
     if errors:
         raise ValidationError(errors)
+
+
+def _parse_optional_choice(raw_value, field_name, choices):
+    if raw_value in (None, ""):
+        return None
+    value = str(raw_value)
+    valid_values = {choice.value for choice in choices}
+    if value not in valid_values:
+        raise ValidationError(
+            {
+                field_name: [
+                    f"Must be one of: {', '.join(sorted(valid_values))}."
+                ]
+            }
+        )
+    return value
+
+
+def _resolve_module_filters(query_params):
+    return {
+        "ticket_status": _parse_optional_choice(
+            query_params.get("ticket_status"),
+            "ticket_status",
+            FmTicket.Status,
+        ),
+        "ticket_priority": _parse_optional_choice(
+            query_params.get("ticket_priority"),
+            "ticket_priority",
+            FmTicket.Priority,
+        ),
+        "work_order_status": _parse_optional_choice(
+            query_params.get("work_order_status"),
+            "work_order_status",
+            MaintenanceWorkOrder.Status,
+        ),
+        "work_order_priority": _parse_optional_choice(
+            query_params.get("work_order_priority"),
+            "work_order_priority",
+            MaintenanceWorkOrder.Priority,
+        ),
+        "inspection_status": _parse_optional_choice(
+            query_params.get("inspection_status"),
+            "inspection_status",
+            Inspection.Status,
+        ),
+    }
+
+
+def _apply_module_status_priority(queryset, *, status=None, priority=None):
+    if status is not None:
+        queryset = queryset.filter(status=status)
+    if priority is not None:
+        queryset = queryset.filter(priority=priority)
+    return queryset
 
 
 def _eligible_master_data_queryset(model, user):
@@ -103,12 +167,15 @@ def _resolve_accessible_building(user, building_id):
 def resolve_reporting_filters(query_params, user=None):
     """Normalize and validate overview query filters.
 
-    Supported public filters: date_from, date_to, building, organization.
+    Supported public filters: date_from, date_to, building, organization,
+    plus module-specific ticket_*, work_order_*, and inspection_status.
     Date bounds are inclusive on both ends (``__gte`` / ``__lte``).
     Default period is the last 90 days through now. Inclusive span must not
-    exceed 180 days. Status and priority are rejected until FO-066.
+    exceed 180 days. Generic status and priority remain rejected.
+    Unrelated unknown query parameters are ignored by this resolver.
     """
     _reject_unsupported_filters(query_params)
+    module_filters = _resolve_module_filters(query_params)
 
     now = timezone.now()
     date_to = _parse_bound(query_params.get("date_to"), "date_to") or now
@@ -166,6 +233,7 @@ def resolve_reporting_filters(query_params, user=None):
         ),
         "building": building,
         "organization": organization,
+        **module_filters,
     }
 
 
@@ -302,21 +370,36 @@ def build_operational_overview(user, query_params):
 
     Aggregations are backend-authoritative. Callers must not trust frontend
     filter hints alone; every queryset is scoped before counting.
+    Module-specific status/priority filters apply only to their module.
     """
     filters = resolve_reporting_filters(query_params, user=user)
     now = timezone.now()
 
     tickets = scope_queryset_to_user(FmTicket.objects.all(), user)
     tickets = _apply_common_filters(tickets, filters, date_field="reported_at")
+    tickets = _apply_module_status_priority(
+        tickets,
+        status=filters["ticket_status"],
+        priority=filters["ticket_priority"],
+    )
 
     work_orders = scope_queryset_to_user(MaintenanceWorkOrder.objects.all(), user)
     work_orders = _apply_common_filters(
         work_orders, filters, date_field="requested_at"
     )
+    work_orders = _apply_module_status_priority(
+        work_orders,
+        status=filters["work_order_status"],
+        priority=filters["work_order_priority"],
+    )
 
     inspections = scope_queryset_to_user(Inspection.objects.all(), user)
     inspections = _apply_common_filters(
         inspections, filters, date_field="scheduled_date"
+    )
+    inspections = _apply_module_status_priority(
+        inspections,
+        status=filters["inspection_status"],
     )
 
     return {
@@ -331,6 +414,11 @@ def build_operational_overview(user, query_params):
                 if filters["organization_id"]
                 else None
             ),
+            "ticket_status": filters["ticket_status"],
+            "ticket_priority": filters["ticket_priority"],
+            "work_order_status": filters["work_order_status"],
+            "work_order_priority": filters["work_order_priority"],
+            "inspection_status": filters["inspection_status"],
         },
         "tickets": build_ticket_summary(tickets, now=now),
         "work_orders": build_work_order_summary(work_orders, now=now),

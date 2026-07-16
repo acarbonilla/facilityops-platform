@@ -6,6 +6,11 @@ export interface ReportingOverviewParams
   date_to?: string;
   building?: string;
   organization?: string;
+  ticket_status?: string;
+  ticket_priority?: string;
+  work_order_status?: string;
+  work_order_priority?: string;
+  inspection_status?: string;
 }
 
 export interface ReportingOrganizationOption {
@@ -29,6 +34,11 @@ export interface ReportingFiltersEcho {
   date_to: string;
   building?: string | null;
   organization?: string | null;
+  ticket_status?: string | null;
+  ticket_priority?: string | null;
+  work_order_status?: string | null;
+  work_order_priority?: string | null;
+  inspection_status?: string | null;
 }
 
 export interface ReportingTicketSlaSummary {
@@ -77,11 +87,11 @@ export interface ReportingFilterDraft {
   dateTo: string;
   organization: string;
   building: string;
+  ticketStatus?: string;
+  ticketPriority?: string;
+  workOrderStatus?: string;
+  workOrderPriority?: string;
+  inspectionStatus?: string;
 }
 
-export interface ReportingActiveFilters {
-  dateFrom: string;
-  dateTo: string;
-  organization: string;
-  building: string;
-}
+export type ReportingActiveFilters = ReportingFilterDraft;

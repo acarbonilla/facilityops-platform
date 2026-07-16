@@ -39,6 +39,11 @@ class ReportingFiltersSerializer(serializers.Serializer):
     date_to = serializers.CharField()
     building = serializers.CharField(allow_null=True, required=False)
     organization = serializers.CharField(allow_null=True, required=False)
+    ticket_status = serializers.CharField(allow_null=True, required=False)
+    ticket_priority = serializers.CharField(allow_null=True, required=False)
+    work_order_status = serializers.CharField(allow_null=True, required=False)
+    work_order_priority = serializers.CharField(allow_null=True, required=False)
+    inspection_status = serializers.CharField(allow_null=True, required=False)
 
 
 class OperationalOverviewSerializer(serializers.Serializer):

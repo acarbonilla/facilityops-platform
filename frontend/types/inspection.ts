@@ -64,6 +64,7 @@ export interface InspectionListParams
   five_s_category?: InspectionFiveSCategory;
   inspection_type?: InspectionType;
   department?: string;
+  organization?: string;
   building?: string;
   floor?: string;
   area?: string;
@@ -77,6 +78,7 @@ export interface InspectionListFilters {
   fiveSCategory: InspectionFiveSCategory | "";
   inspectionType: InspectionType | "";
   department: string;
+  organization: string;
   building: string;
   floor: string;
   area: string;
