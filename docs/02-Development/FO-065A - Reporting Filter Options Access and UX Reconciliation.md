@@ -136,7 +136,22 @@ Frontend helper tests cover endpoint constant, query key, `organization_id` narr
 
 ## Validation Results
 
-Recorded in the FO-065A final report after suite execution.
+Backend:
+
+- `apps.reporting` — 56 OK
+- `apps.accounts` + `apps.access_control` — 109 OK
+- `apps.fm_tickets` + `apps.maintenance` + `apps.inspection` — 211 OK
+- `apps.dashboard` + `apps.notifications` — 80 OK
+- Full parallel suite — 482 OK
+- `manage.py check` clean
+- `makemigrations --check --dry-run` — No changes detected
+
+Frontend:
+
+- `npm test` — 160 pass
+- `npm run lint` — pass
+- `npx tsc --noEmit` — pass
+- `npm run build` — pass; `/reporting` present
 
 ## Migration Status
 
@@ -160,7 +175,7 @@ Backend Reporting views/services/serializers/urls/tests; frontend Reporting type
 
 ## Commit SHA
 
-Recorded after commit.
+- `1712628d8ed779cd4827b9610b0ed24a98bcb399` — `FO-065A: reconcile reporting filter option access`
 
 ## PR #38 State
 
