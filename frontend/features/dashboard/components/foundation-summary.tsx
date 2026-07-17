@@ -1,41 +1,50 @@
+import {
+  FOUNDATION_METRIC_DEFINITIONS,
+  isAllZeroFoundationSummary,
+  mapFoundationMetrics,
+} from "@/lib/dashboard/metrics";
+import {
+  DASHBOARD_SCOPE_SUMMARY,
+  DASHBOARD_SCOPE_SUPPORTING,
+  DASHBOARD_ZERO_CONTEXT,
+} from "@/lib/dashboard/scope";
+import type { FoundationSummary } from "@/types/dashboard";
+
 import { MetricCard } from "./metric-card";
-
-import type { DashboardMetricCard, FoundationSummary } from "@/types/dashboard";
-
-const FOUNDATION_METRICS: Array<Pick<DashboardMetricCard, "id" | "label">> = [
-  { id: "tenants", label: "Tenants" },
-  { id: "organizations", label: "Organizations" },
-  { id: "departments", label: "Departments" },
-  { id: "buildings", label: "Buildings" },
-  { id: "floors", label: "Floors" },
-  { id: "areas", label: "Areas" },
-  { id: "asset_types", label: "Asset Types" },
-  { id: "assets", label: "Assets" },
-];
 
 export function FoundationSummaryCards({
   summary,
 }: {
   summary: FoundationSummary;
 }) {
+  const metrics = mapFoundationMetrics(summary);
+  const isEmpty = isAllZeroFoundationSummary(summary);
+
   return (
     <section aria-label="Foundation metrics" className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold text-slate-950">Foundation metrics</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Counts are sourced from the current master data foundation only.
-        </p>
+        <p className="mt-1 text-sm text-slate-600">{DASHBOARD_SCOPE_SUMMARY}</p>
+        <p className="mt-1 text-sm text-slate-500">{DASHBOARD_SCOPE_SUPPORTING}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {FOUNDATION_METRICS.map((metric) => (
-          <MetricCard
-            key={metric.id}
-            label={metric.label}
-            value={summary[metric.id]}
-          />
+      {isEmpty ? (
+        <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-3 text-sm text-slate-600" role="status">
+          {DASHBOARD_ZERO_CONTEXT}
+        </p>
+      ) : null}
+
+      <ul className="grid list-none gap-4 p-0 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => (
+          <li key={metric.id}>
+            <MetricCard label={metric.label} value={metric.value} />
+          </li>
         ))}
-      </div>
+      </ul>
+
+      <p className="sr-only">
+        {FOUNDATION_METRIC_DEFINITIONS.length} foundation metric cards are shown.
+      </p>
     </section>
   );
 }

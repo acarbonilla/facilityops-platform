@@ -14,12 +14,12 @@
 
 ## Current Module
 
-- Reporting and Operational Analytics (complete on `feature/reporting`; Sol renewed cumulative review APPROVED; draft PR #38 ready for user’s merge decision)
+- Dashboard and Executive Operational Overview (Complete on `feature/dashboard-operational-overview`; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 draft ready for user’s merge decision)
 
 ## Current Branch
 
-- `feature/reporting` (FO-064 through FO-067B complete on branch; draft PR #38)
-- Synchronized repository baseline before branch: `main` at merge commit `ae3d208663cf31937bee5a326ce339b14b78e918`
+- `feature/dashboard-operational-overview` (FO-068 through FO-070A complete; Sol APPROVED at `0c812e6…`; manual acceptance passed 2026-07-18; PR #39 draft ready for user’s merge decision)
+- Synchronized repository baseline before branch: `main` at merge commit `dfd3a4457e54dd702171482217ef6f22194d7941`
 
 ## Completed Modules
 
@@ -90,56 +90,56 @@
 
 ## Completed Reporting Tasks
 
-- FO-064 (Reporting Backend Aggregation Foundation; complete on `feature/reporting`)
-- FO-064A (Reporting API Contract Validation and Backend Reconciliation; complete on `feature/reporting`)
-- FO-065 (Reporting Operational Overview Frontend; complete on branch after FO-065A reconciliation)
-- FO-065A (Reporting Filter Options Access and UX Reconciliation; complete on `feature/reporting`)
-- FO-066 (Reporting Cross-Module Filters and Drill-Down Workflows; complete on `feature/reporting`)
-- FO-066A (Reporting Drill-Down Date Contract Reconciliation; complete on `feature/reporting`)
-- FO-067 (Reporting Module QA and Stabilization; complete on `feature/reporting`; later qualified by FO-067A)
-- FO-067A (Reporting Date Boundary and Drill-Down Parity Correction; complete and independently approved on `feature/reporting`)
-- FO-067B (Final Reporting Review and Repository Reconciliation; complete on `feature/reporting`)
+- FO-064 (Reporting Backend Aggregation Foundation; complete; PR #38 merged)
+- FO-064A (Reporting API Contract Validation and Backend Reconciliation; complete; PR #38 merged)
+- FO-065 (Reporting Operational Overview Frontend; complete; PR #38 merged)
+- FO-065A (Reporting Filter Options Access and UX Reconciliation; complete; PR #38 merged)
+- FO-066 (Reporting Cross-Module Filters and Drill-Down Workflows; complete; PR #38 merged)
+- FO-066A (Reporting Drill-Down Date Contract Reconciliation; complete; PR #38 merged)
+- FO-067 (Reporting Module QA and Stabilization; complete; PR #38 merged)
+- FO-067A (Reporting Date Boundary and Drill-Down Parity Correction; complete and independently approved; PR #38 merged)
+- FO-067B (Final Reporting Review and Repository Reconciliation; complete; PR #38 merged)
+
+## Completed Dashboard Tasks
+
+- FO-017 (Dashboard Shell and Foundation Metrics; historically global counts)
+- FO-068 (Foundation Dashboard Tenant Isolation Backend Correction; complete on `feature/dashboard-operational-overview`)
+- FO-069 (Dashboard Scope UX and Reporting Navigation Alignment; complete on `feature/dashboard-operational-overview`)
+- FO-069A (Dashboard Connectivity Loading State Correction; complete on `feature/dashboard-operational-overview`)
+- FO-070 (Dashboard Operational Overview QA and Stabilization; complete and independently approved on `feature/dashboard-operational-overview`; no production correction required)
+- FO-070A (Final Dashboard Review and Repository Reconciliation; complete)
 
 ## Current Task
 
-- FO-067B complete on `feature/reporting`. Sol’s renewed independent cumulative review of Reporting and Operational Analytics is APPROVED at implementation HEAD `1e01a97c2a9faeb0194416a526ab8096895d7474`. Reporting and Operational Analytics is complete. Cumulative draft PR #38 remains open/unmerged and is ready for the user’s final ready-for-review and normal merge-commit action.
+- FO-070A complete. Sol’s independent cumulative review of FO-068 through FO-070 is **APPROVED** at HEAD `0c812e635d051a42bf98141a62cbccf699f3a962`. User manual acceptance **passed** on 2026-07-18. Dashboard Operational Overview is complete. Draft PR #39 remains open/unmerged, ready for the user’s final ready-for-review and normal merge-commit decision.
 
 ## Next Milestone
 
-- User ready-for-review and normal merge-commit of draft PR #38
+- User ready-for-review and merge decision for PR #39
 - FO-063 automatic Ticket closure remains reserved and deferred
 
-## Selected Next Feature — Reporting and Operational Analytics
+## Selected Next Feature — Dashboard and Executive Operational Overview
 
-- Feature: Reporting and Operational Analytics
-- Active branch: `feature/reporting`
-- FO-064 / FO-064A: approved backend aggregation and contract validation (complete)
-- FO-065 / FO-065A: Reporting overview frontend plus filter-options access/UX reconciliation (complete)
-- FO-066 / FO-066A: module-scoped filters, drill-downs, and requested-date parity (complete)
-- FO-067: cumulative QA and stabilization (complete; initially no production-code defects; later qualified by Sol independent review and FO-067A)
-- FO-067A: date-boundary and Work Order drill-down parity correction (complete; independently approved)
-- FO-067B: final review and repository reconciliation (complete; Sol renewed cumulative review APPROVED)
-- Approved implementation HEAD: `1e01a97c2a9faeb0194416a526ab8096895d7474`
-- Initial permission: `reporting.view` (seeded)
-- Overview API: `GET /api/reporting/overview/`
-- Filter options API: `GET /api/reporting/filter-options/`
-- Date contract: date-only `date_from` / `date_to` resolved in Django timezone; max 180 calendar days inclusive of the final day
-- Supported filters: `date_from`, `date_to`, `building`, `organization`, `ticket_status`, `ticket_priority`, `work_order_status`, `work_order_priority`, `inspection_status`
-- Frontend route: `/reporting`
-- Manual acceptance: passed 2026-07-17 by user (“All goods.”); exact-180/timezone defect found later via independent review and corrected in FO-067A; optional FO-067A smoke remains optional
-- Export: deferred from the first MVP slice
-- Chart dependency: not approved or required initially
-- Notifications analytics: deferred
+- Feature: Dashboard and Executive Operational Overview
+- Active branch: `feature/dashboard-operational-overview`
+- FO-068: Foundation Dashboard tenant-isolation backend correction (complete)
+- FO-069: frontend scope copy / Reporting navigation / UX (complete)
+- FO-069A: connectivity loading-state correction (complete; independently approved)
+- FO-070: QA and stabilization (complete; independently approved; documentation-only)
+- FO-070A: final review and repository reconciliation (complete)
+- Sol cumulative review: APPROVED
+- Manual acceptance: passed by User on 2026-07-18
+- Access: `IsAuthenticated` (no `dashboard.view`)
+- Overview API: `GET /api/dashboard/foundation-summary/`
+- Reporting module status: Complete (PR #38 merged)
 - FO-063: remains separately reserved for automatic FM Ticket closure
-- Reporting module status: Complete (PR #38 draft/unmerged; ready for user’s merge decision)
 
-## Foundation Dashboard Security Note (review item only)
+## Foundation Dashboard Security Note
 
-- The existing Foundation Dashboard uses globally scoped counts.
-- This pattern must not be reused by Reporting.
-- Reporting aggregations are tenant-scoped and backend-authoritative (FO-064).
-- Any correction to the Foundation Dashboard requires a separate confirmed task.
-- No Dashboard code was changed during FO-064.
+- FO-017 originally used globally scoped foundation counts.
+- FO-068 corrects tenant isolation on the cumulative Dashboard branch.
+- Reporting aggregations remain separately tenant-scoped (FO-064 through FO-067B; PR #38 merged).
+- Dashboard remains independent of Reporting business aggregation.
 
 ## Known Issues
 

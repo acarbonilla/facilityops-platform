@@ -20,7 +20,10 @@ export interface DashboardMetricCard {
 
 export interface SystemStatus {
   service: string;
+  /** Explicit connectivity state: checking | ok | unavailable | or a degraded health status string. */
   status: string;
   connected: boolean;
+  /** True while connectivity has not been confirmed yet (not a failure). */
+  checking: boolean;
   message: string;
 }

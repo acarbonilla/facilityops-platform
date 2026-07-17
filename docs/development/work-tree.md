@@ -16,7 +16,7 @@
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
-| Dashboard | Complete | Foundation metrics backend and frontend dashboard shell. Review note: foundation counts are globally scoped and must not be reused by Reporting; any Foundation Dashboard correction requires a separate confirmed task |
+| Dashboard | Complete | FO-068–FO-070A complete on `feature/dashboard-operational-overview`; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; draft PR #39 open/unmerged ready for user’s merge decision |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
@@ -24,7 +24,7 @@
 | FM Ticketing | Complete | Explicit Work Order generation, linked Work Order navigation, and Work Order-to-Ticket status synchronization implemented; completion resolves but does not close the Ticket; FO-063 automatic closure remains deferred |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains deferred |
-| Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete on `feature/reporting` (draft PR #38); user manual acceptance passed 2026-07-17; FO-067A corrected date-parity defects; Sol renewed cumulative review APPROVED at `1e01a97…`; ready for user’s merge decision; export, charts, FO-063 deferred |
+| Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export, charts, FO-063 deferred |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
@@ -231,7 +231,7 @@ Maintains foundational reference data for tenants, organizations, departments, b
 
 ## Dashboard
 
-Status: Complete
+Status: Complete (FO-068–FO-070A; Sol cumulative APPROVED; manual acceptance passed 2026-07-18)
 
 ### Purpose
 
@@ -244,27 +244,29 @@ Provides a simple authenticated dashboard for foundation metrics and quick navig
 - Serializers: `FoundationSummarySerializer`
 - ViewSets / Views: `FoundationSummaryView`
 - APIs: `/api/dashboard/foundation-summary/`
-- Services: local helper `get_active_count`
+- Services: `build_foundation_summary` with tenant-scope helpers (FO-068)
 - Permissions: `IsAuthenticated`
 - Admin: None
-- Tests: `backend/apps/dashboard/tests.py`
+- Tests: `backend/apps/dashboard/tests.py` (17)
 
 ### Frontend
 
 - Routes: `/dashboard`
 - Module Folder: `frontend/features/dashboard`
 - Pages: `app/(app)/dashboard/page.tsx`
-- Components: `FoundationSummary`, `MetricCard`, `QuickLinks`, `SystemStatusCard`
-- Hooks: No dedicated dashboard hook; dashboard page uses shared API layer
+- Components: `FoundationSummaryCards`, `MetricCard`, `QuickLinks`, `SystemStatusCard`
+- Helpers: `frontend/lib/dashboard/*` (scope, metrics, query gating, display, navigation)
+- Hooks: page uses shared API layer with auth-gated React Query
 - API Files: `services/api/dashboard.ts`
 - Types: `types/dashboard.ts`
-- RBAC Usage: authenticated route; no separate permission code beyond login state
-- Tests: No dedicated frontend tests
+- RBAC Usage: auth-only Dashboard; Master Data quick links require `settings.view`; Reporting link requires `reporting.view`
+- Tests: `frontend/lib/dashboard/dashboard.test.ts`
 
 ### Notes
 
-- This module covers FO-017.
-- Metrics currently focus on setup completeness, not ticket or maintenance operations.
+- FO-017 foundation shell; FO-068 tenant-isolation backend; FO-069 scope UX and Reporting navigation; FO-069A connectivity Checking-state correction; FO-070 cumulative QA (no production correction); FO-070A final review reconciliation.
+- Metrics focus on foundation inventory completeness, not ticket or maintenance operations.
+- Sol cumulative review APPROVED at `0c812e635d051a42bf98141a62cbccf699f3a962`. User manual acceptance passed 2026-07-18. Draft PR #39 remains open/unmerged, ready for the user’s merge decision.
 
 ## User Management
 
