@@ -42,26 +42,6 @@ export function isValidDateOnly(value: string): boolean {
   return parseLocalDateInput(value) !== null;
 }
 
-export function toLocalStartOfDayIso(dateInput: string): string | null {
-  const parsed = parseLocalDateInput(dateInput);
-  if (!parsed) {
-    return null;
-  }
-
-  parsed.setHours(0, 0, 0, 0);
-  return parsed.toISOString();
-}
-
-export function toLocalEndOfDayIso(dateInput: string): string | null {
-  const parsed = parseLocalDateInput(dateInput);
-  if (!parsed) {
-    return null;
-  }
-
-  parsed.setHours(23, 59, 59, 999);
-  return parsed.toISOString();
-}
-
 export function getCalendarDaySpan(dateFrom: string, dateTo: string): number | null {
   const from = parseLocalDateInput(dateFrom);
   const to = parseLocalDateInput(dateTo);
@@ -122,11 +102,11 @@ export function validateReportingDateRange(
 }
 
 /**
- * Build ISO-8601 bounds for the Reporting API.
+ * Build date-only Reporting API bounds.
  *
- * Date From → local start of day.
- * Date To → local end of day, clamped so the backend timedelta span never
- * exceeds 180 days when the selected calendar span is exactly 180.
+ * Selected calendar dates are forwarded as YYYY-MM-DD. Authoritative
+ * start/end-of-day resolution happens on the server in Django's timezone.
+ * No browser-local ISO conversion and no exact-180-day clamp.
  */
 export function toReportingApiDateBounds(
   dateFrom: string,
@@ -136,20 +116,8 @@ export function toReportingApiDateBounds(
     return null;
   }
 
-  const fromIso = toLocalStartOfDayIso(dateFrom);
-  const endOfToIso = toLocalEndOfDayIso(dateTo);
-  if (!fromIso || !endOfToIso) {
-    return null;
-  }
-
-  const fromMs = new Date(fromIso).getTime();
-  const maxToMs = fromMs + REPORTING_MAX_RANGE_DAYS * 86_400_000;
-  const endOfToMs = new Date(endOfToIso).getTime();
-  const dateToIso =
-    endOfToMs > maxToMs ? new Date(maxToMs).toISOString() : endOfToIso;
-
   return {
-    date_from: fromIso,
-    date_to: dateToIso,
+    date_from: dateFrom.trim(),
+    date_to: dateTo.trim(),
   };
 }

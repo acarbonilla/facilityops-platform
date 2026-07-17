@@ -134,6 +134,25 @@ export function formatReportingInstant(
     return fallback;
   }
 
+  // Date-only echoes are calendar dates; do not parse as UTC midnight.
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (dateOnlyMatch) {
+    const year = Number(dateOnlyMatch[1]);
+    const month = Number(dateOnlyMatch[2]);
+    const day = Number(dateOnlyMatch[3]);
+    const localDate = new Date(year, month - 1, day);
+    if (
+      !Number.isNaN(localDate.getTime()) &&
+      localDate.getFullYear() === year &&
+      localDate.getMonth() === month - 1 &&
+      localDate.getDate() === day
+    ) {
+      return new Intl.DateTimeFormat("en-US", {
+        dateStyle: "medium",
+      }).format(localDate);
+    }
+  }
+
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
     return value;

@@ -1,10 +1,10 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 from uuid import UUID
 
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework.exceptions import NotFound, ValidationError
 
 from apps.fm_tickets.models import FmTicket
@@ -42,15 +42,64 @@ MODULE_FILTER_FIELDS = (
 )
 
 
-def _parse_bound(raw_value, field_name):
+def _is_date_only_input(raw_value):
+    if raw_value in (None, ""):
+        return False
+    try:
+        return parse_date(str(raw_value).strip()) is not None
+    except ValueError:
+        return False
+
+
+def _parse_bound(raw_value, field_name, *, end_of_day=False):
+    """Parse a Reporting date bound.
+
+    Date-only ``YYYY-MM-DD`` values resolve to the full selected calendar day
+    in Django's current timezone (start-of-day or end-of-day). Timezone-aware
+    ISO datetimes retain their explicit instant semantics. Naive datetimes are
+    made aware in the current timezone without reinterpretation of aware
+    values.
+    """
     if raw_value in (None, ""):
         return None
-    parsed = parse_datetime(str(raw_value))
+
+    raw_str = str(raw_value).strip()
+    try:
+        parsed_date = parse_date(raw_str)
+    except ValueError as exc:
+        raise ValidationError(
+            {field_name: "Must be a valid calendar date."}
+        ) from exc
+
+    if parsed_date is not None:
+        return datetime.combine(
+            parsed_date,
+            time.max if end_of_day else time.min,
+            tzinfo=timezone.get_current_timezone(),
+        )
+
+    parsed = parse_datetime(raw_str)
     if parsed is None:
-        raise ValidationError({field_name: "Must be a valid ISO-8601 datetime."})
+        raise ValidationError(
+            {field_name: "Must be a valid ISO-8601 date or datetime."}
+        )
     if timezone.is_naive(parsed):
         parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
     return parsed
+
+
+def _calendar_span_days(date_from, date_to):
+    """Return the selected calendar-day difference in the current timezone."""
+    tz = timezone.get_current_timezone()
+    from_day = timezone.localtime(date_from, tz).date()
+    to_day = timezone.localtime(date_to, tz).date()
+    return (to_day - from_day).days
+
+
+def _echo_bound(bound, *, date_only):
+    if date_only:
+        return timezone.localtime(bound).date().isoformat()
+    return bound.isoformat()
 
 
 def _parse_optional_uuid(raw_value, field_name):
@@ -170,23 +219,35 @@ def resolve_reporting_filters(query_params, user=None):
     Supported public filters: date_from, date_to, building, organization,
     plus module-specific ticket_*, work_order_*, and inspection_status.
     Date bounds are inclusive on both ends (``__gte`` / ``__lte``).
-    Default period is the last 90 days through now. Inclusive span must not
-    exceed 180 days. Generic status and priority remain rejected.
-    Unrelated unknown query parameters are ignored by this resolver.
+
+    Date-only ``YYYY-MM-DD`` inputs use full-day semantics in Django's current
+    timezone. Aware ISO datetimes keep their explicit instants. Maximum range
+    is the selected calendar-day span (not elapsed start-of-day to end-of-day
+    duration). Default period is the last 90 days through now. Generic status
+    and priority remain rejected. Unrelated unknown query parameters are
+    ignored by this resolver.
     """
     _reject_unsupported_filters(query_params)
     module_filters = _resolve_module_filters(query_params)
 
+    raw_date_from = query_params.get("date_from")
+    raw_date_to = query_params.get("date_to")
+    date_from_is_date_only = _is_date_only_input(raw_date_from)
+    date_to_is_date_only = _is_date_only_input(raw_date_to)
+
     now = timezone.now()
-    date_to = _parse_bound(query_params.get("date_to"), "date_to") or now
-    date_from = _parse_bound(query_params.get("date_from"), "date_from")
+    date_to = _parse_bound(raw_date_to, "date_to", end_of_day=True) or now
+    date_from = _parse_bound(raw_date_from, "date_from", end_of_day=False)
     if date_from is None:
         date_from = date_to - timedelta(days=DEFAULT_DATE_RANGE_DAYS)
+        date_from_is_date_only = False
+    if raw_date_to in (None, ""):
+        date_to_is_date_only = False
 
     if date_from > date_to:
         raise ValidationError({"date_from": "Must be earlier than or equal to date_to."})
 
-    span_days = (date_to - date_from).total_seconds() / 86400
+    span_days = _calendar_span_days(date_from, date_to)
     if span_days > MAX_DATE_RANGE_DAYS:
         raise ValidationError(
             {
@@ -227,6 +288,8 @@ def resolve_reporting_filters(query_params, user=None):
     return {
         "date_from": date_from,
         "date_to": date_to,
+        "date_from_echo": _echo_bound(date_from, date_only=date_from_is_date_only),
+        "date_to_echo": _echo_bound(date_to, date_only=date_to_is_date_only),
         "building_id": building.id if building is not None else building_id,
         "organization_id": (
             organization.id if organization is not None else organization_id
@@ -404,8 +467,8 @@ def build_operational_overview(user, query_params):
 
     return {
         "filters": {
-            "date_from": filters["date_from"].isoformat(),
-            "date_to": filters["date_to"].isoformat(),
+            "date_from": filters["date_from_echo"],
+            "date_to": filters["date_to_echo"],
             "building": (
                 str(filters["building_id"]) if filters["building_id"] else None
             ),

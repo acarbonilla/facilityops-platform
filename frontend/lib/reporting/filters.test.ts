@@ -20,19 +20,19 @@ import {
 test("blank reporting parameters are omitted", () => {
   assert.deepEqual(
     omitBlankReportingParams({
-      date_from: "2026-01-01T00:00:00.000Z",
-      date_to: "2026-01-31T23:59:59.999Z",
+      date_from: "2026-01-01",
+      date_to: "2026-01-31",
       organization: "",
       building: "   ",
     }),
     {
-      date_from: "2026-01-01T00:00:00.000Z",
-      date_to: "2026-01-31T23:59:59.999Z",
+      date_from: "2026-01-01",
+      date_to: "2026-01-31",
     },
   );
 });
 
-test("only approved parameters are serialized", () => {
+test("only approved parameters are serialized as date-only bounds", () => {
   const params = serializeReportingOverviewParams({
     dateFrom: "2026-04-17",
     dateTo: "2026-07-16",
@@ -47,11 +47,40 @@ test("only approved parameters are serialized", () => {
     "date_to",
     "organization",
   ]);
+  assert.equal(params!.date_from, "2026-04-17");
+  assert.equal(params!.date_to, "2026-07-16");
+  assert.equal(params!.date_from.includes("T"), false);
+  assert.equal(params!.date_to.includes("T"), false);
   assert.equal(
     "status" in (params as object) || "priority" in (params as object),
     false,
   );
   assert.equal("tenant" in (params as object), false);
+});
+
+test("exact 180-day selection serializes without clamp or ISO conversion", () => {
+  const params = serializeReportingOverviewParams({
+    dateFrom: "2026-01-16",
+    dateTo: "2026-07-15",
+    organization: "",
+    building: "",
+  });
+  assert.deepEqual(params, {
+    date_from: "2026-01-16",
+    date_to: "2026-07-15",
+  });
+});
+
+test("181-day selection fails closed during serialization", () => {
+  assert.equal(
+    serializeReportingOverviewParams({
+      dateFrom: "2026-01-15",
+      dateTo: "2026-07-15",
+      organization: "",
+      building: "",
+    }),
+    null,
+  );
 });
 
 test("organization change clears incompatible building using organization_id", () => {

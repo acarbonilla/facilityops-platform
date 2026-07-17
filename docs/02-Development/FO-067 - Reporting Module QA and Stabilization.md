@@ -16,9 +16,11 @@ Perform cumulative final QA for Reporting and Operational Analytics delivered th
 
 ## Executive QA Outcome
 
-**Pass.** No production-code defects requiring correction were confirmed against the approved FO-064–FO-066A contracts. FO-067 is documentation-and-validation only.
+**Pass with later qualification.** At FO-067 close, no production-code defects requiring correction were confirmed against the then-approved FO-064–FO-066A contracts, and FO-067 remained documentation-and-validation only.
 
-Known residual limitations (not treated as FO-067 defects because they match approved FO-065 / FO-066A behavior) are recorded below.
+Sol’s subsequent independent cumulative review of PR #38 confirmed two medium-severity date-parity defects that FO-067 had recorded only as residual known limitations. Those defects are corrected in **FO-067A**. Do not retain an unqualified “no production defects” reading of FO-067 without that follow-up.
+
+Known residual limitations recorded at FO-067 close (later corrected by FO-067A):
 
 ## Reviewed Milestones
 
@@ -35,8 +37,8 @@ No confirmed production defects. No production code, tests, migrations, or depen
 
 Residual known limitations (documented, not patched):
 
-1. **Exact 180-day calendar span clamp (FO-065 intentional).** Frontend `toReportingApiDateBounds` may clamp `date_to` to `date_from + 180 days` when end-of-day would exceed the backend timedelta limit. Work Order drill-down still passes the selected calendar `requested_to` date (inclusive end-of-day). At the exact max span, overview totals and Work Order list counts may differ for records late on the final day.
-2. **Browser-local vs Django `TIME_ZONE` day bounds.** Reporting overview ISO bounds use the browser local calendar; Maintenance `requested_*` date-only filters use Django `TIME_ZONE` (default `Asia/Manila`). When those timezones differ, same calendar dates can diverge slightly.
+1. **Exact 180-day calendar span clamp (FO-065 intentional at the time; corrected by FO-067A).** Frontend `toReportingApiDateBounds` previously clamped `date_to` to `date_from + 180 days` when end-of-day would exceed the backend timedelta limit. Work Order drill-down still passed the selected calendar `requested_to` date (inclusive end-of-day). At the exact max span, overview totals and Work Order list counts could differ for records late on the final day.
+2. **Browser-local vs Django `TIME_ZONE` day bounds (corrected by FO-067A).** Reporting overview ISO bounds previously used the browser local calendar; Maintenance `requested_*` date-only filters use Django `TIME_ZONE` (default `Asia/Manila`). When those timezones differed, same calendar dates could diverge.
 
 ## Security and Tenant-Isolation Findings
 
@@ -157,7 +159,7 @@ Residual known limitations (documented, not patched):
 
 ## Final Module Status
 
-Reporting and Operational Analytics is **complete on `feature/reporting`** after FO-067 QA. PR #38 remains open, draft, and unmerged pending Sol’s independent cumulative final review.
+FO-067 QA and the 2026-07-17 manual acceptance record remain valid for the scope exercised at that time. Reporting is **not** marked complete solely on FO-067 after Sol’s independent review finding; completion on `feature/reporting` requires FO-067A validation. PR #38 remains open, draft, and unmerged pending Sol’s renewed independent cumulative final review.
 
 ## PR State
 

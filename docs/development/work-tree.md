@@ -24,7 +24,7 @@
 | FM Ticketing | Complete | Explicit Work Order generation, linked Work Order navigation, and Work Order-to-Ticket status synchronization implemented; completion resolves but does not close the Ticket; FO-063 automatic closure remains deferred |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains deferred |
-| Reporting and Operational Analytics | Complete (on branch) | FO-064 through FO-067 complete on `feature/reporting` (draft PR #38); user manual acceptance passed 2026-07-17; independent Sol cumulative PR review pending; export, charts, FO-063 deferred |
+| Reporting and Operational Analytics | Complete (on branch) | FO-064 through FO-067A complete on `feature/reporting` (draft PR #38); user manual acceptance passed 2026-07-17; FO-067A corrected Sol-confirmed date-parity defects; renewed independent Sol cumulative PR review pending; export, charts, FO-063 deferred |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |

@@ -1,9 +1,10 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import uuid4
 
 from django.contrib.auth import get_user_model
 from django.db import connection
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -1167,3 +1168,300 @@ class ReportingModuleFilterTests(ReportingTestDataMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("organizations", response.data)
         self.assertIn("buildings", response.data)
+
+
+@override_settings(TIME_ZONE="Asia/Manila")
+class ReportingDateBoundaryFO067ATests(ReportingTestDataMixin, APITestCase):
+    """FO-067A: server-timezone date-only bounds and Work Order parity."""
+
+    def setUp(self):
+        self.create_reporting_permission()
+        Permission.objects.get_or_create(
+            code="maintenance.view",
+            defaults={
+                "name": "View maintenance",
+                "module": "maintenance",
+                "action": "view",
+                "description": "View maintenance work orders.",
+                "is_active": True,
+            },
+        )
+        self.data = self.create_master_data(suffix="fo067a")
+        self.other_data = self.create_master_data(suffix="fo067a-other")
+        self.tz = timezone.get_current_timezone()
+        self.viewer = User.objects.create_user(
+            email="fo067a-viewer@example.com",
+            password="Password123!",
+            tenant=self.data["tenant"],
+            organization=self.data["organization"],
+        )
+        self.assign_permissions(self.viewer, "reporting.view", "maintenance.view")
+
+    def _aware(self, year, month, day, hour=0, minute=0, second=0, microsecond=0):
+        return timezone.make_aware(
+            datetime(year, month, day, hour, minute, second, microsecond),
+            self.tz,
+        )
+
+    def _create_work_order(self, *, requested_at, title="Boundary WO", tenant_data=None):
+        data = tenant_data or self.data
+        return MaintenanceWorkOrder.objects.create(
+            tenant=data["tenant"],
+            organization=data["organization"],
+            department=data["department"],
+            building=data["building"],
+            floor=data["floor"],
+            area=data["area"],
+            asset=data["asset"],
+            requester=self.viewer,
+            title=title,
+            description="FO-067A boundary fixture.",
+            status=MaintenanceWorkOrder.Status.OPEN,
+            priority=MaintenanceWorkOrder.Priority.MEDIUM,
+            requested_at=requested_at,
+        )
+
+    def test_date_only_bounds_use_server_timezone_start_and_end_of_day(self):
+        filters = resolve_reporting_filters(
+            {"date_from": "2026-04-17", "date_to": "2026-07-16"},
+            user=self.viewer,
+        )
+        self.assertEqual(filters["date_from"], self._aware(2026, 4, 17, 0, 0, 0, 0))
+        self.assertEqual(
+            filters["date_to"],
+            self._aware(2026, 7, 16, 23, 59, 59, 999999),
+        )
+        self.assertEqual(filters["date_from_echo"], "2026-04-17")
+        self.assertEqual(filters["date_to_echo"], "2026-07-16")
+
+    def test_work_order_at_start_of_date_from_is_included(self):
+        included = self._create_work_order(
+            requested_at=self._aware(2026, 4, 17, 0, 0, 0, 0),
+            title="Start included",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-04-17", "date_to": "2026-04-17"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+        self.assertEqual(response.data["filters"]["date_from"], "2026-04-17")
+        self.assertEqual(response.data["filters"]["date_to"], "2026-04-17")
+        self.assertTrue(
+            MaintenanceWorkOrder.objects.filter(id=included.id).exists()
+        )
+
+    def test_work_order_late_on_date_to_is_included(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 7, 16, 23, 59, 59, 999999),
+            title="Late included",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-07-16", "date_to": "2026-07-16"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+
+    def test_work_order_immediately_before_date_from_is_excluded(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 4, 16, 23, 59, 59, 999999),
+            title="Before excluded",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-04-17", "date_to": "2026-04-17"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 0)
+
+    def test_work_order_immediately_after_date_to_is_excluded(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 7, 17, 0, 0, 0, 0),
+            title="After excluded",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-07-16", "date_to": "2026-07-16"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 0)
+
+    def test_exact_180_day_selection_includes_late_final_day_work_orders(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 1, 16, 0, 0, 0, 0),
+            title="Range start",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 7, 15, 22, 30, 0, 0),
+            title="Late final day",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-01-16", "date_to": "2026-07-15"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 2)
+
+    def test_181_day_selection_is_rejected(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-01-15", "date_to": "2026-07-15"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("date_from", response.data)
+
+    def test_same_day_selection_includes_full_selected_day(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 5, 1, 0, 0, 0, 0),
+            title="Same day start",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 5, 1, 23, 59, 59, 999999),
+            title="Same day end",
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-05-01", "date_to": "2026-05-01"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 2)
+
+    def test_impossible_dates_return_400(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-02-30", "date_to": "2026-03-01"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("date_from", response.data)
+
+    def test_reversed_date_only_bounds_return_400(self):
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-07-16", "date_to": "2026-07-15"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("date_from", response.data)
+
+    def test_browser_timezone_cannot_influence_date_only_interpretation(self):
+        filters = resolve_reporting_filters(
+            {"date_from": "2026-06-01", "date_to": "2026-06-01"},
+            user=self.viewer,
+        )
+        # Bounds are Asia/Manila full-day instants regardless of caller locale.
+        self.assertEqual(str(filters["date_from"].tzinfo), "Asia/Manila")
+        self.assertEqual(filters["date_from"].hour, 0)
+        self.assertEqual(filters["date_to"].hour, 23)
+        self.assertEqual(filters["date_to"].minute, 59)
+        self.assertEqual(filters["date_to"].second, 59)
+        self.assertEqual(filters["date_to"].microsecond, 999999)
+
+    def test_reporting_work_order_total_matches_maintenance_list_count(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 4, 17, 0, 0, 0, 0),
+            title="Parity start",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 7, 16, 23, 45, 0, 0),
+            title="Parity late",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 7, 17, 0, 0, 0, 0),
+            title="Parity after",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 5, 1, 12, 0, 0, 0),
+            title="Other tenant",
+            tenant_data=self.other_data,
+        )
+
+        params = {
+            "date_from": "2026-04-17",
+            "date_to": "2026-07-16",
+            "organization": str(self.data["organization"].id),
+            "building": str(self.data["building"].id),
+            "work_order_status": MaintenanceWorkOrder.Status.OPEN,
+            "work_order_priority": MaintenanceWorkOrder.Priority.MEDIUM,
+        }
+        self.client.force_authenticate(self.viewer)
+        overview = self.client.get(self.overview_url(), params)
+        self.assertEqual(overview.status_code, status.HTTP_200_OK)
+
+        maintenance = self.client.get(
+            reverse("maintenance-work-order-list"),
+            {
+                "requested_from": "2026-04-17",
+                "requested_to": "2026-07-16",
+                "organization": str(self.data["organization"].id),
+                "building": str(self.data["building"].id),
+                "status": MaintenanceWorkOrder.Status.OPEN,
+                "priority": MaintenanceWorkOrder.Priority.MEDIUM,
+            },
+        )
+        self.assertEqual(maintenance.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            overview.data["work_orders"]["total"],
+            maintenance.data["count"],
+        )
+        self.assertEqual(overview.data["work_orders"]["total"], 2)
+
+    def test_tenant_isolation_remains_intact_for_date_only_bounds(self):
+        self._create_work_order(
+            requested_at=self._aware(2026, 6, 1, 10, 0, 0, 0),
+            title="Own tenant",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 6, 1, 10, 0, 0, 0),
+            title="Other tenant",
+            tenant_data=self.other_data,
+        )
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {"date_from": "2026-06-01", "date_to": "2026-06-01"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 1)
+
+    def test_aware_iso_datetime_inputs_retain_explicit_instant_semantics(self):
+        start = self._aware(2026, 6, 1, 8, 0, 0, 0)
+        end = self._aware(2026, 6, 1, 12, 0, 0, 0)
+        self._create_work_order(
+            requested_at=self._aware(2026, 6, 1, 9, 0, 0, 0),
+            title="Inside window",
+        )
+        self._create_work_order(
+            requested_at=self._aware(2026, 6, 1, 13, 0, 0, 0),
+            title="Outside window",
+        )
+        filters = resolve_reporting_filters(
+            {
+                "date_from": start.isoformat(),
+                "date_to": end.isoformat(),
+            },
+            user=self.viewer,
+        )
+        self.assertEqual(filters["date_from"], start)
+        self.assertEqual(filters["date_to"], end)
+        self.assertIn("T", filters["date_from_echo"])
+        self.assertIn("T", filters["date_to_echo"])
+
+        self.client.force_authenticate(self.viewer)
+        response = self.client.get(
+            self.overview_url(),
+            {
+                "date_from": start.isoformat(),
+                "date_to": end.isoformat(),
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["work_orders"]["total"], 1)

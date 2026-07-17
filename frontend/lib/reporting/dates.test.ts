@@ -6,8 +6,6 @@ import {
   getDefaultReportingDateRange,
   isValidDateOnly,
   REPORTING_MAX_RANGE_DAYS,
-  toLocalEndOfDayIso,
-  toLocalStartOfDayIso,
   toReportingApiDateBounds,
   validateReportingDateRange,
 } from "./dates";
@@ -29,51 +27,24 @@ test("date-only validation rejects impossible dates and supports leap years", ()
   assert.equal(isValidDateOnly("2026-7-16"), false);
 });
 
-test("local start-of-day conversion preserves the selected local calendar day", () => {
-  const iso = toLocalStartOfDayIso("2026-07-16");
-  assert.ok(iso);
-  const parsed = new Date(iso!);
-  assert.equal(parsed.getFullYear(), 2026);
-  assert.equal(parsed.getMonth(), 6);
-  assert.equal(parsed.getDate(), 16);
-  assert.equal(parsed.getHours(), 0);
-  assert.equal(parsed.getMinutes(), 0);
-  assert.equal(parsed.getSeconds(), 0);
-  assert.equal(parsed.getMilliseconds(), 0);
-  assert.ok(!iso!.endsWith("Z") || iso!.includes("T"));
-});
-
-test("local end-of-day conversion preserves the selected local calendar day", () => {
-  const iso = toLocalEndOfDayIso("2026-07-16");
-  assert.ok(iso);
-  const parsed = new Date(iso!);
-  assert.equal(parsed.getFullYear(), 2026);
-  assert.equal(parsed.getMonth(), 6);
-  assert.equal(parsed.getDate(), 16);
-  assert.equal(parsed.getHours(), 23);
-  assert.equal(parsed.getMinutes(), 59);
-  assert.equal(parsed.getSeconds(), 59);
-  assert.equal(parsed.getMilliseconds(), 999);
-});
-
 test("date from after date to is rejected", () => {
   assert.equal(validateReportingDateRange("2026-07-16", "2026-07-15"), "reversed");
   assert.equal(toReportingApiDateBounds("2026-07-16", "2026-07-15"), null);
 });
 
-test("exact 180-day calendar range is accepted and stays within backend max span", () => {
+test("exact 180-day calendar range is accepted as date-only without clamp", () => {
   const dateFrom = "2026-01-16";
   const dateTo = "2026-07-15";
   assert.equal(getCalendarDaySpan(dateFrom, dateTo), REPORTING_MAX_RANGE_DAYS);
   assert.equal(validateReportingDateRange(dateFrom, dateTo), null);
 
   const bounds = toReportingApiDateBounds(dateFrom, dateTo);
-  assert.ok(bounds);
-  const spanDays =
-    (new Date(bounds!.date_to).getTime() -
-      new Date(bounds!.date_from).getTime()) /
-    86_400_000;
-  assert.ok(spanDays <= REPORTING_MAX_RANGE_DAYS);
+  assert.deepEqual(bounds, {
+    date_from: "2026-01-16",
+    date_to: "2026-07-15",
+  });
+  assert.equal(bounds!.date_from.includes("T"), false);
+  assert.equal(bounds!.date_to.includes("T"), false);
 });
 
 test("over-180-day range is rejected", () => {
@@ -88,17 +59,27 @@ test("malformed and blank dates are rejected", () => {
   assert.equal(validateReportingDateRange("", "2026-07-16"), "blank");
   assert.equal(validateReportingDateRange("2026-07-16", " "), "blank");
   assert.equal(validateReportingDateRange("2026-13-40", "2026-07-16"), "malformed");
-  assert.equal(toLocalStartOfDayIso("2026-07-32"), null);
-  assert.equal(toLocalEndOfDayIso("not-a-date"), null);
+  assert.equal(toReportingApiDateBounds("2026-07-32", "2026-07-16"), null);
+  assert.equal(toReportingApiDateBounds("not-a-date", "2026-07-16"), null);
 });
 
-test("naive YYYY-MM-DD values are not treated as UTC midnight", () => {
-  const iso = toLocalStartOfDayIso("2026-03-15");
-  assert.ok(iso);
-  // Appending Z to the local date string would shift the calendar day in many zones.
-  const naiveUtc = new Date("2026-03-15T00:00:00.000Z");
-  const localStart = new Date(iso!);
-  assert.notEqual(localStart.getTime(), naiveUtc.getTime());
-  assert.equal(localStart.getDate(), 15);
-  assert.equal(localStart.getMonth(), 2);
+test("reporting API bounds remain date-only and never use browser ISO conversion", () => {
+  const bounds = toReportingApiDateBounds("2026-03-15", "2026-03-15");
+  assert.deepEqual(bounds, {
+    date_from: "2026-03-15",
+    date_to: "2026-03-15",
+  });
+  assert.match(bounds!.date_from, /^\d{4}-\d{2}-\d{2}$/);
+  assert.match(bounds!.date_to, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(bounds!.date_from.includes("Z"), false);
+  assert.equal(bounds!.date_to.includes("Z"), false);
+});
+
+test("same-day and leap-day ranges remain valid", () => {
+  assert.equal(validateReportingDateRange("2026-07-16", "2026-07-16"), null);
+  assert.deepEqual(toReportingApiDateBounds("2024-02-29", "2024-02-29"), {
+    date_from: "2024-02-29",
+    date_to: "2024-02-29",
+  });
+  assert.equal(toReportingApiDateBounds("2023-02-29", "2023-03-01"), null);
 });
