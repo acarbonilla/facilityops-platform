@@ -101,13 +101,13 @@ Baseline Dashboard 2 → 17 (+15). Full backend 513 → 528 (+15).
 
 ## 13. Deferred FO-069 Frontend Scope
 
-FO-069 will handle Dashboard scope copy, Reporting navigation, and frontend UX alignment. FO-068 intentionally leaves frontend production code unchanged.
+FO-069 handles Dashboard scope copy, Reporting navigation, and frontend UX alignment. FO-068 intentionally left frontend production code unchanged. FO-069 is complete on the same cumulative branch; see `FO-069 - Dashboard Scope UX and Reporting Navigation Alignment.md`.
 
 ## 14. Feature / PR State
 
 - Branch: `feature/dashboard-operational-overview`
 - Cumulative draft PR #39 remains OPEN, draft, unmerged
-- FO-069 and FO-070 not started
+- FO-069 complete on branch; FO-070 pending
 
 ## Commit SHA
 

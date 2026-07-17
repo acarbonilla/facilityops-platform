@@ -1,8 +1,14 @@
+import { formatDashboardHealthLabel } from "@/lib/dashboard/display";
 import type { SystemStatus } from "@/types/dashboard";
 
 export function SystemStatusCard({ status }: { status: SystemStatus }) {
+  const healthLabel = formatDashboardHealthLabel(status);
+
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section
+      aria-label="Backend connectivity status"
+      className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+    >
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Backend status</h2>
@@ -16,7 +22,8 @@ export function SystemStatusCard({ status }: { status: SystemStatus }) {
               : "bg-red-100 text-red-800",
           ].join(" ")}
         >
-          {status.connected ? "Connected" : "Unavailable"}
+          <span className="sr-only">Connectivity: </span>
+          {healthLabel}
         </span>
       </div>
 
@@ -25,7 +32,9 @@ export function SystemStatusCard({ status }: { status: SystemStatus }) {
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Service
           </dt>
-          <dd className="mt-1 text-sm font-medium text-slate-900">{status.service}</dd>
+          <dd className="mt-1 break-words text-sm font-medium text-slate-900">
+            {status.service}
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">

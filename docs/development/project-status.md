@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/dashboard-operational-overview` (FO-068 complete on branch; FO-069 and FO-070 pending)
+- `feature/dashboard-operational-overview` (FO-068 and FO-069 complete on branch; FO-070 pending)
 - Synchronized repository baseline before branch: `main` at merge commit `dfd3a4457e54dd702171482217ef6f22194d7941`
 
 ## Completed Modules
@@ -104,14 +104,14 @@
 
 - FO-017 (Dashboard Shell and Foundation Metrics; historically global counts)
 - FO-068 (Foundation Dashboard Tenant Isolation Backend Correction; complete on `feature/dashboard-operational-overview`)
+- FO-069 (Dashboard Scope UX and Reporting Navigation Alignment; complete on `feature/dashboard-operational-overview`)
 
 ## Current Task
 
-- FO-068 complete on `feature/dashboard-operational-overview`. Foundation Dashboard counts are tenant-scoped for normal users, fail closed for tenantless non-global users, and remain globally scoped only for approved `system_admin` / superuser actors. Auth-only access and response shape are preserved. FO-069 and FO-070 are pending. Cumulative draft PR remains open/unmerged.
+- FO-069 complete on `feature/dashboard-operational-overview`. Dashboard scope copy, authentication gating, permission-aware Master Data and Reporting quick links, and loading/error/empty UX are aligned with FO-068’s tenant-scoped backend. FO-070 is pending. Cumulative draft PR #39 remains open/unmerged.
 
 ## Next Milestone
 
-- FO-069 — Dashboard frontend scope copy, Reporting navigation, and UX alignment
 - FO-070 — Dashboard QA and stabilization
 - FO-063 automatic Ticket closure remains reserved and deferred
 
@@ -120,7 +120,7 @@
 - Feature: Dashboard and Executive Operational Overview
 - Active branch: `feature/dashboard-operational-overview`
 - FO-068: Foundation Dashboard tenant-isolation backend correction (complete)
-- FO-069: frontend scope copy / Reporting navigation / UX (pending)
+- FO-069: frontend scope copy / Reporting navigation / UX (complete)
 - FO-070: QA and stabilization (pending)
 - Access: `IsAuthenticated` (no `dashboard.view`)
 - Overview API: `GET /api/dashboard/foundation-summary/`

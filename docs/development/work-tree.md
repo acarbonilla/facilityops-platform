@@ -16,7 +16,7 @@
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
-| Dashboard | In Progress | FO-068 tenant-isolation backend correction complete on `feature/dashboard-operational-overview`; FO-069/FO-070 pending; draft cumulative PR open/unmerged |
+| Dashboard | In Progress | FO-068 and FO-069 complete on `feature/dashboard-operational-overview`; FO-070 pending; draft cumulative PR #39 open/unmerged |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
@@ -231,7 +231,7 @@ Maintains foundational reference data for tenants, organizations, departments, b
 
 ## Dashboard
 
-Status: Complete
+Status: In Progress (FO-068/FO-069 complete on branch; FO-070 pending)
 
 ### Purpose
 
@@ -244,27 +244,29 @@ Provides a simple authenticated dashboard for foundation metrics and quick navig
 - Serializers: `FoundationSummarySerializer`
 - ViewSets / Views: `FoundationSummaryView`
 - APIs: `/api/dashboard/foundation-summary/`
-- Services: local helper `get_active_count`
+- Services: `build_foundation_summary` with tenant-scope helpers (FO-068)
 - Permissions: `IsAuthenticated`
 - Admin: None
-- Tests: `backend/apps/dashboard/tests.py`
+- Tests: `backend/apps/dashboard/tests.py` (17)
 
 ### Frontend
 
 - Routes: `/dashboard`
 - Module Folder: `frontend/features/dashboard`
 - Pages: `app/(app)/dashboard/page.tsx`
-- Components: `FoundationSummary`, `MetricCard`, `QuickLinks`, `SystemStatusCard`
-- Hooks: No dedicated dashboard hook; dashboard page uses shared API layer
+- Components: `FoundationSummaryCards`, `MetricCard`, `QuickLinks`, `SystemStatusCard`
+- Helpers: `frontend/lib/dashboard/*` (scope, metrics, query gating, display, navigation)
+- Hooks: page uses shared API layer with auth-gated React Query
 - API Files: `services/api/dashboard.ts`
 - Types: `types/dashboard.ts`
-- RBAC Usage: authenticated route; no separate permission code beyond login state
-- Tests: No dedicated frontend tests
+- RBAC Usage: auth-only Dashboard; Master Data quick links require `settings.view`; Reporting link requires `reporting.view`
+- Tests: `frontend/lib/dashboard/dashboard.test.ts`
 
 ### Notes
 
-- This module covers FO-017.
-- Metrics currently focus on setup completeness, not ticket or maintenance operations.
+- FO-017 foundation shell; FO-068 tenant-isolation backend; FO-069 scope UX and Reporting navigation.
+- Metrics focus on foundation inventory completeness, not ticket or maintenance operations.
+- Cumulative draft PR #39 remains open/unmerged until FO-070.
 
 ## User Management
 
