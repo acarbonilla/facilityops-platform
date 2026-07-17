@@ -163,3 +163,7 @@ FO-070 covers cumulative Dashboard QA and stabilization across FO-068/FO-069. No
 - Draft PR #39 remains OPEN, draft, unmerged
 - Base: `main`
 - Head: `feature/dashboard-operational-overview`
+
+## Commit SHA
+
+`d0075732365d251fe45407d20c94d8311f6276a4`
