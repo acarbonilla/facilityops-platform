@@ -170,7 +170,7 @@ Recovered from PostgreSQL `test_facilityops_db` locking, then reran to exit code
 7. Reset all filters.
 8. Confirm Browser Back and “Back to Reporting” are safe.
 
-Manual acceptance and final Reporting QA remain pending.
+Manual acceptance passed on 2026-07-17 by the user (“All goods.”). Codex did not execute a live browser session. Cumulative final QA completed in FO-067.
 
 ## Deferred Scope and Known Limitations
 

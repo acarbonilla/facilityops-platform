@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- Reporting and Operational Analytics (in progress on `feature/reporting`)
+- Reporting and Operational Analytics (complete on `feature/reporting`; draft PR #38 awaiting independent cumulative final review)
 
 ## Current Branch
 
-- `feature/reporting` (FO-064 through FO-066A complete on branch; draft PR #38)
+- `feature/reporting` (FO-064 through FO-067 complete on branch; draft PR #38)
 - Synchronized repository baseline before branch: `main` at merge commit `ae3d208663cf31937bee5a326ce339b14b78e918`
 
 ## Completed Modules
@@ -96,33 +96,36 @@
 - FO-065A (Reporting Filter Options Access and UX Reconciliation; complete on `feature/reporting`)
 - FO-066 (Reporting Cross-Module Filters and Drill-Down Workflows; complete on `feature/reporting`)
 - FO-066A (Reporting Drill-Down Date Contract Reconciliation; complete on `feature/reporting`)
+- FO-067 (Reporting Module QA and Stabilization; complete on `feature/reporting`)
 
 ## Current Task
 
-- FO-066A complete on `feature/reporting`. Work Order drill-down dates now use the same `requested_at` basis as Reporting, and impossible calendar dates fail closed. Manual acceptance and final Reporting QA remain pending. Cumulative draft PR #38 remains open/unmerged.
+- FO-067 complete on `feature/reporting`. Cumulative Reporting QA passed with no production-code corrections. User manual acceptance passed on 2026-07-17 (“All goods.”). Reporting and Operational Analytics is complete on the feature branch. Cumulative draft PR #38 remains open/unmerged awaiting Sol’s independent final review.
 
 ## Next Milestone
 
-- Reporting manual acceptance and final QA (pending)
+- Independent cumulative final review of draft PR #38
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Selected Next Feature — Reporting and Operational Analytics
 
-- Next feature: Reporting and Operational Analytics
+- Feature: Reporting and Operational Analytics
 - Active branch: `feature/reporting`
 - FO-064 / FO-064A: approved backend aggregation and contract validation (complete)
-- FO-065 / FO-065A: Reporting overview frontend plus filter-options access/UX reconciliation (complete on branch)
-- FO-066 / FO-066A: module-scoped filters and drill-down workflows, with requested-date parity reconciliation (complete on branch; manual acceptance pending)
+- FO-065 / FO-065A: Reporting overview frontend plus filter-options access/UX reconciliation (complete)
+- FO-066 / FO-066A: module-scoped filters, drill-downs, and requested-date parity (complete)
+- FO-067: cumulative QA and stabilization (complete; no production-code defects confirmed)
 - Initial permission: `reporting.view` (seeded)
 - Overview API: `GET /api/reporting/overview/`
 - Filter options API: `GET /api/reporting/filter-options/`
 - Supported filters: `date_from`, `date_to`, `building`, `organization`, `ticket_status`, `ticket_priority`, `work_order_status`, `work_order_priority`, `inspection_status`
 - Frontend route: `/reporting`
+- Manual acceptance: passed 2026-07-17 by user (“All goods.”); Codex did not run a live browser session
 - Export: deferred from the first MVP slice
 - Chart dependency: not approved or required initially
 - Notifications analytics: deferred
 - FO-063: remains separately reserved for automatic FM Ticket closure
-- Reporting module status: In Progress (manual acceptance / final QA pending)
+- Reporting module status: Complete on branch (PR #38 draft/unmerged; independent Sol review pending)
 
 ## Foundation Dashboard Security Note (review item only)
 

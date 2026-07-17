@@ -59,4 +59,4 @@ Exports, charts, scheduled reports, Notification analytics, AI/realtime, Foundat
 
 ## Status
 
-FO-066A is complete on `feature/reporting`. Manual acceptance and final Reporting QA remain pending. PR #38 remains draft and unmerged.
+FO-066A is complete on `feature/reporting`. User manual acceptance passed on 2026-07-17. Cumulative final QA completed in FO-067 with no additional production-code corrections. PR #38 remains draft and unmerged awaiting Sol’s independent cumulative final review.
