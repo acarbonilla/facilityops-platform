@@ -161,3 +161,7 @@ Automated QA is not blocked pending this checklist.
 ## 18. Review gate
 
 Ready for Sol’s independent cumulative final review. Do not mark PR ready or merge until that review completes and the user decides.
+
+## Commit SHA
+
+`7bbaefa72855512d48f2c5ebcccd2643606f24a7`
