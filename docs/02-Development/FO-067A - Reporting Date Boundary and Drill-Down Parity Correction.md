@@ -213,3 +213,7 @@ FO-067A corrects the confirmed date-parity defects. Reporting is complete on `fe
 ## 17. PR State
 
 PR #38 remains OPEN, draft, unmerged, base `main`, head `feature/reporting`.
+
+## Commit SHA
+
+`c6710fa041928f450ed8615fc93cedaa01e9ab39`
