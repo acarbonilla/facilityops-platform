@@ -106,5 +106,9 @@ FO-069 will handle Dashboard scope copy, Reporting navigation, and frontend UX a
 ## 14. Feature / PR State
 
 - Branch: `feature/dashboard-operational-overview`
-- Cumulative draft PR remains OPEN, draft, unmerged
+- Cumulative draft PR #39 remains OPEN, draft, unmerged
 - FO-069 and FO-070 not started
+
+## Commit SHA
+
+`f591357d36c2397c48a5a0cfbd50d2f812f6ca35`
