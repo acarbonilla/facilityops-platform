@@ -143,3 +143,7 @@ FO-070A changed **documentation only**. No backend or frontend production code w
 ## 18. PR review gate
 
 PR #39 stays **draft**. Do not mark ready or merge in FO-070A. Ready for the user’s final ready-for-review and merge decision.
+
+## Commit SHA
+
+`b577ef2459199751826d4c142e76957f5071a91d`
