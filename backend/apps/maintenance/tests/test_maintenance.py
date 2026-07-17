@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -549,6 +549,34 @@ class MaintenanceApiTests(MaintenanceTestDataMixin, APITestCase):
             response.data["results"][0]["id"], str(self.overdue_work_order.id)
         )
         self.assertEqual(response.data["results"][0]["attachments_count"], 1)
+
+    def test_work_order_list_requested_date_filters_are_inclusive(self):
+        self.client.force_authenticate(self.user)
+        current_timezone = timezone.get_current_timezone()
+        self.work_order.requested_at = timezone.make_aware(
+            datetime(2025, 4, 17, 0, 0, 0), current_timezone
+        )
+        self.work_order.save(update_fields=("requested_at", "updated_at"))
+        self.draft_work_order.requested_at = timezone.make_aware(
+            datetime(2025, 7, 16, 23, 59, 59), current_timezone
+        )
+        self.draft_work_order.save(update_fields=("requested_at", "updated_at"))
+        self.overdue_work_order.requested_at = timezone.make_aware(
+            datetime(2025, 7, 17, 0, 0, 0), current_timezone
+        )
+        self.overdue_work_order.save(update_fields=("requested_at", "updated_at"))
+
+        response = self.client.get(
+            reverse("maintenance-work-order-list"),
+            {"requested_from": "2025-04-17", "requested_to": "2025-07-16"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+        self.assertSetEqual(
+            {item["id"] for item in response.data["results"]},
+            {str(self.work_order.id), str(self.draft_work_order.id)},
+        )
 
     def test_dashboard_endpoint_returns_summary_metrics(self):
         self.client.force_authenticate(self.user)

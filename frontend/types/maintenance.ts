@@ -72,6 +72,7 @@ export interface MaintenanceListParams
   status?: MaintenanceWorkOrderStatus;
   priority?: MaintenanceWorkOrderPriority;
   department?: string;
+  organization?: string;
   building?: string;
   floor?: string;
   area?: string;
@@ -83,6 +84,8 @@ export interface MaintenanceListParams
   sla_status?: MaintenanceSlaStatus;
   has_active_escalation?: boolean;
   has_attachments?: boolean;
+  requested_from?: string;
+  requested_to?: string;
   created_from?: string;
   created_to?: string;
   updated_from?: string;
@@ -97,6 +100,7 @@ export interface MaintenanceListFilters {
   status: MaintenanceWorkOrderStatus | "";
   priority: MaintenanceWorkOrderPriority | "";
   department: string;
+  organization: string;
   building: string;
   floor: string;
   area: string;
@@ -106,6 +110,8 @@ export interface MaintenanceListFilters {
   slaStatus: MaintenanceSlaStatus | "";
   hasActiveEscalation: boolean;
   hasAttachments: boolean;
+  requestedFrom: string;
+  requestedTo: string;
   createdFrom: string;
   createdTo: string;
   sort: string;
