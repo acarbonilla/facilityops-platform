@@ -47,6 +47,8 @@ export default function DashboardPage() {
 
   const systemStatus = buildDashboardSystemStatus({
     health: healthQuery.data,
+    healthPending: healthQuery.isPending,
+    healthFetching: healthQuery.isFetching,
     healthFailed: healthQuery.isError,
   });
 
@@ -105,7 +107,7 @@ export default function DashboardPage() {
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <div className="space-y-3">
               <SystemStatusCard status={systemStatus} />
-              {healthQuery.isError ? (
+              {systemStatus.status === "unavailable" ? (
                 <p className="text-sm text-slate-500" role="status">
                   Connectivity checks are unavailable right now. Foundation
                   counts above are independent of this status.

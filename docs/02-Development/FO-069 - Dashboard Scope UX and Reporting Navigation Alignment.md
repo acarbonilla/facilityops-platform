@@ -157,7 +157,11 @@ No backend production files changed.
 
 FO-070 covers cumulative Dashboard QA and stabilization across FO-068/FO-069. Not started in this task.
 
-## 19. PR state
+## 19. Follow-up correction
+
+FO-069A corrects the Medium-severity defect where pending health checks displayed “Unavailable”. Connectivity now shows “Checking” during load/retry and “Unavailable” only after failure. See `FO-069A - Dashboard Connectivity Loading State Correction.md`.
+
+## 20. PR state
 
 - Branch: `feature/dashboard-operational-overview`
 - Draft PR #39 remains OPEN, draft, unmerged

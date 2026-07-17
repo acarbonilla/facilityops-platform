@@ -126,6 +126,7 @@ test("system status formatting isolates connectivity from summary success", () =
     health: { status: "ok", service: "facilityops-backend" },
   });
   assert.equal(healthy.connected, true);
+  assert.equal(healthy.checking, false);
   assert.equal(formatDashboardHealthLabel(healthy), "Connected");
   assert.match(healthy.message, /connectivity is available/i);
 
@@ -133,12 +134,105 @@ test("system status formatting isolates connectivity from summary success", () =
     health: { status: "degraded", service: "facilityops-backend" },
   });
   assert.equal(degraded.connected, false);
+  assert.equal(degraded.checking, false);
   assert.equal(formatDashboardHealthLabel(degraded), "Degraded");
 
   const missing = buildDashboardSystemStatus({ healthFailed: true });
   assert.equal(missing.connected, false);
+  assert.equal(missing.checking, false);
   assert.equal(formatDashboardHealthLabel(missing), "Unavailable");
   assert.match(missing.message, /could not be confirmed/i);
+});
+
+test("initial disabled or not-run health state is Checking", () => {
+  const initial = buildDashboardSystemStatus({});
+  assert.equal(initial.checking, true);
+  assert.equal(initial.status, "checking");
+  assert.equal(formatDashboardHealthLabel(initial), "Checking");
+  assert.match(initial.message, /Checking backend connectivity/i);
+  assert.notEqual(formatDashboardHealthLabel(initial), "Unavailable");
+});
+
+test("pending health request without data is Checking", () => {
+  const pending = buildDashboardSystemStatus({ healthPending: true });
+  assert.equal(pending.checking, true);
+  assert.equal(formatDashboardHealthLabel(pending), "Checking");
+  assert.match(pending.message, /Checking backend connectivity/i);
+});
+
+test("fetching health request without data is Checking", () => {
+  const fetching = buildDashboardSystemStatus({ healthFetching: true });
+  assert.equal(fetching.checking, true);
+  assert.equal(formatDashboardHealthLabel(fetching), "Checking");
+});
+
+test("successful ok health response is Connected", () => {
+  const connected = buildDashboardSystemStatus({
+    health: { status: "ok", service: "facilityops-backend" },
+    healthPending: false,
+    healthFetching: false,
+  });
+  assert.equal(formatDashboardHealthLabel(connected), "Connected");
+  assert.equal(connected.checking, false);
+});
+
+test("successful non-OK health response is Degraded", () => {
+  const degraded = buildDashboardSystemStatus({
+    health: { status: "warn", service: "facilityops-backend" },
+  });
+  assert.equal(formatDashboardHealthLabel(degraded), "Degraded");
+  assert.equal(degraded.checking, false);
+});
+
+test("failed health request without data is Unavailable", () => {
+  const failed = buildDashboardSystemStatus({
+    healthFailed: true,
+    healthPending: false,
+    healthFetching: false,
+  });
+  assert.equal(failed.status, "unavailable");
+  assert.equal(formatDashboardHealthLabel(failed), "Unavailable");
+  assert.equal(failed.checking, false);
+});
+
+test("retry after health failure while pending or fetching is Checking", () => {
+  const retryPending = buildDashboardSystemStatus({
+    healthFailed: true,
+    healthPending: true,
+  });
+  assert.equal(formatDashboardHealthLabel(retryPending), "Checking");
+  assert.equal(retryPending.checking, true);
+
+  const retryFetching = buildDashboardSystemStatus({
+    healthFailed: true,
+    healthFetching: true,
+  });
+  assert.equal(formatDashboardHealthLabel(retryFetching), "Checking");
+  assert.equal(retryFetching.checking, true);
+});
+
+test("Checking uses neutral messaging and never the Unavailable label", () => {
+  const checking = buildDashboardSystemStatus({ healthPending: true });
+  assert.equal(formatDashboardHealthLabel(checking), "Checking");
+  assert.notEqual(formatDashboardHealthLabel(checking), "Unavailable");
+  assert.equal(checking.message, "Checking backend connectivity.");
+  assert.doesNotMatch(checking.message, /could not be confirmed/i);
+});
+
+test("background refetch preserves confirmed Connected or Degraded data", () => {
+  const connectedWhileRefetching = buildDashboardSystemStatus({
+    health: { status: "ok", service: "facilityops-backend" },
+    healthFetching: true,
+  });
+  assert.equal(formatDashboardHealthLabel(connectedWhileRefetching), "Connected");
+  assert.equal(connectedWhileRefetching.checking, false);
+
+  const degradedWhileRefetching = buildDashboardSystemStatus({
+    health: { status: "degraded", service: "facilityops-backend" },
+    healthFetching: true,
+  });
+  assert.equal(formatDashboardHealthLabel(degradedWhileRefetching), "Degraded");
+  assert.equal(degradedWhileRefetching.checking, false);
 });
 
 test("summary error formatting stays user-facing", () => {

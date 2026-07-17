@@ -38,17 +38,38 @@ export function isDashboardUnauthorizedError(error: unknown): boolean {
   return error instanceof ApiError && (error.status === 401 || error.status === 403);
 }
 
+/**
+ * Builds SystemStatus from health query state.
+ *
+ * Precedence:
+ * 1. Pending/fetching without confirmed data → Checking
+ * 2. Successful status === "ok" → Connected
+ * 3. Successful non-OK response → Degraded
+ * 4. Failed request → Unavailable
+ * 5. Initial disabled/not-yet-run → Checking
+ *
+ * When previous successful data remains during a background refetch, that
+ * confirmed Connected/Degraded result is preserved.
+ */
 export function buildDashboardSystemStatus(options: {
   health?: { status: string; service: string } | null;
+  healthPending?: boolean;
+  healthFetching?: boolean;
   healthFailed?: boolean;
 }): SystemStatus {
-  const { health, healthFailed = false } = options;
+  const {
+    health,
+    healthPending = false,
+    healthFetching = false,
+    healthFailed = false,
+  } = options;
 
   if (health?.status === "ok") {
     return {
       service: health.service,
       status: health.status,
       connected: true,
+      checking: false,
       message: "Backend connectivity is available.",
     };
   }
@@ -58,23 +79,41 @@ export function buildDashboardSystemStatus(options: {
       service: health.service,
       status: health.status,
       connected: false,
+      checking: false,
       message: "Backend health reported a degraded or unexpected status.",
+    };
+  }
+
+  const isChecking =
+    healthPending || healthFetching || !healthFailed;
+
+  if (isChecking) {
+    return {
+      service: "facilityops-backend",
+      status: "checking",
+      connected: false,
+      checking: true,
+      message: "Checking backend connectivity.",
     };
   }
 
   return {
     service: "facilityops-backend",
-    status: healthFailed ? "unavailable" : "unknown",
+    status: "unavailable",
     connected: false,
+    checking: false,
     message: "Backend connectivity could not be confirmed.",
   };
 }
 
 export function formatDashboardHealthLabel(status: SystemStatus): string {
+  if (status.checking || status.status === "checking") {
+    return "Checking";
+  }
   if (status.connected) {
     return "Connected";
   }
-  if (status.status === "unavailable" || status.status === "unknown") {
+  if (status.status === "unavailable") {
     return "Unavailable";
   }
   return "Degraded";
