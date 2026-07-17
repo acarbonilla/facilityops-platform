@@ -117,6 +117,10 @@ npm run dev
 - Health and summary data are fetched separately, so connectivity can show unavailable even when cached summary data is present.
 - No charts, analytics drill-downs, exports, notifications, or business workflow summaries were introduced.
 
+## Later Correction — FO-068
+
+FO-017 originally counted non-deleted Master Data rows globally for any authenticated user. FO-068 corrects that High-severity tenant-isolation defect on `feature/dashboard-operational-overview` while preserving auth-only access, response keys, and `is_deleted=False` eligibility. See `docs/02-Development/FO-068 - Foundation Dashboard Tenant Isolation Backend Correction.md`.
+
 ## Next Task Recommendation
 
 FO-018 - Stage 1 Foundation Stabilization and MVP QA
