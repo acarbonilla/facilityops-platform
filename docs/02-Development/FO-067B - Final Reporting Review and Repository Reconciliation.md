@@ -61,6 +61,10 @@ Approved implementation HEAD (production code + FO-067A docs SHA follow-up):
 
 FO-067B’s documentation reconciliation commit becomes the later branch HEAD and is documentation-only. It does not change the approved implementation surface.
 
+FO-067B documentation reconciliation HEAD:
+
+`f8d8daa6b430b6f9e11b394ca8010c9187536460`
+
 ## 6. Confirmed Reporting Contracts
 
 ### Backend
