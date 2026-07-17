@@ -95,7 +95,7 @@ No backend production files changed.
 
 ## 14. Deferred FO-070 scope
 
-FO-070 cumulative Dashboard QA remains pending and is not started.
+FO-070 cumulative Dashboard QA is complete on the same branch with no additional production correction required. See `FO-070 - Dashboard Operational Overview QA and Stabilization.md`.
 
 ## 15. PR state
 

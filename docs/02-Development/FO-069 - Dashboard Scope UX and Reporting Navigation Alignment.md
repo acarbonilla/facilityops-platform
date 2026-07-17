@@ -155,7 +155,7 @@ No backend production files changed.
 
 ## 18. Deferred FO-070 scope
 
-FO-070 covers cumulative Dashboard QA and stabilization across FO-068/FO-069. Not started in this task.
+FO-070 covers cumulative Dashboard QA and stabilization across FO-068/FO-069/FO-069A. FO-070 is complete on the same branch with **no production correction** required; see `FO-070 - Dashboard Operational Overview QA and Stabilization.md`.
 
 ## 19. Follow-up correction
 

@@ -16,7 +16,7 @@
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
 | Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
-| Dashboard | In Progress | FO-068, FO-069, and FO-069A complete on `feature/dashboard-operational-overview`; FO-070 pending; draft cumulative PR #39 open/unmerged |
+| Dashboard | Complete on branch | FO-068–FO-070 complete on `feature/dashboard-operational-overview`; draft PR #39 open/unmerged awaiting Sol independent cumulative final review |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
@@ -231,7 +231,7 @@ Maintains foundational reference data for tenants, organizations, departments, b
 
 ## Dashboard
 
-Status: In Progress (FO-068/FO-069/FO-069A complete on branch; FO-070 pending)
+Status: Complete on branch (FO-068–FO-070; awaiting Sol cumulative final review of PR #39)
 
 ### Purpose
 
@@ -264,9 +264,9 @@ Provides a simple authenticated dashboard for foundation metrics and quick navig
 
 ### Notes
 
-- FO-017 foundation shell; FO-068 tenant-isolation backend; FO-069 scope UX and Reporting navigation; FO-069A connectivity Checking-state correction.
+- FO-017 foundation shell; FO-068 tenant-isolation backend; FO-069 scope UX and Reporting navigation; FO-069A connectivity Checking-state correction; FO-070 cumulative QA (no production correction).
 - Metrics focus on foundation inventory completeness, not ticket or maintenance operations.
-- Cumulative draft PR #39 remains open/unmerged until FO-070.
+- Cumulative draft PR #39 remains open/unmerged awaiting Sol’s independent cumulative final review.
 
 ## User Management
 
