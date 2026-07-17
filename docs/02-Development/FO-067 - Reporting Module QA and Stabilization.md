@@ -155,11 +155,11 @@ Residual known limitations (documented, not patched):
 - Inspection priority Reporting filter
 - Exact Ticket/Inspection date drill-down parity
 - Automated browser testing
-- Independent Sol cumulative PR review for PR #38
+- Independent Sol cumulative PR review for PR #38 (completed and APPROVED in FO-067B)
 
 ## Final Module Status
 
-FO-067 QA and the 2026-07-17 manual acceptance record remain valid for the scope exercised at that time. Reporting is **not** marked complete solely on FO-067 after Sol’s independent review finding; completion on `feature/reporting` requires FO-067A validation. PR #38 remains open, draft, and unmerged pending Sol’s renewed independent cumulative final review.
+FO-067 QA and the 2026-07-17 manual acceptance record remain valid for the scope exercised at that time. FO-067A later corrected Sol-confirmed date-parity defects. Sol’s renewed independent cumulative review is recorded as APPROVED in FO-067B at implementation HEAD `1e01a97…`. Reporting and Operational Analytics is complete. PR #38 remains open, draft, and unmerged, ready for the user’s ready-for-review and merge decision.
 
 ## PR State
 

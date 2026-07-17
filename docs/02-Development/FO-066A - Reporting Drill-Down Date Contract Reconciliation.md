@@ -59,4 +59,4 @@ Exports, charts, scheduled reports, Notification analytics, AI/realtime, Foundat
 
 ## Status
 
-FO-066A is complete on `feature/reporting`. User manual acceptance passed on 2026-07-17. FO-067 cumulative QA initially recorded no production-code corrections, but Sol’s independent review later confirmed remaining exact-180-day and timezone boundary parity defects. Those defects are corrected in FO-067A. PR #38 remains draft and unmerged awaiting Sol’s renewed independent cumulative final review.
+FO-066A is complete on `feature/reporting`. User manual acceptance passed on 2026-07-17. FO-067 cumulative QA initially recorded no production-code corrections, but Sol’s independent review later confirmed remaining exact-180-day and timezone boundary parity defects. Those defects are corrected in FO-067A. Sol’s renewed independent cumulative review is APPROVED in FO-067B. PR #38 remains draft and unmerged, ready for the user’s merge decision.
