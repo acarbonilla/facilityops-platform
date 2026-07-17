@@ -120,21 +120,13 @@ Build-touched `next-env.d.ts` / `tsconfig.json` restored (no intentional source 
 
 ## 14. Manual acceptance status
 
-**Pending user-executed smoke test after FO-069A.**
+At FO-070 completion: **Pending user-executed smoke test after FO-069A.**
 
-Automated FO-069A health-state correction is complete. Codex did not run a browser session. Recommended user checklist:
+Automated FO-069A health-state correction is complete. Codex did not run a browser session. Recommended user checklist was documented for FO-070A.
 
-1. Open Dashboard during initial load → Backend status shows **Checking**.
-2. With backend reachable → status becomes **Connected**.
-3. Force a real health failure → **Unavailable** only after failure.
-4. Successful foundation counts remain visible if only health fails.
-5. Tenant user sees only their tenant’s foundation counts.
-6. System administrator sees intended global counts.
-7. Reporting link follows `reporting.view`.
-8. Master Data links follow `settings.view`.
-9. Confirm narrow-screen layout.
+## Reconciliation Note — FO-070A
 
-Automated QA is not blocked pending this checklist.
+User manual acceptance **passed** on **2026-07-18** (executor: User). Checking / Connected / Unavailable, tenant-scoped counts, permission-aware links, retained summary on health failure, recovery, and responsive layout confirmed. See `FO-070A - Final Dashboard Review and Repository Reconciliation.md`.
 
 ## 15. Known limitations and deferred scope
 
@@ -142,7 +134,7 @@ Automated QA is not blocked pending this checklist.
 - Charts, exports, and operational Reporting analytics remain out of Dashboard scope.
 - FO-063 automatic Ticket closure remains reserved/deferred.
 - Soft-delete exclusion is the approved eligibility rule; inactive (`is_active=False`) rows still count by FO-068 design.
-- Sol’s independent cumulative final review of PR #39 is still pending.
+- Sol’s independent cumulative final review was pending at FO-070 completion; FO-070A records APPROVED.
 
 ## 16. Migration / dependency confirmation
 
@@ -155,12 +147,16 @@ Automated QA is not blocked pending this checklist.
 ## 17. Final module status
 
 - Dashboard Operational Overview: **Complete on the feature branch** after cumulative QA.
-- PR #39 remains **open, draft, and unmerged**, awaiting Sol’s independent cumulative final review.
+- At FO-070 completion, PR #39 remained open/draft awaiting Sol’s independent cumulative final review.
 - FO-068, FO-069, FO-069A, and FO-070 are complete on `feature/dashboard-operational-overview`.
 
 ## 18. Review gate
 
-Ready for Sol’s independent cumulative final review. Do not mark PR ready or merge until that review completes and the user decides.
+At FO-070 completion: ready for Sol’s independent cumulative final review. Do not mark PR ready or merge until that review completes and the user decides.
+
+## Reconciliation Note — FO-070A
+
+FO-070A records Sol’s independent cumulative approval (**APPROVED** at reviewed HEAD `0c812e635d051a42bf98141a62cbccf699f3a962`) and user manual acceptance (**passed**, executor User, 2026-07-18). See `FO-070A - Final Dashboard Review and Repository Reconciliation.md`.
 
 ## Commit SHA
 

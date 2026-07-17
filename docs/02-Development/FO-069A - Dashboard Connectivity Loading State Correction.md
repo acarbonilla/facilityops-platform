@@ -104,6 +104,10 @@ FO-070 cumulative Dashboard QA is complete on the same branch with no additional
 - Base: `main`
 - Head: `feature/dashboard-operational-overview`
 
+## Reconciliation Note — FO-070A
+
+FO-069A is complete and independently approved within Sol’s cumulative FO-068–FO-070 review (**APPROVED** at `0c812e635d051a42bf98141a62cbccf699f3a962`). User manual acceptance passed 2026-07-18. See `FO-070A - Final Dashboard Review and Repository Reconciliation.md`.
+
 ## Commit SHA
 
 `2bb1d34685182a464d4cc1154c891298004ff4e2`
