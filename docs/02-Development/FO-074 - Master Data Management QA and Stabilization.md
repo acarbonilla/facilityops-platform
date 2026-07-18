@@ -255,9 +255,10 @@ counts and branch state, with duplicate Work Tree sections removed.
 
 ## 23. Commit and PR state
 
-The implementation commit SHA is recorded after commit. PR #40 remains open,
-draft, unmerged, and based on `main`. Sol's independent cumulative final review
-and user manual acceptance are pending.
+The validated implementation, tests, and documentation were committed at
+`7bd06a396f668df4cff76c0eb326e065a2619d41`. PR #40 remains open, draft,
+unmerged, and based on `main`. Sol's independent cumulative final review and
+user manual acceptance are pending.
 
 ## 24. Final review gate
 
