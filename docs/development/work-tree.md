@@ -15,16 +15,16 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | In Progress | FO-071 approved and FO-072 lifecycle protections complete on `feature/master-data-management`; FO-073–FO-074 pending; cumulative draft PR #40 open/unmerged |
+| Master Data | In Progress | FO-071 independently approved at `6721ff0…`; FO-072 complete and awaiting Sol’s independent review on `feature/master-data-management`; FO-073–FO-074 pending; cumulative draft PR #40 open/unmerged |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete | Explicit Work Order generation, linked Work Order navigation, and Work Order-to-Ticket status synchronization implemented; completion resolves but does not close the Ticket; FO-063 automatic closure remains deferred |
+| FM Ticketing | Complete | Explicit Work Order generation, linked Work Order navigation, and Work Order-to-Ticket status synchronization implemented; completion resolves but does not close the Ticket; FO-063 automatic closure remains reserved/deferred |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
-| FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains deferred |
-| Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export, charts, FO-063 deferred |
+| FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
+| Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
@@ -194,7 +194,7 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: In Progress (FO-071 approved; FO-072 complete; FO-073–FO-074 pending)
+Status: In Progress (FO-071 independently approved; FO-072 complete and awaiting independent review; FO-073–FO-074 pending)
 
 ### Purpose
 
@@ -207,10 +207,11 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - Serializers: matching model serializers for all eight resources
 - ViewSets / Views: `TenantViewSet`, `OrganizationViewSet`, `DepartmentViewSet`, `BuildingViewSet`, `FloorViewSet`, `AreaViewSet`, `AssetTypeViewSet`, `AssetViewSet`
 - APIs: `/api/master-data/tenants/`, `/organizations/`, `/departments/`, `/buildings/`, `/floors/`, `/areas/`, `/asset-types/`, `/assets/`
-- Services: `apply_query_param_filters`; Master Data-local tenant/lifecycle scope helpers; atomic soft-delete, restore, dependency, and hierarchy lifecycle service
+- Services: `apply_query_param_filters`; Master Data-local tenant/lifecycle scope helpers; atomic soft-delete, restore, dependency, and hierarchy lifecycle service; Accounts user writes lock and lifecycle-validate Tenant/Organization dependencies
 - Permissions: `IsAuthenticated` plus `HasPermissionCode` through `MasterDataPermissionMixin`; read uses `settings.view`, write uses `settings.manage`
 - Admin: all master-data models are registered in `backend/apps/master_data/admin.py`
-- Tests: `backend/apps/master_data/tests.py` (68)
+- Tests: `backend/apps/master_data/tests.py` (68); final Accounts + Access
+  Control 111 and full backend 579 passed
 
 ### Frontend
 
@@ -228,10 +229,15 @@ Maintains foundational reference data for tenants, organizations, departments, b
 
 - This module covers FO-010, FO-015, and FO-016.
 - FO-071 adds authoritative tenant-scoped reads/writes and cross-tenant
-  relationship validation for all eight resources.
+  relationship validation for all eight resources. Sol independently approved
+  FO-071 on 2026-07-18 at
+  `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`; the approval was recorded in the
+  external project collaboration session rather than as a GitHub review.
 - FO-072 replaces hard DELETE with protected soft deletion, adds explicit
   scoped restore actions, distinguishes deactivation from deletion, and
-  enforces dependency/active-parent lifecycle rules.
+  enforces dependency/active-parent lifecycle rules. It is complete after
+  required validation and awaits Sol’s independent review; no FO-072 approval
+  is claimed.
 - Organization Management remains a thin consumer of these APIs.
 - Frontend restore/lifecycle UX is deferred to FO-073; bulk actions and
   import/export remain deferred.

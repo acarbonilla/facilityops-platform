@@ -168,6 +168,50 @@ def _validate_organization(tenant, organization):
         )
 
 
+def _lock_and_validate_master_data_hierarchy(
+    tenant,
+    organization,
+    *,
+    require_active,
+):
+    if tenant is not None:
+        tenant = type(tenant).objects.select_for_update(of=("self",)).get(
+            pk=tenant.pk
+        )
+        if tenant.is_deleted:
+            raise ValidationError(
+                {"tenant": "Deleted tenants cannot be assigned to users."}
+            )
+        if require_active and not tenant.is_active:
+            raise ValidationError(
+                {"tenant": "Inactive tenants cannot be assigned to active users."}
+            )
+
+    if organization is not None:
+        organization = type(organization).objects.select_for_update(
+            of=("self",)
+        ).get(pk=organization.pk)
+        if organization.is_deleted:
+            raise ValidationError(
+                {
+                    "organization": (
+                        "Deleted organizations cannot be assigned to users."
+                    )
+                }
+            )
+        if require_active and not organization.is_active:
+            raise ValidationError(
+                {
+                    "organization": (
+                        "Inactive organizations cannot be assigned to active users."
+                    )
+                }
+            )
+
+    _validate_organization(tenant, organization)
+    return tenant, organization
+
+
 def _validate_staff_change(actor, requested_is_staff, current_is_staff=False):
     if (
         requested_is_staff != current_is_staff
@@ -204,7 +248,13 @@ def create_user(*, actor, validated_data):
     tenant = data.get("tenant")
     organization = data.get("organization")
     _validate_target_tenant(actor, tenant)
-    _validate_organization(tenant, organization)
+    tenant, organization = _lock_and_validate_master_data_hierarchy(
+        tenant,
+        organization,
+        require_active=data.get("is_active", True),
+    )
+    data["tenant"] = tenant
+    data["organization"] = organization
     _validate_staff_change(actor, data.get("is_staff", False))
 
     user = User(**data)
@@ -222,7 +272,15 @@ def update_user(*, actor, user, validated_data):
     organization = data.get("organization", user.organization)
 
     _validate_target_tenant(actor, tenant)
-    _validate_organization(tenant, organization)
+    tenant, organization = _lock_and_validate_master_data_hierarchy(
+        tenant,
+        organization,
+        require_active=data.get("is_active", user.is_active),
+    )
+    if "tenant" in data:
+        data["tenant"] = tenant
+    if "organization" in data:
+        data["organization"] = organization
     _validate_staff_change(
         actor,
         data.get("is_staff", user.is_staff),

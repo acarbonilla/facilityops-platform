@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/master-data-management` (FO-071 approved; FO-072 complete; FO-073 and FO-074 pending)
+- `feature/master-data-management` (FO-071 independently approved; FO-072 complete and awaiting independent review; FO-073 and FO-074 pending)
 - Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Completed Modules
@@ -110,7 +110,7 @@
 
 ## Current Task
 
-- FO-072 complete on `feature/master-data-management`. Public Master Data DELETE now performs protected soft deletion; explicit scoped restore, dependency conflicts, audit updates, and lifecycle-aware hierarchy validation cover all eight resources. Master Data 68 and full backend 577 pass; frontend 202, lint, TypeScript, and build pass. Cumulative PR #40 remains draft and unmerged.
+- FO-072 complete after required validation on `feature/master-data-management` and awaiting Sol’s independent review. Public Master Data DELETE performs protected soft deletion; explicit scoped restore, dependency conflicts, audit updates, lifecycle-aware hierarchy validation, and User dependency parent locking cover the confirmed contract. Master Data 68, Accounts + Access Control 111, and full backend 579 passed; frontend 202, lint, TypeScript, and build passed. Cumulative PR #40 remains open, draft, and unmerged. No independent approval of FO-072 is claimed.
 
 ## Next Milestone
 
@@ -122,8 +122,8 @@
 
 - Feature: Master Data Management hardening
 - Active branch: `feature/master-data-management`
-- FO-071: tenant isolation and write-path hardening (complete and approved)
-- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete)
+- FO-071: tenant isolation and write-path hardening (complete; independently approved by Sol on 2026-07-18 at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec` in the external project collaboration session)
+- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete after required validation; awaiting Sol’s independent review)
 - FO-073: frontend alignment (pending)
 - FO-074: QA and stabilization (pending)
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
@@ -146,9 +146,10 @@
 - Attachment upload remains deferred and is guidance-only in Maintenance Create/Edit.
 - Browser-test automation remains deferred.
 
-## Last Reviewed Commit
+## Last Independently Reviewed Commit
 
-- FO-071 implementation on `feature/master-data-management`: `f968756a5a6e2465398115be4448a1d64d088c4e`
+- FO-071 approved HEAD on `feature/master-data-management`: `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`
+- The approval was recorded in the external project collaboration session rather than as a GitHub review.
 
 ## Last Merge
 

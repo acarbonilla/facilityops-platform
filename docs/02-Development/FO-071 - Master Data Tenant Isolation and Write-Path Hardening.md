@@ -183,13 +183,19 @@ No product test failed. A subsequent clean canonical run passed all 557 tests.
 ## 18. Branch and PR status
 
 - Branch: `feature/master-data-management`
-- Cumulative PR: `feature/master-data-management` → `main`
-- FO-071 complete; FO-072 through FO-074 not started.
-- PR remains open, draft, and unmerged.
+- Cumulative PR #40: `feature/master-data-management` → `main`
+- FO-071 is complete and independently approved.
+- FO-072 is complete after required validation and awaits independent review.
+- FO-073 and FO-074 are pending and have not started.
+- PR #40 remains open, draft, and unmerged.
 
 ## Implementation commit
 
 `f968756a5a6e2465398115be4448a1d64d088c4e`
+
+## Independent approval
+
+FO-071 was independently reviewed and approved by Sol on 2026-07-18 at commit `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`. The approval was recorded in the external project collaboration session rather than as a GitHub review.
 
 ## FO-072 reconciliation note
 
@@ -197,5 +203,6 @@ FO-072 completes the lifecycle work deferred above. Public Master Data DELETE
 now performs protected soft deletion; scoped restore actions, dependency
 conflicts, audit updates, and active-hierarchy validation are implemented
 without changing FO-071 tenant scope or `settings.view` / `settings.manage`.
-FO-071 remains complete and approved; FO-072 does not widen global access or
-alter its backend-authoritative write-path contract.
+FO-071 remains complete and independently approved; FO-072 does not widen
+global access or alter its backend-authoritative write-path contract. This
+approval applies only to FO-071 and does not constitute approval of FO-072.

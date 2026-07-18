@@ -101,6 +101,15 @@ all Master Data reads and mutations are backend-scoped, tenant ownership is
 authoritative, and cross-tenant hierarchy relationships are rejected. See
 `FO-071 - Master Data Tenant Isolation and Write-Path Hardening.md`.
 
+## Lifecycle Reconciliation — FO-072
+
+FO-072 replaces the foundation's ordinary hard-delete behavior with protected
+soft deletion, explicit scoped restoration, dependency conflicts, active-parent
+validation, audit-field updates, and transaction-safe lifecycle locking. The
+original endpoint families remain compatible; restore is added as an explicit
+detail action. See `FO-072 - Master Data Soft Delete Deactivation Lifecycle and
+Hierarchy Integrity.md`.
+
 ## Next Task Recommendation
 
 Proceed to `FO-011 - Frontend API Client and App Shell Foundation`.

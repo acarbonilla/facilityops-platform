@@ -1358,6 +1358,9 @@ class MasterDataLifecycleApiTests(APITestCase):
             ("asset-type", self.asset_type, {"assets"}),
         )
         for route_name, instance, expected_dependencies in cases:
+            original_updated_by = instance.updated_by
+            original_deleted_at = instance.deleted_at
+            original_deleted_by = instance.deleted_by
             with self.subTest(route_name=route_name, operation="deactivate"):
                 response = self.client.patch(
                     reverse(f"{route_name}-detail", args=[instance.id]),
@@ -1373,6 +1376,10 @@ class MasterDataLifecycleApiTests(APITestCase):
                 )
                 instance.refresh_from_db()
                 self.assertTrue(instance.is_active)
+                self.assertFalse(instance.is_deleted)
+                self.assertEqual(instance.updated_by, original_updated_by)
+                self.assertEqual(instance.deleted_at, original_deleted_at)
+                self.assertEqual(instance.deleted_by, original_deleted_by)
             with self.subTest(route_name=route_name, operation="delete"):
                 response = self.client.delete(
                     reverse(f"{route_name}-detail", args=[instance.id])
@@ -1383,6 +1390,10 @@ class MasterDataLifecycleApiTests(APITestCase):
                 )
                 instance.refresh_from_db()
                 self.assertFalse(instance.is_deleted)
+                self.assertTrue(instance.is_active)
+                self.assertEqual(instance.updated_by, original_updated_by)
+                self.assertEqual(instance.deleted_at, original_deleted_at)
+                self.assertEqual(instance.deleted_by, original_deleted_by)
 
     def test_tenant_dependencies_include_children_and_users(self):
         self._authenticate(self.superuser)
