@@ -149,7 +149,7 @@
 
 ## Last Reviewed Commit
 
-- FO-071 implementation review pending commit on `feature/master-data-management`; baseline `main` is `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
+- FO-071 implementation on `feature/master-data-management`: `f968756a5a6e2465398115be4448a1d64d088c4e`
 
 ## Last Merge
 

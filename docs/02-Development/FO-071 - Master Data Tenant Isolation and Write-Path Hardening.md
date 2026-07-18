@@ -186,3 +186,7 @@ No product test failed. A subsequent clean canonical run passed all 557 tests.
 - Cumulative PR: `feature/master-data-management` → `main`
 - FO-071 complete; FO-072 through FO-074 not started.
 - PR remains open, draft, and unmerged.
+
+## Implementation commit
+
+`f968756a5a6e2465398115be4448a1d64d088c4e`
