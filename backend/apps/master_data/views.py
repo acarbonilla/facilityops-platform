@@ -25,6 +25,11 @@ from .serializers import (
     OrganizationSerializer,
     TenantSerializer,
 )
+from .tenant_scope import (
+    require_global_master_data_scope,
+    scope_master_data_queryset,
+    scope_tenant_queryset,
+)
 
 
 class MasterDataPermissionMixin:
@@ -33,6 +38,7 @@ class MasterDataPermissionMixin:
     read_permission = "settings.view"
     write_permission = "settings.manage"
     filter_fields = ()
+    tenant_model = False
 
     def get_permissions(self):
         if self.action in ("list", "retrieve"):
@@ -43,6 +49,10 @@ class MasterDataPermissionMixin:
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        if self.tenant_model:
+            queryset = scope_tenant_queryset(queryset, self.request.user)
+        else:
+            queryset = scope_master_data_queryset(queryset, self.request.user)
         return apply_query_param_filters(
             queryset,
             self.request.query_params,
@@ -54,6 +64,21 @@ class TenantViewSet(MasterDataPermissionMixin, viewsets.ModelViewSet):
     queryset = Tenant.objects.all()
     serializer_class = TenantSerializer
     filter_fields = ("is_active",)
+    tenant_model = True
+
+    def perform_create(self, serializer):
+        require_global_master_data_scope(
+            self.request.user,
+            operation="create",
+        )
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        require_global_master_data_scope(
+            self.request.user,
+            operation="delete",
+        )
+        super().perform_destroy(instance)
 
 
 class OrganizationViewSet(MasterDataPermissionMixin, viewsets.ModelViewSet):

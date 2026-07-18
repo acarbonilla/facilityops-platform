@@ -14,19 +14,18 @@
 
 ## Current Module
 
-- Dashboard and Executive Operational Overview (Complete on `feature/dashboard-operational-overview`; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 draft ready for user’s merge decision)
+- Master Data Management (In Progress on `feature/master-data-management`)
 
 ## Current Branch
 
-- `feature/dashboard-operational-overview` (FO-068 through FO-070A complete; Sol APPROVED at `0c812e6…`; manual acceptance passed 2026-07-18; PR #39 draft ready for user’s merge decision)
-- Synchronized repository baseline before branch: `main` at merge commit `dfd3a4457e54dd702171482217ef6f22194d7941`
+- `feature/master-data-management` (FO-071 complete; FO-072 through FO-074 pending)
+- Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Completed Modules
 
 - Foundation
 - Authentication
 - Authorization / RBAC
-- Master Data
 - Dashboard
 - Organization Management
 - Asset Management
@@ -111,27 +110,25 @@
 
 ## Current Task
 
-- FO-070A complete. Sol’s independent cumulative review of FO-068 through FO-070 is **APPROVED** at HEAD `0c812e635d051a42bf98141a62cbccf699f3a962`. User manual acceptance **passed** on 2026-07-18. Dashboard Operational Overview is complete. Draft PR #39 remains open/unmerged, ready for the user’s final ready-for-review and normal merge-commit decision.
+- FO-071 complete on `feature/master-data-management`. Critical global Master Data querysets and client-controlled write paths are now backend tenant-scoped. Master Data tests increased from 19 to 48; full backend 557 and frontend 202 pass. Cumulative draft PR remains open/unmerged.
 
 ## Next Milestone
 
-- User ready-for-review and merge decision for PR #39
+- FO-072 — Master Data Soft-Delete, Deactivation Lifecycle, and Hierarchy Integrity
+- FO-073 — Master Data Frontend Alignment
+- FO-074 — Master Data QA and Stabilization
 - FO-063 automatic Ticket closure remains reserved and deferred
 
-## Selected Next Feature — Dashboard and Executive Operational Overview
+## Selected Next Feature — Master Data Management
 
-- Feature: Dashboard and Executive Operational Overview
-- Active branch: `feature/dashboard-operational-overview`
-- FO-068: Foundation Dashboard tenant-isolation backend correction (complete)
-- FO-069: frontend scope copy / Reporting navigation / UX (complete)
-- FO-069A: connectivity loading-state correction (complete; independently approved)
-- FO-070: QA and stabilization (complete; independently approved; documentation-only)
-- FO-070A: final review and repository reconciliation (complete)
-- Sol cumulative review: APPROVED
-- Manual acceptance: passed by User on 2026-07-18
-- Access: `IsAuthenticated` (no `dashboard.view`)
-- Overview API: `GET /api/dashboard/foundation-summary/`
-- Reporting module status: Complete (PR #38 merged)
+- Feature: Master Data Management hardening
+- Active branch: `feature/master-data-management`
+- FO-071: tenant isolation and write-path hardening (complete)
+- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (pending)
+- FO-073: frontend alignment (pending)
+- FO-074: QA and stabilization (pending)
+- Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
+- Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
 
 ## Foundation Dashboard Security Note
@@ -152,12 +149,12 @@
 
 ## Last Reviewed Commit
 
-- FO-062D post-merge baseline on `main`: `ae3d208663cf31937bee5a326ce339b14b78e918` (Merge pull request #37)
+- FO-071 implementation review pending commit on `feature/master-data-management`; baseline `main` is `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Last Merge
 
-- `ae3d208663cf31937bee5a326ce339b14b78e918` (Merge pull request #37 into `main`; FO-062D docs)
-- Previous: `e509b4ff82d9d93302c0d2e1febe8ce62061b9c5` (Merge pull request #36 into `main`; 2026-07-15T11:10:49Z)
+- `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a` (Merge pull request #39 into `main`; Dashboard Operational Overview)
+- Previous: `dfd3a4457e54dd702171482217ef6f22194d7941` (Merge pull request #38 into `main`; Reporting)
 
 ## Repository Version
 

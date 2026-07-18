@@ -15,8 +15,8 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | Complete | Tenant, organization, department, building, floor, area, asset type, asset CRUD |
-| Dashboard | Complete | FO-068–FO-070A complete on `feature/dashboard-operational-overview`; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; draft PR #39 open/unmerged ready for user’s merge decision |
+| Master Data | In Progress | FO-071 tenant isolation/write hardening complete on `feature/master-data-management`; FO-072–FO-074 pending; cumulative draft PR open/unmerged |
+| Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
@@ -194,7 +194,7 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: Complete
+Status: In Progress (FO-071 complete on branch; FO-072–FO-074 pending)
 
 ### Purpose
 
@@ -207,10 +207,10 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - Serializers: matching model serializers for all eight resources
 - ViewSets / Views: `TenantViewSet`, `OrganizationViewSet`, `DepartmentViewSet`, `BuildingViewSet`, `FloorViewSet`, `AreaViewSet`, `AssetTypeViewSet`, `AssetViewSet`
 - APIs: `/api/master-data/tenants/`, `/organizations/`, `/departments/`, `/buildings/`, `/floors/`, `/areas/`, `/asset-types/`, `/assets/`
-- Services: `apply_query_param_filters`
+- Services: `apply_query_param_filters`; Master Data-local tenant scope helpers
 - Permissions: `IsAuthenticated` plus `HasPermissionCode` through `MasterDataPermissionMixin`; read uses `settings.view`, write uses `settings.manage`
 - Admin: all master-data models are registered in `backend/apps/master_data/admin.py`
-- Tests: `backend/apps/master_data/tests.py`
+- Tests: `backend/apps/master_data/tests.py` (48)
 
 ### Frontend
 
@@ -227,7 +227,11 @@ Maintains foundational reference data for tenants, organizations, departments, b
 ### Notes
 
 - This module covers FO-010, FO-015, and FO-016.
+- FO-071 adds authoritative tenant-scoped reads/writes and cross-tenant
+  relationship validation for all eight resources.
+- Organization Management remains a thin consumer of these APIs.
 - Delete, bulk actions, import/export, and domain workflows remain deferred.
+- Same-tenant child hard DELETE remains pending replacement in FO-072.
 
 ## Dashboard
 

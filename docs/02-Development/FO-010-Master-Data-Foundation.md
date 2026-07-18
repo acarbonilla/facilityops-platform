@@ -93,6 +93,14 @@ Tests cover model creation, uniqueness constraints, seed command idempotency, au
 - No frontend master data screens are included.
 - Existing PostgreSQL development databases created before FO-008 may still need to be recreated before current migrations can be applied cleanly.
 
+## Security Reconciliation — FO-071
+
+FO-010 accurately recorded the original lack of tenant-aware query isolation.
+FO-071 corrects that Critical limitation on `feature/master-data-management`:
+all Master Data reads and mutations are backend-scoped, tenant ownership is
+authoritative, and cross-tenant hierarchy relationships are rejected. See
+`FO-071 - Master Data Tenant Isolation and Write-Path Hardening.md`.
+
 ## Next Task Recommendation
 
 Proceed to `FO-011 - Frontend API Client and App Shell Foundation`.
