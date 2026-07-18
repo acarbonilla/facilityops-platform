@@ -320,6 +320,6 @@ pending and has not started. FO-063 remains reserved and deferred.
 
 FO-073 continues on `feature/master-data-management` in cumulative PR #40.
 PR #40 remains open, draft, unmerged, and based on `main`. No merge readiness
-or approval is claimed by this reconciliation. The implementation commit is
-the commit containing this document; its reviewed SHA is recorded by the
-minimal delivery reconciliation follow-up. FO-074 remains pending.
+or approval is claimed by this reconciliation. The validated implementation,
+tests, and documentation were committed at `cc32d75`. This minimal follow-up
+records that delivery reference. FO-074 remains pending.
