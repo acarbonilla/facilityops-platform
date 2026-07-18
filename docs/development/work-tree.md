@@ -15,9 +15,9 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | In Progress | FO-071 and FO-072 independently approved; FO-072 final HEAD `a8ea862`; FO-073 complete without manual browser acceptance or independent approval; FO-074 pending; cumulative draft PR #40 open/unmerged |
+| Master Data | Complete on branch | FO-071 and FO-072 independently approved; FO-073 complete; FO-074 cumulative QA passed; manual acceptance and Sol cumulative review pending; draft PR #40 open/unmerged |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
-| Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
+| Notifications | Complete | FO-055 through FO-060 complete; PR #34 is closed, draft, and unmerged |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete | FO-062B (2026-07-15): Backend `apps.fm_tickets` 63, `apps.maintenance` 84, `apps.notifications` 78, `apps.accounts`+`access_control` 109, full `--parallel 4` 426 OK; Frontend: 135 helper tests, ESLint, TypeScript, and production build pass; no component/integration harness exists yet |
+| Testing | Complete | FO-074: Master Data 78, Accounts + Access Control 112, full backend 590, frontend 225, ESLint, TypeScript, production build, system check, and migration drift gates pass; no component/integration harness exists yet |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -77,7 +77,8 @@ facilityops-platform/
 - FO-044 completes 5S Inspection module QA and stabilization: four defects corrected (checklist pass/fail preservation, AI-analysis GET mutation, inspection soft-delete centralization, maintenance reassignment test tenant isolation), 168 backend tests pass, 10 frontend checklist mapping tests pass via formally configured `npm run test`, ESLint, TypeScript, and production build clean.
 - FO-045 through FO-049 complete User Management CRUD, tenant/security hardening, role assignment, assignment-safe directory/pickers, and cumulative QA.
 - FO-050 through FO-054 complete Roles and Permissions backend foundation, frontend workflows, permission assignment, duplication and system-role protection, and cumulative module QA; FO-054 validation gates pass at 66 Access Control tests, 109 Accounts+Access Control tests, canonical full backend parallel discovery baseline of 250 tests, and 65 frontend helper tests.
-- Notifications is `Complete`: FO-055 through FO-060 are complete on `feature/notifications`. Draft PR #34 awaits Sol’s independent cumulative final review.
+- Notifications is `Complete`: FO-055 through FO-060 are complete. PR #34 is
+  closed, draft, and unmerged.
 - FO-DOC-001 establishes the permanent developer handbook under `docs/04-Developer-Handbook/`, adds `docs/development/project-status.md`, and defines repository-level process ownership, QA expectations, merge workflow, and documentation standards.
 - `infrastructure/` and `shared/` remain reserved workspace areas rather than active product modules.
 
@@ -194,7 +195,8 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: In Progress (FO-071 and FO-072 independently approved; FO-073 complete; FO-074 pending)
+Status: Complete on branch (FO-071 and FO-072 independently approved; FO-073
+complete; FO-074 QA passed; Sol cumulative review pending)
 
 ### Purpose
 
@@ -210,7 +212,7 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - Services: `apply_query_param_filters`; Master Data-local tenant/lifecycle scope helpers; atomic soft-delete, restore, dependency, and hierarchy lifecycle service; Accounts user writes lock and lifecycle-validate Tenant/Organization dependencies
 - Permissions: `IsAuthenticated` plus `HasPermissionCode` through `MasterDataPermissionMixin`; read uses `settings.view`, write uses `settings.manage`
 - Admin: all master-data models are registered in `backend/apps/master_data/admin.py`
-- Tests: `backend/apps/master_data/tests.py` (77 passed); full backend 579 passed
+- Tests: `backend/apps/master_data/tests.py` (78 passed); full backend 590 passed
 
 ### Frontend
 
@@ -222,7 +224,9 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - API Files: `services/api/master-data.ts`
 - Types: `types/master-data.ts`
 - RBAC Usage: resource routes depend on `settings.view`; create and edit actions depend on `settings.manage`
-- Tests: frontend suite 222 passed, including 20 Master Data lifecycle helper tests; lint, TypeScript, and production build passed
+- Tests: frontend suite 225 passed, including 22 Master Data lifecycle helper
+  tests and one session-cache isolation regression; lint, TypeScript, and
+  production build passed
 
 ### Notes
 
@@ -240,10 +244,13 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - FO-073 adds authenticated deleted collection discovery and aligns all eight
   frontend resource screens with Active, Inactive, and Deleted views;
   permission-aware lifecycle actions; tenant-bound forms; server pagination;
-  structured conflict errors; and cross-feature cache invalidation. Master Data
-  77, full backend 579, frontend 222, lint, TypeScript, build, and migration
-  gates passed. Manual browser acceptance was not performed and FO-073 is not
-  independently approved.
+  structured conflict errors; and cross-feature cache invalidation. Manual
+  browser acceptance was not performed and FO-073 is not independently
+  approved.
+- FO-074 completes cumulative QA with eight confirmed corrections. Final gates
+  pass at Master Data 78, Accounts + Access Control 112, full backend 590, and
+  frontend 225. Manual acceptance and Sol cumulative final review remain
+  pending; PR #40 remains open, draft, and unmerged.
 - Organization Management remains a thin consumer of these APIs.
 - Bulk actions, import/export, and server search remain deferred.
 
@@ -284,7 +291,7 @@ Provides a simple authenticated dashboard for foundation metrics and quick navig
 
 - FO-017 foundation shell; FO-068 tenant-isolation backend; FO-069 scope UX and Reporting navigation; FO-069A connectivity Checking-state correction; FO-070 cumulative QA (no production correction); FO-070A final review reconciliation.
 - Metrics focus on foundation inventory completeness, not ticket or maintenance operations.
-- Sol cumulative review APPROVED at `0c812e635d051a42bf98141a62cbccf699f3a962`. User manual acceptance passed 2026-07-18. Draft PR #39 remains open/unmerged, ready for the user’s merge decision.
+- Sol cumulative review APPROVED at `0c812e635d051a42bf98141a62cbccf699f3a962`. User manual acceptance passed 2026-07-18. PR #39 was merged to `main`.
 
 ## User Management
 
@@ -349,212 +356,21 @@ Provides an admin-oriented structure view across tenants, organizations, departm
 - Module Folder: `frontend/features/admin/organization`
 - Pages: organization landing page plus per-resource admin alias pages
 - Components: `OrganizationManagementScreen`, `OrganizationStructureCard`, `OrganizationHierarchy`
-- Hooks: No dedicated hooks; screen composes TanStack Query calls to master-data APIs
+- Hooks: No dedicated hooks; session-scoped TanStack queries hydrate every API
+  page for complete hierarchy counts and nodes
 - API Files: `services/api/master-data.ts`
 - Types: `types/master-data.ts`
-- RBAC Usage: route is guarded by `settings.view`; create links rely on `settings.manage`
-- Tests: No dedicated frontend tests
+- RBAC Usage: route is guarded by `settings.view`; create links rely on
+  `settings.manage`; Tenant creation additionally fails closed without reliable
+  global-role evidence
+- Tests: shared Master Data helper coverage validates complete page hydration
+  and Tenant create policy
 
 ### Notes
 
 - This module covers FO-022.
 - The admin organization area is an orchestration layer over master data, not a separate domain backend.
-
-## Asset Management
-
-Status: Complete
-
-### Purpose
-
-Supports asset listing, detail, create, edit, and admin alias screens using the master-data asset model and frontend asset-focused presentation components.
-
-### Backend
-
-- Apps: reuses `apps.master_data`
-- Models: `Asset`, `AssetType`, plus related location and organization models
-- Serializers: `AssetSerializer`, `AssetTypeSerializer`
-- ViewSets / Views: `AssetViewSet`, `AssetTypeViewSet`
-- APIs: `/api/master-data/assets/`, `/api/master-data/asset-types/`
-- Services: `apply_query_param_filters`
-- Permissions: `settings.view` for read and `settings.manage` for write
-- Admin: `AssetAdmin`, `AssetTypeAdmin`
-- Tests: `backend/apps/master_data/tests.py`
-
-### Frontend
-
-- Routes: `/master-data/assets`, `/master-data/assets/new`, `/master-data/assets/[id]`, `/master-data/assets/[id]/edit`, `/admin/assets`
-- Module Folder: `frontend/features/assets`, `frontend/features/master-data`, `frontend/components/master-data`
-- Pages: asset list, detail, create, edit, and admin alias page
-- Components: `AssetList`, `AssetDetail`, `AssetFilters`, `AssetFormSection`, `AssetLocationBreadcrumb`, shared asset form pages
-- Hooks: No dedicated asset hook; asset screens use shared master-data API calls
-- API Files: `services/api/master-data.ts`
-- Types: `types/master-data.ts`
-- RBAC Usage: read uses `settings.view`; create and edit use `settings.manage`
-- Tests: No dedicated frontend tests
-
-### Notes
-
-- This module covers FO-023.
-- Asset management includes FO-073 lifecycle administration and still excludes
-  bulk actions and reporting-specific workflows.
-
-## FM Ticketing
-
-Status: Complete
-
-### Purpose
-
-Manages facility-management tickets, including read, create, edit, comments, history, assignment, status workflow, and escalation support.
-
-### Backend
-
-- Apps: `apps.fm_tickets`
-- Models: `FmTicket`, `FmTicketEscalation`, `FmTicketComment`, `FmTicketHistory`, `FmTicketStatusHistory`
-- Serializers: list, detail, create, update, comment, history, escalation, assignment, and status-change serializers
-- ViewSets / Views: `FmTicketViewSet`
-- APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`
-- Services: ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
-- Permissions: `HasTicketPermission` with `fm_tickets.view`, `create`, `update`, `assign`, `close`, and `manage`
-- Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`
-- Tests: `backend/apps/fm_tickets/tests.py`
-
-### Frontend
-
-- Routes: `/fm-tickets`, `/fm-tickets/new`, `/fm-tickets/[id]`, `/fm-tickets/[id]/edit`
-- Module Folder: `frontend/features/fm-tickets`
-- Pages: list, detail, create, and edit pages
-- Components: `TicketListScreen`, `TicketDetailScreen`, `TicketFormPage`, `TicketForm`, `TicketComments`, `TicketCommentForm`, `TicketHistory`, `TicketAssignmentPanel`, `TicketStatusActions`, `TicketSlaPanel`, `TicketEscalationForm`, `TicketEscalationHistory`, badge and shared display components
-- Hooks: No dedicated FM ticket hook layer; feature components use queries and mutations directly
-- API Files: `services/api/fm-tickets.ts`
-- Types: `types/fm-tickets.ts`
-- RBAC Usage: view, create, update, assign, manage, and close permissions drive route access and action visibility
-- Tests: No dedicated frontend tests
-
-### Notes
-
-- This module covers FO-024 through FO-030.
-- FO-058A assignment and status-change in-app notifications are implemented; comment, escalation, attachment, and AI notification workflows remain deferred.
-
-## Maintenance Work Order
-
-Status: Complete
-
-### Purpose
-
-Manages planned and corrective maintenance activities for assets, locations, technicians, materials, labor, SLA tracking, AI summaries, and work order history.
-
-### Backend
-
-- Apps: `apps.maintenance`
-- Models: `MaintenanceWorkOrder`, `MaintenanceAssignment`, `MaintenanceTask`, `MaintenanceMaterial`, `MaintenanceLabor`, `MaintenanceAttachment`, `MaintenanceAISummary`, `MaintenanceSupervisorApproval`, `MaintenanceCompletion`, `MaintenanceHistory`, `MaintenanceStatusHistory`, `MaintenanceEscalation`, `MaintenanceSLA`
-- Serializers: list, detail, create, update, assignment, status-change, completion, history, SLA, attachment, task, material, labor, AI summary, approval, escalation serializers
-- ViewSets / Views: `MaintenanceWorkOrderViewSet`
-- APIs: work-order list/create/retrieve/patch, dashboard/history, dedicated status actions, assignment/reassignment/unassignment/history/candidates, SLA retrieve/recalculate, and escalation history/acknowledge/resolve
-- Services: work-order create/update helpers, status and assignment workflow services, priority-based SLA calculation, escalation detection/lifecycle, completion validation, and history recording
-- Permissions: `HasMaintenancePermission` with maintenance CRUD/status permissions plus assignment and SLA/escalation `maintenance.work_order.*` permissions
-- Admin: all maintenance domain models are registered in `backend/apps/maintenance/admin.py`
-- Tests: `backend/apps/maintenance/tests/test_maintenance.py`
-
-### Frontend
-
-- Routes: `/maintenance`, `/maintenance/work-orders`, `/maintenance/work-orders/[id]`, `/maintenance/work-orders/new`, `/maintenance/work-orders/[id]/edit`
-- Module Folder: `frontend/features/maintenance`, `frontend/lib/maintenance`
-- Pages: dashboard, list, detail, create, and edit pages
-- Components: maintenance dashboard/list/detail/form components, status and assignment workflows, SLA/overdue/escalation badges, `MaintenanceSLACard`, `MaintenanceEscalationCard`, escalation timeline/actions, filters, pagination, and shared sections
-- Hooks: maintenance dashboard/list/detail/history/form hooks, status and assignment workflow hooks, plus SLA recalculation and escalation lifecycle hooks
-- API Files: `services/api/maintenance.ts`
-- Types: `types/maintenance.ts`
-- RBAC Usage: frontend and backend accept exact `maintenance.work_order.*` permissions with legacy `maintenance.*` compatibility and `maintenance.manage` override
-- Tests: No dedicated frontend tests
-
-### Notes
-
-- FO-031 backend foundation is implemented.
-- FO-032 frontend read surfaces are implemented in code, including dashboard, list, detail, filters, pagination, tasks, materials, labor, attachment metadata, SLA, AI summary, and history.
-- FO-033 create/edit work-order pages, client validation, permission-gated actions, and backend create/update integration are now implemented.
-- FO-034 dedicated maintenance status workflow actions are now implemented across backend and frontend, including `submit`, `assign`, `start`, `hold`, `resume`, `complete`, `cancel`, and `reopen`, plus backend status history action/reason tracking and frontend workflow dialogs.
-- Types: `types/dashboard.ts`
-- RBAC Usage: authenticated route; no separate permission code beyond login state
-- Tests: No dedicated frontend tests
-
-### Notes
-
-- This module covers FO-017.
-- Metrics currently focus on setup completeness, not ticket or maintenance operations.
-
-## User Management
-
-Status: Complete
-
-### Purpose
-
-Provides tenant-scoped user administration, role assignment, and assignment-safe directory access with cumulative QA through FO-049.
-
-### Backend
-
-- Apps: `apps.accounts`, `apps.access_control`
-- Models: `User`
-- Serializers: dedicated read, write, directory, and role-assignment serializers
-- ViewSets / Views: authenticated `UserViewSet` plus existing authentication views
-- APIs: user list/create/detail/update/deactivate, active directory, and per-user role read/replacement
-- Services: tenant-scoped create, update, deactivation, and atomic role replacement
-- Permissions: action-specific `users.*`, `roles.*`, and least-privilege `users.directory`
-- Admin: `UserAdmin`
-- Tests: 63 focused accounts/access-control tests; 204 full backend tests
-
-### Frontend
-
-- Routes: `/admin/users`, `/admin/users/new`, `/admin/users/[id]`, `/admin/users/[id]/edit`
-- Module Folder: `frontend/features/admin/users`
-- Pages: protected list, create, detail, and edit pages
-- Components: user list/detail/form/deactivation/role dialogs plus shared directory picker
-- Hooks: `use-users` and existing auth/permission hooks
-- API Files: `services/api/users.ts`
-- Types: `types/users.ts`
-- RBAC Usage: route is guarded by `users.view`
-- Tests: helper-level user, role, directory, Inspection payload, and Maintenance compatibility coverage within the 43-test frontend suite
-
-### Notes
-
-- FO-045 through FO-049 are complete. Backend authorization remains authoritative; frontend guards are advisory.
-- Invitations, password-reset email, SSO, bulk import, and role-definition editing remain out of scope.
-
-## Organization Management
-
-Status: Complete
-
-### Purpose
-
-Provides an admin-oriented structure view across tenants, organizations, departments, buildings, floors, and areas using the master-data backend rather than a separate organization app.
-
-### Backend
-
-- Apps: reuses `apps.master_data`
-- Models: `Tenant`, `Organization`, `Department`, `Building`, `Floor`, `Area`
-- Serializers: corresponding master-data serializers
-- ViewSets / Views: master-data viewsets
-- APIs: master-data endpoints for the six structure resources
-- Services: `apply_query_param_filters`
-- Permissions: `settings.view` for read and `settings.manage` for create/edit
-- Admin: handled by master-data admin registrations
-- Tests: `backend/apps/master_data/tests.py`
-
-### Frontend
-
-- Routes: `/admin/organization`, `/admin/organization/tenants`, `/organizations`, `/departments`, `/buildings`, `/floors`, `/areas`
-- Module Folder: `frontend/features/admin/organization`
-- Pages: organization landing page plus per-resource admin alias pages
-- Components: `OrganizationManagementScreen`, `OrganizationStructureCard`, `OrganizationHierarchy`
-- Hooks: No dedicated hooks; screen composes TanStack Query calls to master-data APIs
-- API Files: `services/api/master-data.ts`
-- Types: `types/master-data.ts`
-- RBAC Usage: route is guarded by `settings.view`; create links rely on `settings.manage`
-- Tests: No dedicated frontend tests
-
-### Notes
-
-- This module covers FO-022.
-- The admin organization area is an orchestration layer over master data, not a separate domain backend.
+- FO-074 corrects first-page-only hierarchy counts and Tenant-create visibility.
 
 ## Asset Management
 
@@ -835,7 +651,7 @@ Holds reusable visual building blocks for auth, layout, forms, tables, detail vi
 
 ## Testing
 
-Status: Needs Review
+Status: Complete
 
 ### Purpose
 
@@ -851,7 +667,7 @@ Tracks the current verification footprint across backend and frontend so progres
 - Services: covered mainly through API and model tests, plus seed-command tests
 - Permissions: covered through endpoint authorization tests
 - Admin: not deeply tested
-- Tests: cumulative backend validation passed 579 tests, including focused app suites
+- Tests: cumulative backend validation passed 590 tests, including focused app suites
 
 ### Frontend
 
@@ -863,12 +679,13 @@ Tracks the current verification footprint across backend and frontend so progres
 - API Files: no automated frontend API-client tests
 - Types: validated through TypeScript compilation
 - RBAC Usage: verified through implementation review and integrated behavior, not frontend test code
-- Tests: helper coverage is part of the 222-test frontend suite run via `npm test` (Node.js built-in runner with `tsx`)
+- Tests: helper coverage is part of the 225-test frontend suite run via
+  `npm test` (Node.js built-in runner with `tsx`)
 
 ### Notes
 
-- Backend cumulative validation passed 579 tests.
-- Frontend helper-level tests passed 222 tests. No component, integration, or browser harness exists yet.
+- Backend cumulative validation passed 590 tests.
+- Frontend helper-level tests passed 225 tests. No component, integration, or browser harness exists yet.
 
 ## Configuration
 

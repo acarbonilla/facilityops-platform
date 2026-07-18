@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
@@ -60,7 +61,7 @@ def _actor_id(actor):
 def _locked_object(queryset, pk):
     try:
         return queryset.select_for_update(of=("self",)).get(pk=pk)
-    except queryset.model.DoesNotExist:
+    except (queryset.model.DoesNotExist, DjangoValidationError, ValueError):
         raise Http404 from None
 
 

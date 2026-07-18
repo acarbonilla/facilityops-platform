@@ -86,7 +86,7 @@ python manage.py runserver
 
 Tests cover model creation, uniqueness constraints, seed command idempotency, authentication requirements, and authenticated list/filter behavior.
 
-## Known Limitations
+## Known Limitations at FO-010 Delivery
 
 - No FM Ticketing, Maintenance, or 5S Inspection modules are included.
 - No advanced tenant-aware query isolation is implemented yet.
@@ -110,6 +110,14 @@ original endpoint families remain compatible; restore is added as an explicit
 detail action. See `FO-072 - Master Data Soft Delete Deactivation Lifecycle and
 Hierarchy Integrity.md`.
 
-## Next Task Recommendation
+## Frontend and Final QA Reconciliation — FO-073/FO-074
+
+FO-073 adds authenticated deleted discovery and the shared Active, Inactive,
+and Deleted administration UX for all eight resources. FO-074 completes
+cumulative security, lifecycle, hierarchy, API, cache, accessibility, and
+regression QA. The original FO-010 limitations above are retained only as the
+foundation delivery snapshot.
+
+## Next Task Recommendation at FO-010 Delivery
 
 Proceed to `FO-011 - Frontend API Client and App Shell Foundation`.

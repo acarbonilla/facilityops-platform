@@ -165,14 +165,14 @@ No product test failed. A subsequent clean canonical run passed all 557 tests.
 - No dependency addition or package version change.
 - Existing Master Data migration history remains `0001_initial`.
 
-## 16. Known limitations
+## 16. Known limitations at FO-071 delivery
 
 - Same-tenant child DELETE still performs the historical hard delete.
 - Audit UUID fields are not populated and no history endpoint exists.
 - Existing broad `settings.*` permissions are preserved.
 - Frontend Master Data screens still have no dedicated helper test file.
 
-## 17. Deferred scope
+## 17. Deferred scope at FO-071 delivery
 
 - FO-072: soft-delete, deactivation lifecycle, dependency protection, and
   remaining hierarchy lifecycle behavior.
@@ -180,7 +180,7 @@ No product test failed. A subsequent clean canonical run passed all 557 tests.
 - FO-074: cumulative QA and stabilization.
 - Import/export, bulk actions, charts, AI, and FO-063 remain deferred.
 
-## 18. Branch and PR status
+## 18. Branch and PR status at FO-071 delivery
 
 - Branch: `feature/master-data-management`
 - Cumulative PR #40: `feature/master-data-management` → `main`
@@ -206,3 +206,11 @@ without changing FO-071 tenant scope or `settings.view` / `settings.manage`.
 FO-071 remains complete and independently approved; FO-072 does not widen
 global access or alter its backend-authoritative write-path contract. This
 approval applies only to FO-071 and does not constitute approval of FO-072.
+
+## FO-074 cumulative QA note
+
+FO-074 revalidates FO-071 tenant isolation, fail-closed tenantless behavior,
+global-administrator scope, backend-authoritative tenant binding, generic
+cross-tenant 404 behavior, and Accounts/User hierarchy integration. FO-071
+remains complete and independently approved at `6721ff0f`; the later lifecycle
+and frontend milestones do not widen its security boundary.

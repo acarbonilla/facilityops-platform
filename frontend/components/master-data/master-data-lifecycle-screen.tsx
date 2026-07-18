@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   buildLifecycleListParams,
+  canCreateMasterDataResource,
   canUseManageControls,
   formatMasterDataError,
   getLifecycleEmptyStateMessage,
@@ -353,7 +354,11 @@ export function MasterDataLifecycleScreen({
           <p className="text-sm text-slate-600">
             Tenant create, delete, restore, and reactivate controls are API-admin-only because this session does not expose a reliable global role.
           </p>
-        ) : canManage ? (
+        ) : canCreateMasterDataResource(
+            resource,
+            canManage,
+            canManageTenantGlobally,
+          ) ? (
           <Link
             className="inline-flex rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
             href={`/master-data/${resource}/new`}
@@ -373,17 +378,20 @@ export function MasterDataLifecycleScreen({
         </p>
       ) : null}
 
-      <div aria-label={`${labels.plural} lifecycle`} className="flex flex-wrap gap-2" role="tablist">
+      <div
+        aria-label={`${labels.plural} lifecycle`}
+        className="flex flex-wrap gap-2"
+        role="group"
+      >
         {LIFECYCLES.map((value) => (
           <button
-            aria-selected={lifecycle === value}
+            aria-pressed={lifecycle === value}
             className={`rounded-md px-4 py-2 text-sm font-semibold ${lifecycle === value ? "bg-slate-900 text-white" : "border border-slate-300 bg-white text-slate-700"}`}
             key={value}
             onClick={() => {
               setPage(getPageAfterLifecycleChange(lifecycle, value, page));
               setLifecycle(value);
             }}
-            role="tab"
             type="button"
           >
             {value[0].toUpperCase() + value.slice(1)}

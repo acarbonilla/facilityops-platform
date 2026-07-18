@@ -256,15 +256,16 @@ Confirmed focused result at reconciliation time:
 - Reporting: 86 passed.
 - FM Tickets + Maintenance + Inspection: 212 passed.
 - Notifications: 78 passed.
-- Full backend with `--parallel 4`: 579 passed.
+- Full backend was not cleanly rerun after FO-073 added nine tests. The 579
+  result belongs to the FO-072 historical baseline; FO-074 owns the corrected
+  cumulative total.
 - Django system check: no issues.
 - Migration drift check: no changes detected.
 - Master Data migration state: `[X] 0001_initial`.
 
-Every canonical command exited 0. A later overlapping duplicate backend run
-collided with the same PostgreSQL test database while another validation was
-active; that infrastructure-only attempt was stopped and is not a product-test
-failure.
+An overlapping duplicate backend attempt collided with the same PostgreSQL test
+database while another validation was active. That infrastructure-only attempt
+was stopped and is not a product-test failure.
 
 ## 18. Frontend validation
 
@@ -278,8 +279,9 @@ failure.
 ## 19. Migration and dependency confirmation
 
 FO-073 adds no backend model or schema change, migration, Python dependency,
-frontend package, or lockfile change. Existing lifecycle fields, routes,
-shared components, and installed frontend libraries are reused.
+frontend dependency, or lockfile change. `frontend/package.json` changes only
+register its helper test. Existing lifecycle fields, routes, shared components,
+and installed frontend libraries are reused.
 
 ## 20. Manual acceptance status
 
@@ -306,15 +308,15 @@ FO-074 acceptance activity.
 
 ## 22. FO-074 boundary
 
-FO-074 remains the cumulative Master Data QA and stabilization task. It owns
+FO-074 is the cumulative Master Data QA and stabilization task. It owns
 final cross-module regression assessment, unresolved defect correction if
 validation finds a product issue, browser/manual acceptance completion, and
 the cumulative release recommendation. FO-073 does not absorb FO-074.
 
 FO-071 and FO-072 are complete and independently approved per user governance.
-FO-073 is complete after all requested automated validation passed; it is not
-independently approved and no user manual acceptance is claimed. FO-074 is
-pending and has not started. FO-063 remains reserved and deferred.
+FO-073 is complete; it is not independently approved and no user manual
+acceptance is claimed. FO-074 is in progress. FO-063 remains reserved and
+deferred.
 
 ## 23. PR status
 
@@ -322,4 +324,15 @@ FO-073 continues on `feature/master-data-management` in cumulative PR #40.
 PR #40 remains open, draft, unmerged, and based on `main`. No merge readiness
 or approval is claimed by this reconciliation. The validated implementation,
 tests, and documentation were committed at `cc32d75`. This minimal follow-up
-records that delivery reference. FO-074 remains pending.
+records that delivery reference. FO-074 final QA follows in the same draft PR.
+
+## 24. FO-074 cumulative QA status
+
+FO-074 completed cumulative QA and corrected confirmed cache isolation,
+pagination, Tenant-create visibility, malformed-input, User concurrency,
+dependent invalidation, and accessibility defects without redesigning the
+FO-073 lifecycle contract. Final cumulative validation passes at Master Data
+78, Accounts + Access Control 112, full backend 590, and frontend 225 plus
+lint, TypeScript, production build, system check, and migration drift gates.
+Manual browser acceptance and Sol's independent cumulative final review remain
+pending. PR #40 remains open, draft, and unmerged.

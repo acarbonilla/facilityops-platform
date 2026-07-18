@@ -11,6 +11,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { DEFAULT_MASTER_DATA_LIST_PARAMS, getFirstQueryErrorMessage } from "@/lib/master-data/display";
 import {
   bindTenantToPayload,
+  collectPaginatedMasterData,
   formatMasterDataError,
   getMasterDataInvalidationKeys,
   getMasterDataSessionScope,
@@ -153,17 +154,7 @@ function useListResultsQuery<T extends { id: string }>(
       resource,
       getMasterDataSessionScope(user?.id, user?.tenant),
     ),
-    queryFn: async () => {
-      const results: T[] = [];
-      let page = 1;
-      let response: Awaited<ReturnType<typeof queryFn>>;
-      do {
-        response = await queryFn({ page, page_size: 100 });
-        results.push(...response.results);
-        page += 1;
-      } while (response.next);
-      return results;
-    },
+    queryFn: () => collectPaginatedMasterData(queryFn),
     select: (results) =>
       resource === "tenants" && user?.tenant
         ? results.filter((record) => record.id === user.tenant)

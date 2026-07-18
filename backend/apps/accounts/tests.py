@@ -718,6 +718,12 @@ class UserMasterDataLifecycleConcurrencyTests(TransactionTestCase):
             email="lifecycle-admin@example.com",
             password="Password123!",
         )
+        self.managed_user = User.objects.create_user(
+            email="managed-race@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+            organization=self.organization,
+        )
 
     def test_concurrent_user_create_cannot_outlive_parent_deactivation(self):
         ready = Event()
@@ -764,6 +770,44 @@ class UserMasterDataLifecycleConcurrencyTests(TransactionTestCase):
         )
         self.organization.refresh_from_db()
         self.assertFalse(self.organization.is_active)
+
+    def test_concurrent_user_update_preserves_committed_fields(self):
+        ready = Event()
+        outcomes = Queue()
+
+        def update_first_name():
+            close_old_connections()
+            stale_user = User.objects.get(pk=self.managed_user.pk)
+            ready.set()
+            try:
+                update_user(
+                    actor=User.objects.get(pk=self.actor.pk),
+                    user=stale_user,
+                    validated_data={"first_name": "Worker"},
+                )
+            except Exception as exc:
+                outcomes.put(exc)
+            else:
+                outcomes.put(None)
+            finally:
+                close_old_connections()
+
+        with transaction.atomic():
+            locked = User.objects.select_for_update().get(
+                pk=self.managed_user.pk
+            )
+            worker = Thread(target=update_first_name)
+            worker.start()
+            self.assertTrue(ready.wait(timeout=5))
+            locked.last_name = "Committed"
+            locked.save(update_fields=("last_name", "updated_at"))
+
+        worker.join(timeout=10)
+        self.assertFalse(worker.is_alive())
+        self.assertIsNone(outcomes.get_nowait())
+        self.managed_user.refresh_from_db()
+        self.assertEqual(self.managed_user.first_name, "Worker")
+        self.assertEqual(self.managed_user.last_name, "Committed")
 
 
 @override_settings(

@@ -75,6 +75,22 @@ export function getTotalPages(count: number): number {
   return Math.max(1, Math.ceil(Math.max(0, count) / MASTER_DATA_PAGE_SIZE));
 }
 
+export async function collectPaginatedMasterData<T>(
+  queryFn: (
+    params: MasterDataListParams,
+  ) => Promise<{ results: T[]; next?: string | null }>,
+): Promise<T[]> {
+  const results: T[] = [];
+  let page = 1;
+  let response: Awaited<ReturnType<typeof queryFn>>;
+  do {
+    response = await queryFn({ page, page_size: 100 });
+    results.push(...response.results);
+    page += 1;
+  } while (response.next);
+  return results;
+}
+
 export function canUseManageControls(
   hasManagePermission: boolean,
   permissionsLoading: boolean,
@@ -118,6 +134,14 @@ export function hasReliableGlobalTenantRole(
 ): boolean {
   void isStaff;
   return globalRoleConfirmed;
+}
+
+export function canCreateMasterDataResource(
+  resource: MasterDataResourceKey,
+  canManage: boolean,
+  canManageTenantGlobally = false,
+): boolean {
+  return canManage && (resource !== "tenants" || canManageTenantGlobally);
 }
 
 export function getTenantOptionState<T extends { id: string; name: string }>(
@@ -236,6 +260,7 @@ export function getMasterDataInvalidationKeys(
     ["reporting", "overview"],
     ["reporting", "filter-options"],
     ["users", "form-options"],
+    ["fm-tickets"],
     ["maintenance", "form-options"],
     ["inspection", "form-options"],
   ];

@@ -471,6 +471,35 @@ class MasterDataTenantIsolationApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_malformed_ids_and_filters_fail_safely(self):
+        self._authenticate(self.tenant_user)
+        malformed_id = "not-a-uuid"
+
+        detail_response = self.client.get(
+            reverse("organization-detail", args=[malformed_id])
+        )
+        restore_response = self.client.post(
+            reverse("organization-restore", args=[malformed_id])
+        )
+        list_response = self.client.get(
+            reverse("organization-list"),
+            {"tenant": malformed_id},
+        )
+        deleted_response = self.client.get(
+            reverse("organization-deleted"),
+            {"tenant": malformed_id},
+        )
+        active_response = self.client.get(
+            reverse("organization-list"),
+            {"is_active": "not-a-boolean"},
+        )
+
+        self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(restore_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(list_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(deleted_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(active_response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_tenantless_non_global_user_fails_closed(self):
         self._authenticate(self.tenantless_user)
         list_response = self.client.get(reverse("organization-list"))

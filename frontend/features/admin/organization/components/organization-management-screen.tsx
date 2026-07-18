@@ -8,8 +8,14 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
-import { DEFAULT_MASTER_DATA_LIST_PARAMS, getFirstQueryErrorMessage } from "@/lib/master-data/display";
+import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
+import {
+  canCreateMasterDataResource,
+  collectPaginatedMasterData,
+  getMasterDataSessionScope,
+} from "@/lib/master-data/lifecycle";
 import {
   getAreas,
   getBuildings,
@@ -178,32 +184,34 @@ function buildHierarchySummary(
 }
 
 export function OrganizationManagementScreen() {
+  const { user } = useAuth();
   const { hasPermission } = usePermissions();
   const canManage = hasPermission("settings.manage");
+  const sessionScope = getMasterDataSessionScope(user?.id, user?.tenant);
 
   const tenantsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("tenants", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getTenants(DEFAULT_MASTER_DATA_LIST_PARAMS),
+    queryKey: masterDataQueryKeys.options("tenants", sessionScope),
+    queryFn: () => collectPaginatedMasterData(getTenants),
   });
   const organizationsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("organizations", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getOrganizations(DEFAULT_MASTER_DATA_LIST_PARAMS),
+    queryKey: masterDataQueryKeys.options("organizations", sessionScope),
+    queryFn: () => collectPaginatedMasterData(getOrganizations),
   });
   const departmentsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("departments", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getDepartments(DEFAULT_MASTER_DATA_LIST_PARAMS),
+    queryKey: masterDataQueryKeys.options("departments", sessionScope),
+    queryFn: () => collectPaginatedMasterData(getDepartments),
   });
   const buildingsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("buildings", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getBuildings(DEFAULT_MASTER_DATA_LIST_PARAMS),
+    queryKey: masterDataQueryKeys.options("buildings", sessionScope),
+    queryFn: () => collectPaginatedMasterData(getBuildings),
   });
   const floorsQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("floors", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getFloors(DEFAULT_MASTER_DATA_LIST_PARAMS),
+    queryKey: masterDataQueryKeys.options("floors", sessionScope),
+    queryFn: () => collectPaginatedMasterData(getFloors),
   });
   const areasQuery = useQuery({
-    queryKey: masterDataQueryKeys.list("areas", DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => getAreas(DEFAULT_MASTER_DATA_LIST_PARAMS),
+    queryKey: masterDataQueryKeys.options("areas", sessionScope),
+    queryFn: () => collectPaginatedMasterData(getAreas),
   });
 
   const queries = [
@@ -223,13 +231,12 @@ export function OrganizationManagementScreen() {
       )
     : null;
 
-  const tenants = tenantsQuery.data?.results ?? EMPTY_TENANTS;
-  const organizations =
-    organizationsQuery.data?.results ?? EMPTY_ORGANIZATIONS;
-  const departments = departmentsQuery.data?.results ?? EMPTY_DEPARTMENTS;
-  const buildings = buildingsQuery.data?.results ?? EMPTY_BUILDINGS;
-  const floors = floorsQuery.data?.results ?? EMPTY_FLOORS;
-  const areas = areasQuery.data?.results ?? EMPTY_AREAS;
+  const tenants = tenantsQuery.data ?? EMPTY_TENANTS;
+  const organizations = organizationsQuery.data ?? EMPTY_ORGANIZATIONS;
+  const departments = departmentsQuery.data ?? EMPTY_DEPARTMENTS;
+  const buildings = buildingsQuery.data ?? EMPTY_BUILDINGS;
+  const floors = floorsQuery.data ?? EMPTY_FLOORS;
+  const areas = areasQuery.data ?? EMPTY_AREAS;
 
   const hierarchy = useMemo(
     () =>
@@ -309,7 +316,10 @@ export function OrganizationManagementScreen() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {ORGANIZATION_STRUCTURE_RESOURCES.map((resource) => (
               <OrganizationStructureCard
-                canManage={canManage}
+                canManage={canCreateMasterDataResource(
+                  resource.key,
+                  canManage,
+                )}
                 count={summary[resource.key]}
                 createHref={resource.createHref}
                 description={resource.description}

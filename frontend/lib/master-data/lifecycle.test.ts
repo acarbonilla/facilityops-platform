@@ -4,7 +4,9 @@ import test from "node:test";
 import {
   buildLifecycleListParams,
   bindTenantToPayload,
+  canCreateMasterDataResource,
   canUseManageControls,
+  collectPaginatedMasterData,
   formatMasterDataError,
   getDependentFieldsToReset,
   getLifecycleEmptyStateMessage,
@@ -26,6 +28,7 @@ import { ApiError } from "@/services/api/types";
 import { API_ENDPOINTS } from "@/services/api/endpoints";
 import { masterDataQueryKeys } from "@/services/api/query-keys";
 import { normalizeErrorResponse } from "@/services/api/client";
+import { getFormFieldAccessibilityProps } from "@/components/common/form-field";
 
 test("builds stable server pagination for every lifecycle", () => {
   assert.deepEqual(buildLifecycleListParams("active", 2), {
@@ -45,6 +48,20 @@ test("builds stable server pagination for every lifecycle", () => {
   assert.equal(buildLifecycleListParams("active", -2).page, 1);
   assert.equal(getTotalPages(0), 1);
   assert.equal(getTotalPages(MASTER_DATA_PAGE_SIZE + 1), 2);
+});
+
+test("collects every API page for complete hierarchy options", async () => {
+  const requestedPages: number[] = [];
+  const results = await collectPaginatedMasterData(async (params) => {
+    requestedPages.push(params.page ?? 0);
+    return {
+      results: [`page-${params.page}`],
+      next: params.page === 1 ? "/next/" : null,
+    };
+  });
+
+  assert.deepEqual(requestedPages, [1, 2]);
+  assert.deepEqual(results, ["page-1", "page-2"]);
 });
 
 test("maps record flags to canonical lifecycle states", () => {
@@ -113,6 +130,9 @@ test("maps lifecycle actions and keeps tenant global actions hidden", () => {
   assert.deepEqual(getLifecycleActions("deleted", "tenants", true, true), [
     "restore",
   ]);
+  assert.equal(canCreateMasterDataResource("organizations", true), true);
+  assert.equal(canCreateMasterDataResource("tenants", true), false);
+  assert.equal(canCreateMasterDataResource("tenants", true, true), true);
 });
 
 test("manage controls and authenticated queries fail closed", () => {
@@ -123,6 +143,24 @@ test("manage controls and authenticated queries fail closed", () => {
   assert.equal(shouldEnableMasterDataQuery(true, true), false);
   assert.equal(shouldEnableMasterDataQuery(false, false), false);
   assert.equal(shouldEnableMasterDataQuery(false, true), true);
+});
+
+test("associates Master Data controls with descriptions and field errors", () => {
+  assert.deepEqual(
+    getFormFieldAccessibilityProps(
+      "organization",
+      "Choose an organization.",
+      "Organization is required.",
+    ),
+    {
+      "aria-describedby": "organization-description organization-error",
+      "aria-invalid": true,
+    },
+  );
+  assert.deepEqual(getFormFieldAccessibilityProps("code"), {
+    "aria-describedby": undefined,
+    "aria-invalid": undefined,
+  });
 });
 
 test("preserves only the current inactive option while editing", () => {
@@ -326,6 +364,7 @@ test("returns precise cross-feature invalidation prefixes", () => {
     ["reporting", "overview"],
     ["reporting", "filter-options"],
     ["users", "form-options"],
+    ["fm-tickets"],
     ["maintenance", "form-options"],
     ["inspection", "form-options"],
   ]);

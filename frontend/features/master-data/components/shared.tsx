@@ -2,7 +2,10 @@
 
 import type { SelectHTMLAttributes } from "react";
 
-import { FormField } from "@/components/common/form-field";
+import {
+  FormField,
+  getFormFieldAccessibilityProps,
+} from "@/components/common/form-field";
 import { SelectField } from "@/components/common/select-field";
 import { useAuth } from "@/hooks/use-auth";
 import { getTenantOptionState } from "@/lib/master-data/lifecycle";
@@ -193,6 +196,7 @@ export function TextInputField(props: {
         id={id}
         type={type}
         {...inputProps}
+        {...getFormFieldAccessibilityProps(id, description, error)}
       />
     </FormField>
   );
@@ -220,6 +224,7 @@ export function TextAreaField(props: {
         disabled={disabled}
         id={id}
         {...textAreaProps}
+        {...getFormFieldAccessibilityProps(id, description, error)}
       />
     </FormField>
   );

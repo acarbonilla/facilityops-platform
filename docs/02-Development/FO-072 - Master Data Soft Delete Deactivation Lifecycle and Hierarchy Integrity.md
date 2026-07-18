@@ -290,7 +290,7 @@ The existing `BaseModel` already provides all required lifecycle/audit fields.
 No model change, migration, dependency, package, or lockfile change is
 required.
 
-## 22. Known limitations
+## 22. Known limitations at FO-072 delivery
 
 No frontend production file changes are part of FO-072. Existing delete
 consumers remain compatible with HTTP 204, but no restore control, lifecycle
@@ -299,7 +299,7 @@ Highly contended concurrent hierarchy writes may be transactionally rolled
 back by PostgreSQL deadlock resolution and should be retried by the caller;
 the rollback does not leave a partial lifecycle mutation.
 
-## 23. FO-073 boundary and deferred scope
+## 23. FO-073 boundary and deferred scope at FO-072 delivery
 
 - FO-073: Master Data frontend lifecycle alignment — pending / not started.
 - FO-074: cumulative Master Data QA and stabilization — pending / not started.
@@ -307,7 +307,7 @@ the rollback does not leave a partial lifecycle mutation.
   unique indexes remain out of scope.
 - FO-063 remains reserved and deferred.
 
-## 24. Review status
+## 24. Review status at FO-072 delivery
 
 FO-072 is complete after all required validation passed and awaits Sol’s
 independent review. No independent approval of FO-072 is claimed.
@@ -317,7 +317,7 @@ FO-071 was independently reviewed and approved by Sol on 2026-07-18 at commit
 external project collaboration session rather than as a GitHub review. That
 approval applies only to FO-071.
 
-## 25. PR status
+## 25. PR status at FO-072 delivery
 
 FO-072 continues on `feature/master-data-management` in cumulative draft PR
 #40. The PR remains open, draft, unmerged, and based on `main`.
@@ -333,3 +333,11 @@ collection route or add an `include_deleted` option to ordinary collections.
 Per user governance, FO-072 is complete and independently approved at final
 HEAD `a8ea862`. FO-073 does not alter FO-072 backend lifecycle behavior or that
 approval.
+
+## FO-074 cumulative QA note
+
+FO-074 revalidates soft deletion, restoration, deactivation/reactivation,
+dependency protection, audit updates, hierarchy revalidation, transaction
+locking, and identifier reservation across all eight resources. FO-072 remains
+complete and independently approved at `a8ea862`; the final QA corrections do
+not change its lifecycle contract.
