@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/master-data-management` (FO-071 independently approved; FO-072 complete and awaiting independent review; FO-073 and FO-074 pending)
+- `feature/master-data-management` (FO-071 and FO-072 independently approved; FO-073 complete; FO-074 pending)
 - Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Completed Modules
@@ -110,11 +110,10 @@
 
 ## Current Task
 
-- FO-072 complete after required validation on `feature/master-data-management` and awaiting Sol’s independent review. Public Master Data DELETE performs protected soft deletion; explicit scoped restore, dependency conflicts, audit updates, lifecycle-aware hierarchy validation, and User dependency parent locking cover the confirmed contract. Master Data 68, Accounts + Access Control 111, and full backend 579 passed; frontend 202, lint, TypeScript, and build passed. Cumulative PR #40 remains open, draft, and unmerged. No independent approval of FO-072 is claimed.
+- FO-073 Master Data frontend lifecycle and administrative UX alignment is complete. Shared Active/Inactive/Deleted screens, lifecycle actions, authenticated deleted collection discovery, tenant-aware forms, server pagination, structured errors, and dependent-cache invalidation cover all eight resources. Master Data 77, full backend 579, frontend 222, lint, TypeScript, production build, system check, and migration gates passed. Manual browser acceptance was not performed and FO-073 is not independently approved. Cumulative PR #40 remains open, draft, and unmerged.
 
 ## Next Milestone
 
-- FO-073 — Master Data Frontend Alignment
 - FO-074 — Master Data QA and Stabilization
 - FO-063 automatic Ticket closure remains reserved and deferred
 
@@ -123,8 +122,8 @@
 - Feature: Master Data Management hardening
 - Active branch: `feature/master-data-management`
 - FO-071: tenant isolation and write-path hardening (complete; independently approved by Sol on 2026-07-18 at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec` in the external project collaboration session)
-- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete after required validation; awaiting Sol’s independent review)
-- FO-073: frontend alignment (pending)
+- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete and independently approved at final HEAD `a8ea862` per user governance)
+- FO-073: frontend lifecycle and administrative UX alignment (complete; manual browser acceptance not performed; not independently approved)
 - FO-074: QA and stabilization (pending)
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
@@ -148,8 +147,9 @@
 
 ## Last Independently Reviewed Commit
 
-- FO-071 approved HEAD on `feature/master-data-management`: `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`
-- The approval was recorded in the external project collaboration session rather than as a GitHub review.
+- FO-072 approved final HEAD on `feature/master-data-management`: `a8ea862`
+- FO-071 remains independently approved at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`.
+- These approvals are recorded per user governance; FO-073 has no independent approval.
 
 ## Last Merge
 

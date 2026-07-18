@@ -49,17 +49,55 @@ function resolveApiUrl(
   return url.toString();
 }
 
-function normalizeErrorResponse(value: unknown): ApiErrorResponse | undefined {
+export function normalizeErrorResponse(value: unknown): ApiErrorResponse | undefined {
   if (typeof value !== "object" || value === null) {
     return undefined;
   }
 
-  if ("message" in value && typeof value.message === "string") {
-    return value as ApiErrorResponse;
+  const record = value as Record<string, unknown>;
+  const message =
+    typeof record.message === "string"
+      ? record.message
+      : typeof record.detail === "string"
+        ? record.detail
+        : undefined;
+  const dependencies = Array.isArray(record.dependencies)
+    ? record.dependencies.filter((item): item is string => typeof item === "string")
+    : undefined;
+  const hierarchyErrors =
+    typeof record.errors === "object" &&
+    record.errors !== null &&
+    !Array.isArray(record.errors) &&
+    Object.values(record.errors).every((item) => typeof item === "string")
+      ? (record.errors as Record<string, string>)
+      : undefined;
+  const nestedValidationErrors =
+    typeof record.errors === "object" &&
+    record.errors !== null &&
+    !Array.isArray(record.errors) &&
+    Object.values(record.errors).every(
+      (item) =>
+        Array.isArray(item) &&
+        item.every((message) => typeof message === "string"),
+    )
+      ? (record.errors as Record<string, string[]>)
+      : undefined;
+
+  if (message && (dependencies || hierarchyErrors || nestedValidationErrors)) {
+    return {
+      message,
+      ...(dependencies ? { dependencies } : {}),
+      ...(nestedValidationErrors ? { errors: nestedValidationErrors } : {}),
+      ...(hierarchyErrors ? { hierarchyErrors } : {}),
+    };
   }
 
-  if ("detail" in value && typeof value.detail === "string") {
-    return { message: value.detail };
+  if (typeof record.message === "string") {
+    return { message: record.message };
+  }
+
+  if (typeof record.detail === "string") {
+    return { message: record.detail };
   }
 
   const validationEntries = Object.entries(value).filter(([, entryValue]) => {

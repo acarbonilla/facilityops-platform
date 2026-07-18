@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { FormActions } from "@/components/common/form-actions";
-import { SwitchField } from "@/components/common/switch-field";
 import { tenantSchema } from "@/lib/validations/master-data";
 import type { TenantFormValues } from "@/types/master-data";
 
@@ -53,11 +52,6 @@ export function TenantForm({
         id="tenant-description"
         label="Description"
         textAreaProps={register("description")}
-      />
-      <SwitchField
-        error={getFieldErrorMessage(errors.is_active?.message)}
-        label="Active"
-        {...register("is_active")}
       />
       <FormActions
         cancelHref={cancelHref}

@@ -15,7 +15,7 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | In Progress | FO-071 independently approved at `6721ff0…`; FO-072 complete and awaiting Sol’s independent review on `feature/master-data-management`; FO-073–FO-074 pending; cumulative draft PR #40 open/unmerged |
+| Master Data | In Progress | FO-071 and FO-072 independently approved; FO-072 final HEAD `a8ea862`; FO-073 complete without manual browser acceptance or independent approval; FO-074 pending; cumulative draft PR #40 open/unmerged |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete on `feature/notifications`; draft PR #34 awaits Sol independent cumulative final review |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
@@ -194,7 +194,7 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: In Progress (FO-071 independently approved; FO-072 complete and awaiting independent review; FO-073–FO-074 pending)
+Status: In Progress (FO-071 and FO-072 independently approved; FO-073 complete; FO-074 pending)
 
 ### Purpose
 
@@ -210,20 +210,19 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - Services: `apply_query_param_filters`; Master Data-local tenant/lifecycle scope helpers; atomic soft-delete, restore, dependency, and hierarchy lifecycle service; Accounts user writes lock and lifecycle-validate Tenant/Organization dependencies
 - Permissions: `IsAuthenticated` plus `HasPermissionCode` through `MasterDataPermissionMixin`; read uses `settings.view`, write uses `settings.manage`
 - Admin: all master-data models are registered in `backend/apps/master_data/admin.py`
-- Tests: `backend/apps/master_data/tests.py` (68); final Accounts + Access
-  Control 111 and full backend 579 passed
+- Tests: `backend/apps/master_data/tests.py` (77 passed); full backend 579 passed
 
 ### Frontend
 
 - Routes: `/master-data`, resource list pages, resource create pages, and resource edit pages for all eight resources
 - Module Folder: `frontend/components/master-data`, `frontend/features/master-data`, `frontend/lib/master-data`
 - Pages: landing page plus per-resource read/create/edit pages
-- Components: `MasterDataLandingContent`, `MasterDataListScreen`, `TenantForm`, `OrganizationForm`, `DepartmentForm`, `BuildingForm`, `FloorForm`, `AreaForm`, `AssetTypeForm`, `AssetForm`, shared form page builders
+- Components: `MasterDataLandingContent`, shared `MasterDataLifecycleScreen`, lifecycle confirmation dialog, `TenantForm`, `OrganizationForm`, `DepartmentForm`, `BuildingForm`, `FloorForm`, `AreaForm`, `AssetTypeForm`, `AssetForm`, shared form page builders
 - Hooks: No dedicated master-data hooks; pages use TanStack Query directly
 - API Files: `services/api/master-data.ts`
 - Types: `types/master-data.ts`
 - RBAC Usage: resource routes depend on `settings.view`; create and edit actions depend on `settings.manage`
-- Tests: No dedicated frontend tests
+- Tests: frontend suite 222 passed, including 20 Master Data lifecycle helper tests; lint, TypeScript, and production build passed
 
 ### Notes
 
@@ -234,13 +233,19 @@ Maintains foundational reference data for tenants, organizations, departments, b
   `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`; the approval was recorded in the
   external project collaboration session rather than as a GitHub review.
 - FO-072 replaces hard DELETE with protected soft deletion, adds explicit
-  scoped restore actions, distinguishes deactivation from deletion, and
-  enforces dependency/active-parent lifecycle rules. It is complete after
-  required validation and awaits Sol’s independent review; no FO-072 approval
-  is claimed.
+  scoped restore actions, distinguishes
+  deactivation from deletion, and enforces dependency/active-parent lifecycle
+  rules. It is complete and independently approved at final HEAD `a8ea862` per
+  user governance.
+- FO-073 adds authenticated deleted collection discovery and aligns all eight
+  frontend resource screens with Active, Inactive, and Deleted views;
+  permission-aware lifecycle actions; tenant-bound forms; server pagination;
+  structured conflict errors; and cross-feature cache invalidation. Master Data
+  77, full backend 579, frontend 222, lint, TypeScript, build, and migration
+  gates passed. Manual browser acceptance was not performed and FO-073 is not
+  independently approved.
 - Organization Management remains a thin consumer of these APIs.
-- Frontend restore/lifecycle UX is deferred to FO-073; bulk actions and
-  import/export remain deferred.
+- Bulk actions, import/export, and server search remain deferred.
 
 ## Dashboard
 
@@ -390,7 +395,8 @@ Supports asset listing, detail, create, edit, and admin alias screens using the 
 ### Notes
 
 - This module covers FO-023.
-- Asset management still excludes inspections, bulk actions, delete, and reporting.
+- Asset management includes FO-073 lifecycle administration and still excludes
+  bulk actions and reporting-specific workflows.
 
 ## FM Ticketing
 
@@ -585,7 +591,8 @@ Supports asset listing, detail, create, edit, and admin alias screens using the 
 ### Notes
 
 - This module covers FO-023.
-- Asset management still excludes inspections, bulk actions, delete, and reporting.
+- Asset management includes FO-073 lifecycle administration and still excludes
+  bulk actions and reporting-specific workflows.
 
 ## FM Ticketing
 
@@ -844,7 +851,7 @@ Tracks the current verification footprint across backend and frontend so progres
 - Services: covered mainly through API and model tests, plus seed-command tests
 - Permissions: covered through endpoint authorization tests
 - Admin: not deeply tested
-- Tests: `backend/apps/*/tests.py`, `backend/apps/maintenance/tests/test_maintenance.py`, `backend/apps/inspection/tests/test_inspection.py`, `backend/pytest.ini` — 168 total tests
+- Tests: cumulative backend validation passed 579 tests, including focused app suites
 
 ### Frontend
 
@@ -856,12 +863,12 @@ Tracks the current verification footprint across backend and frontend so progres
 - API Files: no automated frontend API-client tests
 - Types: validated through TypeScript compilation
 - RBAC Usage: verified through implementation review and integrated behavior, not frontend test code
-- Tests: Inspection helper coverage is part of the 43-test frontend suite run via `npm run test` (Node.js built-in runner with `tsx`)
+- Tests: helper coverage is part of the 222-test frontend suite run via `npm test` (Node.js built-in runner with `tsx`)
 
 ### Notes
 
-- Backend testing is in good shape for the current stage (204 tests passing).
-- Frontend helper-level tests run via `npm run test` (43 tests). No component, integration, or browser harness exists yet.
+- Backend cumulative validation passed 579 tests.
+- Frontend helper-level tests passed 222 tests. No component, integration, or browser harness exists yet.
 
 ## Configuration
 

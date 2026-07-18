@@ -11,7 +11,9 @@ export interface MasterDataListParams
   asset_type?: string;
 }
 
-interface BaseMasterDataRecord {
+export type MasterDataLifecycle = "active" | "inactive" | "deleted";
+
+export interface BaseMasterDataRecord {
   id: string;
   name: string;
   code: string;

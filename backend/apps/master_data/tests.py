@@ -579,6 +579,203 @@ class MasterDataTenantIsolationApiTests(APITestCase):
         response = self.client.get(reverse("organization-list"))
         self.assertEqual(response.data["count"], 0)
 
+    def test_deleted_endpoints_require_authentication(self):
+        response = self.client.get(reverse("organization-deleted"))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_deleted_endpoints_require_view_not_manage_permission(self):
+        no_permission_user = self._user(
+            "deleted-no-permission@example.com",
+            tenant=self.tenant_a,
+        )
+        self._authenticate(no_permission_user)
+        denied_response = self.client.get(reverse("organization-deleted"))
+
+        self._authenticate(self.read_only_user)
+        allowed_response = self.client.get(reverse("organization-deleted"))
+
+        self.assertEqual(
+            denied_response.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(allowed_response.status_code, status.HTTP_200_OK)
+
+    def test_deleted_endpoint_is_available_for_each_tenant_scoped_viewset(self):
+        cases = (
+            ("tenant-deleted", Tenant, self.tenant_a, self.tenant_b),
+            (
+                "organization-deleted",
+                Organization,
+                self.organization_a,
+                self.organization_b,
+            ),
+            (
+                "department-deleted",
+                Department,
+                self.department_a,
+                self.department_b,
+            ),
+            ("building-deleted", Building, self.building_a, self.building_b),
+            ("floor-deleted", Floor, self.floor_a, self.floor_b),
+            ("area-deleted", Area, self.area_a, self.area_b),
+            (
+                "asset-type-deleted",
+                AssetType,
+                self.asset_type_a,
+                self.asset_type_b,
+            ),
+            ("asset-deleted", Asset, self.asset_a, self.asset_b),
+        )
+        self._authenticate(self.read_only_user)
+
+        for route_name, model, own_instance, other_instance in cases:
+            with self.subTest(route_name=route_name):
+                model.objects.filter(
+                    id__in=(own_instance.id, other_instance.id)
+                ).update(is_deleted=True)
+                response = self.client.get(reverse(route_name))
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(response.data["count"], 1)
+                self.assertEqual(
+                    self._results(response)[0]["id"],
+                    str(own_instance.id),
+                )
+
+    def test_deleted_endpoint_fails_closed_for_tenantless_user(self):
+        Organization.objects.filter(id=self.organization_a.id).update(
+            is_deleted=True
+        )
+        self._authenticate(self.tenantless_user)
+
+        response = self.client.get(reverse("organization-deleted"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_system_admin_deleted_endpoint_has_global_scope(self):
+        Organization.objects.filter(
+            id__in=(self.organization_a.id, self.organization_b.id)
+        ).update(is_deleted=True)
+        system_role = self._role_with_permissions(
+            "Deleted System Admin",
+            "system_admin",
+            self.view_permission,
+        )
+        system_user = self._user(
+            "deleted-system-admin@example.com",
+            role=system_role,
+        )
+        self._authenticate(system_user)
+
+        response = self.client.get(reverse("organization-deleted"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual(
+            {result["id"] for result in self._results(response)},
+            {str(self.organization_a.id), str(self.organization_b.id)},
+        )
+
+    def test_deleted_endpoint_returns_only_deleted_and_is_paginated(self):
+        deleted_ids = []
+        for index in range(21):
+            organization = Organization.objects.create(
+                tenant=self.tenant_a,
+                name=f"Deleted Organization {index:02d}",
+                code=f"deleted-org-{index:02d}",
+                is_deleted=True,
+            )
+            deleted_ids.append(str(organization.id))
+        self._authenticate(self.read_only_user)
+
+        response = self.client.get(
+            reverse("organization-deleted"),
+            {"page_size": 5},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 21)
+        self.assertEqual(len(self._results(response)), 5)
+        self.assertIsNotNone(response.data["next"])
+        self.assertTrue(
+            {result["id"] for result in self._results(response)}.issubset(
+                set(deleted_ids)
+            )
+        )
+
+    def test_deleted_endpoint_applies_only_safe_existing_filters(self):
+        Organization.objects.filter(
+            id__in=(self.organization_a.id, self.organization_b.id)
+        ).update(is_deleted=True)
+        self.organization_a.is_active = False
+        self.organization_a.save(update_fields=["is_active"])
+        self._authenticate(self.read_only_user)
+
+        filtered_response = self.client.get(
+            reverse("organization-deleted"),
+            {
+                "tenant": str(self.tenant_a.id),
+                "is_active": "False",
+                "include_deleted": "False",
+                "code": self.organization_b.code,
+            },
+        )
+        cross_tenant_response = self.client.get(
+            reverse("organization-deleted"),
+            {"tenant": str(self.tenant_b.id)},
+        )
+
+        self.assertEqual(filtered_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(filtered_response.data["count"], 1)
+        self.assertEqual(
+            self._results(filtered_response)[0]["id"],
+            str(self.organization_a.id),
+        )
+        self.assertEqual(cross_tenant_response.data["count"], 0)
+
+    def test_deleted_discovery_does_not_mutate_or_notify(self):
+        Organization.objects.filter(id=self.organization_a.id).update(
+            is_deleted=True
+        )
+        before = Organization.objects.filter(
+            id=self.organization_a.id
+        ).values(
+            "is_deleted",
+            "deleted_at",
+            "deleted_by",
+            "updated_at",
+        ).get()
+        notification_count = Notification.objects.count()
+        self._authenticate(self.read_only_user)
+
+        response = self.client.get(reverse("organization-deleted"))
+
+        after = Organization.objects.filter(id=self.organization_a.id).values(
+            "is_deleted",
+            "deleted_at",
+            "deleted_by",
+            "updated_at",
+        ).get()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(after, before)
+        self.assertEqual(Notification.objects.count(), notification_count)
+
+    def test_include_deleted_cannot_change_ordinary_list_visibility(self):
+        Organization.objects.filter(id=self.organization_a.id).update(
+            is_deleted=True
+        )
+        self._authenticate(self.read_only_user)
+
+        response = self.client.get(
+            reverse("organization-list"),
+            {"include_deleted": "True"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
     def test_tenant_bound_create_binds_to_own_tenant(self):
         self._authenticate(self.tenant_user)
         payload = self._organization_payload()

@@ -321,3 +321,15 @@ approval applies only to FO-071.
 
 FO-072 continues on `feature/master-data-management` in cumulative draft PR
 #40. The PR remains open, draft, unmerged, and based on `main`.
+
+## FO-073 reconciliation note
+
+FO-073 adds authenticated, tenant-scoped, paginated deleted collection
+discovery through `GET /api/master-data/{resource}/deleted/` so the frontend
+can administer the FO-072 lifecycle. FO-072 added the restore action and
+deleted-row lifecycle support, but its approved HEAD did not expose this
+collection route or add an `include_deleted` option to ordinary collections.
+
+Per user governance, FO-072 is complete and independently approved at final
+HEAD `a8ea862`. FO-073 does not alter FO-072 backend lifecycle behavior or that
+approval.

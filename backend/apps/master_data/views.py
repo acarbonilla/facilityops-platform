@@ -51,7 +51,7 @@ class MasterDataPermissionMixin:
     tenant_model = False
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "deleted"):
             self.required_permission = self.read_permission
         else:
             self.required_permission = self.write_permission
@@ -111,6 +111,18 @@ class MasterDataPermissionMixin:
 
     def check_restore_permission(self):
         return None
+
+    @action(detail=False, methods=["get"], url_path="deleted")
+    def deleted(self, request):
+        queryset = self.get_lifecycle_queryset().filter(is_deleted=True)
+        queryset = apply_query_param_filters(
+            queryset,
+            request.query_params,
+            self.filter_fields,
+        )
+        page = self.paginate_queryset(queryset)
+        serializer = self.get_serializer(page, many=True)
+        return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=["post"], url_path="restore")
     def restore(self, request, pk=None):

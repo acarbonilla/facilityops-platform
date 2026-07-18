@@ -4,18 +4,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { FormActions } from "@/components/common/form-actions";
-import { SelectField } from "@/components/common/select-field";
-import { SwitchField } from "@/components/common/switch-field";
 import { organizationSchema } from "@/lib/validations/master-data";
 import type { OrganizationFormValues, Tenant } from "@/types/master-data";
 
 import {
-  buildRecordOptions,
   getDefaultTenantValues,
   getFieldErrorMessage,
   MasterDataFormProps,
+  TenantSelectField,
   TextAreaField,
   TextInputField,
+  useTenantDefault,
 } from "./shared";
 
 export interface OrganizationFormProps
@@ -31,6 +30,7 @@ export function OrganizationForm({
   submitLabel,
   tenants,
 }: OrganizationFormProps) {
+  const defaultTenant = useTenantDefault(initialValues?.tenant);
   const {
     formState: { errors },
     handleSubmit,
@@ -39,7 +39,7 @@ export function OrganizationForm({
     resolver: zodResolver(organizationSchema),
     defaultValues: {
       ...getDefaultTenantValues(initialValues),
-      tenant: initialValues?.tenant ?? "",
+      tenant: defaultTenant,
     },
   });
 
@@ -47,11 +47,11 @@ export function OrganizationForm({
     <form className="space-y-5" onSubmit={handleSubmit(async (values) => {
       await onSubmit(values);
     })}>
-      <SelectField
+      <TenantSelectField
+        currentTenantId={initialValues?.tenant}
         error={getFieldErrorMessage(errors.tenant?.message)}
-        label="Tenant"
-        options={buildRecordOptions(tenants)}
-        {...register("tenant")}
+        inputProps={register("tenant")}
+        tenants={tenants}
       />
       <TextInputField
         error={getFieldErrorMessage(errors.name?.message)}
@@ -70,11 +70,6 @@ export function OrganizationForm({
         id="organization-description"
         label="Description"
         textAreaProps={register("description")}
-      />
-      <SwitchField
-        error={getFieldErrorMessage(errors.is_active?.message)}
-        label="Active"
-        {...register("is_active")}
       />
       <FormActions cancelHref={cancelHref} isSubmitting={isSubmitting} submitLabel={submitLabel} />
     </form>

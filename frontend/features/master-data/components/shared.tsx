@@ -1,6 +1,11 @@
 "use client";
 
+import type { SelectHTMLAttributes } from "react";
+
 import { FormField } from "@/components/common/form-field";
+import { SelectField } from "@/components/common/select-field";
+import { useAuth } from "@/hooks/use-auth";
+import { getTenantOptionState } from "@/lib/master-data/lifecycle";
 import type {
   Area,
   AssetType,
@@ -22,13 +27,71 @@ export function getFieldErrorMessage(message?: string) {
   return message;
 }
 
-export function buildRecordOptions<T extends { id: string; name: string }>(
+export function buildRecordOptions<T extends { id: string; name: string; is_active: boolean }>(
   records: T[],
+  currentId?: string | null,
 ) {
-  return records.map((record) => ({
-    value: record.id,
-    label: record.name,
-  }));
+  return records
+    .filter((record) => record.is_active || record.id === currentId)
+    .map((record) => ({
+      value: record.id,
+      label: record.name,
+    }));
+}
+
+export function TenantSelectField({
+  currentTenantId,
+  error,
+  inputProps,
+  tenants,
+}: {
+  currentTenantId?: string | null;
+  error?: string;
+  inputProps: SelectHTMLAttributes<HTMLSelectElement>;
+  tenants: Tenant[];
+}) {
+  const { user } = useAuth();
+  const tenantState = getTenantOptionState(tenants, user?.tenant);
+  const options = buildRecordOptions(
+    tenantState.records,
+    currentTenantId ?? user?.tenant,
+  );
+  const onChange = inputProps.onChange;
+
+  return (
+    <SelectField
+      {...inputProps}
+      aria-disabled={tenantState.locked}
+      description={tenantState.description}
+      error={error}
+      label="Tenant"
+      onChange={(event) => {
+        if (tenantState.locked && user?.tenant) {
+          event.currentTarget.value = user.tenant;
+        }
+        onChange?.(event);
+      }}
+      onKeyDown={(event) => {
+        if (
+          tenantState.locked &&
+          !["Tab", "Shift", "Escape"].includes(event.key)
+        ) {
+          event.preventDefault();
+        }
+        inputProps.onKeyDown?.(event);
+      }}
+      onMouseDown={(event) => {
+        if (tenantState.locked) event.preventDefault();
+        inputProps.onMouseDown?.(event);
+      }}
+      options={options}
+    />
+  );
+}
+
+export function useTenantDefault(initialTenant?: string | null): string {
+  const { user } = useAuth();
+  return initialTenant ?? user?.tenant ?? "";
 }
 
 export function filterOrganizationsByTenant(

@@ -1,4 +1,4 @@
-import type { MasterDataListParams, MasterDataResourceKey } from "@/types/master-data";
+import type { MasterDataLifecycle, MasterDataListParams, MasterDataResourceKey } from "@/types/master-data";
 import type { PermissionListParams, RbacListParams } from "@/types/rbac";
 import type { UserDirectoryParams, UserListParams } from "@/types/users";
 import type { FmTicketListParams } from "@/types/fm-tickets";
@@ -62,8 +62,17 @@ export const masterDataQueryKeys = {
   all: ["master-data"] as const,
   resource: (resource: MasterDataResourceKey) =>
     ["master-data", resource] as const,
+  options: (resource: MasterDataResourceKey, sessionScope: string) =>
+    ["master-data", resource, "options", sessionScope] as const,
   list: (resource: MasterDataResourceKey, params?: MasterDataListParams) =>
     ["master-data", resource, normalizeParams(params)] as const,
+  lifecycleList: (
+    resource: MasterDataResourceKey,
+    lifecycle: MasterDataLifecycle,
+    params?: MasterDataListParams,
+    sessionScope = "anonymous",
+  ) =>
+    ["master-data", resource, "lifecycle", lifecycle, normalizeParams(params), sessionScope] as const,
   detail: (resource: MasterDataResourceKey, id: string) =>
     ["master-data", resource, id] as const,
 };
