@@ -190,3 +190,12 @@ No product test failed. A subsequent clean canonical run passed all 557 tests.
 ## Implementation commit
 
 `f968756a5a6e2465398115be4448a1d64d088c4e`
+
+## FO-072 reconciliation note
+
+FO-072 completes the lifecycle work deferred above. Public Master Data DELETE
+now performs protected soft deletion; scoped restore actions, dependency
+conflicts, audit updates, and active-hierarchy validation are implemented
+without changing FO-071 tenant scope or `settings.view` / `settings.manage`.
+FO-071 remains complete and approved; FO-072 does not widen global access or
+alter its backend-authoritative write-path contract.

@@ -1,10 +1,18 @@
-from rest_framework import viewsets
+from django.db import transaction
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from apps.access_control.permissions import HasPermissionCode
 from common.pagination import StandardResultsSetPagination
 
 from .filters import apply_query_param_filters
+from .lifecycle import (
+    require_safe_deactivation,
+    restore_master_data,
+    soft_delete_master_data,
+)
 from .models import (
     Area,
     Asset,
@@ -27,7 +35,9 @@ from .serializers import (
 )
 from .tenant_scope import (
     require_global_master_data_scope,
+    scope_master_data_lifecycle_queryset,
     scope_master_data_queryset,
+    scope_tenant_lifecycle_queryset,
     scope_tenant_queryset,
 )
 
@@ -53,10 +63,66 @@ class MasterDataPermissionMixin:
             queryset = scope_tenant_queryset(queryset, self.request.user)
         else:
             queryset = scope_master_data_queryset(queryset, self.request.user)
-        return apply_query_param_filters(
+        queryset = apply_query_param_filters(
             queryset,
             self.request.query_params,
             self.filter_fields,
+        )
+        if self.action in ("update", "partial_update"):
+            queryset = queryset.select_for_update(of=("self",))
+        return queryset
+
+    def get_lifecycle_queryset(self):
+        queryset = self.queryset.all()
+        if self.tenant_model:
+            return scope_tenant_lifecycle_queryset(queryset, self.request.user)
+        return scope_master_data_lifecycle_queryset(queryset, self.request.user)
+
+    def perform_create(self, serializer):
+        actor_id = self.request.user.id
+        serializer.save(created_by=actor_id, updated_by=actor_id)
+
+    @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        if (
+            instance.is_active
+            and serializer.validated_data.get("is_active") is False
+        ):
+            require_safe_deactivation(
+                self.get_lifecycle_queryset(),
+                pk=instance.pk,
+            )
+        serializer.save(updated_by=self.request.user.id)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    def perform_destroy(self, instance):
+        soft_delete_master_data(
+            self.get_lifecycle_queryset(),
+            pk=instance.pk,
+            actor=self.request.user,
+        )
+
+    def check_restore_permission(self):
+        return None
+
+    @action(detail=True, methods=["post"], url_path="restore")
+    def restore(self, request, pk=None):
+        self.check_restore_permission()
+        instance = restore_master_data(
+            self.get_lifecycle_queryset(),
+            pk=pk,
+            actor=request.user,
+        )
+        return Response(
+            self.get_serializer(instance).data,
+            status=status.HTTP_200_OK,
         )
 
 
@@ -71,7 +137,7 @@ class TenantViewSet(MasterDataPermissionMixin, viewsets.ModelViewSet):
             self.request.user,
             operation="create",
         )
-        serializer.save()
+        super().perform_create(serializer)
 
     def perform_destroy(self, instance):
         require_global_master_data_scope(
@@ -79,6 +145,23 @@ class TenantViewSet(MasterDataPermissionMixin, viewsets.ModelViewSet):
             operation="delete",
         )
         super().perform_destroy(instance)
+
+    def perform_update(self, serializer):
+        if (
+            not serializer.instance.is_active
+            and serializer.validated_data.get("is_active") is True
+        ):
+            require_global_master_data_scope(
+                self.request.user,
+                operation="reactivate",
+            )
+        super().perform_update(serializer)
+
+    def check_restore_permission(self):
+        require_global_master_data_scope(
+            self.request.user,
+            operation="restore",
+        )
 
 
 class OrganizationViewSet(MasterDataPermissionMixin, viewsets.ModelViewSet):

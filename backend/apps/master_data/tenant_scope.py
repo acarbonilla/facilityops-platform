@@ -14,7 +14,21 @@ def has_global_master_data_scope(user):
 
 def scope_master_data_queryset(queryset, user, *, tenant_field="tenant_id"):
     """Apply backend-authoritative tenant scope to a child entity queryset."""
-    queryset = queryset.filter(is_deleted=False)
+    queryset = scope_master_data_lifecycle_queryset(
+        queryset,
+        user,
+        tenant_field=tenant_field,
+    )
+    return queryset.filter(is_deleted=False)
+
+
+def scope_master_data_lifecycle_queryset(
+    queryset,
+    user,
+    *,
+    tenant_field="tenant_id",
+):
+    """Apply tenant scope without hiding lifecycle states."""
     if has_global_master_data_scope(user):
         return queryset
 
@@ -26,7 +40,12 @@ def scope_master_data_queryset(queryset, user, *, tenant_field="tenant_id"):
 
 def scope_tenant_queryset(queryset, user):
     """Scope Tenant rows to own tenant, global scope, or fail-closed none."""
-    queryset = queryset.filter(is_deleted=False)
+    queryset = scope_tenant_lifecycle_queryset(queryset, user)
+    return queryset.filter(is_deleted=False)
+
+
+def scope_tenant_lifecycle_queryset(queryset, user):
+    """Scope Tenant rows without hiding lifecycle states."""
     if has_global_master_data_scope(user):
         return queryset
 

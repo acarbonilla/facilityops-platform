@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `feature/master-data-management` (FO-071 complete; FO-072 through FO-074 pending)
+- `feature/master-data-management` (FO-071 approved; FO-072 complete; FO-073 and FO-074 pending)
 - Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Completed Modules
@@ -110,11 +110,10 @@
 
 ## Current Task
 
-- FO-071 complete on `feature/master-data-management`. Critical global Master Data querysets and client-controlled write paths are now backend tenant-scoped. Master Data tests increased from 19 to 48; full backend 557 and frontend 202 pass. Cumulative draft PR remains open/unmerged.
+- FO-072 complete on `feature/master-data-management`. Public Master Data DELETE now performs protected soft deletion; explicit scoped restore, dependency conflicts, audit updates, and lifecycle-aware hierarchy validation cover all eight resources. Master Data 68 and full backend 577 pass; frontend 202, lint, TypeScript, and build pass. Cumulative PR #40 remains draft and unmerged.
 
 ## Next Milestone
 
-- FO-072 — Master Data Soft-Delete, Deactivation Lifecycle, and Hierarchy Integrity
 - FO-073 — Master Data Frontend Alignment
 - FO-074 — Master Data QA and Stabilization
 - FO-063 automatic Ticket closure remains reserved and deferred
@@ -123,8 +122,8 @@
 
 - Feature: Master Data Management hardening
 - Active branch: `feature/master-data-management`
-- FO-071: tenant isolation and write-path hardening (complete)
-- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (pending)
+- FO-071: tenant isolation and write-path hardening (complete and approved)
+- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete)
 - FO-073: frontend alignment (pending)
 - FO-074: QA and stabilization (pending)
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope

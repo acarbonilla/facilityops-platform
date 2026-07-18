@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.access_control.models import Permission, Role, RolePermission, UserRole
+from apps.notifications.models import Notification
 
 from .models import (
     Area,
@@ -825,3 +826,776 @@ class MasterDataTenantIsolationApiTests(APITestCase):
             response = self.client.get(reverse("asset-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertLessEqual(len(queries), 12)
+
+
+class MasterDataLifecycleApiTests(APITestCase):
+    def setUp(self):
+        self.client.default_format = "json"
+        self.tenant = Tenant.objects.create(name="Tenant", code="tenant")
+        self.other_tenant = Tenant.objects.create(
+            name="Other Tenant",
+            code="other-tenant",
+        )
+        self.organization = Organization.objects.create(
+            tenant=self.tenant,
+            name="Organization",
+            code="organization",
+        )
+        self.other_organization = Organization.objects.create(
+            tenant=self.other_tenant,
+            name="Other Organization",
+            code="other-organization",
+        )
+        self.department = Department.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            name="Department",
+            code="department",
+        )
+        self.building = Building.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            name="Building",
+            code="building",
+        )
+        self.floor = Floor.objects.create(
+            tenant=self.tenant,
+            building=self.building,
+            name="Floor",
+            code="floor",
+        )
+        self.area = Area.objects.create(
+            tenant=self.tenant,
+            building=self.building,
+            floor=self.floor,
+            name="Area",
+            code="area",
+        )
+        self.asset_type = AssetType.objects.create(
+            tenant=self.tenant,
+            name="Asset Type",
+            code="asset-type",
+        )
+        self.asset = Asset.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            building=self.building,
+            floor=self.floor,
+            area=self.area,
+            asset_type=self.asset_type,
+            name="Asset",
+            code="asset",
+        )
+
+        view_permission = Permission.objects.create(
+            name="View Settings",
+            code="settings.view",
+            module="settings",
+            action="view",
+        )
+        manage_permission = Permission.objects.create(
+            name="Manage Settings",
+            code="settings.manage",
+            module="settings",
+            action="manage",
+        )
+        manager_role = Role.objects.create(
+            name="Master Data Manager",
+            code="master-data-manager",
+        )
+        viewer_role = Role.objects.create(
+            name="Master Data Viewer",
+            code="master-data-viewer",
+        )
+        for permission in (view_permission, manage_permission):
+            RolePermission.objects.create(
+                role=manager_role,
+                permission=permission,
+            )
+        RolePermission.objects.create(
+            role=viewer_role,
+            permission=view_permission,
+        )
+        self.manager = self._user(
+            "manager@example.com",
+            tenant=self.tenant,
+            role=manager_role,
+            organization=self.organization,
+        )
+        self.other_manager = self._user(
+            "other-manager@example.com",
+            tenant=self.other_tenant,
+            role=manager_role,
+            organization=self.other_organization,
+        )
+        self.viewer = self._user(
+            "viewer@example.com",
+            tenant=self.tenant,
+            role=viewer_role,
+        )
+        self.tenantless_manager = self._user(
+            "tenantless@example.com",
+            tenant=None,
+            role=manager_role,
+        )
+        self.staff_manager = self._user(
+            "staff@example.com",
+            tenant=self.tenant,
+            role=manager_role,
+            is_staff=True,
+        )
+        self.superuser = User.objects.create_superuser(
+            email="superuser@example.com",
+            password="Password123!",
+        )
+
+    def _user(
+        self,
+        email,
+        *,
+        tenant,
+        role,
+        organization=None,
+        is_staff=False,
+    ):
+        user = User.objects.create_user(
+            email=email,
+            password="Password123!",
+            tenant=tenant,
+            organization=organization,
+            is_staff=is_staff,
+        )
+        UserRole.objects.create(user=user, role=role)
+        return user
+
+    def _authenticate(self, user=None):
+        self.client.force_authenticate(user or self.manager)
+
+    def _soft_mark_deleted(self, instance, *, actor=None):
+        instance.is_deleted = True
+        instance.is_active = False
+        instance.deleted_at = instance.updated_at
+        instance.deleted_by = (actor or self.manager).id
+        instance.save(
+            update_fields=(
+                "is_deleted",
+                "is_active",
+                "deleted_at",
+                "deleted_by",
+                "updated_at",
+            )
+        )
+
+    def test_delete_soft_deletes_leaf_and_hides_it(self):
+        self._authenticate()
+        detail_url = reverse("asset-detail", args=[self.asset.id])
+
+        response = self.client.delete(detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.asset.refresh_from_db()
+        self.assertTrue(self.asset.is_deleted)
+        self.assertFalse(self.asset.is_active)
+        self.assertIsNotNone(self.asset.deleted_at)
+        self.assertEqual(self.asset.deleted_by, self.manager.id)
+        self.assertEqual(self.asset.updated_by, self.manager.id)
+        self.assertTrue(Asset.objects.filter(id=self.asset.id).exists())
+        self.assertEqual(self.client.get(detail_url).status_code, 404)
+        self.assertEqual(self.client.delete(detail_url).status_code, 404)
+        list_response = self.client.get(reverse("asset-list"))
+        self.assertEqual(list_response.data["count"], 0)
+
+    def test_soft_delete_is_available_for_all_eight_resources(self):
+        isolated_tenant = Tenant.objects.create(
+            name="Isolated Tenant",
+            code="isolated-tenant",
+        )
+        isolated_organization = Organization.objects.create(
+            tenant=self.tenant,
+            name="Isolated Organization",
+            code="isolated-organization",
+        )
+        isolated_building = Building.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            name="Isolated Building",
+            code="isolated-building",
+        )
+        isolated_floor = Floor.objects.create(
+            tenant=self.tenant,
+            building=self.building,
+            name="Isolated Floor",
+            code="isolated-floor",
+        )
+        isolated_area = Area.objects.create(
+            tenant=self.tenant,
+            building=self.building,
+            floor=self.floor,
+            name="Isolated Area",
+            code="isolated-area",
+        )
+        isolated_asset_type = AssetType.objects.create(
+            tenant=self.tenant,
+            name="Isolated Asset Type",
+            code="isolated-asset-type",
+        )
+        cases = (
+            ("tenant", isolated_tenant, self.superuser),
+            ("organization", isolated_organization, self.manager),
+            ("department", self.department, self.manager),
+            ("building", isolated_building, self.manager),
+            ("floor", isolated_floor, self.manager),
+            ("area", isolated_area, self.manager),
+            ("asset-type", isolated_asset_type, self.manager),
+            ("asset", self.asset, self.manager),
+        )
+        for route_name, instance, actor in cases:
+            with self.subTest(route_name=route_name):
+                self._authenticate(actor)
+                response = self.client.delete(
+                    reverse(f"{route_name}-detail", args=[instance.id])
+                )
+                self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+                instance.refresh_from_db()
+                self.assertTrue(instance.is_deleted)
+                self.assertFalse(instance.is_active)
+
+    def test_delete_permissions_and_tenant_scope_fail_closed(self):
+        detail_url = reverse("asset-detail", args=[self.asset.id])
+        for actor, expected_status in (
+            (self.viewer, status.HTTP_403_FORBIDDEN),
+            (self.other_manager, status.HTTP_404_NOT_FOUND),
+            (self.tenantless_manager, status.HTTP_404_NOT_FOUND),
+        ):
+            with self.subTest(actor=actor.email):
+                self._authenticate(actor)
+                response = self.client.delete(detail_url)
+                self.assertEqual(response.status_code, expected_status)
+                self.asset.refresh_from_db()
+                self.assertFalse(self.asset.is_deleted)
+
+    def test_staff_alone_does_not_receive_global_delete_scope(self):
+        other_asset_type = AssetType.objects.create(
+            tenant=self.other_tenant,
+            name="Other Asset Type",
+            code="other-asset-type",
+        )
+        self._authenticate(self.staff_manager)
+        response = self.client.delete(
+            reverse("asset-type-detail", args=[other_asset_type.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_system_admin_global_scope_requires_active_assignment(self):
+        system_role = Role.objects.create(
+            name="System Administrator",
+            code="system_admin",
+        )
+        for permission in Permission.objects.all():
+            RolePermission.objects.create(
+                role=system_role,
+                permission=permission,
+            )
+        system_user = self._user(
+            "system-admin@example.com",
+            tenant=None,
+            role=system_role,
+        )
+        self._soft_mark_deleted(self.asset)
+        restore_url = reverse("asset-restore", args=[self.asset.id])
+        self._authenticate(system_user)
+        allowed = self.client.post(restore_url)
+        self.assertEqual(allowed.status_code, status.HTTP_200_OK)
+
+        self._soft_mark_deleted(self.asset)
+        inactive_assignment_user = self._user(
+            "inactive-system-admin@example.com",
+            tenant=self.other_tenant,
+            role=self.manager.user_roles.first().role,
+        )
+        UserRole.objects.create(
+            user=inactive_assignment_user,
+            role=system_role,
+            is_active=False,
+        )
+        self._authenticate(inactive_assignment_user)
+        denied = self.client.post(restore_url)
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_tenant_delete_is_global_only(self):
+        isolated_tenant = Tenant.objects.create(
+            name="Isolated Tenant",
+            code="isolated-tenant",
+        )
+        self._authenticate()
+        denied = self.client.delete(
+            reverse("tenant-detail", args=[self.tenant.id])
+        )
+        self._authenticate(self.superuser)
+        allowed = self.client.delete(
+            reverse("tenant-detail", args=[isolated_tenant.id])
+        )
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(allowed.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_restore_returns_resource_in_inactive_visible_state(self):
+        self._soft_mark_deleted(self.asset)
+        self._authenticate()
+
+        response = self.client.post(
+            reverse("asset-restore", args=[self.asset.id])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.asset.refresh_from_db()
+        self.assertFalse(self.asset.is_deleted)
+        self.assertFalse(self.asset.is_active)
+        self.assertIsNone(self.asset.deleted_at)
+        self.assertIsNone(self.asset.deleted_by)
+        self.assertEqual(self.asset.updated_by, self.manager.id)
+        self.assertEqual(response.data["id"], str(self.asset.id))
+        self.assertFalse(response.data["is_active"])
+        self.assertEqual(
+            self.client.get(reverse("asset-list")).data["count"],
+            1,
+        )
+
+    def test_restore_is_available_for_all_eight_resources(self):
+        isolated_tenant = Tenant.objects.create(
+            name="Isolated Tenant",
+            code="isolated-tenant",
+        )
+        isolated_organization = Organization.objects.create(
+            tenant=self.tenant,
+            name="Isolated Organization",
+            code="isolated-organization",
+        )
+        isolated_building = Building.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            name="Isolated Building",
+            code="isolated-building",
+        )
+        isolated_floor = Floor.objects.create(
+            tenant=self.tenant,
+            building=self.building,
+            name="Isolated Floor",
+            code="isolated-floor",
+        )
+        isolated_area = Area.objects.create(
+            tenant=self.tenant,
+            building=self.building,
+            floor=self.floor,
+            name="Isolated Area",
+            code="isolated-area",
+        )
+        isolated_asset_type = AssetType.objects.create(
+            tenant=self.tenant,
+            name="Isolated Asset Type",
+            code="isolated-asset-type",
+        )
+        cases = (
+            ("tenant", isolated_tenant, self.superuser),
+            ("organization", isolated_organization, self.manager),
+            ("department", self.department, self.manager),
+            ("building", isolated_building, self.manager),
+            ("floor", isolated_floor, self.manager),
+            ("area", isolated_area, self.manager),
+            ("asset-type", isolated_asset_type, self.manager),
+            ("asset", self.asset, self.manager),
+        )
+        for route_name, instance, actor in cases:
+            with self.subTest(route_name=route_name):
+                self._soft_mark_deleted(instance, actor=actor)
+                self._authenticate(actor)
+                response = self.client.post(
+                    reverse(f"{route_name}-restore", args=[instance.id])
+                )
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                instance.refresh_from_db()
+                self.assertFalse(instance.is_deleted)
+                self.assertFalse(instance.is_active)
+
+    def test_restore_permissions_scope_and_conflict(self):
+        self._soft_mark_deleted(self.asset)
+        restore_url = reverse("asset-restore", args=[self.asset.id])
+        for actor, expected_status in (
+            (self.viewer, status.HTTP_403_FORBIDDEN),
+            (self.other_manager, status.HTTP_404_NOT_FOUND),
+            (self.tenantless_manager, status.HTTP_404_NOT_FOUND),
+        ):
+            with self.subTest(actor=actor.email):
+                self._authenticate(actor)
+                response = self.client.post(restore_url)
+                self.assertEqual(response.status_code, expected_status)
+                self.asset.refresh_from_db()
+                self.assertTrue(self.asset.is_deleted)
+
+        self.asset.is_deleted = False
+        self.asset.save(update_fields=("is_deleted", "updated_at"))
+        self._authenticate()
+        response = self.client.post(restore_url)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("detail", response.data)
+
+    def test_tenant_restore_and_reactivation_are_global_only(self):
+        isolated_tenant = Tenant.objects.create(
+            name="Isolated Tenant",
+            code="isolated-tenant",
+            is_active=False,
+            is_deleted=True,
+        )
+        restore_url = reverse("tenant-restore", args=[isolated_tenant.id])
+        self._authenticate()
+        denied_restore = self.client.post(restore_url)
+        self._authenticate(self.superuser)
+        allowed_restore = self.client.post(restore_url)
+        self.assertEqual(denied_restore.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(allowed_restore.status_code, status.HTTP_200_OK)
+
+        isolated_tenant.refresh_from_db()
+        self.assertFalse(isolated_tenant.is_active)
+        tenant_user = self._user(
+            "isolated@example.com",
+            tenant=isolated_tenant,
+            role=self.manager.user_roles.first().role,
+        )
+        self._authenticate(tenant_user)
+        denied_reactivation = self.client.patch(
+            reverse("tenant-detail", args=[isolated_tenant.id]),
+            {"is_active": True},
+        )
+        self._authenticate(self.superuser)
+        allowed_reactivation = self.client.patch(
+            reverse("tenant-detail", args=[isolated_tenant.id]),
+            {"is_active": True},
+        )
+        self.assertEqual(
+            denied_reactivation.status_code,
+            status.HTTP_403_FORBIDDEN,
+        )
+        self.assertEqual(allowed_reactivation.status_code, status.HTTP_200_OK)
+
+    def test_restore_rejects_inactive_deleted_and_mismatched_parents(self):
+        self._soft_mark_deleted(self.asset)
+        restore_url = reverse("asset-restore", args=[self.asset.id])
+        self._authenticate()
+
+        self.area.is_active = False
+        self.area.save(update_fields=("is_active", "updated_at"))
+        inactive_response = self.client.post(restore_url)
+        self.assertEqual(inactive_response.status_code, status.HTTP_409_CONFLICT)
+        self.asset.refresh_from_db()
+        self.assertTrue(self.asset.is_deleted)
+
+        self.area.is_active = True
+        self.area.is_deleted = True
+        self.area.save(
+            update_fields=("is_active", "is_deleted", "updated_at")
+        )
+        deleted_response = self.client.post(restore_url)
+        self.assertEqual(deleted_response.status_code, status.HTTP_409_CONFLICT)
+        self.asset.refresh_from_db()
+        self.assertTrue(self.asset.is_deleted)
+
+        self.area.is_deleted = False
+        self.area.save(update_fields=("is_deleted", "updated_at"))
+        other_organization = Organization.objects.create(
+            tenant=self.tenant,
+            name="Another Organization",
+            code="another-organization",
+        )
+        other_building = Building.objects.create(
+            tenant=self.tenant,
+            organization=other_organization,
+            name="Another Building",
+            code="another-building",
+        )
+        Asset.objects.filter(id=self.asset.id).update(building=other_building)
+        mismatched_response = self.client.post(restore_url)
+        self.assertEqual(
+            mismatched_response.status_code,
+            status.HTTP_409_CONFLICT,
+        )
+        self.asset.refresh_from_db()
+        self.assertTrue(self.asset.is_deleted)
+
+    def test_leaf_deactivation_and_reactivation_are_distinct_from_delete(self):
+        self._authenticate()
+        detail_url = reverse("asset-detail", args=[self.asset.id])
+
+        deactivate_response = self.client.patch(
+            detail_url,
+            {"is_active": False},
+        )
+
+        self.assertEqual(deactivate_response.status_code, status.HTTP_200_OK)
+        self.asset.refresh_from_db()
+        self.assertFalse(self.asset.is_active)
+        self.assertFalse(self.asset.is_deleted)
+        self.assertIsNone(self.asset.deleted_at)
+        self.assertEqual(
+            self.client.get(reverse("asset-list")).data["count"],
+            1,
+        )
+        reactivate_response = self.client.patch(
+            detail_url,
+            {"is_active": True},
+        )
+        self.assertEqual(reactivate_response.status_code, status.HTTP_200_OK)
+
+    def test_parent_deactivation_and_delete_report_dependencies(self):
+        self._authenticate()
+        cases = (
+            (
+                "organization",
+                self.organization,
+                {"departments", "buildings", "assets", "users"},
+            ),
+            ("building", self.building, {"floors", "areas", "assets"}),
+            ("floor", self.floor, {"areas", "assets"}),
+            ("area", self.area, {"assets"}),
+            ("asset-type", self.asset_type, {"assets"}),
+        )
+        for route_name, instance, expected_dependencies in cases:
+            with self.subTest(route_name=route_name, operation="deactivate"):
+                response = self.client.patch(
+                    reverse(f"{route_name}-detail", args=[instance.id]),
+                    {"is_active": False},
+                )
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_409_CONFLICT,
+                )
+                self.assertEqual(
+                    set(response.data["dependencies"]),
+                    expected_dependencies,
+                )
+                instance.refresh_from_db()
+                self.assertTrue(instance.is_active)
+            with self.subTest(route_name=route_name, operation="delete"):
+                response = self.client.delete(
+                    reverse(f"{route_name}-detail", args=[instance.id])
+                )
+                self.assertEqual(
+                    response.status_code,
+                    status.HTTP_409_CONFLICT,
+                )
+                instance.refresh_from_db()
+                self.assertFalse(instance.is_deleted)
+
+    def test_tenant_dependencies_include_children_and_users(self):
+        self._authenticate(self.superuser)
+        deactivation_response = self.client.patch(
+            reverse("tenant-detail", args=[self.tenant.id]),
+            {"is_active": False},
+        )
+        self.assertEqual(
+            deactivation_response.status_code,
+            status.HTTP_409_CONFLICT,
+        )
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.delete(
+                reverse("tenant-detail", args=[self.tenant.id])
+            )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(
+            set(response.data["dependencies"]),
+            {
+                "organizations",
+                "departments",
+                "buildings",
+                "floors",
+                "areas",
+                "asset types",
+                "assets",
+                "users",
+            },
+        )
+        self.assertLessEqual(len(queries), 20)
+
+    def test_deleted_children_do_not_block_parent_soft_delete(self):
+        isolated_type = AssetType.objects.create(
+            tenant=self.tenant,
+            name="Disposable Type",
+            code="disposable-type",
+        )
+        isolated_asset = Asset.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            building=self.building,
+            asset_type=isolated_type,
+            name="Disposable Asset",
+            code="disposable-asset",
+            is_active=False,
+            is_deleted=True,
+        )
+        self._authenticate()
+        response = self.client.delete(
+            reverse("asset-type-detail", args=[isolated_type.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        isolated_asset.refresh_from_db()
+        self.assertTrue(isolated_asset.is_deleted)
+        self.assertTrue(Asset.objects.filter(id=isolated_asset.id).exists())
+
+    def test_inactive_children_do_not_block_deactivation_but_block_delete(self):
+        isolated_type = AssetType.objects.create(
+            tenant=self.tenant,
+            name="Inactive Child Type",
+            code="inactive-child-type",
+        )
+        Asset.objects.create(
+            tenant=self.tenant,
+            organization=self.organization,
+            building=self.building,
+            asset_type=isolated_type,
+            name="Inactive Child",
+            code="inactive-child",
+            is_active=False,
+        )
+        self._authenticate()
+        detail_url = reverse("asset-type-detail", args=[isolated_type.id])
+        deactivate_response = self.client.patch(
+            detail_url,
+            {"is_active": False},
+        )
+        delete_response = self.client.delete(detail_url)
+        self.assertEqual(deactivate_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(delete_response.status_code, status.HTTP_409_CONFLICT)
+
+    def test_dependency_checks_do_not_cross_tenant_or_emit_notifications(self):
+        isolated_type = AssetType.objects.create(
+            tenant=self.tenant,
+            name="Tenant Scoped Type",
+            code="tenant-scoped-type",
+        )
+        Asset.objects.create(
+            tenant=self.other_tenant,
+            organization=self.other_organization,
+            building=Building.objects.create(
+                tenant=self.other_tenant,
+                organization=self.other_organization,
+                name="Other Building",
+                code="other-building",
+            ),
+            asset_type=isolated_type,
+            name="Inconsistent Historical Asset",
+            code="inconsistent-historical-asset",
+        )
+        notification_count = Notification.objects.count()
+        self._authenticate()
+        response = self.client.delete(
+            reverse("asset-type-detail", args=[isolated_type.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Notification.objects.count(), notification_count)
+
+        blocked_response = self.client.delete(
+            reverse("asset-type-detail", args=[self.asset_type.id])
+        )
+        self.assertEqual(blocked_response.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(Notification.objects.count(), notification_count)
+
+    def test_reactivation_requires_active_non_deleted_hierarchy(self):
+        self.asset.is_active = False
+        self.asset.save(update_fields=("is_active", "updated_at"))
+        self.area.is_active = False
+        self.area.save(update_fields=("is_active", "updated_at"))
+        self._authenticate()
+        detail_url = reverse("asset-detail", args=[self.asset.id])
+
+        inactive_parent_response = self.client.patch(
+            detail_url,
+            {"is_active": True},
+        )
+        self.assertEqual(
+            inactive_parent_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("area", inactive_parent_response.data)
+
+        self.area.is_active = True
+        self.area.is_deleted = True
+        self.area.save(
+            update_fields=("is_active", "is_deleted", "updated_at")
+        )
+        deleted_parent_response = self.client.patch(
+            detail_url,
+            {"is_active": True},
+        )
+        self.assertEqual(
+            deleted_parent_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("area", deleted_parent_response.data)
+
+        metadata_response = self.client.patch(
+            detail_url,
+            {"description": "Repair notes"},
+        )
+        self.assertEqual(metadata_response.status_code, status.HTTP_200_OK)
+
+        self.area.is_deleted = False
+        self.area.save(update_fields=("is_deleted", "updated_at"))
+        valid_response = self.client.patch(
+            detail_url,
+            {"is_active": True},
+        )
+        self.assertEqual(valid_response.status_code, status.HTTP_200_OK)
+
+    def test_active_create_rejects_inactive_parent_but_inactive_create_allows_it(self):
+        self.organization.is_active = False
+        self.organization.save(update_fields=("is_active", "updated_at"))
+        self._authenticate()
+        payload = {
+            "tenant": str(self.tenant.id),
+            "organization": str(self.organization.id),
+            "name": "Lifecycle Department",
+            "code": "lifecycle-department",
+            "is_active": True,
+        }
+        active_response = self.client.post(reverse("department-list"), payload)
+        payload["code"] = "default-active-department"
+        payload.pop("is_active")
+        default_active_response = self.client.post(
+            reverse("department-list"),
+            payload,
+        )
+        payload["code"] = "lifecycle-department"
+        payload["is_active"] = False
+        inactive_response = self.client.post(
+            reverse("department-list"),
+            payload,
+        )
+        self.assertEqual(
+            active_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("organization", active_response.data)
+        self.assertEqual(
+            default_active_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("organization", default_active_response.data)
+        self.assertEqual(inactive_response.status_code, status.HTTP_201_CREATED)
+
+    def test_soft_deleted_identifiers_remain_reserved(self):
+        self._soft_mark_deleted(self.asset)
+        self._authenticate()
+        response = self.client.post(
+            reverse("asset-list"),
+            {
+                "tenant": str(self.tenant.id),
+                "organization": str(self.organization.id),
+                "building": str(self.building.id),
+                "floor": str(self.floor.id),
+                "area": str(self.area.id),
+                "asset_type": str(self.asset_type.id),
+                "name": "Replacement Asset",
+                "code": self.asset.code,
+                "is_active": True,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Asset.objects.filter(code=self.asset.code).count(), 1)
