@@ -6,8 +6,8 @@ Implementation commit `b65ccc7b2f104eca06404de36636d1416c319f5e`,
 focused regression coverage, affected-suite validation, local seed
 reconciliation, and documentation are complete. FO-074D records passed user
 manual acceptance on 2026-07-19 and the 593-test final cumulative backend gate.
-Sol's cumulative final review remains pending. PR #40 remains open, draft, and
-unmerged.
+FO-074E records Sol's independent cumulative **APPROVED** review, including
+this correction. PR #40 remains open, draft, and unmerged.
 
 ## Confirmed defect and severity
 
@@ -86,6 +86,9 @@ tenant isolation, rejection of unauthorized mutation, no Staff requirement,
 and no runtime overlay. User-supplied screenshot evidence was provided.
 
 FO-074D's final backend gate passed 593 tests with all required commands at
-exit 0. Master Data Management is complete on the branch. Sol's cumulative
-final review remains pending. FO-075 has not started, and Employee Requester
-Experience remains next. PR #40 remains open, draft, and unmerged.
+exit 0. Sol's approved cumulative state includes the removal of the frontend
+Staff bypass and the backend-authoritative Facility Manager contract. Master
+Data Management is complete on the branch. FO-075 has not started, Employee
+Requester Experience remains next, and FO-063 remains reserved/deferred.
+PR #40 remains open, draft, and unmerged for the user's ready-for-review and
+normal merge-commit action.

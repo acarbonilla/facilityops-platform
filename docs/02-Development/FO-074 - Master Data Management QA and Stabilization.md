@@ -255,10 +255,10 @@ Ticket closure and is not implemented here.
 
 FO-010 and milestone limitations/statuses are labelled as delivery snapshots.
 FO-071 and FO-072 remain independently approved. FO-073 remains complete and
-pending Sol's cumulative review. FO-074, FO-074B, FO-074C, and FO-074D are
-complete, and user manual acceptance passed on 2026-07-19. Master Data
-Management is complete on the branch; Sol's cumulative final review remains
-pending and FO-075 has not started.
+is included in Sol's approved cumulative state. FO-074 through FO-074E are
+complete, including the FO-074B Boolean correction and FO-074C Staff/RBAC
+correction. User manual acceptance passed on 2026-07-19. Master Data Management
+is complete on the branch, and FO-075 has not started.
 
 ## 23. Commit and PR state
 
@@ -268,13 +268,17 @@ unmerged, and based on `main`. FO-074B is implemented at `195686c`. FO-074C
 implementation, seed reconciliation, and affected-suite validation are
 complete; its delivery SHA is recorded in the FO-074C document and PR update.
 FO-074D records the final 593-test backend gate and passed user manual
-acceptance. Sol's independent cumulative final review remains pending. PR #40
-remains open, draft, and unmerged.
+acceptance. FO-074E records Sol's independent cumulative **APPROVED** review at
+approved production HEAD `b5532d4c0d4c29be18f6a5aa2e90d363edad5750`
+and final reviewed feature HEAD
+`0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`. PR #40 remains open, draft,
+and unmerged for the user's ready-for-review and normal merge-commit action.
 
 ## 24. Final review gate
 
-FO-074D completes final backend validation, user manual acceptance, and
-documentation reconciliation. The frontend FO-074C baseline remains accepted
-without rerun. Sol's independent cumulative final review remains pending; no
-Sol approval is claimed. FO-075 has not started, and Employee Requester
-Experience remains next.
+FO-074E records Sol's independent cumulative **APPROVED** review. The approved
+state includes FO-071 through FO-074E, including FO-074B and FO-074C. The
+backend baseline is 593 tests and the frontend baseline is 227 tests plus
+passed ESLint, TypeScript, and production build. Manual acceptance passed on
+2026-07-19. FO-063 remains reserved/deferred. FO-075 has not started, and
+Employee Requester Experience remains next.

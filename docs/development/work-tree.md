@@ -15,7 +15,7 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | Complete on branch | FO-074 through FO-074D complete; user manual acceptance passed 2026-07-19; final backend 593 passed; Sol cumulative review pending; PR #40 open, draft, and unmerged; FO-075 not started |
+| Master Data | Complete on branch, approved | FO-071 through FO-074E complete; user manual acceptance passed 2026-07-19; final backend 593 and frontend 227 passed; Sol cumulative review APPROVED; PR #40 open, draft, and unmerged for user action; FO-075 not started |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete; PR #34 is closed, draft, and unmerged |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete | FO-074D: final backend 593, Django check, migration drift, and Master Data migration state pass; FO-074C frontend baseline remains 227 plus ESLint, TypeScript, production build, and no generated drift |
+| Testing | Complete, approved | FO-074D: final backend 593, Django check, migration drift, and Master Data migration state pass; FO-074C frontend baseline remains 227 plus ESLint, TypeScript, production build, and no generated drift; FO-074E records cumulative approval |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -200,8 +200,8 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: Complete on branch (manual acceptance passed 2026-07-19; Sol cumulative
-review pending)
+Status: Complete on branch and cumulatively approved (manual acceptance passed
+2026-07-19)
 
 ### Purpose
 
@@ -251,8 +251,8 @@ Maintains foundational reference data for tenants, organizations, departments, b
   frontend resource screens with Active, Inactive, and Deleted views;
   permission-aware lifecycle actions; tenant-bound forms; server pagination;
   structured conflict errors; and cross-feature cache invalidation. Manual
-  browser acceptance was not performed and FO-073 is not independently
-  approved.
+  browser acceptance followed after FO-074B/FO-074C, and FO-073 is included in
+  the FO-074E approved cumulative state.
 - FO-074 completes cumulative QA with eight confirmed corrections. Its original
   final gates passed before FO-074B/FO-074C follow-up reconciliation.
 - FO-074B corrects lowercase Boolean query handling at implementation commit
@@ -264,10 +264,14 @@ Maintains foundational reference data for tenants, organizations, departments, b
   Jane-like account verification confirm the agreed role contract.
 - FO-074D records user manual acceptance passed on 2026-07-19 and the final
   cumulative backend gate at 593 tests with Django and migration checks clean.
-  Master Data Management is complete on the branch. PR #40 remains open, draft,
-  and unmerged pending Sol's independent cumulative final review. No Sol
-  approval is claimed. FO-075 has not started; Employee Requester Experience
-  remains next.
+  Master Data Management is complete on the branch.
+- FO-074E records Sol's independent cumulative APPROVED review at approved
+  production HEAD `b5532d4c0d4c29be18f6a5aa2e90d363edad5750` and final reviewed
+  feature HEAD `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`. FO-074B and FO-074C
+  are included in the approved state. PR #40 remains open, draft, and unmerged
+  for the user's ready-for-review and normal merge-commit action. FO-075 has
+  not started; Employee Requester Experience remains next. FO-063 remains
+  reserved/deferred.
 - Organization Management remains a thin consumer of these APIs.
 - Bulk actions, import/export, and server search remain deferred.
 

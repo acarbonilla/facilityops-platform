@@ -4,8 +4,9 @@
 
 Correction complete at implementation commit `195686c`; focused validation
 passed. FO-074D records passed user manual acceptance on 2026-07-19 and the
-593-test final cumulative backend gate. Sol's cumulative final review remains
-pending. PR #40 remains open, draft, and unmerged.
+593-test final cumulative backend gate. FO-074E records Sol's independent
+cumulative **APPROVED** review, including this correction. PR #40 remains open,
+draft, and unmerged.
 
 ## Manual acceptance failure
 
@@ -66,6 +67,8 @@ overlay appears. Manual acceptance passed on 2026-07-19. The final backend
 suite passed 593 tests with all required checks at exit 0.
 
 FO-074C reconciles Facility Manager read access and removes the frontend Staff
-permission bypass. Master Data Management is complete on the branch. Sol's
-cumulative final review remains pending. FO-075 has not started, and Employee
-Requester Experience remains next. PR #40 remains open, draft, and unmerged.
+permission bypass. Sol's approved cumulative state includes FO-074B and
+FO-074C. Master Data Management is complete on the branch. FO-075 has not
+started, Employee Requester Experience remains next, and FO-063 remains
+reserved/deferred. PR #40 remains open, draft, and unmerged for the user's
+ready-for-review and normal merge-commit action.
