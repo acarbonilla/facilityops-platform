@@ -8,6 +8,7 @@ from apps.maintenance.work_order_assignment_service import assign_work_order
 
 from .models import FmTicket
 from .services import record_ticket_history
+from .tenant_scope import scope_fm_ticket_queryset
 
 ELIGIBLE_TICKET_STATUSES = {
     FmTicket.Status.ASSIGNED,
@@ -38,9 +39,6 @@ def map_ticket_priority_to_work_order(priority):
 
 
 def _validate_generation_eligibility(*, ticket, generated_by):
-    if ticket.is_deleted:
-        raise FmTicket.DoesNotExist()
-
     caller_tenant_id = getattr(generated_by, "tenant_id", None)
     if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
         raise FmTicket.DoesNotExist()
@@ -88,7 +86,14 @@ def _validate_generation_eligibility(*, ticket, generated_by):
 
 @transaction.atomic
 def generate_work_order_from_ticket(*, ticket, generated_by):
-    FmTicket.objects.select_for_update().get(pk=ticket.pk)
+    locked_ticket_id = (
+        scope_fm_ticket_queryset(
+            FmTicket.objects.select_for_update(),
+            generated_by,
+        )
+        .get(pk=ticket.pk, is_deleted=False)
+        .pk
+    )
     locked_ticket = (
         FmTicket.objects.select_related(
             "tenant",
@@ -100,7 +105,7 @@ def generate_work_order_from_ticket(*, ticket, generated_by):
             "asset",
             "requester",
             "assignee",
-        ).get(pk=ticket.pk)
+        ).get(pk=locked_ticket_id)
     )
 
     _validate_generation_eligibility(

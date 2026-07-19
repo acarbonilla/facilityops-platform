@@ -14,15 +14,17 @@
 
 ## Current Module
 
-- Master Data Management (complete on `feature/master-data-management`;
-  user manual acceptance passed 2026-07-19; Sol cumulative review APPROVED)
+- FM Ticketing Critical Tenant-Isolation Security Correction (independently
+  approved and manually accepted on `feature/fm-ticket-tenant-isolation`; PR
+  #41 remains draft and unmerged)
 
 ## Current Branch
 
-- `feature/master-data-management` (FO-071 and FO-072 independently approved;
-  FO-073 through FO-074E complete and cumulatively approved; manual acceptance
-  passed; PR #40 open, draft, and unmerged)
-- Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
+- `feature/fm-ticket-tenant-isolation`
+- Synchronized branch baseline: `main` at Master Data merge commit
+  `35085bf2dafdf93b06e209643c4f9a5d30bb676e`
+- Master Data PR #40 merged normally; its feature branch was removed locally
+  and remotely
 
 ## Completed Modules
 
@@ -113,26 +115,27 @@
 
 ## Current Task
 
-- FO-074E final review and repository reconciliation is complete. Sol's
-  independent cumulative review result is APPROVED at approved production HEAD
-  `b5532d4c0d4c29be18f6a5aa2e90d363edad5750` and final reviewed feature HEAD
-  `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`. The backend baseline is 593
-  tests; the frontend baseline is 227 tests plus passed ESLint, TypeScript, and
-  production build. User manual acceptance passed on 2026-07-19. PR #40
-  remains open, draft, and unmerged for the user's ready-for-review and normal
-  merge-commit action.
+- FO-074G records Sol's independent **APPROVED** security review of the
+  Critical FO-074F correction at implementation HEAD
+  `48bde40c40c2942b59a616df623a7f47329b8715` and the user's passed manual
+  cross-tenant acceptance on 2026-07-19. Backend-authoritative scope protects
+  all FM Ticket surfaces, and FO-061's stricter no-global-bypass caller-Tenant
+  requirement remains authoritative for assignment and Work Order generation.
+  Focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78,
+  Accounts/Access Control 113, and full backend 611 pass. Django check and
+  migration drift are clean. No frontend or schema change is included.
 
 ## Next Milestone
 
-- User ready-for-review and normal merge-commit action for PR #40
-- Employee Requester Experience remains next; FO-075 has not started and no
-  feature branch exists
+- User ready-for-review and normal merge-commit decision for draft PR #41
+- Employee Requester Experience and FO-075 have not started
 - FO-063 automatic Ticket closure remains reserved and deferred
 
-## Selected Next Feature — Master Data Management
+## Completed Feature — Master Data Management
 
 - Feature: Master Data Management hardening
-- Active branch: `feature/master-data-management`
+- Merged to `main` through PR #40 at
+  `35085bf2dafdf93b06e209643c4f9a5d30bb676e`
 - FO-071: tenant isolation and write-path hardening (complete; independently approved by Sol on 2026-07-18 at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec` in the external project collaboration session)
 - FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete and independently approved at final HEAD `a8ea862` per user governance)
 - FO-073: frontend lifecycle and administrative UX alignment (complete; manual browser acceptance not performed; not independently approved)
@@ -144,7 +147,7 @@
 - FO-074D: final validation and manual acceptance reconciliation complete;
   full backend 593 passed
 - FO-074E: Sol independent cumulative final review APPROVED; repository and
-  draft PR reconciled for the user's merge action
+  PR reconciled before the normal merge-commit action
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
@@ -168,17 +171,19 @@
 
 ## Last Independently Reviewed Commit
 
-- Master Data Management cumulative review APPROVED by Sol:
-  - Approved production HEAD:
-    `b5532d4c0d4c29be18f6a5aa2e90d363edad5750`
-  - Final reviewed feature HEAD:
-    `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`
-- The commit after the approved production HEAD is documentation-only.
+- FM Ticket tenant-isolation security correction APPROVED by Sol:
+  - Approved implementation HEAD:
+    `48bde40c40c2942b59a616df623a7f47329b8715`
+  - Severity corrected: Critical
+  - User manual cross-tenant acceptance passed on 2026-07-19
+- FO-074G is documentation and PR metadata only.
 
 ## Last Merge
 
-- `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a` (Merge pull request #39 into `main`; Dashboard Operational Overview)
-- Previous: `dfd3a4457e54dd702171482217ef6f22194d7941` (Merge pull request #38 into `main`; Reporting)
+- `35085bf2dafdf93b06e209643c4f9a5d30bb676e` (Merge pull request #40 into
+  `main`; Master Data Management)
+- Previous: `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a` (Merge pull request #39 into
+  `main`; Dashboard Operational Overview)
 
 ## Repository Version
 

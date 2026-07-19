@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from .models import (
     FmTicket,
@@ -19,12 +20,69 @@ from .services import (
     create_ticket_escalation,
     update_ticket,
 )
+from .tenant_scope import has_global_fm_ticket_scope
 
 
 User = get_user_model()
 
+TICKET_RELATION_FIELDS = (
+    "tenant",
+    "organization",
+    "department",
+    "building",
+    "floor",
+    "area",
+    "asset",
+)
+
 
 class TicketValidationMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if user is None:
+            return
+
+        is_global = has_global_fm_ticket_scope(user)
+        tenant_id = getattr(user, "tenant_id", None)
+        for field_name in TICKET_RELATION_FIELDS:
+            field = self.fields.get(field_name)
+            queryset = getattr(field, "queryset", None)
+            if queryset is None:
+                continue
+
+            queryset = queryset.filter(is_active=True, is_deleted=False)
+            if not is_global:
+                if not tenant_id:
+                    queryset = queryset.none()
+                elif field_name == "tenant":
+                    queryset = queryset.filter(id=tenant_id)
+                else:
+                    queryset = queryset.filter(tenant_id=tenant_id)
+            field.queryset = queryset
+
+        tenant_field = self.fields.get("tenant")
+        if tenant_field is not None and not is_global:
+            tenant_field.required = False
+
+    def to_internal_value(self, data):
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if (
+            self.instance is None
+            and user is not None
+            and not has_global_fm_ticket_scope(user)
+        ):
+            if not getattr(user, "tenant_id", None):
+                raise PermissionDenied(
+                    "Tenantless accounts cannot create FM Tickets."
+                )
+            if "tenant" not in data:
+                data = data.copy()
+                data["tenant"] = str(user.tenant_id)
+        return super().to_internal_value(data)
+
     def _raise_validation_error(self, exception):
         if hasattr(exception, "message_dict"):
             raise serializers.ValidationError(exception.message_dict)
@@ -33,6 +91,24 @@ class TicketValidationMixin:
     def validate(self, attrs):
         attrs = super().validate(attrs)
         request = self.context.get("request")
+        user = request.user
+        is_global = has_global_fm_ticket_scope(user)
+
+        if self.instance is None:
+            if is_global:
+                if attrs.get("tenant") is None:
+                    raise serializers.ValidationError(
+                        {"tenant": "A tenant is required."}
+                    )
+            else:
+                attrs["tenant"] = user.tenant
+        elif "tenant" in attrs:
+            if attrs["tenant"].id != self.instance.tenant_id:
+                raise serializers.ValidationError(
+                    {"tenant": "The ticket tenant cannot be changed."}
+                )
+            attrs["tenant"] = self.instance.tenant
+
         requester = self.instance.requester if self.instance else request.user
         ticket = copy.copy(self.instance) if self.instance else FmTicket(requester=requester)
 
@@ -320,6 +396,15 @@ class FmTicketAssignSerializer(serializers.Serializer):
     assignee = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     note = serializers.CharField(required=False, allow_blank=True)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ticket = self.context.get("ticket")
+        if ticket is not None:
+            self.fields["assignee"].queryset = User.objects.filter(
+                is_active=True,
+                tenant_id=ticket.tenant_id,
+            )
+
 
 class FmTicketStatusChangeSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=FmTicket.Status.choices)
@@ -345,6 +430,15 @@ class FmTicketEscalationCreateSerializer(serializers.Serializer):
     )
     reason = serializers.CharField()
     level = serializers.ChoiceField(choices=FmTicketEscalation.Level.choices)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ticket = self.context.get("ticket")
+        if ticket is not None:
+            self.fields["escalated_to"].queryset = User.objects.filter(
+                is_active=True,
+                tenant_id=ticket.tenant_id,
+            )
 
     def create(self, validated_data):
         return create_ticket_escalation(
