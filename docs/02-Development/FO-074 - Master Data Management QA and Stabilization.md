@@ -35,7 +35,9 @@ Security review found no exploitable cross-tenant or privilege-escalation path
 in the established backend scope. Cumulative QA confirmed eight stabilization
 defects. Each correction is minimal, preserves the approved domain contract,
 and has focused regression coverage. No schema, endpoint, permission, or
-dependency redesign was required.
+dependency redesign was required. This cumulative result is qualified by
+FO-074B after FO-074A manual acceptance exposed a Boolean list-filter contract
+defect.
 
 ## 5. Confirmed defects and corrections
 
@@ -221,7 +223,11 @@ only register the new helper test.
 
 ## 20. Manual acceptance status and checklist
 
-Manual browser acceptance is **pending** and is not claimed.
+FO-074A manual browser acceptance **failed and paused on 2026-07-19** when the
+Tenant Active list returned HTTP 400 for lowercase `is_active=true`. FO-074B
+corrects the backend contract at `195686c`, and its focused validation passes.
+The targeted manual smoke and full manual acceptance remain pending and are not
+claimed.
 
 1. Tenant-bound settings manager sees only their Tenant's Master Data.
 2. Global `system_admin` sees approved platform scope.
@@ -258,7 +264,9 @@ counts and branch state, with duplicate Work Tree sections removed.
 The validated implementation, tests, and documentation were committed at
 `7bd06a396f668df4cff76c0eb326e065a2619d41`. PR #40 remains open, draft,
 unmerged, and based on `main`. Sol's independent cumulative final review and
-user manual acceptance are pending.
+user manual acceptance are pending. FO-074B is implemented at `195686c`; its
+documentation reconciliation and PR update follow while PR #40 remains draft
+and unmerged.
 
 ## 24. Final review gate
 

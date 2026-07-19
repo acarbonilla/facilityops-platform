@@ -15,7 +15,7 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | Complete on branch | FO-071 and FO-072 independently approved; FO-073 complete; FO-074 cumulative QA passed; manual acceptance and Sol cumulative review pending; draft PR #40 open/unmerged |
+| Master Data | Complete on branch, qualified | FO-074A manual acceptance failed/paused on 2026-07-19; FO-074B correction and focused validation complete; targeted smoke, full acceptance, and Sol review pending; draft PR #40 open/unmerged |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete; PR #34 is closed, draft, and unmerged |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete | FO-074: Master Data 78, Accounts + Access Control 112, full backend 590, frontend 225, ESLint, TypeScript, production build, system check, and migration drift gates pass; no component/integration harness exists yet |
+| Testing | Complete, final gate pending | FO-074B: Master Data 80, frontend 225, ESLint, TypeScript, system check, and migration drift pass; prior FO-074 full backend/build baseline remains recorded; final cumulative backend validation follows manual acceptance |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -195,8 +195,8 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: Complete on branch (FO-071 and FO-072 independently approved; FO-073
-complete; FO-074 QA passed; Sol cumulative review pending)
+Status: Complete on branch, qualified by FO-074B (manual acceptance and Sol
+cumulative review pending)
 
 ### Purpose
 
@@ -212,7 +212,8 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - Services: `apply_query_param_filters`; Master Data-local tenant/lifecycle scope helpers; atomic soft-delete, restore, dependency, and hierarchy lifecycle service; Accounts user writes lock and lifecycle-validate Tenant/Organization dependencies
 - Permissions: `IsAuthenticated` plus `HasPermissionCode` through `MasterDataPermissionMixin`; read uses `settings.view`, write uses `settings.manage`
 - Admin: all master-data models are registered in `backend/apps/master_data/admin.py`
-- Tests: `backend/apps/master_data/tests.py` (78 passed); full backend 590 passed
+- Tests: `backend/apps/master_data/tests.py` (80 passed after FO-074B); prior
+  FO-074 full backend baseline remains 590 passed
 
 ### Frontend
 
@@ -249,8 +250,13 @@ Maintains foundational reference data for tenants, organizations, departments, b
   approved.
 - FO-074 completes cumulative QA with eight confirmed corrections. Final gates
   pass at Master Data 78, Accounts + Access Control 112, full backend 590, and
-  frontend 225. Manual acceptance and Sol cumulative final review remain
-  pending; PR #40 remains open, draft, and unmerged.
+  frontend 225. FO-074A manual acceptance failed/paused on 2026-07-19 after a
+  Boolean list-filter HTTP 400.
+- FO-074B corrects lowercase Boolean query handling at implementation commit
+  `195686c`; focused Master Data 80, frontend 225, Django, migration, lint, and
+  TypeScript gates pass. Targeted smoke, full acceptance, deferred final
+  cumulative backend validation, and Sol review remain pending. PR #40 remains
+  open, draft, and unmerged.
 - Organization Management remains a thin consumer of these APIs.
 - Bulk actions, import/export, and server search remain deferred.
 
