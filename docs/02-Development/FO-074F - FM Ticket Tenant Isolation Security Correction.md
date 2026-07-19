@@ -2,9 +2,11 @@
 
 ## Status
 
-Critical backend security correction implemented and validated on
-`feature/fm-ticket-tenant-isolation`. Independent review remains pending. The
-security pull request must remain open, draft, and unmerged.
+Critical backend security correction implemented, validated, independently
+approved by Sol, and manually accepted by the user on
+`feature/fm-ticket-tenant-isolation`. The approved implementation HEAD is
+`48bde40c40c2942b59a616df623a7f47329b8715`. PR #41 remains open, draft, and
+unmerged for the user's ready-for-review and normal merge-commit action.
 
 ## Confirmed defect
 
@@ -110,6 +112,16 @@ test databases and idle test sessions remained from prior infrastructure. Only
 permitted rerun then passed all 611 tests. This was test infrastructure, not a
 product failure.
 
+## Final review and manual acceptance
+
+Sol's independent security review is **APPROVED** at implementation HEAD
+`48bde40c40c2942b59a616df623a7f47329b8715`. The user-executed manual
+cross-tenant acceptance passed on 2026-07-19 using `debug@example.com`.
+Acceptance confirmed that foreign-Tenant Ticket list entries are absent, a
+known foreign-Tenant Ticket UUID returns Not Found, Tenant query parameters
+cannot broaden access, own-Tenant behavior remains functional, and FO-061
+assignment and Work Order generation retain their no-global-bypass contract.
+
 ## Frontend and schema
 
 No frontend file changed. The last validated frontend baseline remains 227
@@ -119,6 +131,7 @@ frontend contract changed.
 
 ## Deferred scope
 
-Employee Requester Experience remains deferred until this correction is
-independently approved. FO-075 has not started. FO-063 remains
-reserved/deferred. Attachment and AI work are not included.
+Employee Requester Experience has not started. FO-075 has not started. FO-063
+remains reserved/deferred. Attachment and AI work are not included. FO-074G
+records the final independent approval, manual acceptance, and repository/PR
+reconciliation.

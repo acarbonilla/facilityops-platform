@@ -126,5 +126,9 @@ unscoped platform-wide queryset. FO-074F adds backend-authoritative tenant
 scope, generic cross-tenant 404 behavior, creation/update hardening, and
 focused coverage across all FM Ticket actions. The correction passes 82 FM
 Ticket tests and the 611-test full backend suite with no migration or frontend
-change. Employee Requester Experience remains deferred pending independent
-approval of the security correction; FO-063 remains reserved/deferred.
+change. FO-074G records Sol's independent **APPROVED** security review at
+implementation HEAD `48bde40c40c2942b59a616df623a7f47329b8715` and the user's
+passed cross-tenant manual acceptance on 2026-07-19. FO-061 assignment and Work
+Order generation retain their stricter no-global-bypass contract. Employee
+Requester Experience and FO-075 have not started; FO-063 remains
+reserved/deferred.

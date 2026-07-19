@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Critical correction complete on branch; review pending | FO-074F adds backend-authoritative tenant isolation across all FM Ticket endpoints; full backend 611 passed; Employee Requester Experience deferred; FO-063 reserved/deferred |
+| FM Ticketing | Critical correction complete, approved, and manually accepted | FO-074F/FO-074G establish backend-authoritative tenant isolation across all FM Ticket endpoints; Sol APPROVED implementation HEAD `48bde40c`; user cross-tenant acceptance passed 2026-07-19; draft PR #41 remains open and unmerged |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Security correction validated | FO-074F: focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78, Accounts/Access Control 113, and full backend 611 pass; frontend unchanged with prior 227-test/static/build baseline |
+| Testing | Security correction validated and accepted | FO-074F/FO-074G: focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78, Accounts/Access Control 113, and full backend 611 pass; frontend unchanged with prior 227-test/lint/TypeScript/build baseline |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -472,8 +472,15 @@ Manages facility-management tickets, including read, create, edit, comments, his
   approved global read/detail scope. FO-061's stricter caller-Tenant match
   remains in place for assignment and Work Order generation. Creation/update
   relationships and secondary identities are tenant- and lifecycle-scoped.
-  Employee Requester Experience remains deferred pending independent security
-  approval; FO-063 remains reserved/deferred.
+  Sol independently approved implementation HEAD
+  `48bde40c40c2942b59a616df623a7f47329b8715`.
+- FO-074G records the user's passed cross-tenant manual acceptance on
+  2026-07-19 using `debug@example.com`. Foreign-Tenant list entries are absent,
+  known foreign-Tenant UUID access returns Not Found, Tenant query parameters
+  cannot broaden access, own-Tenant behavior remains functional, and FO-061
+  assignment/generation keep no global bypass. PR #41 remains open, draft, and
+  unmerged. Employee Requester Experience and FO-075 have not started; FO-063
+  remains reserved/deferred.
 
 ## Maintenance Work Order
 

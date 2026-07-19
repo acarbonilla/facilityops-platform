@@ -14,8 +14,9 @@
 
 ## Current Module
 
-- FM Ticketing Critical Tenant-Isolation Security Correction (implemented and
-  validated on `feature/fm-ticket-tenant-isolation`; independent review pending)
+- FM Ticketing Critical Tenant-Isolation Security Correction (independently
+  approved and manually accepted on `feature/fm-ticket-tenant-isolation`; PR
+  #41 remains draft and unmerged)
 
 ## Current Branch
 
@@ -114,21 +115,20 @@
 
 ## Current Task
 
-- FO-074F corrects a confirmed Critical cross-tenant FM Ticket access defect.
-  Backend-authoritative scope now protects list, detail, nested actions,
-  creation, update, assignment, Work Order generation, escalation, and status
-  changes. FO-061's stricter caller-Tenant requirement remains authoritative
-  for assignment and Work Order generation. Focused isolation coverage is
-  included in the 82-test FM Ticket
-  suite; Maintenance 85, Notifications 78, Accounts/Access Control 113, and
-  full backend 611 pass. Django check and migration drift are clean. No
-  frontend or schema change is included. Independent review remains pending.
+- FO-074G records Sol's independent **APPROVED** security review of the
+  Critical FO-074F correction at implementation HEAD
+  `48bde40c40c2942b59a616df623a7f47329b8715` and the user's passed manual
+  cross-tenant acceptance on 2026-07-19. Backend-authoritative scope protects
+  all FM Ticket surfaces, and FO-061's stricter no-global-bypass caller-Tenant
+  requirement remains authoritative for assignment and Work Order generation.
+  Focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78,
+  Accounts/Access Control 113, and full backend 611 pass. Django check and
+  migration drift are clean. No frontend or schema change is included.
 
 ## Next Milestone
 
-- Independent review and approval of the FO-074F security correction
-- Employee Requester Experience follows only after security approval; FO-075
-  has not started and no feature branch exists
+- User ready-for-review and normal merge-commit decision for draft PR #41
+- Employee Requester Experience and FO-075 have not started
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -171,12 +171,12 @@
 
 ## Last Independently Reviewed Commit
 
-- Master Data Management cumulative review APPROVED by Sol:
-  - Approved production HEAD:
-    `b5532d4c0d4c29be18f6a5aa2e90d363edad5750`
-  - Final reviewed feature HEAD:
-    `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`
-- The commit after the approved production HEAD is documentation-only.
+- FM Ticket tenant-isolation security correction APPROVED by Sol:
+  - Approved implementation HEAD:
+    `48bde40c40c2942b59a616df623a7f47329b8715`
+  - Severity corrected: Critical
+  - User manual cross-tenant acceptance passed on 2026-07-19
+- FO-074G is documentation and PR metadata only.
 
 ## Last Merge
 
