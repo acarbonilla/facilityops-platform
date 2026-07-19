@@ -117,3 +117,14 @@ Proceed to FO-031 - Maintenance Work Order Backend Foundation after:
 - stopping the existing processes bound to `127.0.0.1:3000` and `127.0.0.1:3001`
 - running one clean manual frontend smoke pass for login, ticket list, ticket detail, create, edit, comment, status, assignment, SLA, escalation, return-to-list, and logout
 - keeping FO-031 scoped to the next module without reopening FM Ticketing feature work unless a new defect is found
+
+## Post-delivery security reconciliation
+
+FO-074F later confirmed a Critical tenant-isolation defect not detected by this
+historical QA snapshot: `FmTicketViewSet.get_queryset()` applied filters to an
+unscoped platform-wide queryset. FO-074F adds backend-authoritative tenant
+scope, generic cross-tenant 404 behavior, creation/update hardening, and
+focused coverage across all FM Ticket actions. The correction passes 80 FM
+Ticket tests and the 611-test full backend suite with no migration or frontend
+change. Employee Requester Experience remains deferred pending independent
+approval of the security correction; FO-063 remains reserved/deferred.

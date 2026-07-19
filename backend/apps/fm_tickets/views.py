@@ -25,6 +25,7 @@ from .serializers import (
     GeneratedWorkOrderSummarySerializer,
 )
 from .services import assign_ticket, change_ticket_status
+from .tenant_scope import scope_fm_ticket_queryset
 from .work_order_service import (
     WorkOrderAlreadyLinked,
     generate_work_order_from_ticket,
@@ -82,7 +83,10 @@ class FmTicketViewSet(viewsets.ModelViewSet):
     )
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = scope_fm_ticket_queryset(
+            super().get_queryset(),
+            self.request.user,
+        ).filter(is_deleted=False)
         return apply_query_param_filters(
             queryset,
             self.request.query_params,
@@ -215,13 +219,10 @@ class FmTicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):
         ticket = self.get_object()
-        if ticket.is_deleted:
-            raise Http404()
-        caller_tenant_id = getattr(request.user, "tenant_id", None)
-        if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
-            raise Http404()
-
-        serializer = FmTicketAssignSerializer(data=request.data)
+        serializer = FmTicketAssignSerializer(
+            data=request.data,
+            context={"ticket": ticket},
+        )
         serializer.is_valid(raise_exception=True)
         try:
             ticket = assign_ticket(
@@ -239,12 +240,6 @@ class FmTicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="generate-work-order")
     def generate_work_order(self, request, pk=None):
         ticket = self.get_object()
-        if ticket.is_deleted:
-            raise Http404()
-        caller_tenant_id = getattr(request.user, "tenant_id", None)
-        if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
-            raise Http404()
-
         try:
             work_order = generate_work_order_from_ticket(
                 ticket=ticket,

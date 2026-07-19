@@ -15,13 +15,13 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | Complete on branch, approved | FO-071 through FO-074E complete; user manual acceptance passed 2026-07-19; final backend 593 and frontend 227 passed; Sol cumulative review APPROVED; PR #40 open, draft, and unmerged for user action; FO-075 not started |
+| Master Data | Complete, approved, merged | FO-071 through FO-074E complete; user manual acceptance passed; Sol cumulative review APPROVED; PR #40 merged to `main` at `35085bf`; feature branch removed |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete; PR #34 is closed, draft, and unmerged |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete | Explicit Work Order generation, linked Work Order navigation, and Work Order-to-Ticket status synchronization implemented; completion resolves but does not close the Ticket; FO-063 automatic closure remains reserved/deferred |
+| FM Ticketing | Critical correction complete on branch; review pending | FO-074F adds backend-authoritative tenant isolation across all FM Ticket endpoints; full backend 611 passed; Employee Requester Experience deferred; FO-063 reserved/deferred |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete, approved | FO-074D: final backend 593, Django check, migration drift, and Master Data migration state pass; FO-074C frontend baseline remains 227 plus ESLint, TypeScript, production build, and no generated drift; FO-074E records cumulative approval |
+| Testing | Security correction validated | FO-074F: FM Ticket 80, Maintenance 85, Notifications 78, Accounts/Access Control 113, and full backend 611 pass; frontend unchanged with prior 227-test/static/build baseline |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -200,8 +200,8 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: Complete on branch and cumulatively approved (manual acceptance passed
-2026-07-19)
+Status: Complete, cumulatively approved, and merged (manual acceptance passed
+2026-07-19; PR #40 merge commit `35085bf`)
 
 ### Purpose
 
@@ -268,10 +268,8 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - FO-074E records Sol's independent cumulative APPROVED review at approved
   production HEAD `b5532d4c0d4c29be18f6a5aa2e90d363edad5750` and final reviewed
   feature HEAD `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`. FO-074B and FO-074C
-  are included in the approved state. PR #40 remains open, draft, and unmerged
-  for the user's ready-for-review and normal merge-commit action. FO-075 has
-  not started; Employee Requester Experience remains next. FO-063 remains
-  reserved/deferred.
+  are included in the approved state. PR #40 merged normally to `main` at
+  `35085bf2dafdf93b06e209643c4f9a5d30bb676e`; its feature branch was removed.
 - Organization Management remains a thin consumer of these APIs.
 - Bulk actions, import/export, and server search remain deferred.
 
@@ -446,10 +444,10 @@ Manages facility-management tickets, including read, create, edit, comments, his
 - Serializers: list, detail, create, update, comment, history, escalation, assignment, and status-change serializers
 - ViewSets / Views: `FmTicketViewSet`
 - APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`
-- Services: ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
+- Services: authoritative FM Ticket tenant-scope helper, ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
 - Permissions: `HasTicketPermission` with `fm_tickets.view`, `create`, `update`, `assign`, `close`, and `manage`
 - Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`
-- Tests: `backend/apps/fm_tickets/tests.py`
+- Tests: `backend/apps/fm_tickets/tests.py` and `backend/apps/fm_tickets/test_tenant_isolation.py` (80 passed)
 
 ### Frontend
 
@@ -467,6 +465,14 @@ Manages facility-management tickets, including read, create, edit, comments, his
 
 - This module covers FO-024 through FO-030.
 - FO-058A assignment and status-change in-app notifications are implemented; comment, escalation, attachment, and AI notification workflows remain deferred.
+- FO-074F corrects Critical cross-tenant list/detail/action access by scoping
+  every ticket queryset before filters and excluding soft-deleted tickets.
+  Tenant-bound users remain in their Tenant, tenantless non-global users fail
+  closed, Staff alone is not global, and active `system_admin`/superusers retain
+  approved global scope. Creation/update relationships and secondary identities
+  are tenant- and lifecycle-scoped. Employee Requester Experience remains
+  deferred pending independent security approval; FO-063 remains
+  reserved/deferred.
 
 ## Maintenance Work Order
 
@@ -688,7 +694,7 @@ Tracks the current verification footprint across backend and frontend so progres
 - Services: covered mainly through API and model tests, plus seed-command tests
 - Permissions: covered through endpoint authorization tests
 - Admin: not deeply tested
-- Tests: final cumulative backend validation passed 593 tests
+- Tests: final FO-074F cumulative backend validation passed 611 tests
 
 ### Frontend
 
@@ -705,7 +711,7 @@ Tracks the current verification footprint across backend and frontend so progres
 
 ### Notes
 
-- Backend cumulative validation passed 593 tests.
+- Backend cumulative validation passed 611 tests after the FO-074F security correction.
 - Frontend helper-level baseline passed 227 tests. No component, integration,
   or browser harness exists yet.
 
