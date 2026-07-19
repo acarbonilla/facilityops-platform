@@ -219,6 +219,10 @@ class FmTicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="assign")
     def assign(self, request, pk=None):
         ticket = self.get_object()
+        caller_tenant_id = getattr(request.user, "tenant_id", None)
+        if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
+            raise Http404()
+
         serializer = FmTicketAssignSerializer(
             data=request.data,
             context={"ticket": ticket},
@@ -240,6 +244,10 @@ class FmTicketViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="generate-work-order")
     def generate_work_order(self, request, pk=None):
         ticket = self.get_object()
+        caller_tenant_id = getattr(request.user, "tenant_id", None)
+        if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
+            raise Http404()
+
         try:
             work_order = generate_work_order_from_ticket(
                 ticket=ticket,

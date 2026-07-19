@@ -20,7 +20,8 @@ Severity: **Critical**.
 ## Final access contract
 
 - Active superusers and users with an active `system_admin` role have global
-  FM Ticket scope.
+  FM Ticket read/detail scope. FO-061's assignment and Work Order generation
+  workflows retain their stricter caller-Tenant match with no global bypass.
 - Tenant-bound non-global users are restricted to `user.tenant_id`.
 - Tenantless non-global users receive an empty list and generic HTTP 404 for
   object actions.
@@ -37,10 +38,11 @@ queryset behavior. `FmTicketViewSet.get_queryset()` applies that scope first,
 excludes soft-deleted tickets, and only then applies allow-listed request
 filters. Every object action resolves through the scoped queryset.
 
-Redundant action-local tenant checks were removed from assignment and Work
-Order generation. Work Order generation now locks the scoped, non-deleted
-ticket before reloading its related data, preserving generic-404 protection,
-transaction behavior, and PostgreSQL-compatible row locking.
+Assignment and Work Order generation retain their FO-061 caller-Tenant match
+after scoped object resolution. Work Order generation also revalidates that
+match in the service after locking the scoped, non-deleted ticket, preserving
+generic-404 protection, transaction behavior, and PostgreSQL-compatible row
+locking.
 
 ## Creation and update hardening
 
@@ -78,24 +80,27 @@ tenant/assignment validation remain authoritative.
 
 ## Regression coverage
 
-Eighteen focused tests cover tenant-specific lists, tenantless fail-closed
+Nineteen focused tests cover tenant-specific lists, tenantless fail-closed
 behavior, Staff-only scope, active `system_admin` and superuser global scope,
 soft-deleted exclusion, non-broadening Tenant filters, generic 404 across all
 detail actions, no rejected-request side effects, creation binding, global
 creation, related-object lifecycle/scope, immutable tenant updates,
 same-tenant workflows, Work Order integration, notification scope, secondary
-identities, and in-scope permission denials.
+identities, FO-061's no-global-bypass workflow exception, and in-scope
+permission denials.
 
 ## Validation
 
-- Focused isolation class: 17 passed, then the added secondary-identity test
-  passed independently; all 18 are included in the final suite.
-- `python manage.py test apps.fm_tickets --noinput`: 80 passed.
+- Final focused isolation class after contract reconciliation: 19 passed.
+- `python manage.py test apps.fm_tickets --noinput`: 82 passed.
 - `python manage.py test apps.maintenance --noinput`: 85 passed.
 - `python manage.py test apps.notifications --noinput`: 78 passed.
 - `python manage.py test apps.accounts apps.access_control --noinput`: 113
   passed.
-- `python manage.py test --parallel 4 --noinput`: 611 passed, exit 0.
+- `python manage.py test --parallel 4 --noinput`: 611 passed, exit 0, before
+  the final no-global-bypass regression was added. The subsequent focused
+  19-test and complete 82-test FM Ticket runs passed after restoring that
+  previously approved FO-061 behavior.
 - `python manage.py check`: no issues, exit 0.
 - `python manage.py makemigrations --check --dry-run`: no changes, exit 0.
 

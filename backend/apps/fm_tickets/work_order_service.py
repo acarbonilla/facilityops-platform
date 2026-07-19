@@ -38,7 +38,11 @@ def map_ticket_priority_to_work_order(priority):
         ) from exc
 
 
-def _validate_generation_eligibility(*, ticket):
+def _validate_generation_eligibility(*, ticket, generated_by):
+    caller_tenant_id = getattr(generated_by, "tenant_id", None)
+    if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
+        raise FmTicket.DoesNotExist()
+
     if ticket.assignee_id is None:
         raise ValidationError(
             {"assignee": ["Ticket must have an assigned technician before generating a work order."]}
@@ -104,7 +108,10 @@ def generate_work_order_from_ticket(*, ticket, generated_by):
         ).get(pk=locked_ticket_id)
     )
 
-    _validate_generation_eligibility(ticket=locked_ticket)
+    _validate_generation_eligibility(
+        ticket=locked_ticket,
+        generated_by=generated_by,
+    )
 
     actor_id = str(generated_by.id)
     assignment_notes = (

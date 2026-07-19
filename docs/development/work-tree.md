@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Security correction validated | FO-074F: FM Ticket 80, Maintenance 85, Notifications 78, Accounts/Access Control 113, and full backend 611 pass; frontend unchanged with prior 227-test/static/build baseline |
+| Testing | Security correction validated | FO-074F: focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78, Accounts/Access Control 113, and full backend 611 pass; frontend unchanged with prior 227-test/static/build baseline |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -447,7 +447,7 @@ Manages facility-management tickets, including read, create, edit, comments, his
 - Services: authoritative FM Ticket tenant-scope helper, ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
 - Permissions: `HasTicketPermission` with `fm_tickets.view`, `create`, `update`, `assign`, `close`, and `manage`
 - Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`
-- Tests: `backend/apps/fm_tickets/tests.py` and `backend/apps/fm_tickets/test_tenant_isolation.py` (80 passed)
+- Tests: `backend/apps/fm_tickets/tests.py` and `backend/apps/fm_tickets/test_tenant_isolation.py` (82 passed)
 
 ### Frontend
 
@@ -469,10 +469,11 @@ Manages facility-management tickets, including read, create, edit, comments, his
   every ticket queryset before filters and excluding soft-deleted tickets.
   Tenant-bound users remain in their Tenant, tenantless non-global users fail
   closed, Staff alone is not global, and active `system_admin`/superusers retain
-  approved global scope. Creation/update relationships and secondary identities
-  are tenant- and lifecycle-scoped. Employee Requester Experience remains
-  deferred pending independent security approval; FO-063 remains
-  reserved/deferred.
+  approved global read/detail scope. FO-061's stricter caller-Tenant match
+  remains in place for assignment and Work Order generation. Creation/update
+  relationships and secondary identities are tenant- and lifecycle-scoped.
+  Employee Requester Experience remains deferred pending independent security
+  approval; FO-063 remains reserved/deferred.
 
 ## Maintenance Work Order
 

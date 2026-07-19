@@ -124,7 +124,7 @@ FO-074F later confirmed a Critical tenant-isolation defect not detected by this
 historical QA snapshot: `FmTicketViewSet.get_queryset()` applied filters to an
 unscoped platform-wide queryset. FO-074F adds backend-authoritative tenant
 scope, generic cross-tenant 404 behavior, creation/update hardening, and
-focused coverage across all FM Ticket actions. The correction passes 80 FM
+focused coverage across all FM Ticket actions. The correction passes 82 FM
 Ticket tests and the 611-test full backend suite with no migration or frontend
 change. Employee Requester Experience remains deferred pending independent
 approval of the security correction; FO-063 remains reserved/deferred.

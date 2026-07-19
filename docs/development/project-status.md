@@ -117,7 +117,9 @@
 - FO-074F corrects a confirmed Critical cross-tenant FM Ticket access defect.
   Backend-authoritative scope now protects list, detail, nested actions,
   creation, update, assignment, Work Order generation, escalation, and status
-  changes. Focused isolation coverage is included in the 80-test FM Ticket
+  changes. FO-061's stricter caller-Tenant requirement remains authoritative
+  for assignment and Work Order generation. Focused isolation coverage is
+  included in the 82-test FM Ticket
   suite; Maintenance 85, Notifications 78, Accounts/Access Control 113, and
   full backend 611 pass. Django check and migration drift are clean. No
   frontend or schema change is included. Independent review remains pending.

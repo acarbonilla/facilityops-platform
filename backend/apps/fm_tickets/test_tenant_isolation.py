@@ -232,6 +232,36 @@ class FmTicketTenantIsolationTests(FmTicketTestDataMixin, APITestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(self._list_ids(response), expected_ids)
 
+    def test_global_scope_does_not_bypass_assignment_or_generation_tenant_match(self):
+        for user in (self.system_admin, self.superuser):
+            self._authenticate(user)
+            assignment_response = self.client.post(
+                reverse("fm-ticket-assign", args=[self.ticket_a.id]),
+                {"assignee": str(self.technician_a.id)},
+                format="json",
+            )
+            generation_response = self.client.post(
+                reverse(
+                    "fm-ticket-generate-work-order",
+                    args=[self.ticket_a.id],
+                ),
+                {},
+                format="json",
+            )
+
+            self.assertEqual(
+                assignment_response.status_code,
+                status.HTTP_404_NOT_FOUND,
+            )
+            self.assertEqual(
+                generation_response.status_code,
+                status.HTTP_404_NOT_FOUND,
+            )
+
+        self.ticket_a.refresh_from_db()
+        self.assertEqual(self.ticket_a.assignee_id, self.technician_a.id)
+        self.assertEqual(MaintenanceWorkOrder.objects.count(), 0)
+
     def test_deleted_tickets_are_excluded_from_list_and_detail(self):
         self._authenticate(self.manager_a)
         response = self.client.get(reverse("fm-ticket-list"))
