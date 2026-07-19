@@ -499,6 +499,111 @@ class MasterDataTenantIsolationApiTests(APITestCase):
         self.assertEqual(list_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(deleted_response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(active_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            active_response.data,
+            {"is_active": ["Invalid filter value."]},
+        )
+
+    def test_tenant_boolean_filter_accepts_supported_values(self):
+        inactive_tenant = Tenant.objects.create(
+            name="Inactive Tenant",
+            code="inactive-tenant",
+            is_active=False,
+        )
+        Tenant.objects.create(
+            name="Deleted Active Tenant",
+            code="deleted-active-tenant",
+            is_deleted=True,
+        )
+        Tenant.objects.create(
+            name="Deleted Inactive Tenant",
+            code="deleted-inactive-tenant",
+            is_active=False,
+            is_deleted=True,
+        )
+        superuser = User.objects.create_superuser(
+            email="boolean-filter-superuser@example.com",
+            password="Password123!",
+        )
+        self._authenticate(superuser)
+
+        cases = (
+            ("true", {str(self.tenant_a.id), str(self.tenant_b.id)}),
+            ("True", {str(self.tenant_a.id), str(self.tenant_b.id)}),
+            ("1", {str(self.tenant_a.id), str(self.tenant_b.id)}),
+            ("false", {str(inactive_tenant.id)}),
+            ("False", {str(inactive_tenant.id)}),
+            ("0", {str(inactive_tenant.id)}),
+        )
+        for value, expected_ids in cases:
+            with self.subTest(value=value):
+                response = self.client.get(
+                    reverse("tenant-list"),
+                    {"is_active": value},
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(
+                    {result["id"] for result in self._results(response)},
+                    expected_ids,
+                )
+
+    def test_tenant_owned_boolean_filter_preserves_scope_and_deletion(self):
+        inactive_organization = Organization.objects.create(
+            tenant=self.tenant_a,
+            name="Inactive Organization",
+            code="inactive-org",
+            is_active=False,
+        )
+        Organization.objects.create(
+            tenant=self.tenant_a,
+            name="Deleted Active Organization",
+            code="deleted-active-org",
+            is_deleted=True,
+        )
+        Organization.objects.create(
+            tenant=self.tenant_a,
+            name="Deleted Inactive Organization",
+            code="deleted-inactive-org",
+            is_active=False,
+            is_deleted=True,
+        )
+        self._authenticate(self.tenant_user)
+
+        cases = (
+            ("true", {str(self.organization_a.id)}),
+            ("True", {str(self.organization_a.id)}),
+            ("1", {str(self.organization_a.id)}),
+            ("false", {str(inactive_organization.id)}),
+            ("False", {str(inactive_organization.id)}),
+            ("0", {str(inactive_organization.id)}),
+        )
+        for value, expected_ids in cases:
+            with self.subTest(value=value):
+                response = self.client.get(
+                    reverse("organization-list"),
+                    {"is_active": value},
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(
+                    {result["id"] for result in self._results(response)},
+                    expected_ids,
+                )
+
+        expected_unfiltered_ids = {
+            str(self.organization_a.id),
+            str(inactive_organization.id),
+        }
+        for query in ({}, {"is_active": ""}):
+            with self.subTest(query=query):
+                response = self.client.get(reverse("organization-list"), query)
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                self.assertEqual(
+                    {result["id"] for result in self._results(response)},
+                    expected_unfiltered_ids,
+                )
 
     def test_tenantless_non_global_user_fails_closed(self):
         self._authenticate(self.tenantless_user)
