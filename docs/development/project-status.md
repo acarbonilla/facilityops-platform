@@ -14,17 +14,15 @@
 
 ## Current Module
 
-- FM Ticketing Critical Tenant-Isolation Security Correction (independently
-  approved and manually accepted on `feature/fm-ticket-tenant-isolation`; PR
-  #41 remains draft and unmerged)
+- Employee Requester Experience (FO-075 backend authorization foundation on
+  `feature/employee-requester`)
 
 ## Current Branch
 
-- `feature/fm-ticket-tenant-isolation`
-- Synchronized branch baseline: `main` at Master Data merge commit
-  `35085bf2dafdf93b06e209643c4f9a5d30bb676e`
-- Master Data PR #40 merged normally; its feature branch was removed locally
-  and remotely
+- `feature/employee-requester`
+- Synchronized branch baseline: `main` at FM Ticket tenant-isolation merge
+  commit `9362338ce6dbfc87e4fe533ebd657825e5d995d1`
+- PR #41 merged normally; its feature branch was removed locally and remotely
 
 ## Completed Modules
 
@@ -115,20 +113,21 @@
 
 ## Current Task
 
-- FO-074G records Sol's independent **APPROVED** security review of the
-  Critical FO-074F correction at implementation HEAD
-  `48bde40c40c2942b59a616df623a7f47329b8715` and the user's passed manual
-  cross-tenant acceptance on 2026-07-19. Backend-authoritative scope protects
-  all FM Ticket surfaces, and FO-061's stricter no-global-bypass caller-Tenant
-  requirement remains authoritative for assignment and Work Order generation.
-  Focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78,
-  Accounts/Access Control 113, and full backend 611 pass. Django check and
-  migration drift are clean. No frontend or schema change is included.
+- FO-075 adds the immutable Employee system role with only
+  `fm_tickets.view` and `fm_tickets.create`, backend-authoritative
+  requester-owned Ticket visibility, dedicated requester-safe serializers,
+  account-bound safe creation, and
+  `GET /api/fm-tickets/tickets/request-options/` without `settings.view`.
+  Existing Facility Manager, Technician, Viewer, global administrator, and
+  FO-061 contracts remain unchanged. Focused Employee 21, Accounts/Access
+  Control 113, Notifications 78, Maintenance 85, and full backend 633 pass;
+  Django check and migration drift are clean. No frontend route, migration, or
+  dependency is included.
 
 ## Next Milestone
 
-- User ready-for-review and normal merge-commit decision for draft PR #41
-- Employee Requester Experience and FO-075 have not started
+- Independent review of FO-075 on the cumulative draft PR
+- FO-076 through FO-078 remain pending and have not started
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -151,7 +150,8 @@
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
-- FO-075: not started; Employee Requester Experience remains next
+- FO-075: Employee Role and Requester Authorization Foundation implemented on
+  `feature/employee-requester`
 
 ## Foundation Dashboard Security Note
 
@@ -180,10 +180,10 @@
 
 ## Last Merge
 
-- `35085bf2dafdf93b06e209643c4f9a5d30bb676e` (Merge pull request #40 into
+- `9362338ce6dbfc87e4fe533ebd657825e5d995d1` (Merge pull request #41 into
+  `main`; FM Ticket tenant-isolation security correction)
+- Previous: `35085bf2dafdf93b06e209643c4f9a5d30bb676e` (Merge pull request #40 into
   `main`; Master Data Management)
-- Previous: `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a` (Merge pull request #39 into
-  `main`; Dashboard Operational Overview)
 
 ## Repository Version
 

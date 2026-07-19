@@ -3,6 +3,7 @@ import copy
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -20,7 +21,10 @@ from .services import (
     create_ticket_escalation,
     update_ticket,
 )
-from .tenant_scope import has_global_fm_ticket_scope
+from .tenant_scope import (
+    has_global_fm_ticket_scope,
+    is_eligible_employee_requester,
+)
 
 
 User = get_user_model()
@@ -126,6 +130,51 @@ class TicketValidationMixin:
             self._raise_validation_error(exception)
 
         return attrs
+
+
+class EmployeeFmTicketListSerializer(serializers.ModelSerializer):
+    organization_name = serializers.CharField(
+        source="organization.name",
+        read_only=True,
+    )
+    building_name = serializers.CharField(source="building.name", read_only=True)
+    floor_name = serializers.CharField(source="floor.name", read_only=True)
+    area_name = serializers.CharField(source="area.name", read_only=True)
+    asset_name = serializers.CharField(source="asset.name", read_only=True)
+
+    class Meta:
+        model = FmTicket
+        fields = (
+            "id",
+            "ticket_number",
+            "organization",
+            "organization_name",
+            "building",
+            "building_name",
+            "floor",
+            "floor_name",
+            "area",
+            "area_name",
+            "asset",
+            "asset_name",
+            "title",
+            "category",
+            "priority",
+            "status",
+            "reported_at",
+        )
+        read_only_fields = fields
+
+
+class EmployeeFmTicketDetailSerializer(EmployeeFmTicketListSerializer):
+    class Meta(EmployeeFmTicketListSerializer.Meta):
+        fields = EmployeeFmTicketListSerializer.Meta.fields + (
+            "description",
+            "resolved_at",
+            "closed_at",
+            "created_at",
+            "updated_at",
+        )
 
 
 class FmTicketListSerializer(serializers.ModelSerializer):
@@ -267,6 +316,137 @@ class FmTicketCreateSerializer(TicketValidationMixin, serializers.ModelSerialize
         )
 
 
+class EmployeeFmTicketCreateSerializer(serializers.ModelSerializer):
+    protected_fields = (
+        "requester",
+        "tenant",
+        "organization",
+        "department",
+        "source",
+        "priority",
+        "status",
+        "assignee",
+        "due_at",
+        "response_due_at",
+        "resolution_due_at",
+        "first_responded_at",
+        "response_met",
+        "resolution_met",
+        "resolved_at",
+        "closed_at",
+    )
+
+    class Meta:
+        model = FmTicket
+        fields = (
+            "title",
+            "description",
+            "category",
+            "building",
+            "floor",
+            "area",
+            "asset",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        tenant_id = getattr(user, "tenant_id", None)
+        organization_id = getattr(user, "organization_id", None)
+
+        building_queryset = self.fields["building"].queryset
+        floor_queryset = self.fields["floor"].queryset
+        area_queryset = self.fields["area"].queryset
+        asset_queryset = self.fields["asset"].queryset
+        if not is_eligible_employee_requester(user):
+            self.fields["building"].queryset = building_queryset.none()
+            self.fields["floor"].queryset = floor_queryset.none()
+            self.fields["area"].queryset = area_queryset.none()
+            self.fields["asset"].queryset = asset_queryset.none()
+            return
+
+        lifecycle_scope = {
+            "tenant_id": tenant_id,
+            "is_active": True,
+            "is_deleted": False,
+        }
+        self.fields["building"].queryset = building_queryset.filter(
+            organization_id=organization_id,
+            **lifecycle_scope,
+        )
+        self.fields["floor"].queryset = floor_queryset.filter(
+            building__organization_id=organization_id,
+            building__is_active=True,
+            building__is_deleted=False,
+            **lifecycle_scope,
+        )
+        self.fields["area"].queryset = area_queryset.filter(
+            building__organization_id=organization_id,
+            building__is_active=True,
+            building__is_deleted=False,
+            floor__is_active=True,
+            floor__is_deleted=False,
+            **lifecycle_scope,
+        )
+        self.fields["asset"].queryset = (
+            asset_queryset.filter(
+                organization_id=organization_id,
+                building__is_active=True,
+                building__is_deleted=False,
+                **lifecycle_scope,
+            )
+            .filter(
+                Q(floor__isnull=True)
+                | Q(floor__is_active=True, floor__is_deleted=False)
+            )
+            .filter(
+                Q(area__isnull=True) | Q(area__is_active=True, area__is_deleted=False)
+            )
+        )
+
+    def to_internal_value(self, data):
+        protected_errors = {
+            field: ["This field is controlled by the authenticated Employee account."]
+            for field in self.protected_fields
+            if field in data
+        }
+        if protected_errors:
+            raise serializers.ValidationError(protected_errors)
+        return super().to_internal_value(data)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        user = self.context["request"].user
+        if not is_eligible_employee_requester(user):
+            raise PermissionDenied(
+                "Employee requests require an active Tenant and Organization."
+            )
+
+        attrs.update(
+            {
+                "tenant": user.tenant,
+                "organization": user.organization,
+                "requester": user,
+                "source": FmTicket.Source.WEB,
+                "priority": FmTicket.Priority.MEDIUM,
+                "status": FmTicket.Status.OPEN,
+            }
+        )
+        ticket = FmTicket(**attrs)
+        try:
+            ticket.clean()
+        except DjangoValidationError as exception:
+            if hasattr(exception, "message_dict"):
+                raise serializers.ValidationError(exception.message_dict)
+            raise serializers.ValidationError(exception.messages)
+        return attrs
+
+    def create(self, validated_data):
+        requester = validated_data.pop("requester")
+        return create_ticket(requester=requester, data=validated_data)
+
+
 class FmTicketUpdateSerializer(TicketValidationMixin, serializers.ModelSerializer):
     class Meta:
         model = FmTicket
@@ -356,6 +536,44 @@ class FmTicketStatusHistorySerializer(serializers.ModelSerializer):
             "note",
         )
         read_only_fields = fields
+
+
+class EmployeeRequestOrganizationSerializer(serializers.Serializer):
+    id = serializers.UUIDField(read_only=True)
+    name = serializers.CharField(read_only=True)
+
+
+class EmployeeRequestBuildingSerializer(EmployeeRequestOrganizationSerializer):
+    pass
+
+
+class EmployeeRequestFloorSerializer(EmployeeRequestOrganizationSerializer):
+    building_id = serializers.UUIDField(read_only=True)
+
+
+class EmployeeRequestAreaSerializer(EmployeeRequestOrganizationSerializer):
+    building_id = serializers.UUIDField(read_only=True)
+    floor_id = serializers.UUIDField(read_only=True)
+
+
+class EmployeeRequestAssetSerializer(EmployeeRequestOrganizationSerializer):
+    building_id = serializers.UUIDField(read_only=True)
+    floor_id = serializers.UUIDField(read_only=True, allow_null=True)
+    area_id = serializers.UUIDField(read_only=True, allow_null=True)
+
+
+class EmployeeRequestChoiceSerializer(serializers.Serializer):
+    value = serializers.CharField(read_only=True)
+    label = serializers.CharField(read_only=True)
+
+
+class EmployeeRequestOptionsSerializer(serializers.Serializer):
+    organization = EmployeeRequestOrganizationSerializer(read_only=True)
+    buildings = EmployeeRequestBuildingSerializer(many=True, read_only=True)
+    floors = EmployeeRequestFloorSerializer(many=True, read_only=True)
+    areas = EmployeeRequestAreaSerializer(many=True, read_only=True)
+    assets = EmployeeRequestAssetSerializer(many=True, read_only=True)
+    categories = EmployeeRequestChoiceSerializer(many=True, read_only=True)
 
 
 class FmTicketEscalationSerializer(serializers.ModelSerializer):

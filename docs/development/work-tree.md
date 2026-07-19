@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Critical correction complete, approved, and manually accepted | FO-074F/FO-074G establish backend-authoritative tenant isolation across all FM Ticket endpoints; Sol APPROVED implementation HEAD `48bde40c`; user cross-tenant acceptance passed 2026-07-19; draft PR #41 remains open and unmerged |
+| FM Ticketing | Employee requester backend foundation complete on branch | FO-075 adds Employee requester ownership, safe serialization/creation, and scoped request options after PR #41 merged the approved FO-074F/FO-074G security correction |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Security correction validated and accepted | FO-074F/FO-074G: focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78, Accounts/Access Control 113, and full backend 611 pass; frontend unchanged with prior 227-test/lint/TypeScript/build baseline |
+| Testing | FO-075 backend validation passed | Employee requester focused 21, FM Ticket 101 plus final focused additions, Accounts/Access Control 113, Notifications 78, Maintenance 85, and full backend 633 pass; Django and migration checks clean; frontend unchanged |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -441,13 +441,13 @@ Manages facility-management tickets, including read, create, edit, comments, his
 
 - Apps: `apps.fm_tickets`
 - Models: `FmTicket`, `FmTicketEscalation`, `FmTicketComment`, `FmTicketHistory`, `FmTicketStatusHistory`
-- Serializers: list, detail, create, update, comment, history, escalation, assignment, and status-change serializers
+- Serializers: operational list/detail/create/update serializers plus dedicated Employee requester-safe list/detail/create and request-options serializers
 - ViewSets / Views: `FmTicketViewSet`
-- APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`
+- APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/request-options/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`
 - Services: authoritative FM Ticket tenant-scope helper, ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
 - Permissions: `HasTicketPermission` with `fm_tickets.view`, `create`, `update`, `assign`, `close`, and `manage`
 - Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`
-- Tests: `backend/apps/fm_tickets/tests.py` and `backend/apps/fm_tickets/test_tenant_isolation.py` (82 passed)
+- Tests: `backend/apps/fm_tickets/tests.py`, `test_tenant_isolation.py`, and `test_employee_requester.py`
 
 ### Frontend
 
@@ -478,9 +478,15 @@ Manages facility-management tickets, including read, create, edit, comments, his
   2026-07-19 using `debug@example.com`. Foreign-Tenant list entries are absent,
   known foreign-Tenant UUID access returns Not Found, Tenant query parameters
   cannot broaden access, own-Tenant behavior remains functional, and FO-061
-  assignment/generation keep no global bypass. PR #41 remains open, draft, and
-  unmerged. Employee Requester Experience and FO-075 have not started; FO-063
-  remains reserved/deferred.
+  assignment/generation keep no global bypass. PR #41 merged normally to
+  `main` at `9362338`; the feature branch was removed.
+- FO-075 adds the Employee system role with only `fm_tickets.view` and
+  `fm_tickets.create`. Employee-only Ticket visibility is requester-owned
+  within an active Tenant/Organization, while broader operational roles retain
+  existing Tenant-wide scope. Dedicated safe list/detail/create serializers
+  and `/api/fm-tickets/tickets/request-options/` avoid internal data exposure
+  and any need for `settings.view`. FO-076–FO-078 have not started; attachment
+  and AI work remain deferred; FO-063 remains reserved/deferred.
 
 ## Maintenance Work Order
 

@@ -5,9 +5,11 @@ from rest_framework.permissions import BasePermission, IsAuthenticated
 from rest_framework.response import Response
 
 from apps.access_control.services import user_has_permission
+from apps.master_data.models import Area, Asset, Building, Floor
 from common.pagination import StandardResultsSetPagination
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404
+from django.db.models import Q
 
 from .filters import apply_query_param_filters
 from .models import FmTicket
@@ -16,6 +18,10 @@ from .serializers import (
     FmTicketCommentSerializer,
     FmTicketCreateSerializer,
     FmTicketDetailSerializer,
+    EmployeeFmTicketCreateSerializer,
+    EmployeeFmTicketDetailSerializer,
+    EmployeeFmTicketListSerializer,
+    EmployeeRequestOptionsSerializer,
     FmTicketEscalationCreateSerializer,
     FmTicketEscalationSerializer,
     FmTicketHistorySerializer,
@@ -25,7 +31,12 @@ from .serializers import (
     GeneratedWorkOrderSummarySerializer,
 )
 from .services import assign_ticket, change_ticket_status
-from .tenant_scope import scope_fm_ticket_queryset
+from .tenant_scope import (
+    is_eligible_employee_requester,
+    scope_fm_ticket_queryset,
+    uses_employee_requester_creation,
+    uses_employee_requester_scope,
+)
 from .work_order_service import (
     WorkOrderAlreadyLinked,
     generate_work_order_from_ticket,
@@ -99,7 +110,7 @@ class FmTicketViewSet(viewsets.ModelViewSet):
 
         if self.action in ("list", "retrieve", "history", "escalations"):
             self.required_permission = "fm_tickets.view"
-        elif self.action == "create":
+        elif self.action in ("create", "request_options"):
             self.required_permission = "fm_tickets.create"
         elif self.action in ("partial_update", "update"):
             self.required_permission = "fm_tickets.update"
@@ -138,9 +149,17 @@ class FmTicketViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == "list":
+            if uses_employee_requester_scope(self.request.user):
+                return EmployeeFmTicketListSerializer
             return FmTicketListSerializer
         if self.action == "create":
+            if uses_employee_requester_creation(self.request.user):
+                return EmployeeFmTicketCreateSerializer
             return FmTicketCreateSerializer
+        if self.action == "retrieve" and uses_employee_requester_scope(
+            self.request.user
+        ):
+            return EmployeeFmTicketDetailSerializer
         if self.action in ("partial_update", "update"):
             return FmTicketUpdateSerializer
         if self.action == "comments":
@@ -157,7 +176,15 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         ticket = serializer.save()
-        response_serializer = FmTicketDetailSerializer(ticket, context=self.get_serializer_context())
+        response_serializer_class = (
+            EmployeeFmTicketDetailSerializer
+            if uses_employee_requester_creation(request.user)
+            else FmTicketDetailSerializer
+        )
+        response_serializer = response_serializer_class(
+            ticket,
+            context=self.get_serializer_context(),
+        )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, *args, **kwargs):
@@ -170,6 +197,8 @@ class FmTicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get", "post"], url_path="comments")
     def comments(self, request, pk=None):
+        if uses_employee_requester_scope(request.user):
+            raise Http404()
         ticket = self.get_object()
 
         if request.method == "GET":
@@ -192,6 +221,8 @@ class FmTicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="history")
     def history(self, request, pk=None):
+        if uses_employee_requester_scope(request.user):
+            raise Http404()
         ticket = self.get_object()
         queryset = ticket.history_entries.select_related("actor")
         page = self.paginate_queryset(queryset)
@@ -203,6 +234,8 @@ class FmTicketViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="escalations")
     def escalations(self, request, pk=None):
+        if uses_employee_requester_scope(request.user):
+            raise Http404()
         ticket = self.get_object()
         queryset = ticket.escalations.select_related(
             "escalated_by",
@@ -289,3 +322,72 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         )
         response_serializer = FmTicketDetailSerializer(ticket)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="request-options")
+    def request_options(self, request):
+        if not uses_employee_requester_creation(
+            request.user
+        ) or not is_eligible_employee_requester(request.user):
+            raise Http404()
+        if {"tenant", "organization"}.intersection(request.query_params):
+            raise DRFValidationError(
+                {
+                    "scope": [
+                        "Tenant and Organization are derived from the authenticated Employee."
+                    ]
+                }
+            )
+
+        tenant_id = request.user.tenant_id
+        organization_id = request.user.organization_id
+        lifecycle_scope = {
+            "tenant_id": tenant_id,
+            "is_active": True,
+            "is_deleted": False,
+        }
+        buildings = Building.objects.filter(
+            organization_id=organization_id,
+            **lifecycle_scope,
+        ).order_by("name", "id")
+        floors = Floor.objects.filter(
+            building__organization_id=organization_id,
+            building__is_active=True,
+            building__is_deleted=False,
+            **lifecycle_scope,
+        ).order_by("building_id", "level_number", "name", "id")
+        areas = Area.objects.filter(
+            building__organization_id=organization_id,
+            building__is_active=True,
+            building__is_deleted=False,
+            floor__is_active=True,
+            floor__is_deleted=False,
+            **lifecycle_scope,
+        ).order_by("building_id", "floor_id", "name", "id")
+        assets = (
+            Asset.objects.filter(
+                organization_id=organization_id,
+                building__is_active=True,
+                building__is_deleted=False,
+                **lifecycle_scope,
+            )
+            .filter(
+                Q(floor__isnull=True)
+                | Q(floor__is_active=True, floor__is_deleted=False)
+            )
+            .filter(
+                Q(area__isnull=True) | Q(area__is_active=True, area__is_deleted=False)
+            )
+            .order_by("name", "id")
+        )
+        payload = {
+            "organization": request.user.organization,
+            "buildings": buildings,
+            "floors": floors,
+            "areas": areas,
+            "assets": assets,
+            "categories": [
+                {"value": value, "label": label}
+                for value, label in FmTicket.Category.choices
+            ],
+        }
+        return Response(EmployeeRequestOptionsSerializer(payload).data)
