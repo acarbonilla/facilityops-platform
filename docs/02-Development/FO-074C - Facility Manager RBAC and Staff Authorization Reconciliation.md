@@ -2,10 +2,11 @@
 
 ## Status
 
-Implementation, focused regression coverage, affected-suite validation, local
-seed reconciliation, and documentation are complete. Manual smoke, final
-cumulative validation, user manual acceptance, and Sol's cumulative final
-review remain pending. PR #40 remains open, draft, and unmerged.
+Implementation commit `b65ccc7b2f104eca06404de36636d1416c319f5e`,
+focused regression coverage, affected-suite validation, local seed
+reconciliation, and documentation are complete. Manual smoke, final cumulative
+validation, user manual acceptance, and Sol's cumulative final review remain
+pending. PR #40 remains open, draft, and unmerged.
 
 ## Confirmed defect and severity
 
@@ -77,6 +78,5 @@ secret, unrelated feature change, or FO-075 work is included.
 ## Remaining gates
 
 Manual smoke remains pending. The final full suite is deferred until all manual
-acceptance issues are resolved. FO-075 has not started. The implementation
-commit SHA is recorded by the delivery follow-up and PR #40 remains draft and
-unmerged.
+acceptance issues are resolved. FO-075 has not started. PR #40 remains draft
+and unmerged.
