@@ -1349,3 +1349,51 @@ class SeedRbacCommandTests(APITestCase):
         self.assertEqual(directory_roles, {"system_admin", "facility_manager"})
         self.assertIn("users.view", ROLE_PERMISSION_CODES["system_admin"])
         self.assertNotIn("users.view", ROLE_PERMISSION_CODES["facility_manager"])
+
+    def test_facility_manager_seed_is_tenant_operational_and_read_only(self):
+        call_command("seed_rbac")
+        facility_manager = Role.objects.get(code="facility_manager")
+        revoked_codes = {
+            "inspection.create",
+            "inspection.update",
+            "inspection.complete",
+            "inspection.verify",
+            "inspection.assign",
+            "inspection.view_ai",
+            "inspection.manage_corrective_action",
+        }
+        for permission_code in revoked_codes:
+            RolePermission.objects.update_or_create(
+                role=facility_manager,
+                permission=Permission.objects.get(code=permission_code),
+                defaults={"is_active": True},
+            )
+
+        call_command("seed_rbac")
+
+        active_codes = set(
+            RolePermission.objects.filter(
+                role=facility_manager,
+                is_active=True,
+            ).values_list("permission__code", flat=True)
+        )
+        self.assertTrue(
+            {
+                "inspection.view",
+                "reporting.view",
+                "settings.view",
+                "fm_tickets.assign",
+                "maintenance.assign",
+            }.issubset(active_codes)
+        )
+        self.assertTrue(revoked_codes.isdisjoint(active_codes))
+        self.assertTrue(
+            {
+                "inspection.manage",
+                "settings.manage",
+                "users.view",
+                "users.manage",
+                "roles.view",
+                "roles.manage",
+            }.isdisjoint(active_codes)
+        )

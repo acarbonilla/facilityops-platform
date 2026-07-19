@@ -14,19 +14,21 @@
 
 ## Current Module
 
-- Dashboard and Executive Operational Overview (Complete on `feature/dashboard-operational-overview`; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 draft ready for user’s merge decision)
+- Master Data Management (complete on `feature/master-data-management`;
+  user manual acceptance passed 2026-07-19; Sol cumulative review APPROVED)
 
 ## Current Branch
 
-- `feature/dashboard-operational-overview` (FO-068 through FO-070A complete; Sol APPROVED at `0c812e6…`; manual acceptance passed 2026-07-18; PR #39 draft ready for user’s merge decision)
-- Synchronized repository baseline before branch: `main` at merge commit `dfd3a4457e54dd702171482217ef6f22194d7941`
+- `feature/master-data-management` (FO-071 and FO-072 independently approved;
+  FO-073 through FO-074E complete and cumulatively approved; manual acceptance
+  passed; PR #40 open, draft, and unmerged)
+- Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Completed Modules
 
 - Foundation
 - Authentication
 - Authorization / RBAC
-- Master Data
 - Dashboard
 - Organization Management
 - Asset Management
@@ -111,28 +113,42 @@
 
 ## Current Task
 
-- FO-070A complete. Sol’s independent cumulative review of FO-068 through FO-070 is **APPROVED** at HEAD `0c812e635d051a42bf98141a62cbccf699f3a962`. User manual acceptance **passed** on 2026-07-18. Dashboard Operational Overview is complete. Draft PR #39 remains open/unmerged, ready for the user’s final ready-for-review and normal merge-commit decision.
+- FO-074E final review and repository reconciliation is complete. Sol's
+  independent cumulative review result is APPROVED at approved production HEAD
+  `b5532d4c0d4c29be18f6a5aa2e90d363edad5750` and final reviewed feature HEAD
+  `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`. The backend baseline is 593
+  tests; the frontend baseline is 227 tests plus passed ESLint, TypeScript, and
+  production build. User manual acceptance passed on 2026-07-19. PR #40
+  remains open, draft, and unmerged for the user's ready-for-review and normal
+  merge-commit action.
 
 ## Next Milestone
 
-- User ready-for-review and merge decision for PR #39
+- User ready-for-review and normal merge-commit action for PR #40
+- Employee Requester Experience remains next; FO-075 has not started and no
+  feature branch exists
 - FO-063 automatic Ticket closure remains reserved and deferred
 
-## Selected Next Feature — Dashboard and Executive Operational Overview
+## Selected Next Feature — Master Data Management
 
-- Feature: Dashboard and Executive Operational Overview
-- Active branch: `feature/dashboard-operational-overview`
-- FO-068: Foundation Dashboard tenant-isolation backend correction (complete)
-- FO-069: frontend scope copy / Reporting navigation / UX (complete)
-- FO-069A: connectivity loading-state correction (complete; independently approved)
-- FO-070: QA and stabilization (complete; independently approved; documentation-only)
-- FO-070A: final review and repository reconciliation (complete)
-- Sol cumulative review: APPROVED
-- Manual acceptance: passed by User on 2026-07-18
-- Access: `IsAuthenticated` (no `dashboard.view`)
-- Overview API: `GET /api/dashboard/foundation-summary/`
-- Reporting module status: Complete (PR #38 merged)
+- Feature: Master Data Management hardening
+- Active branch: `feature/master-data-management`
+- FO-071: tenant isolation and write-path hardening (complete; independently approved by Sol on 2026-07-18 at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec` in the external project collaboration session)
+- FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete and independently approved at final HEAD `a8ea862` per user governance)
+- FO-073: frontend lifecycle and administrative UX alignment (complete; manual browser acceptance not performed; not independently approved)
+- FO-074: cumulative QA and stabilization complete
+- FO-074A: manual acceptance passed on 2026-07-19 after follow-up corrections
+- FO-074B: Boolean filter correction complete
+- FO-074C: Facility Manager RBAC and Staff authorization reconciliation
+  complete
+- FO-074D: final validation and manual acceptance reconciliation complete;
+  full backend 593 passed
+- FO-074E: Sol independent cumulative final review APPROVED; repository and
+  draft PR reconciled for the user's merge action
+- Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
+- Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
+- FO-075: not started; Employee Requester Experience remains next
 
 ## Foundation Dashboard Security Note
 
@@ -150,14 +166,19 @@
 - Attachment upload remains deferred and is guidance-only in Maintenance Create/Edit.
 - Browser-test automation remains deferred.
 
-## Last Reviewed Commit
+## Last Independently Reviewed Commit
 
-- FO-062D post-merge baseline on `main`: `ae3d208663cf31937bee5a326ce339b14b78e918` (Merge pull request #37)
+- Master Data Management cumulative review APPROVED by Sol:
+  - Approved production HEAD:
+    `b5532d4c0d4c29be18f6a5aa2e90d363edad5750`
+  - Final reviewed feature HEAD:
+    `0173ccca3ab810659fee94a8ee7b4cf9e4a5d56f`
+- The commit after the approved production HEAD is documentation-only.
 
 ## Last Merge
 
-- `ae3d208663cf31937bee5a326ce339b14b78e918` (Merge pull request #37 into `main`; FO-062D docs)
-- Previous: `e509b4ff82d9d93302c0d2e1febe8ce62061b9c5` (Merge pull request #36 into `main`; 2026-07-15T11:10:49Z)
+- `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a` (Merge pull request #39 into `main`; Dashboard Operational Overview)
+- Previous: `dfd3a4457e54dd702171482217ef6f22194d7941` (Merge pull request #38 into `main`; Reporting)
 
 ## Repository Version
 

@@ -168,6 +168,50 @@ def _validate_organization(tenant, organization):
         )
 
 
+def _lock_and_validate_master_data_hierarchy(
+    tenant,
+    organization,
+    *,
+    require_active,
+):
+    if tenant is not None:
+        tenant = type(tenant).objects.select_for_update(of=("self",)).get(
+            pk=tenant.pk
+        )
+        if tenant.is_deleted:
+            raise ValidationError(
+                {"tenant": "Deleted tenants cannot be assigned to users."}
+            )
+        if require_active and not tenant.is_active:
+            raise ValidationError(
+                {"tenant": "Inactive tenants cannot be assigned to active users."}
+            )
+
+    if organization is not None:
+        organization = type(organization).objects.select_for_update(
+            of=("self",)
+        ).get(pk=organization.pk)
+        if organization.is_deleted:
+            raise ValidationError(
+                {
+                    "organization": (
+                        "Deleted organizations cannot be assigned to users."
+                    )
+                }
+            )
+        if require_active and not organization.is_active:
+            raise ValidationError(
+                {
+                    "organization": (
+                        "Inactive organizations cannot be assigned to active users."
+                    )
+                }
+            )
+
+    _validate_organization(tenant, organization)
+    return tenant, organization
+
+
 def _validate_staff_change(actor, requested_is_staff, current_is_staff=False):
     if (
         requested_is_staff != current_is_staff
@@ -194,6 +238,15 @@ def _save_validated(user):
     user.save()
 
 
+def _lock_user(user):
+    return (
+        type(user)
+        .objects.select_for_update(of=("self",))
+        .select_related("tenant", "organization")
+        .get(pk=user.pk)
+    )
+
+
 @transaction.atomic
 def create_user(*, actor, validated_data):
     data = dict(validated_data)
@@ -204,7 +257,13 @@ def create_user(*, actor, validated_data):
     tenant = data.get("tenant")
     organization = data.get("organization")
     _validate_target_tenant(actor, tenant)
-    _validate_organization(tenant, organization)
+    tenant, organization = _lock_and_validate_master_data_hierarchy(
+        tenant,
+        organization,
+        require_active=data.get("is_active", True),
+    )
+    data["tenant"] = tenant
+    data["organization"] = organization
     _validate_staff_change(actor, data.get("is_staff", False))
 
     user = User(**data)
@@ -215,6 +274,7 @@ def create_user(*, actor, validated_data):
 
 @transaction.atomic
 def update_user(*, actor, user, validated_data):
+    user = _lock_user(user)
     data = dict(validated_data)
     password = data.pop("password", None)
     _validate_actor_can_manage_user(actor, user)
@@ -222,7 +282,18 @@ def update_user(*, actor, user, validated_data):
     organization = data.get("organization", user.organization)
 
     _validate_target_tenant(actor, tenant)
-    _validate_organization(tenant, organization)
+    hierarchy_changed = "tenant" in data or "organization" in data
+    reactivating = data.get("is_active") is True and not user.is_active
+    if hierarchy_changed or reactivating:
+        tenant, organization = _lock_and_validate_master_data_hierarchy(
+            tenant,
+            organization,
+            require_active=data.get("is_active", user.is_active),
+        )
+    if "tenant" in data:
+        data["tenant"] = tenant
+    if "organization" in data:
+        data["organization"] = organization
     _validate_staff_change(
         actor,
         data.get("is_staff", user.is_staff),
@@ -243,6 +314,7 @@ def update_user(*, actor, user, validated_data):
 
 @transaction.atomic
 def deactivate_user(*, actor, user):
+    user = _lock_user(user)
     _validate_actor_can_manage_user(actor, user)
     if user.pk == actor.pk:
         raise ValidationError(

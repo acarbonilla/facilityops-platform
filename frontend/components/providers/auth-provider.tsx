@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -22,6 +23,7 @@ import {
   getRefreshToken,
   setTokens,
 } from "@/lib/auth/token-storage";
+import { clearSessionQueryCache } from "@/lib/auth/session-cache";
 import type { AuthState, LoginCredentials } from "@/types/auth";
 
 export interface AuthContextValue extends AuthState {
@@ -46,6 +48,7 @@ const INITIAL_STATE: AuthState = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const router = useRouter();
   const [state, setState] = useState<AuthState>(INITIAL_STATE);
 
@@ -87,6 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshCurrentUser = useCallback(async () => {
     if (!getAccessToken()) {
+      await clearSessionQueryCache(queryClient);
       setState({
         user: null,
         isAuthenticated: false,
@@ -114,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refreshPermissions();
     } catch {
       clearTokens();
+      await clearSessionQueryCache(queryClient);
       setState({
         user: null,
         isAuthenticated: false,
@@ -124,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permissionsError: null,
       });
     }
-  }, [refreshPermissions]);
+  }, [queryClient, refreshPermissions]);
 
   useEffect(() => {
     void refreshCurrentUser();
@@ -136,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await loginRequest(credentials);
       setTokens(response.access, response.refresh);
       const user = await getCurrentUser();
+      await clearSessionQueryCache(queryClient);
       setState({
         user,
         isAuthenticated: true,
@@ -148,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refreshPermissions();
     } catch (error) {
       clearTokens();
+      await clearSessionQueryCache(queryClient);
       setState({
         user: null,
         isAuthenticated: false,
@@ -159,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       throw error;
     }
-  }, [refreshPermissions]);
+  }, [queryClient, refreshPermissions]);
 
   const logout = useCallback(async () => {
     setState((current) => ({ ...current, isLoading: true, error: null }));
@@ -173,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Local session cleanup must succeed even if the backend is unavailable.
     } finally {
       clearTokens();
+      await clearSessionQueryCache(queryClient);
       setState({
         user: null,
         isAuthenticated: false,
@@ -185,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       router.replace("/login");
       router.refresh();
     }
-  }, [router]);
+  }, [queryClient, router]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

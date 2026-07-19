@@ -14,6 +14,8 @@ import type {
   DepartmentFormValues,
   Floor,
   FloorFormValues,
+  BaseMasterDataRecord,
+  MasterDataResourceKey,
   MasterDataListParams,
   Organization,
   OrganizationFormValues,
@@ -53,6 +55,60 @@ function updateRecord<TRecord, TPayload>(
   return apiClient<TRecord>(endpoint, {
     method: "PATCH",
     body: payload,
+  });
+}
+
+const resourceEndpoints: Record<MasterDataResourceKey, string> = {
+  tenants: API_ENDPOINTS.masterData.tenants,
+  organizations: API_ENDPOINTS.masterData.organizations,
+  departments: API_ENDPOINTS.masterData.departments,
+  buildings: API_ENDPOINTS.masterData.buildings,
+  floors: API_ENDPOINTS.masterData.floors,
+  areas: API_ENDPOINTS.masterData.areas,
+  "asset-types": API_ENDPOINTS.masterData.assetTypes,
+  assets: API_ENDPOINTS.masterData.assets,
+};
+
+export function getMasterDataRecords<T extends BaseMasterDataRecord>(
+  resource: MasterDataResourceKey,
+  params?: MasterDataListParams,
+): Promise<PaginatedResponse<T>> {
+  return getList<T>(resourceEndpoints[resource], params);
+}
+
+export function getDeletedMasterDataRecords<T extends BaseMasterDataRecord>(
+  resource: MasterDataResourceKey,
+  params?: MasterDataListParams,
+): Promise<PaginatedResponse<T>> {
+  return getList<T>(API_ENDPOINTS.masterData.deleted(resource), params);
+}
+
+export function updateMasterDataLifecycle<T extends BaseMasterDataRecord>(
+  resource: MasterDataResourceKey,
+  id: string,
+  isActive: boolean,
+): Promise<T> {
+  return updateRecord<T, { is_active: boolean }>(
+    `${resourceEndpoints[resource]}${id}/`,
+    { is_active: isActive },
+  );
+}
+
+export function deleteMasterDataRecord(
+  resource: MasterDataResourceKey,
+  id: string,
+): Promise<void> {
+  return apiClient<void>(`${resourceEndpoints[resource]}${id}/`, {
+    method: "DELETE",
+  });
+}
+
+export function restoreMasterDataRecord<T extends BaseMasterDataRecord>(
+  resource: MasterDataResourceKey,
+  id: string,
+): Promise<T> {
+  return apiClient<T>(API_ENDPOINTS.masterData.restore(resource, id), {
+    method: "POST",
   });
 }
 

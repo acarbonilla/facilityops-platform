@@ -1048,11 +1048,11 @@ class ReportingFilterOptionsTests(ReportingTestDataMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("tickets", response.data)
 
-    def test_seed_rbac_does_not_add_settings_view_for_viewer_reporting(self):
+    def test_seed_rbac_keeps_viewer_separate_from_facility_manager_settings(self):
         call_command("seed_rbac")
         self.assertIn("reporting.view", ROLE_PERMISSION_CODES["viewer"])
         self.assertNotIn("settings.view", ROLE_PERMISSION_CODES.get("viewer", set()))
-        self.assertNotIn(
+        self.assertIn(
             "settings.view",
             ROLE_PERMISSION_CODES.get("facility_manager", set()),
         )

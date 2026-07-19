@@ -7,6 +7,8 @@ export interface ApiErrorResponse {
   message: string;
   code?: string;
   errors?: Record<string, string[]>;
+  dependencies?: string[];
+  hierarchyErrors?: Record<string, string>;
 }
 
 export interface PaginatedResponse<T> {

@@ -1,5 +1,9 @@
+from queue import Queue
+from threading import Event, Thread
+
 from django.contrib.auth import get_user_model
-from django.test import override_settings
+from django.db import close_old_connections, transaction
+from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
@@ -14,6 +18,7 @@ from apps.access_control.models import (
 from apps.master_data.models import Organization, Tenant
 
 from .services import (
+    create_user,
     deactivate_user,
     has_global_user_scope,
     replace_user_role_assignments,
@@ -618,6 +623,66 @@ class UserManagementEndpointTests(APITestCase):
                 validated_data={"email": self.admin.email},
             )
 
+    def test_user_writes_require_valid_master_data_hierarchy(self):
+        self.organization.is_active = False
+        self.organization.save(update_fields=("is_active", "updated_at"))
+        self.same_tenant_user.is_active = False
+        self.same_tenant_user.save(update_fields=("is_active", "updated_at"))
+        self._authenticate()
+
+        create_response = self.client.post(
+            reverse("user-list"),
+            {
+                "email": "inactive-parent@example.com",
+                "tenant": str(self.tenant.id),
+                "organization": str(self.organization.id),
+                "password": self.password,
+                "is_active": True,
+            },
+            format="json",
+        )
+        reactivate_response = self.client.patch(
+            reverse("user-detail", args=(self.same_tenant_user.id,)),
+            {"is_active": True},
+            format="json",
+        )
+
+        self.assertEqual(
+            create_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("organization", create_response.data)
+        self.assertEqual(
+            reactivate_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("organization", reactivate_response.data)
+        self.assertFalse(
+            User.objects.filter(email="inactive-parent@example.com").exists()
+        )
+
+        self.organization.is_active = True
+        self.organization.is_deleted = True
+        self.organization.save(
+            update_fields=("is_active", "is_deleted", "updated_at")
+        )
+        deleted_response = self.client.post(
+            reverse("user-list"),
+            {
+                "email": "deleted-parent@example.com",
+                "tenant": str(self.tenant.id),
+                "organization": str(self.organization.id),
+                "password": self.password,
+                "is_active": False,
+            },
+            format="json",
+        )
+        self.assertEqual(
+            deleted_response.status_code,
+            status.HTTP_400_BAD_REQUEST,
+        )
+        self.assertIn("organization", deleted_response.data)
+
     def test_authorized_update_and_password_replacement_succeed(self):
         self._authenticate()
 
@@ -634,6 +699,115 @@ class UserManagementEndpointTests(APITestCase):
             self.same_tenant_user.check_password("UpdatedPassword123!")
         )
         self.assertNotIn("password", response.data)
+
+
+@override_settings(
+    PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",)
+)
+class UserMasterDataLifecycleConcurrencyTests(TransactionTestCase):
+    reset_sequences = True
+
+    def setUp(self):
+        self.tenant = Tenant.objects.create(name="Tenant", code="tenant-race")
+        self.organization = Organization.objects.create(
+            tenant=self.tenant,
+            name="Organization",
+            code="organization-race",
+        )
+        self.actor = User.objects.create_superuser(
+            email="lifecycle-admin@example.com",
+            password="Password123!",
+        )
+        self.managed_user = User.objects.create_user(
+            email="managed-race@example.com",
+            password="Password123!",
+            tenant=self.tenant,
+            organization=self.organization,
+        )
+
+    def test_concurrent_user_create_cannot_outlive_parent_deactivation(self):
+        ready = Event()
+        outcomes = Queue()
+
+        def create_active_user():
+            close_old_connections()
+            ready.set()
+            try:
+                create_user(
+                    actor=User.objects.get(pk=self.actor.pk),
+                    validated_data={
+                        "email": "racing-user@example.com",
+                        "password": "Password123!",
+                        "tenant": Tenant.objects.get(pk=self.tenant.pk),
+                        "organization": Organization.objects.get(
+                            pk=self.organization.pk
+                        ),
+                        "is_active": True,
+                    },
+                )
+            except Exception as exc:
+                outcomes.put(exc)
+            else:
+                outcomes.put(None)
+            finally:
+                close_old_connections()
+
+        with transaction.atomic():
+            locked = Organization.objects.select_for_update().get(
+                pk=self.organization.pk
+            )
+            worker = Thread(target=create_active_user)
+            worker.start()
+            self.assertTrue(ready.wait(timeout=5))
+            locked.is_active = False
+            locked.save(update_fields=("is_active", "updated_at"))
+
+        worker.join(timeout=10)
+        self.assertFalse(worker.is_alive())
+        self.assertIsInstance(outcomes.get_nowait(), ValidationError)
+        self.assertFalse(
+            User.objects.filter(email="racing-user@example.com").exists()
+        )
+        self.organization.refresh_from_db()
+        self.assertFalse(self.organization.is_active)
+
+    def test_concurrent_user_update_preserves_committed_fields(self):
+        ready = Event()
+        outcomes = Queue()
+
+        def update_first_name():
+            close_old_connections()
+            stale_user = User.objects.get(pk=self.managed_user.pk)
+            ready.set()
+            try:
+                update_user(
+                    actor=User.objects.get(pk=self.actor.pk),
+                    user=stale_user,
+                    validated_data={"first_name": "Worker"},
+                )
+            except Exception as exc:
+                outcomes.put(exc)
+            else:
+                outcomes.put(None)
+            finally:
+                close_old_connections()
+
+        with transaction.atomic():
+            locked = User.objects.select_for_update().get(
+                pk=self.managed_user.pk
+            )
+            worker = Thread(target=update_first_name)
+            worker.start()
+            self.assertTrue(ready.wait(timeout=5))
+            locked.last_name = "Committed"
+            locked.save(update_fields=("last_name", "updated_at"))
+
+        worker.join(timeout=10)
+        self.assertFalse(worker.is_alive())
+        self.assertIsNone(outcomes.get_nowait())
+        self.managed_user.refresh_from_db()
+        self.assertEqual(self.managed_user.first_name, "Worker")
+        self.assertEqual(self.managed_user.last_name, "Committed")
 
 
 @override_settings(

@@ -1,3 +1,5 @@
+import type { MasterDataResourceKey } from "@/types/master-data";
+
 export const API_ENDPOINTS = {
   health: "/health/",
   auth: {
@@ -41,6 +43,9 @@ export const API_ENDPOINTS = {
     assetType: (id: string) => `/master-data/asset-types/${id}/`,
     assets: "/master-data/assets/",
     asset: (id: string) => `/master-data/assets/${id}/`,
+    deleted: (resource: MasterDataResourceKey) => `/master-data/${resource}/deleted/`,
+    restore: (resource: MasterDataResourceKey, id: string) =>
+      `/master-data/${resource}/${id}/restore/`,
   },
   fmTickets: {
     tickets: "/fm-tickets/tickets/",

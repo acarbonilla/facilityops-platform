@@ -10,6 +10,14 @@ import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
 import { DEFAULT_MASTER_DATA_LIST_PARAMS, getFirstQueryErrorMessage } from "@/lib/master-data/display";
 import {
+  bindTenantToPayload,
+  collectPaginatedMasterData,
+  formatMasterDataError,
+  getMasterDataInvalidationKeys,
+  getMasterDataSessionScope,
+} from "@/lib/master-data/lifecycle";
+import { useAuth } from "@/hooks/use-auth";
+import {
   createArea,
   createAsset,
   createAssetType,
@@ -17,7 +25,6 @@ import {
   createDepartment,
   createFloor,
   createOrganization,
-  createTenant,
   getArea,
   getAreas,
   getAsset,
@@ -64,7 +71,7 @@ import { OrganizationForm } from "./organization-form";
 import { TenantForm } from "./tenant-form";
 
 function extractErrorMessage(error: unknown, fallback: string) {
-  return getFirstQueryErrorMessage([error], fallback);
+  return formatMasterDataError(error, fallback);
 }
 
 function FormPageLayout({
@@ -106,29 +113,52 @@ function useMasterDataMutation<TValues, TResult>(
 ) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const { user } = useAuth();
 
-  return useMutation({
-    mutationFn,
+  const mutation = useMutation({
+    mutationFn: (values: TValues) =>
+      mutationFn(bindTenantToPayload(values as object, user?.tenant) as TValues),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: masterDataQueryKeys.resource(resource),
-      });
+      await Promise.all(
+        getMasterDataInvalidationKeys(resource).map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      );
       router.replace(listHref);
       router.refresh();
     },
   });
+
+  return {
+    ...mutation,
+    mutateAsync: async (values: TValues) => {
+      try {
+        return await mutation.mutateAsync(values);
+      } catch {
+        return undefined;
+      }
+    },
+  };
 }
 
-function useListResultsQuery<T>(
+function useListResultsQuery<T extends { id: string }>(
   resource: MasterDataResourceKey,
   queryFn: (params: typeof DEFAULT_MASTER_DATA_LIST_PARAMS) => Promise<{
     results: T[];
+    next?: string | null;
   }>,
 ) {
+  const { user } = useAuth();
   return useQuery({
-    queryKey: masterDataQueryKeys.list(resource, DEFAULT_MASTER_DATA_LIST_PARAMS),
-    queryFn: () => queryFn(DEFAULT_MASTER_DATA_LIST_PARAMS),
-    select: (data) => data.results,
+    queryKey: masterDataQueryKeys.options(
+      resource,
+      getMasterDataSessionScope(user?.id, user?.tenant),
+    ),
+    queryFn: () => collectPaginatedMasterData(queryFn),
+    select: (results) =>
+      resource === "tenants" && user?.tenant
+        ? results.filter((record) => record.id === user.tenant)
+        : results,
   });
 }
 
@@ -162,30 +192,15 @@ function RelatedDataErrorState({
 }
 
 export function TenantCreatePageContent() {
-  const mutation = useMasterDataMutation<TenantFormValues, unknown>(
-    "tenants",
-    "/master-data/tenants",
-    createTenant,
-  );
-
   return (
     <FormPageLayout
-      description="Create a tenant record for the master data foundation."
-      errorMessage={
-        mutation.isError
-          ? extractErrorMessage(mutation.error, "Tenant could not be created.")
-          : null
-      }
+      description="Tenant creation requires a confirmed global API administrator."
+      errorMessage="This frontend session does not expose reliable global-role evidence. Use the API administration workflow to create tenants."
       title="New Tenant"
     >
-      <TenantForm
-        cancelHref="/master-data/tenants"
-        isSubmitting={mutation.isPending}
-        onSubmit={async (values) => {
-          await mutation.mutateAsync(values);
-        }}
-        submitLabel="Create tenant"
-      />
+      <p className="text-sm text-slate-600">
+        Tenant creation is unavailable here and is never inferred from staff status.
+      </p>
     </FormPageLayout>
   );
 }

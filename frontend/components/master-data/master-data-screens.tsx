@@ -36,6 +36,7 @@ import {
 import { MASTER_DATA_RESOURCES } from "@/lib/master-data/resources";
 
 import { MasterDataListScreen } from "./master-data-list-screen";
+import { MasterDataLifecycleScreen } from "./master-data-lifecycle-screen";
 import { MasterDataResourceCard } from "./master-data-resource-card";
 
 function ManageActionLink({
@@ -103,18 +104,13 @@ function useNameMapQuery<T extends { id: string; name: string }>(
 }
 
 export function MasterDataLandingContent() {
-  const canManage = useMasterDataWriteActions();
-
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Master data screens for the FacilityOps foundation. Create and edit workflows are available for authorized users, while delete, import, and export remain outside this task."
+        description="Manage active, inactive, and soft-deleted FacilityOps foundation records. Authorized users can edit and run lifecycle actions; import and export remain outside this task."
         eyebrow="Master data"
         title="Master Data"
       >
-        {canManage ? (
-          <ManageActionLink href="/master-data/tenants/new" label="Create tenant" />
-        ) : null}
       </PageHeader>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -125,13 +121,13 @@ export function MasterDataLandingContent() {
 
       <EmptyState
         title="Scoped foundation"
-        message="Create and edit flows are limited to master data only. Delete, import, export, and business workflows remain out of scope."
+        message="Tenant lifecycle creation and recovery are API-admin-only because the current session contract does not expose a reliable global role. Other controls remain permission and tenant scoped."
       />
     </div>
   );
 }
 
-export function TenantsReadScreen() {
+function LegacyTenantsReadScreen() {
   const canManage = useMasterDataWriteActions();
   const tenantsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("tenants", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -185,7 +181,7 @@ export function TenantsReadScreen() {
   );
 }
 
-export function OrganizationsReadScreen() {
+function LegacyOrganizationsReadScreen() {
   const canManage = useMasterDataWriteActions();
   const organizationsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("organizations", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -258,7 +254,7 @@ export function OrganizationsReadScreen() {
   );
 }
 
-export function DepartmentsReadScreen() {
+function LegacyDepartmentsReadScreen() {
   const canManage = useMasterDataWriteActions();
   const departmentsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("departments", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -331,7 +327,7 @@ export function DepartmentsReadScreen() {
   );
 }
 
-export function BuildingsReadScreen() {
+function LegacyBuildingsReadScreen() {
   const canManage = useMasterDataWriteActions();
   const buildingsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("buildings", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -406,7 +402,7 @@ export function BuildingsReadScreen() {
   );
 }
 
-export function FloorsReadScreen() {
+function LegacyFloorsReadScreen() {
   const canManage = useMasterDataWriteActions();
   const floorsQuery = useQuery({
     queryKey: masterDataQueryKeys.list("floors", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -474,7 +470,7 @@ export function FloorsReadScreen() {
   );
 }
 
-export function AreasReadScreen() {
+function LegacyAreasReadScreen() {
   const canManage = useMasterDataWriteActions();
   const areasQuery = useQuery({
     queryKey: masterDataQueryKeys.list("areas", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -551,7 +547,7 @@ export function AreasReadScreen() {
   );
 }
 
-export function AssetTypesReadScreen() {
+function LegacyAssetTypesReadScreen() {
   const canManage = useMasterDataWriteActions();
   const assetTypesQuery = useQuery({
     queryKey: masterDataQueryKeys.list("asset-types", DEFAULT_MASTER_DATA_LIST_PARAMS),
@@ -610,6 +606,49 @@ export function AssetTypesReadScreen() {
   );
 }
 
-export function AssetsReadScreen() {
+function LegacyAssetsReadScreen() {
   return <AssetListScreen />;
+}
+
+void [
+  LegacyTenantsReadScreen,
+  LegacyOrganizationsReadScreen,
+  LegacyDepartmentsReadScreen,
+  LegacyBuildingsReadScreen,
+  LegacyFloorsReadScreen,
+  LegacyAreasReadScreen,
+  LegacyAssetTypesReadScreen,
+  LegacyAssetsReadScreen,
+];
+
+export function TenantsReadScreen() {
+  return <MasterDataLifecycleScreen resource="tenants" />;
+}
+
+export function OrganizationsReadScreen() {
+  return <MasterDataLifecycleScreen resource="organizations" />;
+}
+
+export function DepartmentsReadScreen() {
+  return <MasterDataLifecycleScreen resource="departments" />;
+}
+
+export function BuildingsReadScreen() {
+  return <MasterDataLifecycleScreen resource="buildings" />;
+}
+
+export function FloorsReadScreen() {
+  return <MasterDataLifecycleScreen resource="floors" />;
+}
+
+export function AreasReadScreen() {
+  return <MasterDataLifecycleScreen resource="areas" />;
+}
+
+export function AssetTypesReadScreen() {
+  return <MasterDataLifecycleScreen resource="asset-types" />;
+}
+
+export function AssetsReadScreen() {
+  return <MasterDataLifecycleScreen resource="assets" />;
 }
