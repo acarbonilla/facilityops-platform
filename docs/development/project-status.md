@@ -14,14 +14,14 @@
 
 ## Current Module
 
-- Master Data Management (FO-074 cumulative QA complete but qualified by
-  FO-074B/FO-074C; manual acceptance and Sol cumulative review pending)
+- Master Data Management (complete on `feature/master-data-management`;
+  user manual acceptance passed 2026-07-19; Sol cumulative review pending)
 
 ## Current Branch
 
 - `feature/master-data-management` (FO-071 and FO-072 independently approved;
-  FO-073 complete; FO-074 cumulative QA qualified by FO-074B/FO-074C; PR #40
-  draft/unmerged)
+  FO-073 through FO-074D complete; manual acceptance passed; PR #40
+  open, draft, and unmerged)
 - Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
 ## Completed Modules
@@ -113,19 +113,18 @@
 
 ## Current Task
 
-- FO-074C removes the frontend Staff permission bypass and reconciles
-  Facility Manager to existing FM Ticket/Maintenance operations plus
-  `inspection.view`, `reporting.view`, and `settings.view`. Local RBAC seeding
-  and Jane-like account verification passed. The recorded baseline is 297
-  affected backend tests, 227 frontend tests, ESLint, TypeScript, production
-  build, Django check, and clean migration drift. Manual smoke, final cumulative
-  validation, full acceptance, and Sol review remain pending. PR #40 is draft
+- FO-074D final validation and manual acceptance reconciliation is complete.
+  The cumulative backend gate passed 593 tests; Django check, migration drift,
+  and the `master_data` migration state passed at exit 0. User manual
+  acceptance passed on 2026-07-19. The FO-074C frontend baseline remains 227
+  tests plus passed ESLint, TypeScript, and production build with no generated
+  drift. Sol's cumulative final review remains pending. PR #40 is open, draft,
   and unmerged.
 
 ## Next Milestone
 
-- FO-074B/FO-074C targeted manual smoke, then resumed FO-074A acceptance
-- Deferred final cumulative backend validation and Sol independent review
+- Sol independent cumulative final review of Master Data Management
+- Employee Requester Experience remains next; FO-075 has not started
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Selected Next Feature — Master Data Management
@@ -135,15 +134,17 @@
 - FO-071: tenant isolation and write-path hardening (complete; independently approved by Sol on 2026-07-18 at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec` in the external project collaboration session)
 - FO-072: soft-delete / deactivation lifecycle / hierarchy integrity (complete and independently approved at final HEAD `a8ea862` per user governance)
 - FO-073: frontend lifecycle and administrative UX alignment (complete; manual browser acceptance not performed; not independently approved)
-- FO-074: cumulative QA and stabilization (complete but qualified by FO-074B)
-- FO-074A: manual acceptance failed/paused on 2026-07-19
-- FO-074B: Boolean filter correction complete with focused validation; manual
-  smoke pending
+- FO-074: cumulative QA and stabilization complete
+- FO-074A: manual acceptance passed on 2026-07-19 after follow-up corrections
+- FO-074B: Boolean filter correction complete
 - FO-074C: Facility Manager RBAC and Staff authorization reconciliation
-  complete; manual smoke pending
+  complete
+- FO-074D: final validation and manual acceptance reconciliation complete;
+  full backend 593 passed
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
+- FO-075: not started; Employee Requester Experience remains next
 
 ## Foundation Dashboard Security Note
 
@@ -165,7 +166,8 @@
 
 - FO-072 approved final HEAD on `feature/master-data-management`: `a8ea862`
 - FO-071 remains independently approved at `6721ff0ff84d55ae5aaa0bb875b0cdc03ebbc9ec`.
-- These approvals are recorded per user governance; FO-073 has no independent approval.
+- These approvals are recorded per user governance; no Sol approval is claimed
+  for FO-073 through FO-074D.
 
 ## Last Merge
 

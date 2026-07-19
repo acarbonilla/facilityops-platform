@@ -15,7 +15,7 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | Complete on branch, qualified | FO-074A paused; FO-074B/FO-074C filtering and Facility Manager authorization corrections complete; targeted smoke, full acceptance, final validation, and Sol review pending; draft PR #40 open/unmerged |
+| Master Data | Complete on branch | FO-074 through FO-074D complete; user manual acceptance passed 2026-07-19; final backend 593 passed; Sol cumulative review pending; PR #40 open, draft, and unmerged; FO-075 not started |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete; PR #34 is closed, draft, and unmerged |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete, final gate pending | FO-074C: affected backend 297, frontend 227, ESLint, TypeScript, production build, Django check, and migration drift pass; final cumulative validation follows resolved manual acceptance issues |
+| Testing | Complete | FO-074D: final backend 593, Django check, migration drift, and Master Data migration state pass; FO-074C frontend baseline remains 227 plus ESLint, TypeScript, production build, and no generated drift |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -200,8 +200,8 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 
 ## Master Data
 
-Status: Complete on branch, qualified by FO-074B/FO-074C (manual acceptance and
-Sol cumulative review pending)
+Status: Complete on branch (manual acceptance passed 2026-07-19; Sol cumulative
+review pending)
 
 ### Purpose
 
@@ -253,19 +253,21 @@ Maintains foundational reference data for tenants, organizations, departments, b
   structured conflict errors; and cross-feature cache invalidation. Manual
   browser acceptance was not performed and FO-073 is not independently
   approved.
-- FO-074 completes cumulative QA with eight confirmed corrections. Final gates
-  pass at Master Data 78, Accounts + Access Control 112, full backend 590, and
-  frontend 225. FO-074A manual acceptance failed/paused on 2026-07-19 after a
-  Boolean list-filter HTTP 400.
+- FO-074 completes cumulative QA with eight confirmed corrections. Its original
+  final gates passed before FO-074B/FO-074C follow-up reconciliation.
 - FO-074B corrects lowercase Boolean query handling at implementation commit
-  `195686c`; focused Master Data 80, frontend 225, Django, migration, lint, and
-  TypeScript gates pass. Targeted smoke, full acceptance, deferred final
-  cumulative backend validation, and Sol review remain pending. PR #40 remains
-  open, draft, and unmerged.
+  `195686c`; focused Master Data, frontend, Django, migration, lint, and
+  TypeScript gates pass.
 - FO-074C removes the frontend Staff permission bypass and grants Facility
   Manager read-only Tenant-scoped Master Data through `settings.view`. Affected
   backend 297 and frontend 227 plus static/build checks pass; local seed and
   Jane-like account verification confirm the agreed role contract.
+- FO-074D records user manual acceptance passed on 2026-07-19 and the final
+  cumulative backend gate at 593 tests with Django and migration checks clean.
+  Master Data Management is complete on the branch. PR #40 remains open, draft,
+  and unmerged pending Sol's independent cumulative final review. No Sol
+  approval is claimed. FO-075 has not started; Employee Requester Experience
+  remains next.
 - Organization Management remains a thin consumer of these APIs.
 - Bulk actions, import/export, and server search remain deferred.
 
@@ -682,7 +684,7 @@ Tracks the current verification footprint across backend and frontend so progres
 - Services: covered mainly through API and model tests, plus seed-command tests
 - Permissions: covered through endpoint authorization tests
 - Admin: not deeply tested
-- Tests: cumulative backend validation passed 590 tests, including focused app suites
+- Tests: final cumulative backend validation passed 593 tests
 
 ### Frontend
 
@@ -694,13 +696,14 @@ Tracks the current verification footprint across backend and frontend so progres
 - API Files: no automated frontend API-client tests
 - Types: validated through TypeScript compilation
 - RBAC Usage: verified through implementation review and integrated behavior, not frontend test code
-- Tests: helper coverage is part of the 225-test frontend suite run via
+- Tests: helper coverage is part of the 227-test frontend suite run via
   `npm test` (Node.js built-in runner with `tsx`)
 
 ### Notes
 
-- Backend cumulative validation passed 590 tests.
-- Frontend helper-level tests passed 225 tests. No component, integration, or browser harness exists yet.
+- Backend cumulative validation passed 593 tests.
+- Frontend helper-level baseline passed 227 tests. No component, integration,
+  or browser harness exists yet.
 
 ## Configuration
 

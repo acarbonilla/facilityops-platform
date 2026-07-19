@@ -35,9 +35,9 @@ Security review found no exploitable cross-tenant or privilege-escalation path
 in the established backend scope. Cumulative QA confirmed eight stabilization
 defects. Each correction is minimal, preserves the approved domain contract,
 and has focused regression coverage. No schema, endpoint, permission, or
-dependency redesign was required. This cumulative result is qualified by
-FO-074B after FO-074A manual acceptance exposed a Boolean list-filter contract
-defect.
+dependency redesign was required. FO-074B and FO-074C corrected the follow-up
+Boolean filter and Staff/RBAC defects. FO-074D records the passed manual
+acceptance and final cumulative validation.
 
 ## 5. Confirmed defects and corrections
 
@@ -206,6 +206,16 @@ Focused correction tests passed before the final gate.
 
 No stale PostgreSQL test-database incident occurred during the final gate.
 
+FO-074D subsequently ran the required cumulative backend gate once:
+
+- `python manage.py test --parallel 4 --noinput`: 593 passed, exit 0.
+- `python manage.py check`: no issues, exit 0.
+- `python manage.py makemigrations --check --dry-run`: no changes, exit 0.
+- `python manage.py showmigrations master_data`: `[X] 0001_initial`, exit 0.
+
+No stale test-database incident or product failure occurred, and no focused
+backend rerun was required.
+
 ## 18. Final frontend validation
 
 - `npm test`: 225 passed, exit 0.
@@ -223,29 +233,16 @@ only register the new helper test.
 
 ## 20. Manual acceptance status and checklist
 
-FO-074A manual browser acceptance **failed and paused on 2026-07-19** when the
-Tenant Active list returned HTTP 400 for lowercase `is_active=true`. FO-074B
-corrects the backend contract at `195686c`, and its focused validation passes.
-FO-074C also removes the frontend Staff permission bypass and reconciles
-Facility Manager to operational FM Ticket/Maintenance access plus read-only
-Inspection, Reporting, and Tenant-scoped Master Data. Targeted smoke and full
-manual acceptance remain pending and are not claimed.
+User manual acceptance passed on 2026-07-19 using `doejane@gmail.com`, an
+active, non-Staff, non-superuser Facility Manager account. User-supplied
+screenshot evidence was provided.
 
-1. Tenant-bound settings manager sees only their Tenant's Master Data.
-2. Global `system_admin` sees approved platform scope.
-3. Active, Inactive, and Deleted selectors work for all eight resources.
-4. Deactivate an eligible record.
-5. Reactivate that record.
-6. Soft-delete an eligible record.
-7. Confirm it disappears from the ordinary list.
-8. Confirm it appears under Deleted.
-9. Restore it and confirm it returns as Inactive.
-10. Trigger a dependency conflict and verify readable context.
-11. Confirm the Tenant selector is locked for a tenant-bound user.
-12. Confirm parent selectors reset after parent changes.
-13. Confirm Admin Assets uses the same lifecycle UI.
-14. Confirm Dashboard, Reporting, and dependent options refresh.
-15. Verify narrow-width layout and keyboard/dialog behavior.
+The user confirmed Dashboard, FM Ticketing, Maintenance, read-only 5S
+Inspection, Reporting, and tenant-scoped Master Data visibility. Master Data
+mutation controls and administrative Users/Roles/Permissions were absent.
+Active, Inactive, and Deleted filters and tenant isolation worked;
+unauthorized mutation was rejected; the Staff flag was not required; and no
+runtime overlay appeared.
 
 ## 21. Deferred scope
 
@@ -258,22 +255,26 @@ Ticket closure and is not implemented here.
 
 FO-010 and milestone limitations/statuses are labelled as delivery snapshots.
 FO-071 and FO-072 remain independently approved. FO-073 remains complete and
-pending Sol's cumulative review. Trackers are reconciled to the final FO-074
-counts and branch state, with duplicate Work Tree sections removed.
+pending Sol's cumulative review. FO-074, FO-074B, FO-074C, and FO-074D are
+complete, and user manual acceptance passed on 2026-07-19. Master Data
+Management is complete on the branch; Sol's cumulative final review remains
+pending and FO-075 has not started.
 
 ## 23. Commit and PR state
 
 The validated implementation, tests, and documentation were committed at
 `7bd06a396f668df4cff76c0eb326e065a2619d41`. PR #40 remains open, draft,
-unmerged, and based on `main`. Sol's independent cumulative final review and
-user manual acceptance are pending. FO-074B is implemented at `195686c`; its
-documentation reconciliation and PR update follow while PR #40 remains draft
-and unmerged. FO-074C implementation, seed reconciliation, and affected-suite
-validation are complete; its delivery SHA is recorded in the FO-074C document
-and PR update.
+unmerged, and based on `main`. FO-074B is implemented at `195686c`. FO-074C
+implementation, seed reconciliation, and affected-suite validation are
+complete; its delivery SHA is recorded in the FO-074C document and PR update.
+FO-074D records the final 593-test backend gate and passed user manual
+acceptance. Sol's independent cumulative final review remains pending. PR #40
+remains open, draft, and unmerged.
 
 ## 24. Final review gate
 
-FO-074 becomes complete only when final backend/frontend validation, hygiene,
-documentation, commit, push, and PR reconciliation all pass. Completion does
-not claim manual acceptance or Sol approval.
+FO-074D completes final backend validation, user manual acceptance, and
+documentation reconciliation. The frontend FO-074C baseline remains accepted
+without rerun. Sol's independent cumulative final review remains pending; no
+Sol approval is claimed. FO-075 has not started, and Employee Requester
+Experience remains next.

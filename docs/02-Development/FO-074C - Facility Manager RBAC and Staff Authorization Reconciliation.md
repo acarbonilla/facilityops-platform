@@ -4,9 +4,10 @@
 
 Implementation commit `b65ccc7b2f104eca06404de36636d1416c319f5e`,
 focused regression coverage, affected-suite validation, local seed
-reconciliation, and documentation are complete. Manual smoke, final cumulative
-validation, user manual acceptance, and Sol's cumulative final review remain
-pending. PR #40 remains open, draft, and unmerged.
+reconciliation, and documentation are complete. FO-074D records passed user
+manual acceptance on 2026-07-19 and the 593-test final cumulative backend gate.
+Sol's cumulative final review remains pending. PR #40 remains open, draft, and
+unmerged.
 
 ## Confirmed defect and severity
 
@@ -75,8 +76,16 @@ finalization:
 No migration, dependency, lockfile, generated Next.js file, build artifact,
 secret, unrelated feature change, or FO-075 work is included.
 
-## Remaining gates
+## Final reconciliation
 
-Manual smoke remains pending. The final full suite is deferred until all manual
-acceptance issues are resolved. FO-075 has not started. PR #40 remains draft
-and unmerged.
+The user passed manual acceptance on 2026-07-19 with `doejane@gmail.com`, an
+active, non-Staff, non-superuser Facility Manager. The user confirmed the
+required operational and read-only navigation, tenant-scoped Master Data,
+absence of mutation and administrative controls, working lifecycle filters and
+tenant isolation, rejection of unauthorized mutation, no Staff requirement,
+and no runtime overlay. User-supplied screenshot evidence was provided.
+
+FO-074D's final backend gate passed 593 tests with all required commands at
+exit 0. Master Data Management is complete on the branch. Sol's cumulative
+final review remains pending. FO-075 has not started, and Employee Requester
+Experience remains next. PR #40 remains open, draft, and unmerged.

@@ -3,9 +3,9 @@
 ## Status
 
 Correction complete at implementation commit `195686c`; focused validation
-passed. Manual smoke, full manual acceptance, deferred final cumulative backend
-validation, and Sol's cumulative final review remain pending. PR #40 remains
-open, draft, and unmerged.
+passed. FO-074D records passed user manual acceptance on 2026-07-19 and the
+593-test final cumulative backend gate. Sol's cumulative final review remains
+pending. PR #40 remains open, draft, and unmerged.
 
 ## Manual acceptance failure
 
@@ -58,13 +58,14 @@ internal API was exposed only for testing.
 No migration, dependency, lockfile, generated Next.js file, build artifact, or
 unrelated feature change was introduced.
 
-## Manual smoke and remaining gates
+## Final reconciliation
 
-Manual smoke is pending for Tenant and Organization Active, Inactive, and
-Deleted views plus Tenant A/Tenant B isolation. The full FO-074A checklist
-remains paused until that smoke passes. The final cumulative full backend run is
-deferred until manual acceptance passes and before merge approval.
+FO-074D records user confirmation that Active, Inactive, and Deleted filters
+and tenant isolation work, unauthorized mutation is rejected, and no runtime
+overlay appears. Manual acceptance passed on 2026-07-19. The final backend
+suite passed 593 tests with all required checks at exit 0.
 
-FO-074C subsequently reconciles Facility Manager read access and removes the
-frontend Staff permission bypass. FO-075 has not started. PR #40 remains open,
-draft, and unmerged.
+FO-074C reconciles Facility Manager read access and removes the frontend Staff
+permission bypass. Master Data Management is complete on the branch. Sol's
+cumulative final review remains pending. FO-075 has not started, and Employee
+Requester Experience remains next. PR #40 remains open, draft, and unmerged.
