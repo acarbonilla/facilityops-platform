@@ -226,8 +226,10 @@ only register the new helper test.
 FO-074A manual browser acceptance **failed and paused on 2026-07-19** when the
 Tenant Active list returned HTTP 400 for lowercase `is_active=true`. FO-074B
 corrects the backend contract at `195686c`, and its focused validation passes.
-The targeted manual smoke and full manual acceptance remain pending and are not
-claimed.
+FO-074C also removes the frontend Staff permission bypass and reconciles
+Facility Manager to operational FM Ticket/Maintenance access plus read-only
+Inspection, Reporting, and Tenant-scoped Master Data. Targeted smoke and full
+manual acceptance remain pending and are not claimed.
 
 1. Tenant-bound settings manager sees only their Tenant's Master Data.
 2. Global `system_admin` sees approved platform scope.
@@ -266,7 +268,9 @@ The validated implementation, tests, and documentation were committed at
 unmerged, and based on `main`. Sol's independent cumulative final review and
 user manual acceptance are pending. FO-074B is implemented at `195686c`; its
 documentation reconciliation and PR update follow while PR #40 remains draft
-and unmerged.
+and unmerged. FO-074C implementation, seed reconciliation, and affected-suite
+validation are complete; its delivery SHA is recorded in the FO-074C document
+and PR update.
 
 ## 24. Final review gate
 

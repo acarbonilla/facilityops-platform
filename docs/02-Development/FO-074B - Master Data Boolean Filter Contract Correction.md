@@ -65,4 +65,6 @@ Deleted views plus Tenant A/Tenant B isolation. The full FO-074A checklist
 remains paused until that smoke passes. The final cumulative full backend run is
 deferred until manual acceptance passes and before merge approval.
 
-FO-075 has not started. PR #40 remains open, draft, and unmerged.
+FO-074C subsequently reconciles Facility Manager read access and removes the
+frontend Staff permission bypass. FO-075 has not started. PR #40 remains open,
+draft, and unmerged.

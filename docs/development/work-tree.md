@@ -15,7 +15,7 @@
 | Foundation | Complete | Repo structure, backend core, app shell, providers |
 | Authentication | Complete | JWT auth, login, current user, remember email |
 | Authorization / RBAC | Complete | Role and permission APIs, frontend guards, admin RBAC screens |
-| Master Data | Complete on branch, qualified | FO-074A manual acceptance failed/paused on 2026-07-19; FO-074B correction and focused validation complete; targeted smoke, full acceptance, and Sol review pending; draft PR #40 open/unmerged |
+| Master Data | Complete on branch, qualified | FO-074A paused; FO-074B/FO-074C filtering and Facility Manager authorization corrections complete; targeted smoke, full acceptance, final validation, and Sol review pending; draft PR #40 open/unmerged |
 | Dashboard | Complete | FO-068–FO-070A complete; Sol cumulative review APPROVED; user manual acceptance passed 2026-07-18; PR #39 merged to `main` (`92da7e6…`) |
 | Notifications | Complete | FO-055 through FO-060 complete; PR #34 is closed, draft, and unmerged |
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | Complete, final gate pending | FO-074B: Master Data 80, frontend 225, ESLint, TypeScript, system check, and migration drift pass; prior FO-074 full backend/build baseline remains recorded; final cumulative backend validation follows manual acceptance |
+| Testing | Complete, final gate pending | FO-074C: affected backend 297, frontend 227, ESLint, TypeScript, production build, Django check, and migration drift pass; final cumulative validation follows resolved manual acceptance issues |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -185,18 +185,23 @@ Controls role and permission lookup, frontend permission-aware navigation, and a
 - Hooks: `use-permissions`
 - API Files: `services/api/rbac.ts`
 - Types: `types/rbac.ts`
-- RBAC Usage: Sidebar entries and route guards filter by permission code, with optional `any` permission mode for Admin
-- Tests: No dedicated frontend tests
+- RBAC Usage: Sidebar entries and route guards filter only by authoritative
+  permission codes, with optional `any` permission mode for Admin
+- Tests: Staff-bypass permission helper regression is included in the 227-test
+  frontend suite
 
 ### Notes
 
 - The frontend defines role and permission detail endpoints, but the backend currently only exposes list endpoints; `services/api/rbac.ts` falls back to list payload lookup when detail routes return 404.
+- FO-074C removes frontend Staff/superuser permission bypass behavior and
+  reconciles Facility Manager to operational FM Ticket/Maintenance permissions
+  plus read-only Inspection, Reporting, and Tenant-scoped Master Data.
 - This module covers FO-009, FO-013, and FO-020.
 
 ## Master Data
 
-Status: Complete on branch, qualified by FO-074B (manual acceptance and Sol
-cumulative review pending)
+Status: Complete on branch, qualified by FO-074B/FO-074C (manual acceptance and
+Sol cumulative review pending)
 
 ### Purpose
 
@@ -225,9 +230,9 @@ Maintains foundational reference data for tenants, organizations, departments, b
 - API Files: `services/api/master-data.ts`
 - Types: `types/master-data.ts`
 - RBAC Usage: resource routes depend on `settings.view`; create and edit actions depend on `settings.manage`
-- Tests: frontend suite 225 passed, including 22 Master Data lifecycle helper
-  tests and one session-cache isolation regression; lint, TypeScript, and
-  production build passed
+- Tests: frontend suite 227 passed after FO-074C, including Master Data
+  lifecycle, session-cache isolation, and Staff authorization regressions;
+  lint, TypeScript, and production build passed
 
 ### Notes
 
@@ -257,6 +262,10 @@ Maintains foundational reference data for tenants, organizations, departments, b
   TypeScript gates pass. Targeted smoke, full acceptance, deferred final
   cumulative backend validation, and Sol review remain pending. PR #40 remains
   open, draft, and unmerged.
+- FO-074C removes the frontend Staff permission bypass and grants Facility
+  Manager read-only Tenant-scoped Master Data through `settings.view`. Affected
+  backend 297 and frontend 227 plus static/build checks pass; local seed and
+  Jane-like account verification confirm the agreed role contract.
 - Organization Management remains a thin consumer of these APIs.
 - Bulk actions, import/export, and server search remain deferred.
 

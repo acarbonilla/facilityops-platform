@@ -182,6 +182,7 @@ ROLE_PERMISSION_CODES = {
     },
     "facility_manager": {
         "users.directory",
+        "settings.view",
         "fm_tickets.view",
         "fm_tickets.create",
         "fm_tickets.update",
@@ -226,13 +227,6 @@ ROLE_PERMISSION_CODES = {
         "maintenance.work_order.cancel",
         "maintenance.work_order.reopen",
         "inspection.view",
-        "inspection.create",
-        "inspection.update",
-        "inspection.complete",
-        "inspection.verify",
-        "inspection.assign",
-        "inspection.view_ai",
-        "inspection.manage_corrective_action",
         "reporting.view",
     },
     "technician": {
@@ -274,6 +268,18 @@ ROLE_PERMISSION_CODES = {
     },
 }
 
+REVOKED_ROLE_PERMISSION_CODES = {
+    "facility_manager": {
+        "inspection.create",
+        "inspection.update",
+        "inspection.complete",
+        "inspection.verify",
+        "inspection.assign",
+        "inspection.view_ai",
+        "inspection.manage_corrective_action",
+    },
+}
+
 
 class Command(BaseCommand):
     help = "Seed the RBAC foundation roles and permissions."
@@ -308,6 +314,13 @@ class Command(BaseCommand):
             permission.code: permission for permission in seeded_permissions
         }
         roles_by_code = {role.code: role for role in seeded_roles}
+        for role_code, permission_codes in REVOKED_ROLE_PERMISSION_CODES.items():
+            role = roles_by_code.get(role_code)
+            if role is not None:
+                RolePermission.objects.filter(
+                    role=role,
+                    permission__code__in=permission_codes,
+                ).update(is_active=False)
         for role_code, permission_codes in ROLE_PERMISSION_CODES.items():
             role = roles_by_code.get(role_code)
             if role is None:

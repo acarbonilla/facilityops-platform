@@ -15,12 +15,12 @@
 ## Current Module
 
 - Master Data Management (FO-074 cumulative QA complete but qualified by
-  FO-074B; manual acceptance and Sol cumulative review pending)
+  FO-074B/FO-074C; manual acceptance and Sol cumulative review pending)
 
 ## Current Branch
 
 - `feature/master-data-management` (FO-071 and FO-072 independently approved;
-  FO-073 complete; FO-074 cumulative QA qualified by FO-074B; PR #40
+  FO-073 complete; FO-074 cumulative QA qualified by FO-074B/FO-074C; PR #40
   draft/unmerged)
 - Synchronized repository baseline before branch: `main` at Dashboard merge commit `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a`
 
@@ -113,17 +113,18 @@
 
 ## Current Task
 
-- FO-074B corrects the Medium-severity Boolean list-filter defect found when
-  FO-074A manual acceptance failed and paused on 2026-07-19. Lowercase
-  `is_active=true`/`false` now works across the shared Master Data filter
-  service; 80 focused Master Data tests, 225 frontend tests, Django checks,
-  migration drift, lint, and TypeScript pass. Targeted manual smoke, full
-  manual acceptance, deferred final cumulative backend validation, and Sol's
-  cumulative final review remain pending. PR #40 is open, draft, and unmerged.
+- FO-074C removes the frontend Staff permission bypass and reconciles
+  Facility Manager to existing FM Ticket/Maintenance operations plus
+  `inspection.view`, `reporting.view`, and `settings.view`. Local RBAC seeding
+  and Jane-like account verification passed. The recorded baseline is 297
+  affected backend tests, 227 frontend tests, ESLint, TypeScript, production
+  build, Django check, and clean migration drift. Manual smoke, final cumulative
+  validation, full acceptance, and Sol review remain pending. PR #40 is draft
+  and unmerged.
 
 ## Next Milestone
 
-- FO-074B targeted manual smoke, then resumed FO-074A manual acceptance
+- FO-074B/FO-074C targeted manual smoke, then resumed FO-074A acceptance
 - Deferred final cumulative backend validation and Sol independent review
 - FO-063 automatic Ticket closure remains reserved and deferred
 
@@ -138,6 +139,8 @@
 - FO-074A: manual acceptance failed/paused on 2026-07-19
 - FO-074B: Boolean filter correction complete with focused validation; manual
   smoke pending
+- FO-074C: Facility Manager RBAC and Staff authorization reconciliation
+  complete; manual smoke pending
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
