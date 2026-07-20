@@ -4,8 +4,9 @@
 
 Implemented on `feature/employee-requester`. Pull request #42 remains open,
 draft, and unmerged. FO-077A corrected requester workflow concurrency locking
-and confirmation-dialog accessibility on the same branch. FO-078 has not
-started. Manual browser acceptance remains pending.
+and confirmation-dialog accessibility on the same branch. FO-078 cumulative QA
+reviewed FO-077 with no confirmed production defects. Manual browser acceptance
+remains pending.
 
 ## Objective
 
@@ -48,7 +49,7 @@ Employee detail responses expose advisory flags:
 - Cancel from `in_progress` remains blocked as active ticket execution
 - Cancel remains blocked when a linked Work Order is in active Maintenance
   execution
-- FO-078 cumulative QA has not started
+- FO-078 cumulative QA complete; manual browser acceptance pending
 
 ## Ownership and isolation
 

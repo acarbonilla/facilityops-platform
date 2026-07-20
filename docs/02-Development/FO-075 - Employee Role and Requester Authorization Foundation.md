@@ -3,10 +3,10 @@
 ## Status
 
 Backend foundation implemented on `feature/employee-requester`. Independently
-approved at `513977a66e69c572948e8a22af24da23ab81f99d`. FO-076 Employee My
-Requests frontend and FO-077 requester workflow/notification alignment are
-implemented on the same branch. The cumulative Employee Requester pull request
-remains open, draft, and unmerged. FO-078 has not started.
+approved at `513977a66e69c572948e8a22af24da23ab81f99d`. FO-076 through FO-077A
+are implemented on the same branch. FO-078 cumulative QA reviewed FO-075 with
+no confirmed production defects. Pull request #42 remains open, draft, and
+unmerged. Manual browser acceptance remains pending.
 
 ## Objective
 
@@ -136,7 +136,8 @@ frontend suite.
 ## Deferred scope
 
 FO-076 Employee My Requests frontend and FO-077 requester workflow/notification
-alignment are implemented on the branch. FO-078 cumulative QA has not started.
+alignment are implemented on the branch. FO-078 cumulative QA found no confirmed
+production defects. Manual browser acceptance remains pending.
 Employee comments remain deferred. Attachment upload and AI integration remain
 deferred. FO-063 automatic Ticket closure remains reserved/deferred.
 

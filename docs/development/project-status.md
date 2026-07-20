@@ -14,8 +14,8 @@
 
 ## Current Module
 
-- Employee Requester Experience (FO-075–FO-077A on
-  `feature/employee-requester`; FO-078 pending)
+- Employee Requester Experience (FO-075–FO-078 on
+  `feature/employee-requester`; manual acceptance pending)
 
 ## Current Branch
 
@@ -113,15 +113,15 @@
 
 ## Current Task
 
-- FO-077A corrected requester workflow concurrency locking and confirmation
-  dialog accessibility on top of FO-075–FO-077.
+- FO-078 cumulative repository QA is complete with no confirmed production
+  defects.
+- Manual browser acceptance remains pending before merge readiness.
 - Comments, attachments, and AI remain deferred.
-- FO-078 has not started.
 
 ## Next Milestone
 
-- Independent review of FO-075 through FO-077A on cumulative draft PR #42
-- FO-078 cumulative QA
+- User manual browser acceptance for FO-078 checklist
+- Sol independent review of FO-075 through FO-078 on cumulative draft PR #42
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -152,6 +152,8 @@
   `feature/employee-requester`
 - FO-077A: Requester workflow concurrency locking and confirmation dialog
   accessibility correction on `feature/employee-requester`
+- FO-078: Employee Requester Experience cumulative QA and stabilization on
+  `feature/employee-requester`; manual browser acceptance pending
 
 ## Foundation Dashboard Security Note
 

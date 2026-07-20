@@ -5,7 +5,8 @@
 Implemented on `feature/employee-requester`. FO-075 was independently approved at
 `513977a66e69c572948e8a22af24da23ab81f99d`. FO-077 requester workflow and
 notification alignment is implemented on the same branch. Pull request #42
-remains open, draft, and unmerged. FO-078 has not started.
+remains open, draft, and unmerged. FO-078 cumulative QA reviewed FO-076 with
+no confirmed production defects. Manual browser acceptance remains pending.
 
 ## Objective
 
@@ -92,7 +93,8 @@ response guidance. No operational actions or internal metadata.
 - AI
 
 FO-077 adds cancel, acknowledge, and reopen workflows plus notification target
-alignment. FO-078 remains pending.
+alignment. FO-078 cumulative QA is complete; manual browser acceptance
+remains pending.
 
 ## Validation
 
