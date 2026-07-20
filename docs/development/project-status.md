@@ -14,7 +14,7 @@
 
 ## Current Module
 
-- Employee Requester Experience (FO-075–FO-077 on
+- Employee Requester Experience (FO-075–FO-077A on
   `feature/employee-requester`; FO-078 pending)
 
 ## Current Branch
@@ -113,14 +113,14 @@
 
 ## Current Task
 
-- FO-077 adds Employee requester cancel, acknowledge, and reopen workflows plus
-  requester/operational notification target alignment on top of FO-075/FO-076.
+- FO-077A corrected requester workflow concurrency locking and confirmation
+  dialog accessibility on top of FO-075–FO-077.
 - Comments, attachments, and AI remain deferred.
 - FO-078 has not started.
 
 ## Next Milestone
 
-- Independent review of FO-075 through FO-077 on cumulative draft PR #42
+- Independent review of FO-075 through FO-077A on cumulative draft PR #42
 - FO-078 cumulative QA
 - FO-063 automatic Ticket closure remains reserved and deferred
 
@@ -150,6 +150,8 @@
   `feature/employee-requester`
 - FO-077: Employee request workflow and notification alignment implemented on
   `feature/employee-requester`
+- FO-077A: Requester workflow concurrency locking and confirmation dialog
+  accessibility correction on `feature/employee-requester`
 
 ## Foundation Dashboard Security Note
 

@@ -3,8 +3,9 @@
 ## Status
 
 Implemented on `feature/employee-requester`. Pull request #42 remains open,
-draft, and unmerged. FO-078 has not started. Manual browser acceptance remains
-pending.
+draft, and unmerged. FO-077A corrected requester workflow concurrency locking
+and confirmation-dialog accessibility on the same branch. FO-078 has not
+started. Manual browser acceptance remains pending.
 
 ## Objective
 
@@ -72,21 +73,27 @@ Employee detail responses expose advisory flags:
 ## Frontend
 
 My Requests detail shows eligible Cancel / Acknowledge / Reopen actions only,
-with confirmation, required reasons where applicable, pending disablement,
-accessible success/error messaging, and cache invalidation for My Requests,
-notifications, and FM Ticket keys.
+with an accessible confirmation modal (FO-077A), required reasons where
+applicable, pending disablement, accessible success/error messaging, and cache
+invalidation for My Requests, notifications, and FM Ticket keys.
+
+## Concurrency (FO-077A)
+
+Authoritative requester services lock and reload the Ticket with
+`select_for_update` before eligibility revalidation. Cancellation also locks the
+linked Work Order after the Ticket (order: Ticket → Work Order) when present.
 
 ## Validation
 
-- Backend focused workflow tests: 15 passed
+- Backend focused workflow tests: 15 passed (FO-077); FO-077A adds 6 concurrency tests
 - FO-075 requester field regression updated for workflow flags
-- Affected modules: `apps.fm_tickets` + `apps.notifications` = 196 passed
-- Frontend helper tests: 257 passed (6 new workflow helpers)
+- Affected modules after FO-077A: `apps.fm_tickets` + `apps.notifications` = 202 passed
+- Frontend helper tests after FO-077A: 264 passed
 - ESLint and TypeScript: passed
 - Production build: passed
 - Django check: passed
 - Migration drift: none
-- Full backend `--parallel 4`: 648 passed (exit 0)
+- Full backend `--parallel 4` after FO-077A: 654 passed (exit 0)
 
 ## Pull request
 
