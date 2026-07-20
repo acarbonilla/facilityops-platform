@@ -14,17 +14,15 @@
 
 ## Current Module
 
-- FM Ticketing Critical Tenant-Isolation Security Correction (independently
-  approved and manually accepted on `feature/fm-ticket-tenant-isolation`; PR
-  #41 remains draft and unmerged)
+- Employee Requester Experience (FO-075–FO-078 on
+  `feature/employee-requester`; manual acceptance pending)
 
 ## Current Branch
 
-- `feature/fm-ticket-tenant-isolation`
-- Synchronized branch baseline: `main` at Master Data merge commit
-  `35085bf2dafdf93b06e209643c4f9a5d30bb676e`
-- Master Data PR #40 merged normally; its feature branch was removed locally
-  and remotely
+- `feature/employee-requester`
+- Synchronized branch baseline: `main` at FM Ticket tenant-isolation merge
+  commit `9362338ce6dbfc87e4fe533ebd657825e5d995d1`
+- PR #41 merged normally; its feature branch was removed locally and remotely
 
 ## Completed Modules
 
@@ -115,20 +113,15 @@
 
 ## Current Task
 
-- FO-074G records Sol's independent **APPROVED** security review of the
-  Critical FO-074F correction at implementation HEAD
-  `48bde40c40c2942b59a616df623a7f47329b8715` and the user's passed manual
-  cross-tenant acceptance on 2026-07-19. Backend-authoritative scope protects
-  all FM Ticket surfaces, and FO-061's stricter no-global-bypass caller-Tenant
-  requirement remains authoritative for assignment and Work Order generation.
-  Focused isolation 19, FM Ticket 82, Maintenance 85, Notifications 78,
-  Accounts/Access Control 113, and full backend 611 pass. Django check and
-  migration drift are clean. No frontend or schema change is included.
+- FO-078 cumulative repository QA is complete with no confirmed production
+  defects.
+- Manual browser acceptance remains pending before merge readiness.
+- Comments, attachments, and AI remain deferred.
 
 ## Next Milestone
 
-- User ready-for-review and normal merge-commit decision for draft PR #41
-- Employee Requester Experience and FO-075 have not started
+- User manual browser acceptance for FO-078 checklist
+- Sol independent review of FO-075 through FO-078 on cumulative draft PR #42
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -151,7 +144,16 @@
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
-- FO-075: not started; Employee Requester Experience remains next
+- FO-075: Employee Role and Requester Authorization Foundation independently
+  approved at `513977a66e69c572948e8a22af24da23ab81f99d`
+- FO-076: Employee My Requests frontend experience implemented on
+  `feature/employee-requester`
+- FO-077: Employee request workflow and notification alignment implemented on
+  `feature/employee-requester`
+- FO-077A: Requester workflow concurrency locking and confirmation dialog
+  accessibility correction on `feature/employee-requester`
+- FO-078: Employee Requester Experience cumulative QA and stabilization on
+  `feature/employee-requester`; manual browser acceptance pending
 
 ## Foundation Dashboard Security Note
 
@@ -180,10 +182,10 @@
 
 ## Last Merge
 
-- `35085bf2dafdf93b06e209643c4f9a5d30bb676e` (Merge pull request #40 into
+- `9362338ce6dbfc87e4fe533ebd657825e5d995d1` (Merge pull request #41 into
+  `main`; FM Ticket tenant-isolation security correction)
+- Previous: `35085bf2dafdf93b06e209643c4f9a5d30bb676e` (Merge pull request #40 into
   `main`; Master Data Management)
-- Previous: `92da7e64aaa4e8dfcb28d9d2efa260fb1ab7b72a` (Merge pull request #39 into
-  `main`; Dashboard Operational Overview)
 
 ## Repository Version
 

@@ -130,5 +130,9 @@ change. FO-074G records Sol's independent **APPROVED** security review at
 implementation HEAD `48bde40c40c2942b59a616df623a7f47329b8715` and the user's
 passed cross-tenant manual acceptance on 2026-07-19. FO-061 assignment and Work
 Order generation retain their stricter no-global-bypass contract. Employee
-Requester Experience and FO-075 have not started; FO-063 remains
-reserved/deferred.
+Requester Experience begins with FO-075's immutable Employee system role,
+backend-authoritative requester ownership, requester-safe list/detail/create
+serialization, and scoped request options that do not grant `settings.view`.
+FO-076 Employee My Requests frontend and FO-077 requester workflow/notification
+alignment are implemented on the branch. FO-078 cumulative QA has not started.
+FO-063 remains reserved/deferred.

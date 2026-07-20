@@ -68,7 +68,8 @@ The automated suites were not rerun for this documentation-only reconciliation.
 
 ## Deferred scope
 
-Employee Requester Experience has not started. FO-075 has not started. FO-063
+Employee Requester Experience subsequently begins with FO-075 on
+`feature/employee-requester`; FO-076 through FO-078 have not started. FO-063
 automatic FM Ticket closure remains reserved/deferred. Attachment and AI work
 remain outside this correction.
 
@@ -76,6 +77,7 @@ remain outside this correction.
 
 This task changes Markdown documentation and PR metadata only. It introduces no
 backend or frontend production-code change, migration, dependency, lockfile,
-generated file, endpoint contract, or unrelated feature work. PR #41 is ready
-for the user's ready-for-review and normal merge-commit action, but remains
-open, draft, and unmerged.
+generated file, endpoint contract, or unrelated feature work. PR #41
+subsequently merged normally to `main` at
+`9362338ce6dbfc87e4fe533ebd657825e5d995d1`; its local and remote feature
+branches were removed.

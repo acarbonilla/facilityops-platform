@@ -1,6 +1,7 @@
 from apps.notifications.services import create_notification
 
 from .models import FmTicket
+from .tenant_scope import uses_employee_requester_scope
 
 ASSIGNMENT_EVENT_CODE = "fm_ticket.assigned"
 STATUS_CHANGED_EVENT_CODE = "fm_ticket.status_changed"
@@ -11,7 +12,10 @@ def _format_status_label(status):
     return dict(FmTicket.Status.choices).get(status, status)
 
 
-def _ticket_target_url(ticket):
+def _ticket_target_url(ticket, recipient=None):
+    """Return requester-safe or operational detail URL for the recipient."""
+    if recipient is not None and uses_employee_requester_scope(recipient):
+        return f"/my-requests/{ticket.id}"
     return f"/fm-tickets/{ticket.id}"
 
 
@@ -60,6 +64,23 @@ def _severity_for_status_change(to_status):
     return "info"
 
 
+def _status_notification_copy(*, recipient, ticket_number, from_status, to_status):
+    from_label = _format_status_label(from_status)
+    to_label = _format_status_label(to_status)
+
+    if uses_employee_requester_scope(recipient):
+        title = "Your request status was updated"
+        message = (
+            f"{ticket_number}: status changed from {from_label} to {to_label}."
+        )
+    else:
+        title = "FM ticket status updated"
+        message = (
+            f"{ticket_number}: status changed from {from_label} to {to_label}."
+        )
+    return title, message
+
+
 def notify_fm_ticket_assigned(*, ticket, assignee, actor=None):
     if not _is_eligible_recipient(assignee, ticket=ticket, actor=actor):
         return None
@@ -74,7 +95,7 @@ def notify_fm_ticket_assigned(*, ticket, assignee, actor=None):
         message=message,
         severity="info",
         tenant=ticket.tenant,
-        target_url=_ticket_target_url(ticket),
+        target_url=_ticket_target_url(ticket, assignee),
         source_module=SOURCE_MODULE,
         source_object_id=ticket.id,
         metadata={
@@ -94,22 +115,25 @@ def notify_fm_ticket_status_changed(*, ticket, from_status, to_status, actor=Non
         return []
 
     ticket_number = _ticket_number(ticket)
-    from_label = _format_status_label(from_status)
-    to_label = _format_status_label(to_status)
-    message = f"{ticket_number}: status changed from {from_label} to {to_label}."
     severity = _severity_for_status_change(to_status)
 
     notifications = []
     for recipient in recipients:
+        title, message = _status_notification_copy(
+            recipient=recipient,
+            ticket_number=ticket_number,
+            from_status=from_status,
+            to_status=to_status,
+        )
         notifications.append(
             create_notification(
                 recipient=recipient,
                 event_code=STATUS_CHANGED_EVENT_CODE,
-                title="FM ticket status updated",
+                title=title,
                 message=message,
                 severity=severity,
                 tenant=ticket.tenant,
-                target_url=_ticket_target_url(ticket),
+                target_url=_ticket_target_url(ticket, recipient),
                 source_module=SOURCE_MODULE,
                 source_object_id=ticket.id,
                 metadata={

@@ -131,7 +131,8 @@ frontend contract changed.
 
 ## Deferred scope
 
-Employee Requester Experience has not started. FO-075 has not started. FO-063
-remains reserved/deferred. Attachment and AI work are not included. FO-074G
-records the final independent approval, manual acceptance, and repository/PR
-reconciliation.
+Employee Requester Experience subsequently begins with FO-075's
+requester-owned authorization foundation; FO-076 through FO-078 have not
+started. FO-063 remains reserved/deferred. Attachment and AI work are not
+included. FO-074G records the final independent approval, manual acceptance,
+and repository/PR reconciliation.
