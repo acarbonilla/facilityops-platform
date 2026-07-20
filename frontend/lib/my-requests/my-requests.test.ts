@@ -524,10 +524,14 @@ test("22. Safe detail-field mapping", () => {
     closed_at: null,
     created_at: "2026-01-01T00:00:00Z",
     updated_at: "2026-01-01T00:00:00Z",
+    can_cancel: true,
+    can_acknowledge: false,
+    can_reopen: false,
   };
   const mapped = mapSafeMyRequestDetailFields(detail);
   assert.equal(mapped.ticket_number, "REQ-1");
   assert.equal(mapped.title, "Leak");
+  assert.equal(mapped.can_cancel, true);
   assert.ok(!("requester_email" in mapped));
   assert.ok(!("assignee_email" in mapped));
   assert.ok(!getSafeMyRequestDetailFieldNames().includes("sla"));

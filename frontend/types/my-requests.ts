@@ -38,6 +38,9 @@ export interface MyRequestDetail extends MyRequestListItem {
   closed_at: string | null;
   created_at: string;
   updated_at: string;
+  can_cancel?: boolean;
+  can_acknowledge?: boolean;
+  can_reopen?: boolean;
 }
 
 export interface MyRequestCreatePayload {
@@ -103,7 +106,15 @@ export const MY_REQUEST_ATTACHMENT_GUIDANCE =
   "Photo and document attachments will be available in a later update.";
 
 export const MY_REQUEST_COMMENTS_GUIDANCE =
-  "Comments and response actions will be available in a later update.";
+  "Comments will be available in a later update.";
 
 export const MY_REQUEST_STATUS_GUIDANCE =
   "Request status is updated by the facilities team as work progresses.";
+
+export type MyRequestWorkflowAction = "cancel" | "acknowledge" | "reopen";
+
+export interface MyRequestWorkflowEligibility {
+  canCancel: boolean;
+  canAcknowledge: boolean;
+  canReopen: boolean;
+}

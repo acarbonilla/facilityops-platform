@@ -22,6 +22,8 @@ from .serializers import (
     EmployeeFmTicketDetailSerializer,
     EmployeeFmTicketListSerializer,
     EmployeeRequestOptionsSerializer,
+    EmployeeRequesterAcknowledgeSerializer,
+    EmployeeRequesterReasonSerializer,
     FmTicketEscalationCreateSerializer,
     FmTicketEscalationSerializer,
     FmTicketHistorySerializer,
@@ -31,6 +33,11 @@ from .serializers import (
     GeneratedWorkOrderSummarySerializer,
 )
 from .services import assign_ticket, change_ticket_status
+from .requester_workflow import (
+    requester_acknowledge_ticket,
+    requester_cancel_ticket,
+    requester_reopen_ticket,
+)
 from .tenant_scope import (
     is_eligible_employee_requester,
     scope_fm_ticket_queryset,
@@ -145,6 +152,12 @@ class FmTicketViewSet(viewsets.ModelViewSet):
                     "fm_tickets.update",
                     "fm_tickets.manage",
                 )
+        elif self.action in (
+            "requester_cancel",
+            "requester_acknowledge",
+            "requester_reopen",
+        ):
+            self.required_permission = "fm_tickets.view"
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -322,6 +335,80 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         )
         response_serializer = FmTicketDetailSerializer(ticket)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    def _requester_workflow_response(self, ticket):
+        return EmployeeFmTicketDetailSerializer(
+            ticket,
+            context=self.get_serializer_context(),
+        )
+
+    def _require_employee_requester_actor(self, request):
+        if not uses_employee_requester_scope(
+            request.user
+        ) or not is_eligible_employee_requester(request.user):
+            self.permission_denied(
+                request,
+                message="Employee requester authority is required for this action.",
+            )
+
+    @action(detail=True, methods=["post"], url_path="requester-cancel")
+    def requester_cancel(self, request, pk=None):
+        self._require_employee_requester_actor(request)
+        ticket = self.get_object()
+        serializer = EmployeeRequesterReasonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            ticket = requester_cancel_ticket(
+                ticket=ticket,
+                actor=request.user,
+                reason=serializer.validated_data["reason"],
+            )
+        except DjangoValidationError as exc:
+            detail = getattr(exc, "message_dict", None) or exc.messages
+            raise DRFValidationError(detail) from exc
+        return Response(
+            self._requester_workflow_response(ticket).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="requester-acknowledge")
+    def requester_acknowledge(self, request, pk=None):
+        self._require_employee_requester_actor(request)
+        ticket = self.get_object()
+        serializer = EmployeeRequesterAcknowledgeSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        try:
+            ticket = requester_acknowledge_ticket(
+                ticket=ticket,
+                actor=request.user,
+            )
+        except DjangoValidationError as exc:
+            detail = getattr(exc, "message_dict", None) or exc.messages
+            raise DRFValidationError(detail) from exc
+        return Response(
+            self._requester_workflow_response(ticket).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="requester-reopen")
+    def requester_reopen(self, request, pk=None):
+        self._require_employee_requester_actor(request)
+        ticket = self.get_object()
+        serializer = EmployeeRequesterReasonSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            ticket = requester_reopen_ticket(
+                ticket=ticket,
+                actor=request.user,
+                reason=serializer.validated_data["reason"],
+            )
+        except DjangoValidationError as exc:
+            detail = getattr(exc, "message_dict", None) or exc.messages
+            raise DRFValidationError(detail) from exc
+        return Response(
+            self._requester_workflow_response(ticket).data,
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=False, methods=["get"], url_path="request-options")
     def request_options(self, request):

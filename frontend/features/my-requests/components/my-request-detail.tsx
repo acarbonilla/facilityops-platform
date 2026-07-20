@@ -18,6 +18,7 @@ import {
 } from "@/lib/my-requests/display";
 import { TicketPriorityBadge } from "@/features/fm-tickets/components/ticket-priority-badge";
 
+import { MyRequestWorkflowActions } from "./my-request-workflow-actions";
 import { RequesterStatusBadge } from "./requester-status-badge";
 
 export function MyRequestDetailScreen({ id }: { id: string }) {
@@ -153,6 +154,8 @@ export function MyRequestDetailScreen({ id }: { id: string }) {
           {request.description}
         </p>
       </section>
+
+      <MyRequestWorkflowActions request={request} />
 
       <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
         <h2 className="text-lg font-semibold text-slate-950">What happens next</h2>

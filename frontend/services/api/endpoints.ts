@@ -59,6 +59,12 @@ export const API_ENDPOINTS = {
     changeStatus: (id: string) => `/fm-tickets/tickets/${id}/change-status/`,
     generateWorkOrder: (id: string) =>
       `/fm-tickets/tickets/${id}/generate-work-order/`,
+    requesterCancel: (id: string) =>
+      `/fm-tickets/tickets/${id}/requester-cancel/`,
+    requesterAcknowledge: (id: string) =>
+      `/fm-tickets/tickets/${id}/requester-acknowledge/`,
+    requesterReopen: (id: string) =>
+      `/fm-tickets/tickets/${id}/requester-reopen/`,
   },
   maintenance: {
     dashboard: "/maintenance/work-orders/dashboard/",

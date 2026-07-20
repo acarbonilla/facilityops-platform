@@ -167,6 +167,10 @@ class EmployeeFmTicketListSerializer(serializers.ModelSerializer):
 
 
 class EmployeeFmTicketDetailSerializer(EmployeeFmTicketListSerializer):
+    can_cancel = serializers.SerializerMethodField()
+    can_acknowledge = serializers.SerializerMethodField()
+    can_reopen = serializers.SerializerMethodField()
+
     class Meta(EmployeeFmTicketListSerializer.Meta):
         fields = EmployeeFmTicketListSerializer.Meta.fields + (
             "description",
@@ -174,7 +178,41 @@ class EmployeeFmTicketDetailSerializer(EmployeeFmTicketListSerializer):
             "closed_at",
             "created_at",
             "updated_at",
+            "can_cancel",
+            "can_acknowledge",
+            "can_reopen",
         )
+
+    def get_can_cancel(self, obj):
+        from .requester_workflow import can_requester_cancel
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return can_requester_cancel(obj, user)
+
+    def get_can_acknowledge(self, obj):
+        from .requester_workflow import can_requester_acknowledge
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return can_requester_acknowledge(obj, user)
+
+    def get_can_reopen(self, obj):
+        from .requester_workflow import can_requester_reopen
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        return can_requester_reopen(obj, user)
+
+
+class EmployeeRequesterReasonSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=True, allow_blank=False, trim_whitespace=True)
+
+
+class EmployeeRequesterAcknowledgeSerializer(serializers.Serializer):
+    """Acknowledge has no client-controlled fields."""
+
+    pass
 
 
 class FmTicketListSerializer(serializers.ModelSerializer):

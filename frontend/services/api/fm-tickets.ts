@@ -86,6 +86,36 @@ export function getMyRequestOptions(): Promise<MyRequestOptions> {
   });
 }
 
+export function cancelMyRequest(
+  id: string,
+  reason: string,
+): Promise<MyRequestDetail> {
+  return apiClient<MyRequestDetail>(API_ENDPOINTS.fmTickets.requesterCancel(id), {
+    method: "POST",
+    body: { reason },
+  });
+}
+
+export function acknowledgeMyRequest(id: string): Promise<MyRequestDetail> {
+  return apiClient<MyRequestDetail>(
+    API_ENDPOINTS.fmTickets.requesterAcknowledge(id),
+    {
+      method: "POST",
+      body: {},
+    },
+  );
+}
+
+export function reopenMyRequest(
+  id: string,
+  reason: string,
+): Promise<MyRequestDetail> {
+  return apiClient<MyRequestDetail>(API_ENDPOINTS.fmTickets.requesterReopen(id), {
+    method: "POST",
+    body: { reason },
+  });
+}
+
 export function updateFmTicket(
   id: string,
   payload: FmTicketUpdatePayload,

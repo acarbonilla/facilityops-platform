@@ -14,8 +14,8 @@
 
 ## Current Module
 
-- Employee Requester Experience (FO-075 backend foundation approved;
-  FO-076 frontend implemented on `feature/employee-requester`)
+- Employee Requester Experience (FO-075–FO-077 on
+  `feature/employee-requester`; FO-078 pending)
 
 ## Current Branch
 
@@ -113,20 +113,15 @@
 
 ## Current Task
 
-- FO-076 adds the Employee My Requests frontend experience on top of the
-  independently approved FO-075 backend foundation at
-  `513977a66e69c572948e8a22af24da23ab81f99d`.
-- Preserves active role codes in auth state, Employee requester-mode detection,
-  My Requests routes/navigation, requester-safe list/create/detail screens,
-  operational FM Ticket redirects, and focused frontend helper tests.
-- Attachments, comments, cancellation, acknowledgement, and AI remain deferred.
-- FO-077 and FO-078 have not started.
+- FO-077 adds Employee requester cancel, acknowledge, and reopen workflows plus
+  requester/operational notification target alignment on top of FO-075/FO-076.
+- Comments, attachments, and AI remain deferred.
+- FO-078 has not started.
 
 ## Next Milestone
 
-- Independent review of FO-075 and FO-076 on cumulative draft PR #42
-- FO-077 requester workflow and comments/cancellation/acknowledgement
-- FO-078 pending
+- Independent review of FO-075 through FO-077 on cumulative draft PR #42
+- FO-078 cumulative QA
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -152,6 +147,8 @@
 - FO-075: Employee Role and Requester Authorization Foundation independently
   approved at `513977a66e69c572948e8a22af24da23ab81f99d`
 - FO-076: Employee My Requests frontend experience implemented on
+  `feature/employee-requester`
+- FO-077: Employee request workflow and notification alignment implemented on
   `feature/employee-requester`
 
 ## Foundation Dashboard Security Note

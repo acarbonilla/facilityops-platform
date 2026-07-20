@@ -9,6 +9,8 @@ import {
   getIndividualNotificationActionLabel,
   getSafeNotificationTargetUrl,
 } from "@/lib/notifications/display";
+import { mapRequesterNotificationTarget } from "@/lib/my-requests/workflow";
+import { usePermissions } from "@/hooks/use-permissions";
 
 import { NotificationSeverityBadge } from "./notification-severity-badge";
 
@@ -83,7 +85,11 @@ export function NotificationItem({
   onMarkUnread,
   actionError,
 }: NotificationItemProps) {
-  const safeTargetUrl = getSafeNotificationTargetUrl(notification.target_url);
+  const { isEmployeeRequesterMode } = usePermissions();
+  const safeTargetUrl = mapRequesterNotificationTarget(
+    getSafeNotificationTargetUrl(notification.target_url),
+    isEmployeeRequesterMode,
+  );
   const showMarkRead =
     showStateActions && !notification.is_read && Boolean(onMarkRead);
   const showMarkUnread =

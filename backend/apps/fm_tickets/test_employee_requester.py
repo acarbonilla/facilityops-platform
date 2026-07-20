@@ -336,8 +336,14 @@ class EmployeeRequesterAuthorizationTests(APITestCase):
                 "closed_at",
                 "created_at",
                 "updated_at",
+                "can_cancel",
+                "can_acknowledge",
+                "can_reopen",
             },
         )
+        self.assertTrue(detail_response.data["can_cancel"])
+        self.assertFalse(detail_response.data["can_acknowledge"])
+        self.assertFalse(detail_response.data["can_reopen"])
         for unsafe_field in (
             "requester",
             "requester_email",

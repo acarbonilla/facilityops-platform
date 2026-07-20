@@ -122,13 +122,16 @@ const SAFE_DETAIL_FIELDS = [
   "closed_at",
   "created_at",
   "updated_at",
+  "can_cancel",
+  "can_acknowledge",
+  "can_reopen",
 ] as const;
 
 export type SafeMyRequestDetailField = (typeof SAFE_DETAIL_FIELDS)[number];
 
 export function mapSafeMyRequestDetailFields(
   detail: MyRequestDetail,
-): Record<SafeMyRequestDetailField, string | null> {
+): Record<SafeMyRequestDetailField, string | null | boolean | undefined> {
   return {
     id: detail.id,
     ticket_number: detail.ticket_number,
@@ -152,6 +155,9 @@ export function mapSafeMyRequestDetailFields(
     closed_at: detail.closed_at,
     created_at: detail.created_at,
     updated_at: detail.updated_at,
+    can_cancel: detail.can_cancel,
+    can_acknowledge: detail.can_acknowledge,
+    can_reopen: detail.can_reopen,
   };
 }
 
