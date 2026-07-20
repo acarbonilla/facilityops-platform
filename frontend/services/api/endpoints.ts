@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
   fmTickets: {
     tickets: "/fm-tickets/tickets/",
     ticket: (id: string) => `/fm-tickets/tickets/${id}/`,
+    requestOptions: "/fm-tickets/tickets/request-options/",
     comments: (id: string) => `/fm-tickets/tickets/${id}/comments/`,
     history: (id: string) => `/fm-tickets/tickets/${id}/history/`,
     escalations: (id: string) => `/fm-tickets/tickets/${id}/escalations/`,

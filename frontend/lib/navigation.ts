@@ -1,5 +1,6 @@
 import type { NavigationItem } from "@/types/rbac";
 import { MASTER_DATA_RESOURCES } from "@/lib/master-data/resources";
+import { MY_REQUESTS_NAV_ITEM } from "@/lib/my-requests/navigation";
 
 export const APP_NAVIGATION: NavigationItem[] = [
   {
@@ -8,6 +9,7 @@ export const APP_NAVIGATION: NavigationItem[] = [
     authenticatedOnly: true,
     matchStrategy: "exact",
   },
+  MY_REQUESTS_NAV_ITEM,
   {
     label: "FM Ticketing",
     href: "/fm-tickets",

@@ -14,8 +14,8 @@
 
 ## Current Module
 
-- Employee Requester Experience (FO-075 backend authorization foundation on
-  `feature/employee-requester`)
+- Employee Requester Experience (FO-075 backend foundation approved;
+  FO-076 frontend implemented on `feature/employee-requester`)
 
 ## Current Branch
 
@@ -113,21 +113,20 @@
 
 ## Current Task
 
-- FO-075 adds the immutable Employee system role with only
-  `fm_tickets.view` and `fm_tickets.create`, backend-authoritative
-  requester-owned Ticket visibility, dedicated requester-safe serializers,
-  account-bound safe creation, and
-  `GET /api/fm-tickets/tickets/request-options/` without `settings.view`.
-  Existing Facility Manager, Technician, Viewer, global administrator, and
-  FO-061 contracts remain unchanged. Focused Employee 21, Accounts/Access
-  Control 113, Notifications 78, Maintenance 85, and full backend 633 pass;
-  Django check and migration drift are clean. No frontend route, migration, or
-  dependency is included.
+- FO-076 adds the Employee My Requests frontend experience on top of the
+  independently approved FO-075 backend foundation at
+  `513977a66e69c572948e8a22af24da23ab81f99d`.
+- Preserves active role codes in auth state, Employee requester-mode detection,
+  My Requests routes/navigation, requester-safe list/create/detail screens,
+  operational FM Ticket redirects, and focused frontend helper tests.
+- Attachments, comments, cancellation, acknowledgement, and AI remain deferred.
+- FO-077 and FO-078 have not started.
 
 ## Next Milestone
 
-- Independent review of FO-075 on the cumulative draft PR
-- FO-076 through FO-078 remain pending and have not started
+- Independent review of FO-075 and FO-076 on cumulative draft PR #42
+- FO-077 requester workflow and comments/cancellation/acknowledgement
+- FO-078 pending
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -150,7 +149,9 @@
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
 - FO-063: remains separately reserved for automatic FM Ticket closure
-- FO-075: Employee Role and Requester Authorization Foundation implemented on
+- FO-075: Employee Role and Requester Authorization Foundation independently
+  approved at `513977a66e69c572948e8a22af24da23ab81f99d`
+- FO-076: Employee My Requests frontend experience implemented on
   `feature/employee-requester`
 
 ## Foundation Dashboard Security Note

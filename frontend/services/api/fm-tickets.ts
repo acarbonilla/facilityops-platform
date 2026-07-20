@@ -18,6 +18,13 @@ import type {
   FmTicketUpdatePayload,
   GeneratedWorkOrderSummary,
 } from "@/types/fm-tickets";
+import type {
+  MyRequestCreatePayload,
+  MyRequestDetail,
+  MyRequestListItem,
+  MyRequestListParams,
+  MyRequestOptions,
+} from "@/types/my-requests";
 
 export function getFmTickets(
   params?: FmTicketListParams,
@@ -43,6 +50,39 @@ export function createFmTicket(
   return apiClient<FmTicketDetail>(API_ENDPOINTS.fmTickets.tickets, {
     method: "POST",
     body: payload,
+  });
+}
+
+export function getMyRequests(
+  params?: MyRequestListParams,
+): Promise<PaginatedResponse<MyRequestListItem>> {
+  return apiClient<PaginatedResponse<MyRequestListItem>>(
+    API_ENDPOINTS.fmTickets.tickets,
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getMyRequest(id: string): Promise<MyRequestDetail> {
+  return apiClient<MyRequestDetail>(API_ENDPOINTS.fmTickets.ticket(id), {
+    method: "GET",
+  });
+}
+
+export function createMyRequest(
+  payload: MyRequestCreatePayload,
+): Promise<MyRequestDetail> {
+  return apiClient<MyRequestDetail>(API_ENDPOINTS.fmTickets.tickets, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function getMyRequestOptions(): Promise<MyRequestOptions> {
+  return apiClient<MyRequestOptions>(API_ENDPOINTS.fmTickets.requestOptions, {
+    method: "GET",
   });
 }
 

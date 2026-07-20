@@ -133,5 +133,6 @@ Order generation retain their stricter no-global-bypass contract. Employee
 Requester Experience begins with FO-075's immutable Employee system role,
 backend-authoritative requester ownership, requester-safe list/detail/create
 serialization, and scoped request options that do not grant `settings.view`.
-Operational roles and FO-061 remain unchanged. FO-076–FO-078 have not started;
+FO-076 Employee My Requests frontend is implemented on the branch. FO-077
+requester workflow remains pending and FO-078 cumulative QA has not started.
 FO-063 remains reserved/deferred.
