@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-075–FO-078B on branch | Employee Requester Experience complete through final acceptance reconciliation; FO-078/FO-078A Passed 2026-07-26; PR #42 Ready for review, unmerged |
+| FM Ticketing | Complete; Employee Requester merged | FO-075–FO-078C complete; PR #42 merged to `main` at `7102a4e…` on 2026-07-26; FO-078B-O1 deferred |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | FO-075–FO-078B on branch | FO-078A isolation regressions retained; FO-078/FO-078A manual acceptance Passed 2026-07-26; FO-078B reused 661 backend / 267 frontend automated evidence |
+| Testing | Complete for Employee Requester | FO-078A isolation regressions on `main`; FO-078/FO-078A Passed 2026-07-26; FO-078A evidence 661/267 reused through FO-078C |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 
@@ -495,9 +495,10 @@ Manages facility-management tickets, including read, create, edit, comments, his
   High-severity Tenant-bound System Administrator User Management
   cross-Tenant exposure.
 - FO-078 and FO-078A manual acceptance Passed on 2026-07-26 (User-performed).
-  FO-078B completed final acceptance reconciliation and marked PR #42 Ready
-  for review without merging. Attachments, comments, AI, and FO-063 remain
-  deferred; FO-079 has not started.
+  FO-078B completed final acceptance reconciliation. FO-078C merged PR #42 into
+  `main` on 2026-07-26 at `7102a4ef8102dc45f63d94282729a672934cecf0` and closed
+  the feature-branch lifecycle. Attachments, comments, AI, FO-078B-O1, and
+  FO-063 remain deferred; FO-079 has not started.
 
 ## Maintenance Work Order
 

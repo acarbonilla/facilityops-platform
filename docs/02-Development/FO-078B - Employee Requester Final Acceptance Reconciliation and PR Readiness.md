@@ -2,11 +2,12 @@
 
 ## Status
 
-Final acceptance reconciliation complete on `feature/employee-requester`.
-FO-078 and FO-078A manual acceptance passed on **2026-07-26** (User-performed).
-Cumulative scope and security review found no unresolved blocking defects.
-PR #42 is Ready for review and remains **unmerged**. Final merge authorization
-is pending explicit User approval. FO-079 has not started.
+Final acceptance reconciliation complete. FO-078 and FO-078A manual acceptance
+passed on **2026-07-26** (User-performed). Cumulative scope and security review
+found no unresolved blocking defects. PR #42 was marked Ready for review by
+FO-078B and was subsequently **merged** into `main` by FO-078C on 2026-07-26
+at merge commit `7102a4ef8102dc45f63d94282729a672934cecf0`. FO-079 has not
+started.
 
 ## Purpose
 
@@ -235,8 +236,8 @@ All FO-078B gates pass:
 - Branch pushed and clean after FO-078B commit
 - PR remains unmerged
 
-**Decision:** Mark PR #42 Ready for review. Do **not** merge. Wait for
-explicit merge authorization. Do **not** begin FO-079.
+**Decision (FO-078B):** Mark PR #42 Ready for review. Do **not** merge in
+FO-078B. Wait for explicit merge authorization. Do **not** begin FO-079.
 
 ## Deferred scope
 
@@ -252,4 +253,7 @@ explicit merge authorization. Do **not** begin FO-079.
 
 ## Pull request
 
-PR #42 Ready for review; remains unmerged pending explicit User authorization.
+PR #42 was Ready for review after FO-078B and was **merged** into `main` by
+FO-078C on 2026-07-26 (merge commit
+`7102a4ef8102dc45f63d94282729a672934cecf0`). See
+`docs/02-Development/FO-078C - Employee Requester PR Merge and Main-Branch Verification.md`.
