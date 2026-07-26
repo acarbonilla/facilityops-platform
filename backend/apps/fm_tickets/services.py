@@ -231,7 +231,16 @@ def add_ticket_comment(*, ticket, author, body, is_internal=False):
 
 
 @transaction.atomic
-def change_ticket_status(*, ticket, to_status, changed_by=None, note=""):
+def change_ticket_status(
+    *,
+    ticket,
+    to_status,
+    changed_by=None,
+    note="",
+    history_description=None,
+    history_metadata=None,
+    notification_context=None,
+):
     from_status = ticket.status
     if from_status == to_status:
         return ticket
@@ -250,22 +259,29 @@ def change_ticket_status(*, ticket, to_status, changed_by=None, note=""):
         changed_by=changed_by,
         note=note,
     )
+    metadata = {
+        "from_status": from_status,
+        "to_status": to_status,
+        "note": note,
+    }
+    if history_metadata:
+        metadata.update(history_metadata)
     record_ticket_history(
         ticket=ticket,
         action="status_changed",
-        description=f"Ticket status changed from {from_status} to {to_status}.",
+        description=(
+            history_description
+            or f"Ticket status changed from {from_status} to {to_status}."
+        ),
         actor=changed_by,
-        metadata={
-            "from_status": from_status,
-            "to_status": to_status,
-            "note": note,
-        },
+        metadata=metadata,
     )
     notify_fm_ticket_status_changed(
         ticket=ticket,
         from_status=from_status,
         to_status=to_status,
         actor=changed_by,
+        notification_context=notification_context,
     )
     return ticket
 

@@ -64,9 +64,34 @@ def _severity_for_status_change(to_status):
     return "info"
 
 
-def _status_notification_copy(*, recipient, ticket_number, from_status, to_status):
+def _status_notification_copy(
+    *,
+    recipient,
+    ticket_number,
+    from_status,
+    to_status,
+    notification_context=None,
+):
     from_label = _format_status_label(from_status)
     to_label = _format_status_label(to_status)
+
+    if notification_context == "automatic_closure":
+        if uses_employee_requester_scope(recipient):
+            return (
+                "Your request was automatically closed",
+                (
+                    f"{ticket_number}: closed because the acknowledgement "
+                    "period expired."
+                ),
+            )
+        return (
+            "FM ticket automatically closed",
+            (
+                f"{ticket_number}: automatically closed after the "
+                "acknowledgement period expired "
+                f"({from_label} → {to_label})."
+            ),
+        )
 
     if uses_employee_requester_scope(recipient):
         title = "Your request status was updated"
@@ -105,7 +130,14 @@ def notify_fm_ticket_assigned(*, ticket, assignee, actor=None):
     )
 
 
-def notify_fm_ticket_status_changed(*, ticket, from_status, to_status, actor=None):
+def notify_fm_ticket_status_changed(
+    *,
+    ticket,
+    from_status,
+    to_status,
+    actor=None,
+    notification_context=None,
+):
     recipients = _collect_eligible_recipients(
         [ticket.requester, ticket.assignee],
         ticket=ticket,
@@ -116,6 +148,11 @@ def notify_fm_ticket_status_changed(*, ticket, from_status, to_status, actor=Non
 
     ticket_number = _ticket_number(ticket)
     severity = _severity_for_status_change(to_status)
+    event_name = (
+        "automatic_closure"
+        if notification_context == "automatic_closure"
+        else "status_changed"
+    )
 
     notifications = []
     for recipient in recipients:
@@ -124,6 +161,7 @@ def notify_fm_ticket_status_changed(*, ticket, from_status, to_status, actor=Non
             ticket_number=ticket_number,
             from_status=from_status,
             to_status=to_status,
+            notification_context=notification_context,
         )
         notifications.append(
             create_notification(
@@ -138,7 +176,7 @@ def notify_fm_ticket_status_changed(*, ticket, from_status, to_status, actor=Non
                 source_object_id=ticket.id,
                 metadata={
                     "ticket_number": ticket_number,
-                    "event": "status_changed",
+                    "event": event_name,
                     "from_status": from_status,
                     "to_status": to_status,
                 },
