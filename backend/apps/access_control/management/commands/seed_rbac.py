@@ -29,6 +29,12 @@ ROLE_DEFINITIONS = [
         "is_system_role": True,
     },
     {
+        "name": "Employee",
+        "code": "employee",
+        "description": "Requester-owned facility service access.",
+        "is_system_role": True,
+    },
+    {
         "name": "Viewer",
         "code": "viewer",
         "description": "Read-only foundation role.",
@@ -259,6 +265,10 @@ ROLE_PERMISSION_CODES = {
         "inspection.complete",
         "inspection.view_ai",
     },
+    "employee": {
+        "fm_tickets.view",
+        "fm_tickets.create",
+    },
     "viewer": {
         "fm_tickets.view",
         "maintenance.view",
@@ -279,6 +289,8 @@ REVOKED_ROLE_PERMISSION_CODES = {
         "inspection.manage_corrective_action",
     },
 }
+
+STRICT_ROLE_PERMISSION_CODES = {"employee"}
 
 
 class Command(BaseCommand):
@@ -314,6 +326,12 @@ class Command(BaseCommand):
             permission.code: permission for permission in seeded_permissions
         }
         roles_by_code = {role.code: role for role in seeded_roles}
+        for role_code in STRICT_ROLE_PERMISSION_CODES:
+            role = roles_by_code.get(role_code)
+            if role is not None:
+                RolePermission.objects.filter(role=role).exclude(
+                    permission__code__in=ROLE_PERMISSION_CODES[role_code]
+                ).update(is_active=False)
         for role_code, permission_codes in REVOKED_ROLE_PERMISSION_CODES.items():
             role = roles_by_code.get(role_code)
             if role is not None:

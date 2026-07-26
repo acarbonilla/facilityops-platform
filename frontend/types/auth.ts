@@ -31,6 +31,8 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  /** Active role codes from /access-control/me/permissions/. */
+  roles: string[];
   permissions: PermissionCode[];
   permissionsLoading: boolean;
   permissionsError: string | null;

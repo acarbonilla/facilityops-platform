@@ -42,6 +42,7 @@ const INITIAL_STATE: AuthState = {
   isAuthenticated: false,
   isLoading: true,
   error: null,
+  roles: [],
   permissions: [],
   permissionsLoading: false,
   permissionsError: null,
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!getAccessToken()) {
       setState((current) => ({
         ...current,
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,
@@ -73,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await getCurrentUserPermissions();
       setState((current) => ({
         ...current,
+        roles: response.roles,
         permissions: response.permissions,
         permissionsLoading: false,
         permissionsError: null,
@@ -80,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setState((current) => ({
         ...current,
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError:
@@ -96,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,
@@ -111,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,
@@ -124,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: "Your session could not be restored. Please sign in again.",
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,
@@ -147,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
         error: null,
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,
@@ -160,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: "Sign-in failed. Check your credentials and try again.",
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,
@@ -186,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: false,
         isLoading: false,
         error: null,
+        roles: [],
         permissions: [],
         permissionsLoading: false,
         permissionsError: null,

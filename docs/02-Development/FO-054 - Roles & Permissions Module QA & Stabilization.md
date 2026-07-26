@@ -202,3 +202,13 @@ Rationale:
 - No critical, high, or medium defects were confirmed.
 - RBAC architecture and contract checks remain aligned with FO-050 through FO-053 design constraints.
 - PR #33 remains intended for independent final review by Sol.
+
+## Post-delivery Employee role extension
+
+FO-075 later adds the active immutable `employee` system role through the
+canonical idempotent RBAC seed. Its exact permission set is
+`fm_tickets.view` and `fm_tickets.create`; reseeding deactivates unexpected
+legacy Employee permission assignments. Viewer remains unchanged, and Employee
+receives no Maintenance, Inspection, Reporting, Master Data, User, Role,
+assignment, update, close, or management permission. Backend FM Ticket scope
+separately enforces requester ownership for Employee-only access.

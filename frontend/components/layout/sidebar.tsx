@@ -6,35 +6,29 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { APP_NAVIGATION } from "@/lib/navigation";
+import { filterNavigationForEmployeeRequester } from "@/lib/my-requests/navigation";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
   const {
-    hasAllPermissions,
     hasAnyPermission,
+    hasPermission,
+    isEmployeeRequesterMode,
+    permissions,
     permissionsError,
     permissionsLoading,
+    roles,
   } = usePermissions();
 
-  const visibleNavigation = APP_NAVIGATION.filter((item) => {
-    if (item.authenticatedOnly && !isAuthenticated) {
-      return false;
-    }
-
-    if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-      return true;
-    }
-
-    if (permissionsLoading || permissionsError) {
-      return false;
-    }
-
-    if (item.permissionMode === "any") {
-      return hasAnyPermission(item.requiredPermissions);
-    }
-
-    return hasAllPermissions(item.requiredPermissions);
+  const visibleNavigation = filterNavigationForEmployeeRequester(APP_NAVIGATION, {
+    isAuthenticated,
+    roles,
+    permissions,
+    permissionsLoading,
+    permissionsError,
+    hasPermission: (code) => hasPermission(code as never),
+    hasAnyPermission: (codes) => hasAnyPermission(codes as never[]),
   });
 
   return (
@@ -79,7 +73,9 @@ export function Sidebar() {
             </p>
             <p className="mt-1">
               {isAuthenticated
-                ? "This account does not currently expose any permission-based sections."
+                ? isEmployeeRequesterMode
+                  ? "My Requests will appear once request access is confirmed."
+                  : "This account does not currently expose any permission-based sections."
                 : "Sign in to load the application navigation."}
             </p>
           </div>

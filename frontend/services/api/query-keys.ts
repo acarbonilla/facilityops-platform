@@ -6,6 +6,9 @@ import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
 import type { ReportingOverviewParams } from "@/types/reporting";
+import { myRequestsQueryKeys } from "@/lib/my-requests/query-keys";
+
+export { myRequestsQueryKeys };
 
 function stripNilParams<T extends object>(
   params?: T,
