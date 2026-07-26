@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete; Employee Requester merged | FO-075–FO-078C complete; PR #42 merged to `main` at `7102a4e…` on 2026-07-26; FO-078B-O1 deferred |
+| FM Ticketing | FO-063 on branch | Employee Requester merged (FO-075–FO-078C); FO-063 Automatic FM Ticket Closure in progress on `feature/fm-ticket-auto-closure`; Draft PR / manual acceptance pending |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -497,8 +497,13 @@ Manages facility-management tickets, including read, create, edit, comments, his
 - FO-078 and FO-078A manual acceptance Passed on 2026-07-26 (User-performed).
   FO-078B completed final acceptance reconciliation. FO-078C merged PR #42 into
   `main` on 2026-07-26 at `7102a4ef8102dc45f63d94282729a672934cecf0` and closed
-  the feature-branch lifecycle. Attachments, comments, AI, FO-078B-O1, and
-  FO-063 remain deferred; FO-079 has not started.
+  the feature-branch lifecycle. Attachments, comments, AI, and FO-078B-O1 remain
+  deferred; FO-079 has not started.
+- FO-063 Automatic FM Ticket Closure is implemented on
+  `feature/fm-ticket-auto-closure`: backend auto-closure service, hourly Celery
+  Beat task, management command, system history/notifications, requester
+  `closed_automatically` presentation, and focused tests. Draft PR pending
+  manual acceptance; not merged.
 
 ## Maintenance Work Order
 
