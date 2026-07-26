@@ -4,9 +4,10 @@
 
 Implemented on `feature/employee-requester`. FO-075 was independently approved at
 `513977a66e69c572948e8a22af24da23ab81f99d`. FO-077 requester workflow and
-notification alignment is implemented on the same branch. Pull request #42
-remains open, draft, and unmerged. FO-078 cumulative QA reviewed FO-076 with
-no confirmed production defects. Manual browser acceptance remains pending.
+notification alignment is implemented on the same branch. FO-078 cumulative QA
+reviewed FO-076 with no confirmed production defects. User manual acceptance
+Passed on 2026-07-26. Pull request #42 is Ready for review and remains
+unmerged.
 
 ## Objective
 

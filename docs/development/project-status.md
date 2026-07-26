@@ -14,8 +14,9 @@
 
 ## Current Module
 
-- Employee Requester Experience (FO-075–FO-078A on
-  `feature/employee-requester`; FO-078 acceptance incomplete)
+- Employee Requester Experience (FO-075–FO-078B on
+  `feature/employee-requester`; manual acceptance Passed 2026-07-26; PR #42
+  Ready for review, unmerged)
 
 ## Current Branch
 
@@ -113,17 +114,17 @@
 
 ## Current Task
 
-- FO-078A corrects High-severity Tenant-bound System Administrator cross-Tenant
-  User Management exposure discovered during FO-078 manual acceptance.
-- FO-078 acceptance remains incomplete pending FO-078A browser retest and the
-  remaining Employee Requester checklist.
+- FO-078B final acceptance reconciliation complete. FO-078 and FO-078A manual
+  acceptance Passed on 2026-07-26 (User-performed). PR #42 is Ready for review
+  and remains unmerged pending explicit merge authorization.
 - Comments, attachments, and AI remain deferred.
 
 ## Next Milestone
 
-- User FO-078A User Management retest, then resume FO-078 checklist
-- Sol independent review after manual acceptance
+- Explicit User authorization to merge PR #42
+- Sol independent review as applicable
 - FO-063 automatic Ticket closure remains reserved and deferred
+- FO-079 not started
 
 ## Completed Feature — Master Data Management
 
@@ -154,10 +155,11 @@
 - FO-077A: Requester workflow concurrency locking and confirmation dialog
   accessibility correction on `feature/employee-requester`
 - FO-078: Employee Requester Experience cumulative QA and stabilization on
-  `feature/employee-requester`; manual acceptance Failed/paused on User
-  Management isolation
+  `feature/employee-requester`; manual acceptance Passed on 2026-07-26
 - FO-078A: User Management tenant-isolation security correction on
-  `feature/employee-requester`; manual retest pending
+  `feature/employee-requester`; manual retest Passed on 2026-07-26
+- FO-078B: Final acceptance reconciliation and PR readiness on
+  `feature/employee-requester`; PR #42 Ready for review, unmerged
 
 ## Foundation Dashboard Security Note
 

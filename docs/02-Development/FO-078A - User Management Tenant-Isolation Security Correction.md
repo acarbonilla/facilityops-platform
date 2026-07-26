@@ -3,10 +3,12 @@
 ## Status
 
 Repository correction and automated validation complete on
-`feature/employee-requester`. Pull request #42 remains open, draft, and
-unmerged. User manual browser retesting is **pending**. FO-078 acceptance
-remains incomplete. The Employee Requester Experience is **not** approved for
-merge.
+`feature/employee-requester`. User manual browser retest **Passed** on
+**2026-07-26** for `doejane@gmail.com` (XYZ Company System Administrator;
+Staff No; Superuser No; steps 1–21; skipped none; failures none). FO-078
+manual acceptance also Passed on 2026-07-26. Final reconciliation is FO-078B.
+Pull request #42 is Ready for review and remains unmerged pending explicit
+merge authorization.
 
 ## Confirmed defect
 
@@ -157,7 +159,22 @@ a product failure.
 
 ## Manual retest checklist (FO-078A)
 
-Pending User execution. Codex did not perform browser acceptance.
+**Result: Passed — 2026-07-26 (User-performed).** Codex did not perform browser
+acceptance.
+
+| Field | Value |
+| --- | --- |
+| Result | Passed |
+| Acceptance date | 2026-07-26 |
+| Account | `doejane@gmail.com` |
+| Tenant | XYZ Company |
+| Role | System Administrator |
+| Staff | No |
+| Superuser | No |
+| Steps completed | 1–21 |
+| Skipped items | None |
+| Failures | None |
+| Performed by | User |
 
 1. Sign in as `doejane@gmail.com`.
 2. Open Administration → User Management.
@@ -188,8 +205,6 @@ No migrations and no new dependencies.
 
 ## Deferred / unchanged
 
-- FO-078 Employee Requester manual acceptance remains incomplete until this
-  retest passes and the original checklist is resumed
 - Attachments, comments, AI, broader requester self-service
 - FO-079 and later tasks not started
 - FO-063 remains reserved/deferred
@@ -198,4 +213,4 @@ No migrations and no new dependencies.
 
 ## Pull request
 
-PR #42 remains open, draft, and unmerged.
+PR #42 Ready for review; remains unmerged. Final reconciliation: FO-078B.

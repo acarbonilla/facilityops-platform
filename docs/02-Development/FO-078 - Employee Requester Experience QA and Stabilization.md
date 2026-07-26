@@ -3,12 +3,12 @@
 ## Status
 
 Cumulative repository QA complete on `feature/employee-requester`. Manual
-browser acceptance initially **Failed/paused** after confirming High-severity
+browser acceptance initially Failed/paused after confirming High-severity
 cross-Tenant User Management exposure for Tenant-bound System Administrator
-`doejane@gmail.com` (XYZ Company). FO-078A corrects that defect. Pull request
-#42 remains open, draft, and unmerged. FO-078 acceptance remains incomplete
-until FO-078A retesting passes and the remaining Employee Requester checklist
-is resumed. The Employee Requester Experience is **not** approved for merge.
+`doejane@gmail.com` (XYZ Company). FO-078A corrected that defect. User manual
+acceptance for FO-078 **Passed** on **2026-07-26** (skipped items: none;
+failures: none). Final reconciliation is handled by FO-078B. Pull request #42
+is Ready for review and remains unmerged pending explicit merge authorization.
 
 ## Purpose
 
@@ -182,21 +182,24 @@ No migrations and no new dependencies introduced during FO-078.
 
 ## Manual browser acceptance
 
-**Status: Failed/paused — FO-078A required.**
+**Status: Passed — 2026-07-26 (User-performed).**
 
 | Field | Value |
 | --- | --- |
-| Result | Failed |
-| Reason | Confirmed cross-Tenant User Management exposure |
-| Account | `doejane@gmail.com` |
-| Tenant | XYZ Company |
-| Role | System Administrator |
-| Staff | No |
-| Superuser | No |
+| Result | Passed |
+| Acceptance date | 2026-07-26 |
+| Performed by | User |
+| Skipped items | None |
+| Failures | None |
+| Automated baseline | Already passed |
+| Final reconciliation | FO-078B |
 
-Resume the original FO-078 Employee Requester checklist only after the FO-078A
-User Management retest passes. See
-`docs/02-Development/FO-078A - User Management Tenant-Isolation Security Correction.md`.
+Initial pause history: High-severity User Management cross-Tenant exposure was
+confirmed during early FO-078 attempts and corrected in FO-078A. After FO-078A
+manual retest Passed on 2026-07-26, the FO-078 Employee Requester checklist was
+completed successfully. Codex did not independently perform the browser tests.
+See `docs/02-Development/FO-078A - User Management Tenant-Isolation Security Correction.md`
+and `docs/02-Development/FO-078B - Employee Requester Final Acceptance Reconciliation and PR Readiness.md`.
 
 ### Required accounts
 
@@ -250,14 +253,13 @@ Please report:
 - AI integration
 - Broader requester self-service
 - FO-063 automatic Ticket closure (reserved/deferred)
-- Manual browser acceptance (pending User execution)
 
 ## Readiness for Sol review
 
-Repository cumulative QA is complete with no confirmed production defects. The
-feature is **ready for Sol’s static/final review** subject to pending User
-manual browser acceptance. PR #42 remains draft and unmerged.
+Repository cumulative QA is complete with no confirmed production defects. User
+manual acceptance Passed on 2026-07-26. Final reconciliation is FO-078B. PR #42
+is Ready for review and remains unmerged pending explicit merge authorization.
 
 ## Pull request
 
-PR #42 remains open, draft, and unmerged.
+PR #42 Ready for review; remains unmerged.

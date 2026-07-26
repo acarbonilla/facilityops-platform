@@ -2,9 +2,10 @@
 
 ## Status
 
-Correction implemented on `feature/employee-requester`. Pull request #42 remains
-open, draft, and unmerged. FO-078 cumulative QA reviewed FO-077A with no
-confirmed production defects. Manual browser acceptance remains pending.
+Correction implemented on `feature/employee-requester`. FO-078 cumulative QA
+reviewed FO-077A with no confirmed production defects. User manual acceptance
+Passed on 2026-07-26. Pull request #42 is Ready for review and remains
+unmerged.
 
 ## Confirmed defects
 

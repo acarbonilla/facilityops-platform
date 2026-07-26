@@ -2,11 +2,11 @@
 
 ## Status
 
-Implemented on `feature/employee-requester`. Pull request #42 remains open,
-draft, and unmerged. FO-077A corrected requester workflow concurrency locking
-and confirmation-dialog accessibility on the same branch. FO-078 cumulative QA
-reviewed FO-077 with no confirmed production defects. Manual browser acceptance
-remains pending.
+Implemented on `feature/employee-requester`. FO-077A corrected requester
+workflow concurrency locking and confirmation-dialog accessibility on the same
+branch. FO-078 cumulative QA reviewed FO-077 with no confirmed production
+defects. User manual acceptance Passed on 2026-07-26. Pull request #42 is Ready
+for review and remains unmerged.
 
 ## Objective
 
