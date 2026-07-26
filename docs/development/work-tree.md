@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-075–FO-078 on branch | FO-075 approved backend, FO-076 My Requests UI, FO-077/077A workflows and concurrency, FO-078 cumulative QA complete; manual acceptance pending; PR #42 remains draft/unmerged |
+| FM Ticketing | FO-075–FO-078A on branch | FO-075–FO-078 Employee Requester work plus FO-078A User Management tenant-isolation correction; FO-078 acceptance incomplete; PR #42 remains draft/unmerged |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -29,7 +29,7 @@
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
 | UI Components | Complete | Shared auth, layout, form, table, and feature components |
-| Testing | FO-075–FO-078 on branch | FO-077A validation baseline acknowledged; FO-078 static QA with no new tests; manual browser acceptance pending |
+| Testing | FO-075–FO-078A on branch | FO-078A User Management isolation regressions added; FO-078 manual acceptance Failed/paused pending FO-078A retest |
 | Configuration | Complete | Django settings, Celery, env examples, Next/Tailwind toolchain |
 | Developer Handbook | Complete | Permanent engineering process, governance, QA, and repository documentation foundation |
 

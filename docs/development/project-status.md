@@ -14,8 +14,8 @@
 
 ## Current Module
 
-- Employee Requester Experience (FO-075–FO-078 on
-  `feature/employee-requester`; manual acceptance pending)
+- Employee Requester Experience (FO-075–FO-078A on
+  `feature/employee-requester`; FO-078 acceptance incomplete)
 
 ## Current Branch
 
@@ -113,15 +113,16 @@
 
 ## Current Task
 
-- FO-078 cumulative repository QA is complete with no confirmed production
-  defects.
-- Manual browser acceptance remains pending before merge readiness.
+- FO-078A corrects High-severity Tenant-bound System Administrator cross-Tenant
+  User Management exposure discovered during FO-078 manual acceptance.
+- FO-078 acceptance remains incomplete pending FO-078A browser retest and the
+  remaining Employee Requester checklist.
 - Comments, attachments, and AI remain deferred.
 
 ## Next Milestone
 
-- User manual browser acceptance for FO-078 checklist
-- Sol independent review of FO-075 through FO-078 on cumulative draft PR #42
+- User FO-078A User Management retest, then resume FO-078 checklist
+- Sol independent review after manual acceptance
 - FO-063 automatic Ticket closure remains reserved and deferred
 
 ## Completed Feature — Master Data Management
@@ -153,7 +154,10 @@
 - FO-077A: Requester workflow concurrency locking and confirmation dialog
   accessibility correction on `feature/employee-requester`
 - FO-078: Employee Requester Experience cumulative QA and stabilization on
-  `feature/employee-requester`; manual browser acceptance pending
+  `feature/employee-requester`; manual acceptance Failed/paused on User
+  Management isolation
+- FO-078A: User Management tenant-isolation security correction on
+  `feature/employee-requester`; manual retest pending
 
 ## Foundation Dashboard Security Note
 

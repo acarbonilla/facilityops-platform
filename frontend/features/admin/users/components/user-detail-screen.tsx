@@ -50,7 +50,7 @@ function Breadcrumbs({ label }: { label: string }) {
 
 export function UserDetailScreen({ id }: { id: string }) {
   const { user: currentUser } = useAuth();
-  const { permissions, refreshPermissions } = usePermissions();
+  const { permissions, refreshPermissions, roles } = usePermissions();
   const [success, setSuccess] = useState<string | null>(null);
   const [deactivateOpen, setDeactivateOpen] = useState(false);
   const [manageRolesOpen, setManageRolesOpen] = useState(false);
@@ -109,6 +109,7 @@ export function UserDetailScreen({ id }: { id: string }) {
   const availableRoles = filterVisibleAssignableRoles(
     roleAssignmentsQuery.data?.available_roles ?? [],
     currentUser,
+    roles,
   );
 
   return (

@@ -36,15 +36,22 @@ List and detail responses contain `id`, `email`, `first_name`, `last_name`, `ten
 - Regular authenticated users can query and manage only users in their own tenant.
 - A tenantless regular user receives an empty queryset.
 - Cross-tenant object lookup is hidden with `404` because detail lookup occurs inside the scoped queryset.
-- Superusers and active users assigned the existing `system_admin` role have global scope.
+- Superusers and active **tenantless** users assigned the existing `system_admin` role have global User Management scope.
+- Tenant-bound `system_admin` users are tenant-scoped for user list/detail/mutation (FO-078A). They do not receive cross-Tenant user visibility from the role alone.
 - Regular tenant administrators cannot create or move a user into another tenant.
 - Direct service calls cannot update, move, or deactivate a cross-tenant target; tenant isolation does not depend only on viewset queryset scoping.
 - An organization must belong to the user's selected tenant.
-- Only globally scoped superusers and system administrators can change `is_staff`.
+- Only globally scoped superusers and tenantless system administrators can change `is_staff`.
 - The `users.update` contract intentionally permits activation and deactivation through `PATCH is_active`; `users.delete` is independently required for `DELETE` deactivation.
 - `DELETE` never removes a row; it sets `is_active` to false and returns `204`.
 - An authenticated user cannot deactivate their own account with either `DELETE` or `PATCH`.
 - Passwords are accepted only on writes, validated with Django's configured password validators, stored as hashes through `set_password()`, and never serialized.
+
+## FO-078A note
+
+FO-078A corrected High-severity cross-Tenant exposure for Tenant-bound System
+Administrators. See
+`docs/02-Development/FO-078A - User Management Tenant-Isolation Security Correction.md`.
 
 The implementation uses distinct `users.view`, `users.directory`, `users.create`, `users.update`, and `users.delete` permission definitions with `HasPermissionCode` checks. Each action requires its specific code even for globally scoped system administrators. The repository does not define `users.manage`, so no aggregate permission is implied. The assignment-safe `users.directory` capability does not imply any administrative user access.
 

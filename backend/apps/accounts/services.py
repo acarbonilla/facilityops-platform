@@ -14,6 +14,33 @@ from .models import User
 
 
 def has_global_user_scope(user):
+    """Return True only for platform-global User Management data scope.
+
+    - Active Django superusers retain platform-global user visibility.
+    - Active tenantless ``system_admin`` assignments retain platform-global
+      user visibility (existing tested contract).
+    - Tenant-bound ``system_admin`` users are tenant-scoped for user
+      list/detail/mutation and never receive cross-Tenant user access from
+      the role alone.
+    - ``is_staff`` alone never grants global user scope.
+    """
+    if not getattr(user, "is_authenticated", False) or not user.is_active:
+        return False
+    if user.is_superuser:
+        return True
+    # Tenant-bound System Administrators remain tenant-scoped for user data.
+    if getattr(user, "tenant_id", None):
+        return False
+    return get_user_roles(user).filter(code="system_admin").exists()
+
+
+def can_manage_system_roles(user):
+    """Return True when the actor may assign active system roles.
+
+    Distinct from user-data scope: a Tenant-bound System Administrator may
+    assign system roles such as Employee within their own Tenant, while still
+    being denied cross-Tenant user visibility through ``has_global_user_scope``.
+    """
     if not getattr(user, "is_authenticated", False) or not user.is_active:
         return False
     if user.is_superuser:
@@ -64,7 +91,7 @@ def _validate_actor_permission(actor, permission_code):
 
 def _get_manageable_roles(actor):
     queryset = Role.objects.filter(is_active=True).order_by("name")
-    if has_global_user_scope(actor):
+    if can_manage_system_roles(actor):
         return queryset
     return queryset.filter(is_system_role=False)
 
@@ -75,7 +102,7 @@ def _build_user_role_assignment_data(*, actor, user):
         user_roles__user=user,
         user_roles__is_active=True,
     ).order_by("name")
-    if not has_global_user_scope(actor):
+    if not can_manage_system_roles(actor):
         assigned_roles = assigned_roles.filter(is_system_role=False)
 
     available_roles = Role.objects.none()
@@ -107,7 +134,7 @@ def _validate_requested_role_ids(actor, role_ids):
             {"role_ids": ["Only active roles may be assigned."]}
         )
 
-    if not has_global_user_scope(actor):
+    if not can_manage_system_roles(actor):
         restricted_roles = [
             role.name for role in all_roles.values() if role.is_system_role
         ]
@@ -115,7 +142,7 @@ def _validate_requested_role_ids(actor, role_ids):
             raise ValidationError(
                 {
                     "role_ids": [
-                        "Only global administrators may manage system roles."
+                        "Only system administrators may manage system roles."
                     ]
                 }
             )
@@ -238,13 +265,19 @@ def _save_validated(user):
     user.save()
 
 
-def _lock_user(user):
-    return (
+def _lock_user(*, actor, user):
+    """Lock the target user through the actor's authoritative Tenant scope."""
+    queryset = (
         type(user)
         .objects.select_for_update(of=("self",))
         .select_related("tenant", "organization")
-        .get(pk=user.pk)
     )
+    try:
+        return scope_users_to_actor(queryset, actor).get(pk=user.pk)
+    except User.DoesNotExist as exc:
+        raise ValidationError(
+            {"tenant": "You cannot manage users in another tenant."}
+        ) from exc
 
 
 @transaction.atomic
@@ -252,7 +285,8 @@ def create_user(*, actor, validated_data):
     data = dict(validated_data)
     password = data.pop("password")
     if not has_global_user_scope(actor):
-        data.setdefault("tenant", actor.tenant)
+        # Tenant identity is authoritative from the actor, never the client.
+        data["tenant"] = actor.tenant
 
     tenant = data.get("tenant")
     organization = data.get("organization")
@@ -274,11 +308,16 @@ def create_user(*, actor, validated_data):
 
 @transaction.atomic
 def update_user(*, actor, user, validated_data):
-    user = _lock_user(user)
+    user = _lock_user(actor=actor, user=user)
     data = dict(validated_data)
     password = data.pop("password", None)
     _validate_actor_can_manage_user(actor, user)
-    tenant = data.get("tenant", user.tenant)
+    if not has_global_user_scope(actor):
+        # Tenant-bound administrators cannot reassign Tenant identity.
+        data.pop("tenant", None)
+        tenant = user.tenant
+    else:
+        tenant = data.get("tenant", user.tenant)
     organization = data.get("organization", user.organization)
 
     _validate_target_tenant(actor, tenant)
@@ -314,7 +353,7 @@ def update_user(*, actor, user, validated_data):
 
 @transaction.atomic
 def deactivate_user(*, actor, user):
-    user = _lock_user(user)
+    user = _lock_user(actor=actor, user=user)
     _validate_actor_can_manage_user(actor, user)
     if user.pk == actor.pk:
         raise ValidationError(
@@ -338,6 +377,7 @@ def get_user_role_assignment_data(*, actor, user):
 def replace_user_role_assignments(*, actor, user, role_ids):
     _validate_authenticated_active_actor(actor)
     _validate_actor_permission(actor, "roles.manage")
+    user = _lock_user(actor=actor, user=user)
     _validate_actor_can_manage_user(actor, user)
 
     manageable_roles = _validate_requested_role_ids(actor, role_ids)

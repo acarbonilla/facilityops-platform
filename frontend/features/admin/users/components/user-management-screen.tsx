@@ -21,6 +21,10 @@ import {
   getUserActionPermissions,
   getUserDisplayName,
 } from "@/lib/users/form";
+import {
+  getTenantScopedOrganizations,
+  shouldShowUserTenantFilter,
+} from "@/lib/users/roles";
 import type { UserListFilters, UserListParams, UserRecord } from "@/types/users";
 
 import { UserDeactivateDialog } from "./user-deactivate-dialog";
@@ -77,14 +81,19 @@ export function UserManagementScreen() {
 
   const tenants = optionsQuery.data?.tenants;
   const organizations = optionsQuery.data?.organizations;
+  const showTenantFilter = shouldShowUserTenantFilter(currentUser?.tenant);
+  const visibleOrganizations = getTenantScopedOrganizations(
+    organizations ?? [],
+    currentUser?.tenant,
+  );
   const tenantNames = useMemo(() => buildNameMap(tenants ?? []), [tenants]);
   const organizationNames = useMemo(
-    () => buildNameMap(organizations ?? []),
-    [organizations],
+    () => buildNameMap(visibleOrganizations),
+    [visibleOrganizations],
   );
   const filteredOrganizations = filters.tenant
-    ? (organizations ?? []).filter((item) => item.tenant === filters.tenant)
-    : (organizations ?? []);
+    ? visibleOrganizations.filter((item) => item.tenant === filters.tenant)
+    : visibleOrganizations;
   const rows = listQuery.data?.results ?? [];
   const pageCount = Math.max(
     1,
@@ -165,7 +174,9 @@ export function UserManagementScreen() {
           <FormField htmlFor="user-search" label="Search">
             <input className="block w-full rounded-md border border-slate-300 px-3 py-2" id="user-search" onChange={(event) => { setFilters((current) => ({ ...current, search: event.target.value })); setPage(1); }} placeholder="Email or name" type="search" value={filters.search} />
           </FormField>
-          <SelectField label="Tenant" name="user-tenant" onChange={(event) => { setFilters((current) => ({ ...current, tenant: event.target.value, organization: "" })); setPage(1); }} options={(tenants ?? []).map((item) => ({ value: item.id, label: item.name }))} placeholder="All visible tenants" value={filters.tenant} />
+          {showTenantFilter ? (
+            <SelectField label="Tenant" name="user-tenant" onChange={(event) => { setFilters((current) => ({ ...current, tenant: event.target.value, organization: "" })); setPage(1); }} options={(tenants ?? []).map((item) => ({ value: item.id, label: item.name }))} placeholder="All visible tenants" value={filters.tenant} />
+          ) : null}
           <SelectField label="Organization" name="user-organization" onChange={(event) => { setFilters((current) => ({ ...current, organization: event.target.value })); setPage(1); }} options={filteredOrganizations.map((item) => ({ value: item.id, label: item.name }))} placeholder="All organizations" value={filters.organization} />
           <SelectField label="Active status" name="user-active" onChange={(event) => { setFilters((current) => ({ ...current, active: event.target.value as UserListFilters["active"] })); setPage(1); }} options={[{ value: "true", label: "Active" }, { value: "false", label: "Inactive" }]} placeholder="All statuses" value={filters.active} />
           <SelectField label="Staff status" name="user-staff" onChange={(event) => { setFilters((current) => ({ ...current, staff: event.target.value as UserListFilters["staff"] })); setPage(1); }} options={[{ value: "true", label: "Staff" }, { value: "false", label: "Standard user" }]} placeholder="All staff states" value={filters.staff} />

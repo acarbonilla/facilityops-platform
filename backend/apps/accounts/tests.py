@@ -1521,3 +1521,284 @@ class UserRoleAssignmentWorkflowTests(APITestCase):
         self.assertEqual(
             self._results(response)[0]["email"], "same@example.com"
         )
+
+@override_settings(
+    PASSWORD_HASHERS=('django.contrib.auth.hashers.MD5PasswordHasher',)
+)
+class TenantBoundSystemAdminUserIsolationTests(APITestCase):
+    '''FO-078A: Tenant-bound system_admin must not receive cross-Tenant User Management access.'''
+
+    password = 'Password123!'
+
+    def setUp(self):
+        self.tenant_a = Tenant.objects.create(name='XYZ Company', code='xyz-company')
+        self.org_a = Organization.objects.create(
+            tenant=self.tenant_a,
+            name='XYZ Org',
+            code='xyz-org',
+        )
+        self.tenant_b = Tenant.objects.create(name='Tenant', code='other-tenant')
+        self.org_b = Organization.objects.create(
+            tenant=self.tenant_b,
+            name='Other Org',
+            code='other-org',
+        )
+
+        self.system_admin_role = Role.objects.create(
+            name='System Administrator',
+            code='system_admin',
+            is_system_role=True,
+        )
+        self.employee_role = Role.objects.create(
+            name='Employee',
+            code='employee',
+            is_system_role=True,
+        )
+        self.operator_role = Role.objects.create(
+            name='Operator',
+            code='operator',
+            is_system_role=False,
+        )
+        for code in (
+            'users.view',
+            'users.directory',
+            'users.create',
+            'users.update',
+            'users.delete',
+            'roles.view',
+            'roles.manage',
+        ):
+            module, action = code.split('.', 1)
+            permission, _ = Permission.objects.get_or_create(
+                code=code,
+                defaults={'name': code, 'module': module, 'action': action},
+            )
+            RolePermission.objects.create(role=self.system_admin_role, permission=permission)
+
+        self.jane = User.objects.create_user(
+            email='doejane@gmail.com',
+            password=self.password,
+            first_name='Jane',
+            last_name='Doe',
+            tenant=self.tenant_a,
+            organization=self.org_a,
+        )
+        UserRole.objects.create(user=self.jane, role=self.system_admin_role)
+
+        self.user_a = User.objects.create_user(
+            email='same-tenant@example.com',
+            password=self.password,
+            first_name='Same',
+            last_name='Tenant',
+            tenant=self.tenant_a,
+            organization=self.org_a,
+        )
+        self.user_b = User.objects.create_user(
+            email='other-tenant@example.com',
+            password=self.password,
+            first_name='Other',
+            last_name='Tenant',
+            tenant=self.tenant_b,
+            organization=self.org_b,
+        )
+        self.staff_only = User.objects.create_user(
+            email='staff-only@example.com',
+            password=self.password,
+            tenant=self.tenant_a,
+            organization=self.org_a,
+            is_staff=True,
+        )
+
+    def _authenticate(self, user=None):
+        self.client.force_authenticate(user=user or self.jane)
+
+    def _results(self, response):
+        return response.data['results']
+
+    def _response_text(self, response):
+        return str(response.data)
+
+    def test_tenant_bound_system_admin_lists_only_same_tenant_users(self):
+        self._authenticate()
+        response = self.client.get(reverse('user-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = {item['id'] for item in self._results(response)}
+        emails = {item['email'] for item in self._results(response)}
+        self.assertIn(str(self.user_a.id), ids)
+        self.assertIn(str(self.jane.id), ids)
+        self.assertNotIn(str(self.user_b.id), ids)
+        self.assertNotIn(self.user_b.email, emails)
+        self.assertFalse(has_global_user_scope(self.jane))
+
+    def test_search_filter_sort_and_pagination_cannot_expose_other_tenant(self):
+        extras = [
+            User.objects.create_user(
+                email=f'extra-{index}@xyz.example.com',
+                password=self.password,
+                tenant=self.tenant_a,
+                organization=self.org_a,
+            )
+            for index in range(25)
+        ]
+        self._authenticate()
+
+        search = self.client.get(reverse('user-list'), {'search': 'Other'})
+        self.assertEqual(search.status_code, status.HTTP_200_OK)
+        self.assertEqual(self._results(search), [])
+        self.assertNotIn(str(self.user_b.id), self._response_text(search))
+        self.assertNotIn(self.user_b.email, self._response_text(search))
+
+        filtered = self.client.get(
+            reverse('user-list'),
+            {'tenant': str(self.tenant_b.id), 'is_active': 'true'},
+        )
+        self.assertEqual(filtered.status_code, status.HTTP_200_OK)
+        self.assertEqual(self._results(filtered), [])
+
+        ordered = self.client.get(reverse('user-list'), {'ordering': '-email'})
+        ordered_ids = {item['id'] for item in self._results(ordered)}
+        self.assertNotIn(str(self.user_b.id), ordered_ids)
+
+        page = self.client.get(reverse('user-list'), {'page': 1, 'page_size': 10})
+        self.assertEqual(page.status_code, status.HTTP_200_OK)
+        page_ids = {item['id'] for item in self._results(page)}
+        self.assertNotIn(str(self.user_b.id), page_ids)
+        self.assertLessEqual(len(self._results(page)), 10)
+        self.assertTrue(any(str(user.id) in page_ids for user in extras))
+
+    def test_same_tenant_detail_succeeds_and_cross_tenant_matches_not_found(self):
+        self._authenticate()
+        same = self.client.get(reverse('user-detail', args=(self.user_a.id,)))
+        self.assertEqual(same.status_code, status.HTTP_200_OK)
+        self.assertEqual(same.data['email'], self.user_a.email)
+
+        cross = self.client.get(reverse('user-detail', args=(self.user_b.id,)))
+        missing = self.client.get(
+            reverse(
+                'user-detail',
+                args=('11111111-1111-4111-8111-111111111111',),
+            )
+        )
+        self.assertEqual(cross.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(missing.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(cross.data, missing.data)
+        self.assertNotIn(self.user_b.email, self._response_text(cross))
+        self.assertNotIn(str(self.tenant_b.id), self._response_text(cross))
+
+    def test_same_tenant_update_succeeds_cross_tenant_mutations_fail_safely(self):
+        self._authenticate()
+        update = self.client.patch(
+            reverse('user-detail', args=(self.user_a.id,)),
+            {'first_name': 'Updated'},
+            format='json',
+        )
+        self.assertEqual(update.status_code, status.HTTP_200_OK)
+        self.user_a.refresh_from_db()
+        self.assertEqual(self.user_a.first_name, 'Updated')
+
+        original_name = self.user_b.first_name
+        cross_update = self.client.patch(
+            reverse('user-detail', args=(self.user_b.id,)),
+            {'first_name': 'Hacked'},
+            format='json',
+        )
+        self.assertEqual(cross_update.status_code, status.HTTP_404_NOT_FOUND)
+        self.user_b.refresh_from_db()
+        self.assertEqual(self.user_b.first_name, original_name)
+
+        cross_delete = self.client.delete(
+            reverse('user-detail', args=(self.user_b.id,))
+        )
+        self.assertEqual(cross_delete.status_code, status.HTTP_404_NOT_FOUND)
+        self.user_b.refresh_from_db()
+        self.assertTrue(self.user_b.is_active)
+
+        cross_roles_get = self.client.get(
+            reverse('user-roles', args=(self.user_b.id,))
+        )
+        cross_roles_put = self.client.put(
+            reverse('user-roles', args=(self.user_b.id,)),
+            {'role_ids': [str(self.operator_role.id)]},
+            format='json',
+        )
+        self.assertEqual(cross_roles_get.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(cross_roles_put.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(
+            UserRole.objects.filter(
+                user=self.user_b,
+                role=self.operator_role,
+                is_active=True,
+            ).exists()
+        )
+
+    def test_create_binds_authenticated_tenant_and_rejects_cross_tenant_org(self):
+        self._authenticate()
+        create = self.client.post(
+            reverse('user-list'),
+            {
+                'email': 'new-xyz@example.com',
+                'tenant': str(self.tenant_b.id),
+                'organization': str(self.org_a.id),
+                'password': 'N3w-Password!Safe',
+            },
+            format='json',
+        )
+        self.assertEqual(create.status_code, status.HTTP_201_CREATED)
+        created = User.objects.get(email='new-xyz@example.com')
+        self.assertEqual(created.tenant_id, self.tenant_a.id)
+        self.assertEqual(created.organization_id, self.org_a.id)
+
+        rejected = self.client.post(
+            reverse('user-list'),
+            {
+                'email': 'cross-created@example.com',
+                'tenant': str(self.tenant_a.id),
+                'organization': str(self.org_b.id),
+                'password': 'N3w-Password!Safe',
+            },
+            format='json',
+        )
+        self.assertEqual(rejected.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            User.objects.filter(email='cross-created@example.com').exists()
+        )
+
+    def test_tenant_bound_system_admin_can_assign_employee_same_tenant_only(self):
+        self._authenticate()
+        response = self.client.put(
+            reverse('user-roles', args=(self.user_a.id,)),
+            {'role_ids': [str(self.employee_role.id)]},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn(
+            'employee',
+            [role['code'] for role in response.data['assigned_roles']],
+        )
+        self.assertTrue(
+            UserRole.objects.filter(
+                user=self.user_a,
+                role=self.employee_role,
+                is_active=True,
+            ).exists()
+        )
+
+        denied = self.client.put(
+            reverse('user-roles', args=(self.user_b.id,)),
+            {'role_ids': [str(self.employee_role.id)]},
+            format='json',
+        )
+        self.assertEqual(denied.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(
+            UserRole.objects.filter(
+                user=self.user_b,
+                role=self.employee_role,
+                is_active=True,
+            ).exists()
+        )
+
+    def test_staff_alone_has_no_user_management_or_global_scope(self):
+        self.assertFalse(has_global_user_scope(self.staff_only))
+        self._authenticate(self.staff_only)
+        response = self.client.get(reverse('user-list'))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

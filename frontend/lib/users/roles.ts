@@ -37,9 +37,33 @@ export function buildReplaceUserRolesPayload(
 export function filterVisibleAssignableRoles(
   roles: UserAssignedRole[],
   currentUser: AuthUser | null,
+  activeRoleCodes: string[] = [],
 ) {
-  if (currentUser?.tenant) {
-    return roles.filter((role) => !role.is_system_role);
+  // Tenant-bound System Administrators may assign system roles returned by
+  // the backend. Other tenant-bound actors only see non-system roles.
+  const canAssignSystemRoles =
+    !currentUser?.tenant ||
+    activeRoleCodes.some(
+      (code) => code.trim().toLowerCase() === "system_admin",
+    );
+  if (canAssignSystemRoles) {
+    return roles;
   }
-  return roles;
+  return roles.filter((role) => !role.is_system_role);
+}
+
+export function getTenantScopedOrganizations<
+  T extends { id: string; tenant: string },
+>(organizations: T[], currentUserTenant: string | null | undefined): T[] {
+  if (!currentUserTenant) {
+    return organizations;
+  }
+  return organizations.filter((item) => item.tenant === currentUserTenant);
+}
+
+export function shouldShowUserTenantFilter(
+  currentUserTenant: string | null | undefined,
+): boolean {
+  // Tenant-bound administrators cannot broaden User Management by tenant filter.
+  return !currentUserTenant;
 }

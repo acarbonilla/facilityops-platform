@@ -2,10 +2,13 @@
 
 ## Status
 
-Cumulative repository QA complete on `feature/employee-requester`. Pull request
-#42 remains open, draft, and unmerged. Manual browser acceptance is **pending**.
-The Employee Requester Experience is **not** approved for merge until manual
-acceptance and Sol’s final review are complete.
+Cumulative repository QA complete on `feature/employee-requester`. Manual
+browser acceptance initially **Failed/paused** after confirming High-severity
+cross-Tenant User Management exposure for Tenant-bound System Administrator
+`doejane@gmail.com` (XYZ Company). FO-078A corrects that defect. Pull request
+#42 remains open, draft, and unmerged. FO-078 acceptance remains incomplete
+until FO-078A retesting passes and the remaining Employee Requester checklist
+is resumed. The Employee Requester Experience is **not** approved for merge.
 
 ## Purpose
 
@@ -179,10 +182,21 @@ No migrations and no new dependencies introduced during FO-078.
 
 ## Manual browser acceptance
 
-**Status: Pending — not executed by Codex.**
+**Status: Failed/paused — FO-078A required.**
 
-Use the checklist below. Return results to the project tracker before Sol review
-or merge readiness.
+| Field | Value |
+| --- | --- |
+| Result | Failed |
+| Reason | Confirmed cross-Tenant User Management exposure |
+| Account | `doejane@gmail.com` |
+| Tenant | XYZ Company |
+| Role | System Administrator |
+| Staff | No |
+| Superuser | No |
+
+Resume the original FO-078 Employee Requester checklist only after the FO-078A
+User Management retest passes. See
+`docs/02-Development/FO-078A - User Management Tenant-Isolation Security Correction.md`.
 
 ### Required accounts
 
@@ -192,6 +206,7 @@ or merge readiness.
 - Facility Manager or other operational user in Tenant A
 - Staff-only user (if available)
 - Optional Employee + operational multi-role user
+- Tenant-bound System Administrator (`doejane@gmail.com`) for FO-078A retest
 
 ### Browser checklist
 
