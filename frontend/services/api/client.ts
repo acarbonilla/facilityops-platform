@@ -97,7 +97,10 @@ export function normalizeErrorResponse(value: unknown): ApiErrorResponse | undef
   }
 
   if (typeof record.detail === "string") {
-    return { message: record.detail };
+    return {
+      message: record.detail,
+      ...(typeof record.code === "string" ? { code: record.code } : {}),
+    };
   }
 
   const validationEntries = Object.entries(value).filter(([, entryValue]) => {
@@ -140,7 +143,10 @@ export async function apiClient<T>(
   const requestHeaders = new Headers(headers);
 
   requestHeaders.set("Accept", "application/json");
-  if (body !== undefined) {
+  const isFormData =
+    typeof FormData !== "undefined" && body instanceof FormData;
+  // Let the browser set multipart boundaries for FormData uploads.
+  if (body !== undefined && !isFormData) {
     requestHeaders.set("Content-Type", "application/json");
   }
   const resolvedAccessToken = accessToken ?? getAccessToken();
@@ -153,7 +159,12 @@ export async function apiClient<T>(
     response = await fetch(resolveApiUrl(endpoint, query), {
       ...requestOptions,
       headers: requestHeaders,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body:
+        body === undefined
+          ? undefined
+          : isFormData
+            ? (body as FormData)
+            : JSON.stringify(body),
     });
   } catch (error) {
     if (error instanceof ApiError) {
@@ -194,4 +205,71 @@ export async function apiClient<T>(
   }
 
   return payload as T;
+}
+
+export interface ApiBlobResult {
+  blob: Blob;
+  headers: Headers;
+  status: number;
+}
+
+/** Authenticated binary download helper (does not assume JSON). */
+export async function apiBlobClient(
+  endpoint: string,
+  options: Omit<ApiClientOptions, "body"> = {},
+): Promise<ApiBlobResult> {
+  const { accessToken, headers, query, ...requestOptions } = options;
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("Accept", "*/*");
+
+  const resolvedAccessToken = accessToken ?? getAccessToken();
+  if (resolvedAccessToken) {
+    requestHeaders.set("Authorization", `Bearer ${resolvedAccessToken}`);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(resolveApiUrl(endpoint, query), {
+      ...requestOptions,
+      headers: requestHeaders,
+      method: requestOptions.method ?? "GET",
+    });
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    throw new ApiError("Unable to connect to the backend service.");
+  }
+
+  if (!response.ok) {
+    const isJson = response.headers
+      .get("content-type")
+      ?.includes("application/json");
+    let details: ApiErrorResponse | undefined;
+    if (isJson) {
+      try {
+        details = normalizeErrorResponse(await response.json());
+      } catch {
+        details = undefined;
+      }
+    }
+    if (response.status === 401) {
+      throw new ApiError(
+        "Authentication is required or the session has expired.",
+        response.status,
+        details,
+      );
+    }
+    throw new ApiError(
+      details?.message ?? `Download failed with status ${response.status}.`,
+      response.status,
+      details,
+    );
+  }
+
+  return {
+    blob: await response.blob(),
+    headers: response.headers,
+    status: response.status,
+  };
 }

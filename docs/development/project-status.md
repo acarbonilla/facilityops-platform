@@ -14,13 +14,14 @@
 
 ## Current Module
 
-- Attachments — FO-079 Secure Attachment Backend and Storage Foundation
-  complete and merged via PR #45
+- Attachments — FO-080 Attachment Upload UI; manual acceptance Passed
+  2026-07-27 (36/36); Ready for Review on PR #46 (unmerged)
 
 ## Current Branch
 
-- `main` at `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (synchronized with
-  `origin/main` after PR #45 merge)
+- `feature/attachment-upload-ui` (PR #46 Ready for Review)
+- Branched from synchronized `main` at
+  `d9920d9e8ca7ca7a715fa193713015ba4ef5123a`
 
 ## Completed Modules
 
@@ -111,15 +112,17 @@
 
 ## Current Task
 
-- FO-079 Secure Attachment Backend and Storage Foundation is **complete and
-  merged** via PR #45 at `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace`.
-- FO-078D Employee-Safe Maintenance Notification Routing is **merged** via
-  PR #44 at `87c842381eb1a1f4c24173361adab12d180fcb26`.
-- Comments and AI remain deferred. FO-080 has not started.
+- FO-080 Attachment Upload UI: manual acceptance **Passed** 2026-07-27
+  (36/36); final validation 17/285 frontend and 19/710 backend; PR #46 Ready
+  for Review; **not yet merged**.
+- FO-079 Secure Attachment Backend remains merged via PR #45.
+- Comments and AI remain deferred. FO-081 / FO-082 / FO-083 have not started.
 
 ## Next Milestone
 
-- FO-080+ attachment frontend and module integrations (not started)
+- Merge PR #46 (FO-080) when authorized
+- FO-081 / FO-082 module attachment embedding (not started)
+- FO-083 richer evidence workflows (not started)
 
 ## Completed Feature — Master Data Management
 
@@ -172,8 +175,9 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment backend/storage foundation delivered by FO-079; frontend upload UI
-  remains deferred (FO-080+) and is guidance-only in Maintenance Create/Edit.
+- Attachment backend/storage foundation delivered by FO-079; FO-080 adds the
+  reusable frontend attachment workspace. Module embedding remains deferred
+  (FO-081+).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
