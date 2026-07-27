@@ -58,7 +58,14 @@ class EmployeeRoleSeedTests(APITestCase):
         )
         self.assertEqual(
             employee_permissions,
-            {"fm_tickets.view", "fm_tickets.create"},
+            {
+                "fm_tickets.view",
+                "fm_tickets.create",
+                "attachments.upload",
+                "attachments.view",
+                "attachments.download",
+                "attachments.delete",
+            },
         )
         self.assertEqual(
             employee_permissions,

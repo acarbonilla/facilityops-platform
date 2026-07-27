@@ -4,6 +4,7 @@ urlpatterns = [
     path("", include("apps.accounts.user_urls")),
     path("access-control/", include("apps.access_control.urls")),
     path("auth/", include("apps.accounts.urls")),
+    path("", include("apps.attachments.urls")),
     path("dashboard/", include("apps.dashboard.urls")),
     path("fm-tickets/", include("apps.fm_tickets.urls")),
     path("health/", include("apps.core.urls")),

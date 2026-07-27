@@ -14,13 +14,14 @@
 
 ## Current Module
 
-- FM Ticketing — FO-063 Automatic FM Ticket Closure **complete and merged**
-  (PR #43); FO-078D is next and not started
+- Attachments — FO-079 Secure Attachment Backend and Storage Foundation on
+  `feature/attachment-foundation` (Draft PR pending manual acceptance)
 
 ## Current Branch
 
-- `main` at `01bcee89ae964d053bba92b731d093e6f036c37c` (synchronized with
-  `origin/main` after PR #43 merge)
+- `feature/attachment-foundation`
+- Branched from synchronized `main` at
+  `c0c723bd752ce26f9aaf860160d1aae6672e770e`
 
 ## Completed Modules
 
@@ -111,16 +112,17 @@
 
 ## Current Task
 
-- FO-063 Automatic FM Ticket Closure is **complete and merged** via PR #43.
-- FO-078D Employee-Safe Maintenance Notification Routing is next and has **not**
-  started.
-- FO-079 Secure Attachment Backend and Storage Foundation has **not** started.
-- Comments, attachments, and AI remain deferred.
+- FO-079 Secure Attachment Backend and Storage Foundation in progress on
+  `feature/attachment-foundation`.
+- FO-078D Employee-Safe Maintenance Notification Routing remains Draft PR #44
+  and was not modified by FO-079.
+- Comments and AI remain deferred.
 
 ## Next Milestone
 
-- FO-078D Employee-Safe Maintenance Notification Routing (not started)
-- FO-079 Secure Attachment Backend and Storage Foundation (not started)
+- FO-079 manual acceptance and merge readiness
+- FO-078D acceptance/merge when authorized
+- FO-080+ attachment frontend and module integrations (not started)
 
 ## Completed Feature — Master Data Management
 
@@ -141,7 +143,9 @@
   PR reconciled before the normal merge-commit action
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
-- FO-063: remains separately reserved for automatic FM Ticket closure
+- FO-063: Automatic FM Ticket Closure complete and merged (PR #43)
+- FO-079: Secure Attachment Backend and Storage Foundation in progress on
+  `feature/attachment-foundation`
 - FO-075: Employee Role and Requester Authorization Foundation independently
   approved at `513977a66e69c572948e8a22af24da23ab81f99d`
 - FO-076: Employee My Requests frontend experience implemented on

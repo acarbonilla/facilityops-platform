@@ -54,6 +54,8 @@ media/
 !backend/media/
 backend/media/*
 !backend/media/.gitkeep
+backend/private_media/
+private_media/
 staticfiles/
 
 # Node.js, Next.js, and TypeScript
