@@ -3,8 +3,9 @@
 ## Status
 
 Manual acceptance **passed** on **2026-07-27**. Final automated validation
-passed. Draft PR #44 marked Ready for Review; **not yet merged**. FO-079 is
-not included in this delivery.
+passed. PR #44 **merged** into `main` at
+`87c842381eb1a1f4c24173361adab12d180fcb26`. FO-079 is separate and was not
+included in this delivery.
 
 ## Business objective
 
@@ -141,5 +142,5 @@ No new dependencies.
 - Branch: `fix/employee-maintenance-notification-routing`
 - PR: [#44](https://github.com/acarbonilla/facilityops-platform/pull/44)
 - Title: FO-078D: Employee-Safe Maintenance Notification Routing
-- Status: Ready for Review; **unmerged** until merge step completes
-- FO-079: **not included**
+- Status: **MERGED** via PR #44 at `87c842381eb1a1f4c24173361adab12d180fcb26`
+- FO-079: **not included** (separate PR #45)

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "apps.accounts",
     "apps.access_control",
+    "apps.attachments",
     "apps.dashboard",
     "apps.fm_tickets",
     "apps.inspection",
@@ -179,6 +180,25 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# FO-079 attachment storage — private by default; not publicly served.
+ATTACHMENT_STORAGE_BACKEND = config("ATTACHMENT_STORAGE_BACKEND", default="local")
+ATTACHMENT_STORAGE_ROOT = config(
+    "ATTACHMENT_STORAGE_ROOT",
+    default=str(BASE_DIR / "private_media" / "attachments"),
+)
+ATTACHMENT_MAX_UPLOAD_BYTES = config_int(
+    "ATTACHMENT_MAX_UPLOAD_BYTES",
+    default=10 * 1024 * 1024,
+)
+# Reserved for future S3-compatible private object storage (not implemented in FO-079).
+ATTACHMENT_S3_BUCKET = config("ATTACHMENT_S3_BUCKET", default="")
+ATTACHMENT_S3_REGION = config("ATTACHMENT_S3_REGION", default="")
+ATTACHMENT_S3_ENDPOINT_URL = config("ATTACHMENT_S3_ENDPOINT_URL", default="")
+ATTACHMENT_S3_SIGNED_URL_TTL_SECONDS = config_int(
+    "ATTACHMENT_S3_SIGNED_URL_TTL_SECONDS",
+    default=300,
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"

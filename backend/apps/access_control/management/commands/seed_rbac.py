@@ -116,6 +116,10 @@ PERMISSION_DEFINITIONS = [
     ),
     ("inspection", "manage", "Manage inspections"),
     ("reporting", "view", "View operational reporting"),
+    ("attachments", "upload", "Upload attachments"),
+    ("attachments", "view", "View attachment metadata"),
+    ("attachments", "download", "Download attachments"),
+    ("attachments", "delete", "Delete attachments"),
 ]
 
 ROLE_PERMISSION_CODES = {
@@ -185,6 +189,10 @@ ROLE_PERMISSION_CODES = {
         "inspection.manage_corrective_action",
         "inspection.manage",
         "reporting.view",
+        "attachments.upload",
+        "attachments.view",
+        "attachments.download",
+        "attachments.delete",
     },
     "facility_manager": {
         "users.directory",
@@ -234,6 +242,10 @@ ROLE_PERMISSION_CODES = {
         "maintenance.work_order.reopen",
         "inspection.view",
         "reporting.view",
+        "attachments.upload",
+        "attachments.view",
+        "attachments.download",
+        "attachments.delete",
     },
     "technician": {
         "fm_tickets.view",
@@ -264,10 +276,17 @@ ROLE_PERMISSION_CODES = {
         "inspection.update",
         "inspection.complete",
         "inspection.view_ai",
+        "attachments.upload",
+        "attachments.view",
+        "attachments.download",
     },
     "employee": {
         "fm_tickets.view",
         "fm_tickets.create",
+        "attachments.upload",
+        "attachments.view",
+        "attachments.download",
+        "attachments.delete",
     },
     "viewer": {
         "fm_tickets.view",
@@ -275,6 +294,8 @@ ROLE_PERMISSION_CODES = {
         "maintenance.work_order.view",
         "inspection.view",
         "reporting.view",
+        "attachments.view",
+        "attachments.download",
     },
 }
 

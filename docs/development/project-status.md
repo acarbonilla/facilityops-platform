@@ -14,14 +14,14 @@
 
 ## Current Module
 
-- FM Ticketing — FO-078D Employee-Safe Maintenance Notification Routing
-  manual acceptance passed 2026-07-27; Ready for Review on PR #44 (unmerged)
+- Attachments — FO-079 Secure Attachment Backend and Storage Foundation;
+  manual acceptance Passed 2026-07-27; Ready for Review on PR #45 (unmerged)
 
 ## Current Branch
 
-- `fix/employee-maintenance-notification-routing` (PR #44 Ready for Review)
-- Branched from synchronized `main` at
-  `c0c723bd752ce26f9aaf860160d1aae6672e770e`
+- `feature/attachment-foundation` (PR #45 Ready for Review)
+- Reconciled with merged FO-078D `main` at
+  `87c842381eb1a1f4c24173361adab12d180fcb26`
 
 ## Completed Modules
 
@@ -112,18 +112,17 @@
 
 ## Current Task
 
-- FO-078D Employee-Safe Maintenance Notification Routing: manual acceptance
-  **passed** 2026-07-27; final validation 691/268; PR #44 Ready for Review;
-  **not yet merged**.
-- FO-079 Secure Attachment Backend and Storage Foundation remains on separate
-  Draft PR #45 and is not included in FO-078D.
-- Comments and AI remain deferred.
+- FO-079 Secure Attachment Backend and Storage Foundation: manual acceptance
+  **Passed** 2026-07-27 (26/26); reconciled with merged FO-078D; PR #45 Ready
+  for Review; **not yet merged**.
+- FO-078D Employee-Safe Maintenance Notification Routing is **merged** via
+  PR #44 and preserved on this branch.
+- Comments and AI remain deferred. FO-080 has not started.
 
 ## Next Milestone
 
-- Merge PR #44 (FO-078D) when authorized
-- Reconcile and accept FO-079 (PR #45) after FO-078D merges
-- FO-080+ attachment frontend (not started)
+- Merge PR #45 (FO-079) when authorized
+- FO-080+ attachment frontend and module integrations (not started)
 
 ## Completed Feature — Master Data Management
 
@@ -144,7 +143,9 @@
   PR reconciled before the normal merge-commit action
 - Access: `settings.view` / `settings.manage`, with backend-authoritative tenant scope
 - Organization Management remains a thin consumer of Master Data APIs
-- FO-063: remains separately reserved for automatic FM Ticket closure
+- FO-063: Automatic FM Ticket Closure complete and merged (PR #43)
+- FO-079: Secure Attachment Backend and Storage Foundation in progress on
+  `feature/attachment-foundation`
 - FO-075: Employee Role and Requester Authorization Foundation independently
   approved at `513977a66e69c572948e8a22af24da23ab81f99d`
 - FO-076: Employee My Requests frontend experience implemented on
@@ -174,7 +175,8 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment upload remains deferred and is guidance-only in Maintenance Create/Edit.
+- Attachment backend/storage foundation delivered by FO-079; frontend upload UI
+  remains deferred (FO-080+) and is guidance-only in Maintenance Create/Edit.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
@@ -188,12 +190,12 @@
 
 ## Last Merge
 
-- `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
+- `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
+  `main`; FO-078D Employee-Safe Maintenance Notification Routing)
+- Previous: `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
   `main`; FO-063 Automatic FM Ticket Closure)
 - Previous: `7102a4ef8102dc45f63d94282729a672934cecf0` (Merge pull request #42
   into `main`; Employee Requester Experience)
-- Previous: `9362338ce6dbfc87e4fe533ebd657825e5d995d1` (Merge pull request #41 into
-  `main`; FM Ticket tenant-isolation security correction)
 
 ## Repository Version
 
