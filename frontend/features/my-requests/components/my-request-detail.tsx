@@ -12,6 +12,7 @@ import {
   formatRequesterCategoryLabel,
   formatRequesterDateTime,
   formatRequesterLocation,
+  getClosedExplanationText,
   getCommentsGuidanceText,
   getStatusGuidanceText,
   isGenericMyRequestNotFound,
@@ -73,7 +74,10 @@ export function MyRequestDetailScreen({ id }: { id: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={getStatusGuidanceText()}
+        description={getStatusGuidanceText(
+          request.status,
+          request.closed_automatically,
+        )}
         eyebrow={request.ticket_number}
         title={request.title}
       >
@@ -159,7 +163,13 @@ export function MyRequestDetailScreen({ id }: { id: string }) {
 
       <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
         <h2 className="text-lg font-semibold text-slate-950">What happens next</h2>
-        <p className="mt-2 text-sm text-slate-700">{getStatusGuidanceText()}</p>
+        <p className="mt-2 text-sm text-slate-700">
+          {getClosedExplanationText(
+            request.status,
+            request.closed_at,
+            request.closed_automatically,
+          ) ?? getStatusGuidanceText(request.status, request.closed_automatically)}
+        </p>
         <p className="mt-2 text-sm text-slate-700">{getCommentsGuidanceText()}</p>
       </section>
     </div>

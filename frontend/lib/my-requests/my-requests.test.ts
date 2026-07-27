@@ -14,8 +14,10 @@ import {
   formatRequesterCategoryLabel,
   formatRequesterStatusLabel,
   getAttachmentGuidanceText,
+  getClosedExplanationText,
   getGenericMyRequestNotFoundMessage,
   getSafeMyRequestDetailFieldNames,
+  getStatusGuidanceText,
   isGenericMyRequestNotFound,
   mapMyRequestFieldValidationErrors,
   mapSafeMyRequestDetailFields,
@@ -527,14 +529,30 @@ test("22. Safe detail-field mapping", () => {
     can_cancel: true,
     can_acknowledge: false,
     can_reopen: false,
+    closed_automatically: false,
   };
   const mapped = mapSafeMyRequestDetailFields(detail);
   assert.equal(mapped.ticket_number, "REQ-1");
   assert.equal(mapped.title, "Leak");
   assert.equal(mapped.can_cancel, true);
+  assert.equal(mapped.closed_automatically, false);
   assert.ok(!("requester_email" in mapped));
   assert.ok(!("assignee_email" in mapped));
   assert.ok(!getSafeMyRequestDetailFieldNames().includes("sla"));
+});
+
+test("22b. Automatic closure guidance distinguishes closed states", () => {
+  assert.match(
+    getClosedExplanationText("closed", "2026-07-26T12:00:00Z", true) ?? "",
+    /automatically closed/i,
+  );
+  assert.match(
+    getClosedExplanationText("closed", "2026-07-26T12:00:00Z", false) ?? "",
+    /^This request is closed/i,
+  );
+  assert.equal(getClosedExplanationText("resolved", null, false), null);
+  assert.match(getStatusGuidanceText("closed", true), /automatically closed/i);
+  assert.equal(getStatusGuidanceText("closed", false), "This request is closed.");
 });
 
 test("23. Attachment guidance text", () => {

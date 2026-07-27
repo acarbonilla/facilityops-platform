@@ -27,6 +27,16 @@ def config_bool(name, default=False):
     return default
 
 
+def config_int(name, default):
+    value = config(name, default=None)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 SECRET_KEY = config("SECRET_KEY", default="")
 DEBUG = config_bool("DEBUG", default=False)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
@@ -138,6 +148,32 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
+
+# FO-063: automatic RESOLVED → CLOSED after acknowledgement period.
+_fm_ticket_auto_close_days = config_int("FM_TICKET_AUTO_CLOSE_DAYS", default=7)
+FM_TICKET_AUTO_CLOSE_DAYS = (
+    _fm_ticket_auto_close_days if _fm_ticket_auto_close_days >= 1 else 7
+)
+_fm_ticket_auto_close_batch = config_int(
+    "FM_TICKET_AUTO_CLOSE_BATCH_SIZE",
+    default=100,
+)
+FM_TICKET_AUTO_CLOSE_BATCH_SIZE = (
+    _fm_ticket_auto_close_batch if _fm_ticket_auto_close_batch >= 1 else 100
+)
+FM_TICKET_AUTO_CLOSE_ENABLED = config_bool(
+    "FM_TICKET_AUTO_CLOSE_ENABLED",
+    default=True,
+)
+
+CELERY_BEAT_SCHEDULE = {}
+if FM_TICKET_AUTO_CLOSE_ENABLED:
+    from celery.schedules import crontab
+
+    CELERY_BEAT_SCHEDULE["fm-tickets-process-automatic-closures"] = {
+        "task": "fm_tickets.process_automatic_ticket_closures",
+        "schedule": crontab(minute=0),
+    }
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

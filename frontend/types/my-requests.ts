@@ -41,6 +41,7 @@ export interface MyRequestDetail extends MyRequestListItem {
   can_cancel?: boolean;
   can_acknowledge?: boolean;
   can_reopen?: boolean;
+  closed_automatically?: boolean;
 }
 
 export interface MyRequestCreatePayload {
@@ -110,6 +111,9 @@ export const MY_REQUEST_COMMENTS_GUIDANCE =
 
 export const MY_REQUEST_STATUS_GUIDANCE =
   "Request status is updated by the facilities team as work progresses.";
+
+export const MY_REQUEST_AUTO_CLOSED_GUIDANCE =
+  "This request was automatically closed after the acknowledgement period expired.";
 
 export type MyRequestWorkflowAction = "cancel" | "acknowledge" | "reopen";
 

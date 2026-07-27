@@ -2,6 +2,7 @@ import { ApiError } from "@/services/api/types";
 import type { MyRequestDetail } from "@/types/my-requests";
 import {
   MY_REQUEST_ATTACHMENT_GUIDANCE,
+  MY_REQUEST_AUTO_CLOSED_GUIDANCE,
   MY_REQUEST_COMMENTS_GUIDANCE,
   MY_REQUEST_STATUS_GUIDANCE,
 } from "@/types/my-requests";
@@ -90,8 +91,37 @@ export function getCommentsGuidanceText(): string {
   return MY_REQUEST_COMMENTS_GUIDANCE;
 }
 
-export function getStatusGuidanceText(): string {
+export function getStatusGuidanceText(
+  status?: string | null,
+  closedAutomatically?: boolean | null,
+): string {
+  if (status === "closed" && closedAutomatically) {
+    return MY_REQUEST_AUTO_CLOSED_GUIDANCE;
+  }
+  if (status === "closed") {
+    return "This request is closed.";
+  }
   return MY_REQUEST_STATUS_GUIDANCE;
+}
+
+export function getClosedExplanationText(
+  status?: string | null,
+  closedAt?: string | null,
+  closedAutomatically?: boolean | null,
+): string | null {
+  if (status !== "closed") {
+    return null;
+  }
+  if (closedAutomatically) {
+    if (!closedAt) {
+      return MY_REQUEST_AUTO_CLOSED_GUIDANCE;
+    }
+    return `${MY_REQUEST_AUTO_CLOSED_GUIDANCE} Closed ${formatRequesterDateTime(closedAt)}.`;
+  }
+  if (!closedAt) {
+    return "This request is closed.";
+  }
+  return `This request is closed. Closed ${formatRequesterDateTime(closedAt)}.`;
 }
 
 /** Confirm My Requests never depends on Master Data settings.view. */
@@ -125,6 +155,7 @@ const SAFE_DETAIL_FIELDS = [
   "can_cancel",
   "can_acknowledge",
   "can_reopen",
+  "closed_automatically",
 ] as const;
 
 export type SafeMyRequestDetailField = (typeof SAFE_DETAIL_FIELDS)[number];
@@ -158,6 +189,7 @@ export function mapSafeMyRequestDetailFields(
     can_cancel: detail.can_cancel,
     can_acknowledge: detail.can_acknowledge,
     can_reopen: detail.can_reopen,
+    closed_automatically: detail.closed_automatically,
   };
 }
 

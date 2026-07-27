@@ -170,6 +170,7 @@ class EmployeeFmTicketDetailSerializer(EmployeeFmTicketListSerializer):
     can_cancel = serializers.SerializerMethodField()
     can_acknowledge = serializers.SerializerMethodField()
     can_reopen = serializers.SerializerMethodField()
+    closed_automatically = serializers.SerializerMethodField()
 
     class Meta(EmployeeFmTicketListSerializer.Meta):
         fields = EmployeeFmTicketListSerializer.Meta.fields + (
@@ -181,6 +182,7 @@ class EmployeeFmTicketDetailSerializer(EmployeeFmTicketListSerializer):
             "can_cancel",
             "can_acknowledge",
             "can_reopen",
+            "closed_automatically",
         )
 
     def get_can_cancel(self, obj):
@@ -203,6 +205,11 @@ class EmployeeFmTicketDetailSerializer(EmployeeFmTicketListSerializer):
         request = self.context.get("request")
         user = getattr(request, "user", None)
         return can_requester_reopen(obj, user)
+
+    def get_closed_automatically(self, obj):
+        from .auto_closure import ticket_was_automatically_closed
+
+        return ticket_was_automatically_closed(obj)
 
 
 class EmployeeRequesterReasonSerializer(serializers.Serializer):
