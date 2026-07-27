@@ -21,8 +21,8 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete through FO-063 | Employee Requester merged; FO-063 merged via PR #43; FO-078D Draft PR #44 separate |
-| Attachments | FO-079 in progress | Secure attachment backend/storage foundation on `feature/attachment-foundation`; FO-080+ not started |
+| FM Ticketing | FO-078D merged | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D merged via PR #44 (`87c8423…`); Employee-safe Maintenance routing preserved |
+| Attachments | FO-079 in progress | Secure attachment backend/storage foundation on `feature/attachment-foundation` reconciled with merged FO-078D; FO-080+ not started |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -499,13 +499,18 @@ Manages facility-management tickets, including read, create, edit, comments, his
   FO-078B completed final acceptance reconciliation. FO-078C merged PR #42 into
   `main` on 2026-07-26 at `7102a4ef8102dc45f63d94282729a672934cecf0` and closed
   the feature-branch lifecycle. Comments, AI, and FO-078B-O1 remain deferred.
-- FO-063 Automatic FM Ticket Closure is **complete and merged** via PR #43.
-- FO-078D Employee-Safe Maintenance Notification Routing is implemented on
-  Draft PR #44 and was not modified by FO-079.
+- FO-063 Automatic FM Ticket Closure is **complete and merged**: manual
+  acceptance passed 2026-07-27; PR #43 merged to `main` at
+  `01bcee89ae964d053bba92b731d093e6f036c37c`; feature branch removed after
+  verification.
+- FO-078D Employee-Safe Maintenance Notification Routing is **complete and
+  merged** via PR #44 at `87c842381eb1a1f4c24173361adab12d180fcb26`.
+  Employee-safe Maintenance routing is preserved on the FO-079 branch after
+  reconciliation with updated `main`.
 - FO-079 Secure Attachment Backend and Storage Foundation is implemented on
   `feature/attachment-foundation` (shared model, private storage, validation,
-  SHA-256, soft-delete, APIs, audit). Manual acceptance pending. FO-080+ and AI
-  have not started.
+  SHA-256, soft-delete, APIs, audit), reconciled with merged FO-078D. Manual
+  acceptance pending. FO-080+ and AI have not started.
 
 ## Maintenance Work Order
 

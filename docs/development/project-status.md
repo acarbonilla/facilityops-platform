@@ -15,12 +15,14 @@
 ## Current Module
 
 - Attachments — FO-079 Secure Attachment Backend and Storage Foundation on
-  `feature/attachment-foundation` (Draft PR pending manual acceptance)
+  `feature/attachment-foundation` (reconciled with main after FO-078D merge;
+  Draft PR #45 pending manual acceptance)
 
 ## Current Branch
 
 - `feature/attachment-foundation`
-- Branched from synchronized `main` at
+- Reconciled with `main` after FO-078D merge
+  (`87c842381eb1a1f4c24173361adab12d180fcb26`); originally branched from
   `c0c723bd752ce26f9aaf860160d1aae6672e770e`
 
 ## Completed Modules
@@ -113,15 +115,15 @@
 ## Current Task
 
 - FO-079 Secure Attachment Backend and Storage Foundation in progress on
-  `feature/attachment-foundation`.
-- FO-078D Employee-Safe Maintenance Notification Routing remains Draft PR #44
-  and was not modified by FO-079.
-- Comments and AI remain deferred.
+  `feature/attachment-foundation`, reconciled with merged FO-078D (`main` at
+  `87c842381eb1a1f4c24173361adab12d180fcb26`). Manual acceptance pending.
+- FO-078D Employee-Safe Maintenance Notification Routing is **merged** via
+  PR #44; Employee-safe Maintenance routing is preserved on this branch.
+- Comments and AI remain deferred. FO-080 has not started.
 
 ## Next Milestone
 
-- FO-079 manual acceptance and merge readiness
-- FO-078D acceptance/merge when authorized
+- FO-079 manual acceptance and merge readiness (PR #45)
 - FO-080+ attachment frontend and module integrations (not started)
 
 ## Completed Feature — Master Data Management
@@ -189,12 +191,12 @@
 
 ## Last Merge
 
-- `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
+- `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
+  `main`; FO-078D Employee-Safe Maintenance Notification Routing)
+- Previous: `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
   `main`; FO-063 Automatic FM Ticket Closure)
 - Previous: `7102a4ef8102dc45f63d94282729a672934cecf0` (Merge pull request #42
   into `main`; Employee Requester Experience)
-- Previous: `9362338ce6dbfc87e4fe533ebd657825e5d995d1` (Merge pull request #41 into
-  `main`; FM Ticket tenant-isolation security correction)
 
 ## Repository Version
 
