@@ -2,11 +2,12 @@
 
 ## Status
 
-Implementation complete on `feature/attachment-foundation`. Automated validation
-recorded below. Draft PR open and **unmerged**. Manual acceptance pending.
+Manual acceptance **passed** on **2026-07-27**. Branch reconciled with merged
+FO-078D (`main` at `87c842381eb1a1f4c24173361adab12d180fcb26`). Final automated
+validation recorded below. PR #45 Ready for Review; **not yet merged**.
 
 FO-080 through FO-088 (frontend upload UI, module integrations, AI) have **not**
-started. FO-078D remains a separate Draft PR and was not modified by this work.
+started.
 
 ## Business objective
 
@@ -162,10 +163,66 @@ Safe response fields only (no `storage_key`, no checksum exposure).
 
 - `apps/attachments/migrations/0001_attachment_foundation.py`
 - Creates `Attachment` and `AttachmentHistory` with intended indexes/constraints
+- No migration conflict with FO-078D (FO-078D introduced no migrations)
+- `makemigrations --check --dry-run`: no additional changes
 
 ## Dependency details
 
 No new third-party dependencies. Validation uses the Python standard library.
+
+## Reconciliation with FO-078D
+
+| Field | Value |
+| --- | --- |
+| Method | Normal merge of `origin/main` into `feature/attachment-foundation` |
+| Main at reconcile | `87c842381eb1a1f4c24173361adab12d180fcb26` (PR #44 merged) |
+| Conflicts | `docs/development/project-status.md`, `docs/development/work-tree.md` |
+| Resolution | Preserved FO-079 attachment trackers and FO-078D merged status |
+| Production code conflicts | None |
+| FO-078D routing preserved | Yes (`notification_service` + focused tests present) |
+| Force-push | Not used |
+
+## Manual acceptance evidence
+
+| Field | Value |
+| --- | --- |
+| Result | **Passed** (26/26) |
+| Acceptance date | **2026-07-27** |
+| Environment | Local development (`config.settings.development`, PostgreSQL with applied `attachments.0001_attachment_foundation`, isolated temp `ATTACHMENT_STORAGE_ROOT`) |
+| Executor | Codex/Cursor implementation engineer under Product Owner merge-lifecycle authorization |
+| Test data | Isolated tenants `fo079-a-*` / `fo079-b-*` and `fo079-*@example.com` users only; cleaned after acceptance |
+| Defects found | None |
+| Defects corrected | None |
+| FO-080 included | No |
+
+### Acceptance scenarios and results
+
+1. Authorized JPEG upload — **PASS**
+2. Authorized PNG / WEBP / PDF upload — **PASS**
+3. Original filename preserved for display — **PASS** (`evidence.jpg`)
+4. Stored filename UUID-based (no original filename) — **PASS**
+5. SHA-256 checksum generated — **PASS**
+6. File size and MIME metadata stored — **PASS**
+7. Empty files rejected — **PASS**
+8. Oversized files rejected — **PASS**
+9. Unsupported MIME types rejected — **PASS**
+10. Invalid extension/signature combinations rejected — **PASS**
+11. Executable, script, archive, and dangerous filename attempts rejected/normalized — **PASS**
+12. Authorized attachment listing — **PASS**
+13. Authorized attachment retrieval — **PASS**
+14. Authorized download — **PASS**
+15. Download response uses safe headers — **PASS** (`Content-Disposition: attachment`, `nosniff`)
+16. Unauthorized access returns generic 404 — **PASS**
+17. Employee cannot access another Employee’s attachment — **PASS**
+18. Cross-tenant access denied — **PASS**
+19. Soft-deleted attachment cannot be retrieved or downloaded — **PASS**
+20. Authorized deletion succeeds — **PASS**
+21. Upload history created — **PASS**
+22. Download history created — **PASS**
+23. Delete history created — **PASS**
+24. Storage remains private with no public URL/path exposure — **PASS**
+25. S3 selection fails closed (not implemented) — **PASS** (`AttachmentStorageError`)
+26. Existing FM Ticket / Maintenance / 5S / notification / requester workflows remain functional; FO-078D routing intact — **PASS**
 
 ## Test coverage
 
@@ -173,30 +230,23 @@ Focused `apps.attachments.tests.test_attachments` covers upload success/failure
 modes, download headers, unauthorized/cross-tenant 404s, soft-delete,
 idempotent delete, SHA-256, storage abstraction, orphan cleanup, and API safety.
 
-## Validation results
+## Final validation results
 
 | Gate | Result |
 | --- | --- |
 | Focused attachment tests | **19 passed** |
-| Full backend `--parallel 4 --noinput` | **698 passed** |
-| Full frontend | **268 passed** |
-| ESLint / TypeScript / build | **Passed** |
-| Django check | **Passed** |
+| Related FO-078D / Employee / tenant isolation | Passed (combined focused related suite **71 passed**) |
+| Full backend `--parallel 4 --noinput` | **710 passed** |
+| Full frontend (`npm test -- --run`) | **268 passed** |
+| ESLint | Passed |
+| TypeScript (`tsc --noEmit`) | Passed |
+| Production build | Passed |
+| Django check | **Passed** (0 issues) |
 | Migration drift | Attachment `0001` only; `--check` clean |
+| Migration plan | No unexpected pending operations beyond FO-079 migration |
 | Dependencies | **None added** |
+| Private media / secrets committed | **No** |
 | `git diff --check` | Clean |
-
-## Manual acceptance checklist
-
-1. Authorized upload succeeds and returns safe metadata.
-2. Unauthorized upload rejected.
-3. Invalid MIME / extension / oversized / empty rejected.
-4. Employee cannot access another employee's attachment (404).
-5. Cross-tenant download denied (404).
-6. Secure storage key not exposed; original filename preserved for display.
-7. SHA-256 stored; audit upload/download/delete recorded.
-8. Soft-deleted attachment inaccessible for get/download.
-9. Ordinary FM Ticket / Maintenance / 5S / Notification behavior unchanged.
 
 ## Known limitations
 
@@ -213,5 +263,6 @@ and related polish remain out of scope.
 ## PR / merge status
 
 - Branch: `feature/attachment-foundation`
-- Draft PR targeting `main`
-- Merge status: unmerged pending manual acceptance
+- PR: [#45](https://github.com/acarbonilla/facilityops-platform/pull/45)
+- Status: Ready for Review; **unmerged** until merge step completes
+- FO-080: **not included**

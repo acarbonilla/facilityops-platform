@@ -14,16 +14,14 @@
 
 ## Current Module
 
-- Attachments — FO-079 Secure Attachment Backend and Storage Foundation on
-  `feature/attachment-foundation` (reconciled with main after FO-078D merge;
-  Draft PR #45 pending manual acceptance)
+- Attachments — FO-079 Secure Attachment Backend and Storage Foundation;
+  manual acceptance Passed 2026-07-27; Ready for Review on PR #45 (unmerged)
 
 ## Current Branch
 
-- `feature/attachment-foundation`
-- Reconciled with `main` after FO-078D merge
-  (`87c842381eb1a1f4c24173361adab12d180fcb26`); originally branched from
-  `c0c723bd752ce26f9aaf860160d1aae6672e770e`
+- `feature/attachment-foundation` (PR #45 Ready for Review)
+- Reconciled with merged FO-078D `main` at
+  `87c842381eb1a1f4c24173361adab12d180fcb26`
 
 ## Completed Modules
 
@@ -114,16 +112,16 @@
 
 ## Current Task
 
-- FO-079 Secure Attachment Backend and Storage Foundation in progress on
-  `feature/attachment-foundation`, reconciled with merged FO-078D (`main` at
-  `87c842381eb1a1f4c24173361adab12d180fcb26`). Manual acceptance pending.
+- FO-079 Secure Attachment Backend and Storage Foundation: manual acceptance
+  **Passed** 2026-07-27 (26/26); reconciled with merged FO-078D; PR #45 Ready
+  for Review; **not yet merged**.
 - FO-078D Employee-Safe Maintenance Notification Routing is **merged** via
-  PR #44; Employee-safe Maintenance routing is preserved on this branch.
+  PR #44 and preserved on this branch.
 - Comments and AI remain deferred. FO-080 has not started.
 
 ## Next Milestone
 
-- FO-079 manual acceptance and merge readiness (PR #45)
+- Merge PR #45 (FO-079) when authorized
 - FO-080+ attachment frontend and module integrations (not started)
 
 ## Completed Feature — Master Data Management
@@ -177,7 +175,8 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment upload remains deferred and is guidance-only in Maintenance Create/Edit.
+- Attachment backend/storage foundation delivered by FO-079; frontend upload UI
+  remains deferred (FO-080+) and is guidance-only in Maintenance Create/Edit.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
