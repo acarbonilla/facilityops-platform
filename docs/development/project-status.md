@@ -14,14 +14,12 @@
 
 ## Current Module
 
-- Attachments — FO-080 Attachment Upload UI; manual acceptance Passed
-  2026-07-27 (36/36); Ready for Review on PR #46 (unmerged)
+- Attachments — FO-080 Attachment Upload UI complete and merged via PR #46
 
 ## Current Branch
 
-- `feature/attachment-upload-ui` (PR #46 Ready for Review)
-- Branched from synchronized `main` at
-  `d9920d9e8ca7ca7a715fa193713015ba4ef5123a`
+- `main` at `76c234c80c4fe7dd80ccb5a05910155bba631e22` (synchronized with
+  `origin/main` after PR #46 merge)
 
 ## Completed Modules
 
@@ -112,16 +110,15 @@
 
 ## Current Task
 
-- FO-080 Attachment Upload UI: manual acceptance **Passed** 2026-07-27
-  (36/36); final validation 17/285 frontend and 19/710 backend; PR #46 Ready
-  for Review; **not yet merged**.
+- FO-080 Attachment Upload UI is **complete and merged** via PR #46 at
+  `76c234c80c4fe7dd80ccb5a05910155bba631e22`.
 - FO-079 Secure Attachment Backend remains merged via PR #45.
 - Comments and AI remain deferred. FO-081 / FO-082 / FO-083 have not started.
 
 ## Next Milestone
 
-- Merge PR #46 (FO-080) when authorized
-- FO-081 / FO-082 module attachment embedding (not started)
+- FO-081 FM Ticket attachment embedding (not started)
+- FO-082 Maintenance / 5S attachment embedding (not started)
 - FO-083 richer evidence workflows (not started)
 
 ## Completed Feature — Master Data Management
@@ -191,12 +188,12 @@
 
 ## Last Merge
 
-- `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (Merge pull request #45 into
+- `76c234c80c4fe7dd80ccb5a05910155bba631e22` (Merge pull request #46 into
+  `main`; FO-080 Attachment Upload UI)
+- Previous: `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (Merge pull request #45 into
   `main`; FO-079 Secure Attachment Backend and Storage Foundation)
 - Previous: `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
   `main`; FO-078D Employee-Safe Maintenance Notification Routing)
-- Previous: `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
-  `main`; FO-063 Automatic FM Ticket Closure)
 
 ## Repository Version
 

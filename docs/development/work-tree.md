@@ -22,7 +22,7 @@
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | FO-078D merged | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D merged via PR #44 (`87c8423…`); Employee-safe Maintenance routing preserved |
-| Attachments | FO-080 Ready for Review | FO-079 backend merged via PR #45; FO-080 manual acceptance Passed 2026-07-27 (36/36); PR #46 Ready for Review (unmerged); FO-081+ not started |
+| Attachments | FO-080 complete; merged | FO-079 backend merged via PR #45; FO-080 Attachment Upload UI merged via PR #46 (`76c234c…`); FO-081+ not started |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -511,9 +511,10 @@ Manages facility-management tickets, including read, create, edit, comments, his
   merged** via PR #45 at `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace`. Manual
   acceptance Passed 2026-07-27 (26/26). Feature branch removed after
   verification.
-- FO-080 Attachment Upload UI manual acceptance **Passed** 2026-07-27 (36/36);
-  focused FO-080 17 / frontend 285 / backend 710; PR #46 Ready for Review and
-  **not yet merged**. FO-081 / FO-082 / FO-083 and AI have not started.
+- FO-080 Attachment Upload UI is **complete and merged** via PR #46 at
+  `76c234c80c4fe7dd80ccb5a05910155bba631e22`. Manual acceptance Passed
+  2026-07-27 (36/36). Feature branch removed after verification. FO-081 /
+  FO-082 / FO-083 and AI have not started.
 
 ## Maintenance Work Order
 

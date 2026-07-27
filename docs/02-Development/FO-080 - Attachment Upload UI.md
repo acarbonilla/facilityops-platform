@@ -2,11 +2,10 @@
 
 ## Status
 
-Manual acceptance **passed** on **2026-07-27** (36/36). Final automated
-validation recorded below. PR #46 Ready for Review; **not yet merged**.
+Complete. Manual acceptance **passed** on **2026-07-27** (36/36). PR #46
+**merged** into `main` at `76c234c80c4fe7dd80ccb5a05910155bba631e22`.
 
-FO-081 / FO-082 / FO-083 (module embedding, richer evidence workflows) have
-**not** started.
+FO-081 / FO-082 / FO-083 have **not** started.
 
 ## Business objective
 
@@ -220,9 +219,9 @@ permission gating helpers, and safe error messaging.
 - FO-083 richer evidence workflows (not started)
 - Image previews, thumbnails, camera, OCR, AI, S3 UI
 
-## Pull request
+## Pull request / merge
 
-- Branch: `feature/attachment-upload-ui`
-- PR: [#46](https://github.com/acarbonilla/facilityops-platform/pull/46)
-- Status: Ready for Review; **unmerged** until merge step completes
-- FO-081 / FO-082 / FO-083: **not included**
+- Branch: `feature/attachment-upload-ui` (deleted after merge verification)
+- PR: [#46](https://github.com/acarbonilla/facilityops-platform/pull/46) — **MERGED**
+- Merge commit / `main` SHA: `76c234c80c4fe7dd80ccb5a05910155bba631e22`
+- FO-081 / FO-082 / FO-083: **not started** / not included
