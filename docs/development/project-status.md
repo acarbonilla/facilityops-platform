@@ -14,14 +14,13 @@
 
 ## Current Module
 
-- Attachments — FO-079 Secure Attachment Backend and Storage Foundation;
-  manual acceptance Passed 2026-07-27; Ready for Review on PR #45 (unmerged)
+- Attachments — FO-079 Secure Attachment Backend and Storage Foundation
+  complete and merged via PR #45
 
 ## Current Branch
 
-- `feature/attachment-foundation` (PR #45 Ready for Review)
-- Reconciled with merged FO-078D `main` at
-  `87c842381eb1a1f4c24173361adab12d180fcb26`
+- `main` at `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (synchronized with
+  `origin/main` after PR #45 merge)
 
 ## Completed Modules
 
@@ -112,16 +111,14 @@
 
 ## Current Task
 
-- FO-079 Secure Attachment Backend and Storage Foundation: manual acceptance
-  **Passed** 2026-07-27 (26/26); reconciled with merged FO-078D; PR #45 Ready
-  for Review; **not yet merged**.
+- FO-079 Secure Attachment Backend and Storage Foundation is **complete and
+  merged** via PR #45 at `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace`.
 - FO-078D Employee-Safe Maintenance Notification Routing is **merged** via
-  PR #44 and preserved on this branch.
+  PR #44 at `87c842381eb1a1f4c24173361adab12d180fcb26`.
 - Comments and AI remain deferred. FO-080 has not started.
 
 ## Next Milestone
 
-- Merge PR #45 (FO-079) when authorized
 - FO-080+ attachment frontend and module integrations (not started)
 
 ## Completed Feature — Master Data Management
@@ -190,12 +187,12 @@
 
 ## Last Merge
 
-- `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
+- `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (Merge pull request #45 into
+  `main`; FO-079 Secure Attachment Backend and Storage Foundation)
+- Previous: `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
   `main`; FO-078D Employee-Safe Maintenance Notification Routing)
 - Previous: `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
   `main`; FO-063 Automatic FM Ticket Closure)
-- Previous: `7102a4ef8102dc45f63d94282729a672934cecf0` (Merge pull request #42
-  into `main`; Employee Requester Experience)
 
 ## Repository Version
 

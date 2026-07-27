@@ -3,8 +3,8 @@
 ## Status
 
 Manual acceptance **passed** on **2026-07-27**. Branch reconciled with merged
-FO-078D (`main` at `87c842381eb1a1f4c24173361adab12d180fcb26`). Final automated
-validation recorded below. PR #45 Ready for Review; **not yet merged**.
+FO-078D. Final automated validation passed. PR #45 **merged** into `main` at
+`43bbb8d6eb858fb7043deb3dc600f8c0ab0deace`.
 
 FO-080 through FO-088 (frontend upload UI, module integrations, AI) have **not**
 started.
@@ -262,7 +262,7 @@ and related polish remain out of scope.
 
 ## PR / merge status
 
-- Branch: `feature/attachment-foundation`
-- PR: [#45](https://github.com/acarbonilla/facilityops-platform/pull/45)
-- Status: Ready for Review; **unmerged** until merge step completes
-- FO-080: **not included**
+- Branch: `feature/attachment-foundation` (deleted after merge verification)
+- PR: [#45](https://github.com/acarbonilla/facilityops-platform/pull/45) — **MERGED**
+- Merge commit / `main` SHA: `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace`
+- FO-080: **not started** / not included
