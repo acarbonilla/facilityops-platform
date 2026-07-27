@@ -2,13 +2,13 @@
 
 ## Status
 
-Implementation complete. Manual acceptance **passed** on **2026-07-27** against
-the local development environment using safe `FO-063-ACCEPT` prefixed test data.
-Final pre-merge validation is recorded below. PR #43 is advanced to Ready for
-Review and then merged under the FO-063 merge-lifecycle authorization.
+**Complete and merged.** Manual acceptance passed on **2026-07-27**. PR #43 merged
+into `main` at merge commit `01bcee89ae964d053bba92b731d093e6f036c37c` on
+2026-07-27. Accepted feature HEAD
+`0cfab51e55faa7afa2e8b5180622c2cd0b63cc1a` is included in `main`.
 
-FO-078D (Employee-Safe Maintenance Notification Routing) has **not** started.
-FO-079 has **not** started. No attachment or AI scope was included.
+FO-078D (Employee-Safe Maintenance Notification Routing) is next and has **not**
+started. FO-079 has **not** started. No attachment or AI scope was included.
 
 ## Business objective
 
@@ -185,9 +185,11 @@ and were not introduced or expanded in FO-063.
 
 ## Pull request / merge
 
-- Branch: `feature/fm-ticket-auto-closure`
-- PR: [#43](https://github.com/acarbonilla/facilityops-platform/pull/43)
+- Branch: `feature/fm-ticket-auto-closure` (deleted after merge verification)
+- PR: [#43](https://github.com/acarbonilla/facilityops-platform/pull/43) — **MERGED**
 - Starting Draft HEAD: `be4f5fc012ca484fa564a07f7896c5b6fcb26fed`
-- Acceptance/readiness documentation commit recorded on the feature branch before
-  Ready-for-Review and merge
-- Merge status: updated after GitHub merge completes
+- Acceptance/readiness commit: `0cfab51e55faa7afa2e8b5180622c2cd0b63cc1a`
+- Merge method: merge commit
+- Merge commit: `01bcee89ae964d053bba92b731d093e6f036c37c`
+- Merged at: 2026-07-27T05:53:00Z
+- Post-merge `main` / `origin/main`: `01bcee89ae964d053bba92b731d093e6f036c37c`

@@ -14,14 +14,13 @@
 
 ## Current Module
 
-- FM Ticketing — FO-063 Automatic FM Ticket Closure acceptance passed;
-  PR #43 merge lifecycle in progress
+- FM Ticketing — FO-063 Automatic FM Ticket Closure **complete and merged**
+  (PR #43); FO-078D is next and not started
 
 ## Current Branch
 
-- `feature/fm-ticket-auto-closure` (acceptance/readiness commit pending merge)
-- Branched from synchronized `main` at
-  `0d3ed879985321ca69fc06e551ce61af3f79492f`
+- `main` at `01bcee89ae964d053bba92b731d093e6f036c37c` (synchronized with
+  `origin/main` after PR #43 merge)
 
 ## Completed Modules
 
@@ -112,14 +111,14 @@
 
 ## Current Task
 
-- FO-063 Automatic FM Ticket Closure: implementation complete; manual
-  acceptance **passed 2026-07-27**; PR #43 Ready-for-Review / merge lifecycle
-  authorized. FO-078D is next defect correction and has **not** started.
-  FO-079 has **not** started. No attachment or AI scope included.
+- FO-063 Automatic FM Ticket Closure is **complete and merged** via PR #43.
+- FO-078D Employee-Safe Maintenance Notification Routing is next and has **not**
+  started.
+- FO-079 Secure Attachment Backend and Storage Foundation has **not** started.
+- Comments, attachments, and AI remain deferred.
 
 ## Next Milestone
 
-- Complete FO-063 PR #43 merge and post-merge verification
 - FO-078D Employee-Safe Maintenance Notification Routing (not started)
 - FO-079 Secure Attachment Backend and Storage Foundation (not started)
 
@@ -186,10 +185,12 @@
 
 ## Last Merge
 
-- `9362338ce6dbfc87e4fe533ebd657825e5d995d1` (Merge pull request #41 into
+- `01bcee89ae964d053bba92b731d093e6f036c37c` (Merge pull request #43 into
+  `main`; FO-063 Automatic FM Ticket Closure)
+- Previous: `7102a4ef8102dc45f63d94282729a672934cecf0` (Merge pull request #42
+  into `main`; Employee Requester Experience)
+- Previous: `9362338ce6dbfc87e4fe533ebd657825e5d995d1` (Merge pull request #41 into
   `main`; FM Ticket tenant-isolation security correction)
-- Previous: `35085bf2dafdf93b06e209643c4f9a5d30bb676e` (Merge pull request #40 into
-  `main`; Master Data Management)
 
 ## Repository Version
 

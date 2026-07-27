@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-063 acceptance passed | Employee Requester merged (FO-075–FO-078C); FO-063 Automatic FM Ticket Closure acceptance passed 2026-07-27; PR #43 merge lifecycle in progress |
+| FM Ticketing | Complete through FO-063 | Employee Requester merged (FO-075–FO-078C); FO-063 Automatic FM Ticket Closure merged via PR #43 (`01bcee8…`); FO-078D next and not started |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -499,10 +499,11 @@ Manages facility-management tickets, including read, create, edit, comments, his
   `main` on 2026-07-26 at `7102a4ef8102dc45f63d94282729a672934cecf0` and closed
   the feature-branch lifecycle. Attachments, comments, AI, and FO-078B-O1 remain
   deferred; FO-079 has not started.
-- FO-063 Automatic FM Ticket Closure: implementation complete; manual
-  acceptance **passed 2026-07-27** on local development with isolated
-  `FO-063-ACCEPT` test data. PR #43 merge lifecycle authorized. FO-078D
-  (Employee Maintenance notification routing) and FO-079 have **not** started.
+- FO-063 Automatic FM Ticket Closure is **complete and merged**: manual
+  acceptance passed 2026-07-27; PR #43 merged to `main` at
+  `01bcee89ae964d053bba92b731d093e6f036c37c`; feature branch removed after
+  verification. FO-078D (Employee Maintenance notification routing) and FO-079
+  have **not** started.
 
 ## Maintenance Work Order
 
