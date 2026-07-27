@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete through FO-063 | Employee Requester merged (FO-075–FO-078C); FO-063 Automatic FM Ticket Closure merged via PR #43 (`01bcee8…`); FO-078D next and not started |
+| FM Ticketing | FO-078D in progress | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D Employee-Safe Maintenance Notification Routing on `fix/employee-maintenance-notification-routing`; FO-079 not started |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |

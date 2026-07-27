@@ -1,9 +1,11 @@
+from apps.fm_tickets.tenant_scope import uses_employee_requester_scope
 from apps.notifications.services import create_notification
 
 from .models import MaintenanceWorkOrder
 
 ASSIGNMENT_EVENT_CODE = "maintenance.assigned"
 STATUS_CHANGED_EVENT_CODE = "maintenance.status_changed"
+REQUESTER_STATUS_EVENT_CODE = "maintenance.requester_status_update"
 SOURCE_MODULE = "maintenance"
 
 
@@ -19,6 +21,13 @@ def _work_order_target_url(work_order):
     return f"/maintenance/work-orders/{work_order.id}"
 
 
+def _is_employee_only(user):
+    """True when the user has only Employee-level FM Ticket scope."""
+    if user is None:
+        return False
+    return uses_employee_requester_scope(user)
+
+
 def _is_eligible_recipient(recipient, *, work_order, actor):
     if recipient is None:
         return False
@@ -31,6 +40,9 @@ def _is_eligible_recipient(recipient, *, work_order, actor):
     if recipient_tenant_id is None:
         return False
     if recipient_tenant_id != work_order.tenant_id:
+        return False
+
+    if _is_employee_only(recipient):
         return False
 
     return True
@@ -170,6 +182,47 @@ def notify_maintenance_reassigned(
     return notifications
 
 
+def _notify_requester_via_ticket(*, work_order, from_status, to_status):
+    """Send a requester-safe notification through the linked FM Ticket when the
+    WO requester is an Employee-only user who cannot access Maintenance pages."""
+    source_ticket = getattr(work_order, "source_ticket", None)
+    if source_ticket is None:
+        return None
+
+    requester = work_order.requester
+    if requester is None:
+        return None
+    if not _is_employee_only(requester):
+        return None
+    if not getattr(requester, "is_active", False):
+        return None
+    if getattr(requester, "tenant_id", None) != work_order.tenant_id:
+        return None
+
+    from_label = _format_status_label(from_status)
+    to_label = _format_status_label(to_status)
+    ticket_number = source_ticket.ticket_number or str(source_ticket.id)
+    message = f"{ticket_number}: work progressed from {from_label} to {to_label}."
+
+    return create_notification(
+        recipient=requester,
+        event_code=REQUESTER_STATUS_EVENT_CODE,
+        title="Your request has been updated",
+        message=message,
+        severity=_severity_for_status_change(to_status),
+        tenant=work_order.tenant,
+        target_url=f"/my-requests/{source_ticket.id}",
+        source_module=SOURCE_MODULE,
+        source_object_id=work_order.id,
+        metadata={
+            "ticket_number": ticket_number,
+            "event": "requester_status_update",
+            "from_status": from_status,
+            "to_status": to_status,
+        },
+    )
+
+
 def notify_maintenance_status_changed(
     *,
     work_order,
@@ -185,8 +238,6 @@ def notify_maintenance_status_changed(
         work_order=work_order,
         actor=actor,
     )
-    if not recipients:
-        return []
 
     work_order_number = _work_order_number(work_order)
     from_label = _format_status_label(from_status)
@@ -217,5 +268,13 @@ def notify_maintenance_status_changed(
                 },
             )
         )
+
+    requester_notification = _notify_requester_via_ticket(
+        work_order=work_order,
+        from_status=from_status,
+        to_status=to_status,
+    )
+    if requester_notification is not None:
+        notifications.append(requester_notification)
 
     return notifications

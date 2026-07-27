@@ -14,8 +14,9 @@
 
 ## Current Module
 
-- FM Ticketing — FO-063 Automatic FM Ticket Closure **complete and merged**
-  (PR #43); FO-078D is next and not started
+- FM Ticketing — FO-063 complete and merged; FO-078D Employee-Safe
+  Maintenance Notification Routing in progress on
+  `fix/employee-maintenance-notification-routing`
 
 ## Current Branch
 
@@ -111,15 +112,14 @@
 
 ## Current Task
 
-- FO-063 Automatic FM Ticket Closure is **complete and merged** via PR #43.
-- FO-078D Employee-Safe Maintenance Notification Routing is next and has **not**
-  started.
+- FO-078D Employee-Safe Maintenance Notification Routing in progress on
+  `fix/employee-maintenance-notification-routing`.
 - FO-079 Secure Attachment Backend and Storage Foundation has **not** started.
 - Comments, attachments, and AI remain deferred.
 
 ## Next Milestone
 
-- FO-078D Employee-Safe Maintenance Notification Routing (not started)
+- FO-078D manual acceptance and merge
 - FO-079 Secure Attachment Backend and Storage Foundation (not started)
 
 ## Completed Feature — Master Data Management
