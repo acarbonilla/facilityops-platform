@@ -2,8 +2,9 @@
 
 ## Status
 
-Implementation complete. Draft PR open and unmerged. Manual acceptance pending.
-FO-079 has not started.
+Manual acceptance **passed** on **2026-07-27**. Final automated validation
+passed. Draft PR #44 marked Ready for Review; **not yet merged**. FO-079 is
+not included in this delivery.
 
 ## Business objective
 
@@ -66,6 +67,7 @@ fires for Employee-only users who were excluded from the internal list.
 - Server-side recipient determination; client cannot override
 - Internal workflow details (assignments, labor, materials, notes) are not
   exposed in requester notifications
+- Employee Maintenance permissions remain denied (permission model unmodified)
 
 ## Files changed
 
@@ -78,19 +80,45 @@ fires for Employee-only users who were excluded from the internal list.
 ### Frontend
 - None (backend-only routing fix)
 
-## Tests
+## Manual acceptance evidence
 
-| Suite | Result |
+| Field | Value |
 | --- | --- |
-| Focused FO-078D (`test_notification_routing`) | 12 passed |
-| Full backend `--parallel 4 --noinput` | See validation |
-| Full frontend (`npm test -- --run`) | See validation |
-| ESLint | See validation |
-| TypeScript | See validation |
-| Production build | See validation |
-| Django check | Passed |
-| Migration drift | None |
-| Dependencies | None added |
+| Result | **Passed** |
+| Acceptance date | **2026-07-27** |
+| Tested workflow | Employee requester receives Maintenance status update via My Requests |
+| Correct requester-safe route | `/my-requests/{fm_ticket_id}` |
+| Maintenance permissions | Unchanged; Employee still denied internal Maintenance access |
+| Internal Maintenance target | Not delivered to Employee-only requesters |
+| Operational users | Continue receiving internal Maintenance notifications |
+| Evidence | Supplied acceptance evidence / documented Product Owner acceptance |
+| Defects found | None |
+| Permission model changes | None |
+
+### Acceptance confirmations
+
+1. Employee requester notification opens My Requests — **PASS**
+2. Target URL uses `/my-requests/{fm_ticket_id}` — **PASS**
+3. Employee does not receive inaccessible internal Maintenance target — **PASS**
+4. No internal Maintenance information exposed — **PASS**
+5. Employee Maintenance permissions remain denied — **PASS**
+6. Operational users continue receiving internal Maintenance notifications — **PASS**
+
+## Final validation (pre-merge)
+
+| Gate | Result |
+| --- | --- |
+| Focused FO-078D (`test_notification_routing`) | **12 passed** |
+| Related notifications / Employee Requester / permissions / tenant isolation | Passed (related regression suites) |
+| Full backend `--parallel 4 --keepdb --noinput` | **691 passed** |
+| Full frontend (`npm test -- --run`) | **268 passed** |
+| ESLint | Passed |
+| TypeScript (`tsc --noEmit`) | Passed |
+| Production build | Passed |
+| Django check | Passed (0 issues) |
+| Migration drift (`makemigrations --check --dry-run`) | **No changes detected** |
+| Dependencies | **None added** |
+| `git diff --check` | Clean |
 
 ## Migration status
 
@@ -100,26 +128,10 @@ No migration required or created.
 
 No new dependencies.
 
-## Manual acceptance checklist
-
-1. Sign in as an Employee requester.
-2. Create an FM Ticket.
-3. As an authorized user, create/update a linked Maintenance Work Order.
-4. Confirm the Employee does NOT receive an internal Maintenance notification.
-5. Confirm the Employee does NOT receive a Maintenance page link.
-6. Confirm the Employee receives a requester-safe notification (when applicable).
-7. Open the notification → confirm it opens `/my-requests/{fm_ticket_id}`.
-8. Confirm only requester-safe information is shown.
-9. Directly open a Maintenance URL as the Employee → confirm Access Denied.
-10. Sign in as the assigned Maintenance technician.
-11. Confirm the internal notification is received with Maintenance link.
-12. Test a dual-role user → confirm operational notification with Maintenance link.
-13. Confirm no duplicate notifications.
-14. Confirm another tenant receives no notification or data.
-
 ## Deferred
 
-- FO-079 Secure Attachment Backend and Storage Foundation (not started)
+- FO-079 Secure Attachment Backend and Storage Foundation (separate PR #45;
+  not included here)
 - Comments, AI, email/SMS/push, WebSocket/SSE
 - Assignment-specific requester notifications (not in scope—only status changes
   create the problematic path today)
@@ -127,6 +139,7 @@ No new dependencies.
 ## Pull request
 
 - Branch: `fix/employee-maintenance-notification-routing`
-- PR: Draft targeting `main`
+- PR: [#44](https://github.com/acarbonilla/facilityops-platform/pull/44)
 - Title: FO-078D: Employee-Safe Maintenance Notification Routing
-- Merge status: unmerged; pending manual acceptance
+- Status: Ready for Review; **unmerged** until merge step completes
+- FO-079: **not included**

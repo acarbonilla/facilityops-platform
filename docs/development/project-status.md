@@ -14,14 +14,14 @@
 
 ## Current Module
 
-- FM Ticketing — FO-063 complete and merged; FO-078D Employee-Safe
-  Maintenance Notification Routing in progress on
-  `fix/employee-maintenance-notification-routing`
+- FM Ticketing — FO-078D Employee-Safe Maintenance Notification Routing
+  manual acceptance passed 2026-07-27; Ready for Review on PR #44 (unmerged)
 
 ## Current Branch
 
-- `main` at `01bcee89ae964d053bba92b731d093e6f036c37c` (synchronized with
-  `origin/main` after PR #43 merge)
+- `fix/employee-maintenance-notification-routing` (PR #44 Ready for Review)
+- Branched from synchronized `main` at
+  `c0c723bd752ce26f9aaf860160d1aae6672e770e`
 
 ## Completed Modules
 
@@ -112,15 +112,18 @@
 
 ## Current Task
 
-- FO-078D Employee-Safe Maintenance Notification Routing in progress on
-  `fix/employee-maintenance-notification-routing`.
-- FO-079 Secure Attachment Backend and Storage Foundation has **not** started.
-- Comments, attachments, and AI remain deferred.
+- FO-078D Employee-Safe Maintenance Notification Routing: manual acceptance
+  **passed** 2026-07-27; final validation 691/268; PR #44 Ready for Review;
+  **not yet merged**.
+- FO-079 Secure Attachment Backend and Storage Foundation remains on separate
+  Draft PR #45 and is not included in FO-078D.
+- Comments and AI remain deferred.
 
 ## Next Milestone
 
-- FO-078D manual acceptance and merge
-- FO-079 Secure Attachment Backend and Storage Foundation (not started)
+- Merge PR #44 (FO-078D) when authorized
+- Reconcile and accept FO-079 (PR #45) after FO-078D merges
+- FO-080+ attachment frontend (not started)
 
 ## Completed Feature — Master Data Management
 

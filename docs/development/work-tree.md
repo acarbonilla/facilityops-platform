@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-078D in progress | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D Employee-Safe Maintenance Notification Routing on `fix/employee-maintenance-notification-routing`; FO-079 not started |
+| FM Ticketing | FO-078D Ready for Review | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D manual acceptance Passed 2026-07-27; PR #44 Ready for Review (unmerged); FO-079 separate Draft PR #45 |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -502,8 +502,10 @@ Manages facility-management tickets, including read, create, edit, comments, his
 - FO-063 Automatic FM Ticket Closure is **complete and merged**: manual
   acceptance passed 2026-07-27; PR #43 merged to `main` at
   `01bcee89ae964d053bba92b731d093e6f036c37c`; feature branch removed after
-  verification. FO-078D (Employee Maintenance notification routing) and FO-079
-  have **not** started.
+  verification. FO-078D Employee-Safe Maintenance Notification Routing manual
+  acceptance Passed 2026-07-27; focused 12 / backend 691 / frontend 268;
+  PR #44 Ready for Review and **not yet merged**. FO-079 remains on separate
+  Draft PR #45 and is not included in FO-078D.
 
 ## Maintenance Work Order
 
