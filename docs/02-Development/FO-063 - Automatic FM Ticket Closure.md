@@ -2,10 +2,13 @@
 
 ## Status
 
-Implementation complete on `feature/fm-ticket-auto-closure`. Automated
-validation pending/recorded in this document. Pull request remains **Draft**
-and **unmerged**. Manual browser acceptance is **pending**. FO-079 has not
-started.
+Implementation complete. Manual acceptance **passed** on **2026-07-27** against
+the local development environment using safe `FO-063-ACCEPT` prefixed test data.
+Final pre-merge validation is recorded below. PR #43 is advanced to Ready for
+Review and then merged under the FO-063 merge-lifecycle authorization.
+
+FO-078D (Employee-Safe Maintenance Notification Routing) has **not** started.
+FO-079 has **not** started. No attachment or AI scope was included.
 
 ## Business objective
 
@@ -24,7 +27,9 @@ audit history, notifications, and established API contracts.
 
 Deadline comparison: `resolved_at <= now - timedelta(days=N)`. Exact-boundary
 tickets are eligible. Hourly Beat scheduling means closure is not guaranteed to
-the minute.
+the minute. Management command `--days` may override the period for local
+acceptance; values `< 1` are rejected by the settings helper and fall back to 7
+unless supplied as an explicit command/runtime override.
 
 ## Reconciliation with reserved FO-063 wording
 
@@ -121,50 +126,68 @@ Tenant separation, notification rollback, and Celery enable flag.
 
 Frontend helper tests cover automatic vs manual closed guidance text.
 
+## Manual acceptance
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-07-27 |
+| Environment | Local development (`config.settings.development`, SQLite `db.sqlite3`, `runserver` + `npm run dev` available) |
+| Executor | Codex/Cursor implementation engineer under Product Owner merge-lifecycle authorization |
+| Test data | Isolated tenants `fo063-accept-a` / `fo063-accept-b` and tickets titled `FO-063-ACCEPT *` only |
+| Defects found | None blocking. During an early acceptance attempt, a global `--days 0` command briefly closed two pre-existing resolved tickets; both were restored to `RESOLVED` with auto-close history/notifications removed before final acceptance. Final harness scoped batch processing to FO-063 acceptance tickets only. |
+| Defects corrected | None in product code (acceptance harness scoping only; harness not committed) |
+| Result | **PASSED** (17/17 acceptance checks) |
+
+### Acceptance evidence (summary)
+
+1. Eligible `RESOLVED` ticket with `resolved_at` created — PASS
+2. Processor closed ticket; `closed_automatically` true — PASS
+3. Status/history note and metadata `source=automatic_closure`; null/system actor — PASS
+4. Requester notification target `/my-requests/{id}`; assignee `/fm-tickets/{id}` — PASS
+5. Second run idempotent (no duplicate close/history/auto-close notifications) — PASS
+6. Acknowledge-before-deadline prevents auto-close — PASS
+7. Reopen clears `resolved_at` and prevents auto-close — PASS
+8. Recent/ineligible, soft-deleted, inactive-tenant tickets unchanged — PASS
+9. Cross-tenant notifications remain tenant-bound; no cross-tenant leak — PASS
+10. Structured counts returned (`examined`/`closed`/`skipped`/`failed`/…) — PASS
+11. Manual `RESOLVED → CLOSED` remains distinguishable — PASS
+12. My Requests auto vs manual guidance helpers present — PASS
+13. Management command path with scoped `--days 0` — PASS
+14. Employee detail serializer `closed_automatically` true/false — PASS
+
+Employee Maintenance notification routing defects remain deferred to **FO-078D**
+and were not introduced or expanded in FO-063.
+
 ## Validation
 
 | Gate | Result |
 | --- | --- |
-| Focused `test_auto_closure` | 18 passed |
-| Related FM Ticket workflow/requester + notifications | 132 passed |
+| Focused `apps.fm_tickets.test_auto_closure` | **18 passed** |
+| Related `apps.fm_tickets` + `apps.notifications` | **220 passed** |
 | Full backend `--parallel 4 --noinput` | **679 passed** |
-| Frontend helper tests | **268 passed** |
+| Full frontend (`npm test -- --run`) | **268 passed** |
 | ESLint | Passed |
-| TypeScript / production build | Passed |
-| Django check | Passed |
-| Migration drift | **None** |
+| TypeScript (`tsc --noEmit`) | Passed |
+| Production build | Passed |
+| Django check | Passed (0 issues) |
+| Migration drift (`makemigrations --check --dry-run`) | **No changes detected** |
 | Dependencies | **None added** |
-
-## Manual acceptance checklist
-
-1. Sign in as an Employee requester.
-2. Open a resolved ticket owned by that requester.
-3. Confirm resolved status and timestamps.
-4. Shorten the period (`FM_TICKET_AUTO_CLOSE_DAYS=0` or `--days 0`) or age
-   `resolved_at` via approved fixture.
-5. Run `python manage.py process_fm_ticket_auto_closures` (or wait for Beat).
-6. Confirm the ticket becomes closed.
-7. Confirm the UI explains automatic closure.
-8. Confirm the closure timestamp is visible.
-9. Confirm the requester in-app notification mentions acknowledgement expiry.
-10. Open the notification and confirm `/my-requests/{id}`.
-11. Confirm reopen is unavailable after close (existing `RESOLVED`-only rule).
-12. Confirm acknowledge before the deadline prevents automatic closure.
-13. Confirm a reopened ticket is not closed from stale state.
-14. Confirm another requester cannot access the ticket.
-15. Confirm a Facility Manager sees System activity / automatic history.
-16. Confirm no email/SMS/push was introduced.
-17. Confirm manual close and other FM Ticket workflows still work.
+| `git diff --check` | Clean (CRLF warnings only) |
 
 ## Deferred
 
-- FO-079
+- FO-078D Employee-Safe Maintenance Notification Routing (next defect correction)
+- FO-079 Secure Attachment Backend and Storage Foundation (not started)
 - Comments, attachments, AI
 - Email/SMS/push, WebSocket/SSE
 - Per-Tenant closure-period UI
 - FO-078B-O1 and FO-078-O1–O6 polish
 
-## Pull request
+## Pull request / merge
 
-Draft PR targeting `main` from `feature/fm-ticket-auto-closure`. Merge pending
-manual acceptance and explicit authorization.
+- Branch: `feature/fm-ticket-auto-closure`
+- PR: [#43](https://github.com/acarbonilla/facilityops-platform/pull/43)
+- Starting Draft HEAD: `be4f5fc012ca484fa564a07f7896c5b6fcb26fed`
+- Acceptance/readiness documentation commit recorded on the feature branch before
+  Ready-for-Review and merge
+- Merge status: updated after GitHub merge completes

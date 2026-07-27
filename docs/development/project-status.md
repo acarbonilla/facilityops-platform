@@ -14,12 +14,12 @@
 
 ## Current Module
 
-- FM Ticketing — FO-063 Automatic FM Ticket Closure on
-  `feature/fm-ticket-auto-closure` (Draft PR pending manual acceptance)
+- FM Ticketing — FO-063 Automatic FM Ticket Closure acceptance passed;
+  PR #43 merge lifecycle in progress
 
 ## Current Branch
 
-- `feature/fm-ticket-auto-closure`
+- `feature/fm-ticket-auto-closure` (acceptance/readiness commit pending merge)
 - Branched from synchronized `main` at
   `0d3ed879985321ca69fc06e551ce61af3f79492f`
 
@@ -112,18 +112,16 @@
 
 ## Current Task
 
-- FO-063 Automatic FM Ticket Closure implementation on
-  `feature/fm-ticket-auto-closure`. Draft PR open; manual acceptance pending.
-- Employee Requester Experience (FO-075–FO-078C) remains merged on `main`.
-- Comments, attachments, and AI remain deferred.
-- FO-079 remains undefined and not started.
+- FO-063 Automatic FM Ticket Closure: implementation complete; manual
+  acceptance **passed 2026-07-27**; PR #43 Ready-for-Review / merge lifecycle
+  authorized. FO-078D is next defect correction and has **not** started.
+  FO-079 has **not** started. No attachment or AI scope included.
 
 ## Next Milestone
 
-- User FO-063 manual acceptance
-- FO-063 readiness/reconciliation after acceptance
-- FO-063 remains reserved identifier (not reassigned)
-- FO-079 not started
+- Complete FO-063 PR #43 merge and post-merge verification
+- FO-078D Employee-Safe Maintenance Notification Routing (not started)
+- FO-079 Secure Attachment Backend and Storage Foundation (not started)
 
 ## Completed Feature — Master Data Management
 
