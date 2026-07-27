@@ -41,6 +41,19 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "exact",
   },
   {
+    label: "Attachments",
+    href: "/attachments",
+    authenticatedOnly: true,
+    requiredPermissions: [
+      "attachments.view",
+      "attachments.upload",
+      "attachments.download",
+      "attachments.delete",
+    ],
+    permissionMode: "any",
+    matchStrategy: "exact",
+  },
+  {
     label: "Master Data",
     href: "/master-data",
     authenticatedOnly: true,

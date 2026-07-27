@@ -204,3 +204,11 @@ export const reportingQueryKeys = {
     ["reporting", "overview", normalizeReportingParams(params)] as const,
   filterOptions: () => ["reporting", "filter-options"] as const,
 };
+
+export const attachmentQueryKeys = {
+  all: ["attachments"] as const,
+  lists: () => ["attachments", "list"] as const,
+  list: (params?: { page?: number; page_size?: number }) =>
+    ["attachments", "list", stripNilParams(params)] as const,
+  detail: (id: string) => ["attachments", "detail", id] as const,
+};

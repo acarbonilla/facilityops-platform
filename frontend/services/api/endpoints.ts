@@ -129,4 +129,9 @@ export const API_ENDPOINTS = {
     overview: "/reporting/overview/",
     filterOptions: "/reporting/filter-options/",
   },
+  attachments: {
+    list: "/attachments/",
+    detail: (id: string) => `/attachments/${id}/`,
+    download: (id: string) => `/attachments/${id}/download/`,
+  },
 } as const;
