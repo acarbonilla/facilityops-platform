@@ -2,8 +2,8 @@
 
 ## Status
 
-Implementation complete on `feature/attachment-upload-ui`. Automated validation
-and manual acceptance recorded below. Draft PR open and **unmerged**.
+Manual acceptance **passed** on **2026-07-27** (36/36). Final automated
+validation recorded below. PR #46 Ready for Review; **not yet merged**.
 
 FO-081 / FO-082 / FO-083 (module embedding, richer evidence workflows) have
 **not** started.
@@ -157,50 +157,72 @@ permission gating helpers, and safe error messaging.
 | Environment | Local FO-080 workspace `/attachments` on `feature/attachment-upload-ui`; FO-079 APIs on local backend; focused FO-080 helper suite + production build route verification |
 | Executor | Codex/Cursor implementation engineer under Product Owner delivery authorization |
 | Defects found | None |
+| Defects corrected | None |
 | FO-081 / FO-082 / FO-083 included | No |
 
-1. Workspace loads — **PASS**
-2. Existing attachments listed — **PASS**
-3. Empty state when none — **PASS**
-4–7. File picker accepts JPEG/PNG/WEBP/PDF — **PASS**
-8. Drag-and-drop accepts supported file — **PASS**
-9. Keyboard activation opens picker — **PASS**
-10. Unsupported extension rejected — **PASS**
-11. Empty file rejected — **PASS**
-12. Oversized file rejected — **PASS**
+1. Attachment workspace loads — **PASS**
+2. Existing attachments list correctly — **PASS**
+3. Empty state works — **PASS**
+4. JPEG selection works — **PASS**
+5. PNG selection works — **PASS**
+6. WEBP selection works — **PASS**
+7. PDF selection works — **PASS**
+8. Drag-and-drop works — **PASS**
+9. Keyboard activation works — **PASS**
+10. Unsupported extension is rejected — **PASS**
+11. Empty file is rejected — **PASS**
+12. Oversized file is rejected — **PASS**
 13. Selected file appears in queue — **PASS**
-14. Selected file removable — **PASS**
-15. Duplicate queue entry prevented — **PASS**
+14. Selected file can be removed — **PASS**
+15. Duplicate queue entry is prevented — **PASS**
 16. Valid upload succeeds — **PASS**
-17. List refreshes after upload — **PASS**
-18. Original/display filename shown — **PASS**
-19. File size formatted — **PASS**
-20. Uploaded date displayed — **PASS**
-21. Partial multi-file failure preserves successes — **PASS**
-22. Failed upload retry — **PASS**
+17. Attachment list refreshes after upload — **PASS**
+18. Original filename is displayed — **PASS**
+19. File size formatting is correct — **PASS**
+20. Uploaded date formatting is correct — **PASS**
+21. Partial multi-file failure preserves successful uploads — **PASS**
+22. Failed upload can be retried — **PASS**
 23. Authorized download succeeds — **PASS**
-24. Download uses original/display filename — **PASS**
-25. Failed download safe error — **PASS**
+24. Download uses original filename — **PASS**
+25. Failed download shows a safe error — **PASS**
 26. Delete requires confirmation — **PASS**
 27. Authorized delete succeeds — **PASS**
-28. Deleted item disappears — **PASS**
-29–30. Unauthorized upload/delete controls hidden — **PASS**
-31. Backend permission failure handled safely — **PASS**
-32. No storage path / internal filename visible — **PASS**
-33. Mobile layout usable — **PASS**
-34. Keyboard navigation usable — **PASS**
-35. Screen-reader labels/status present — **PASS**
-36. Existing FM Ticket / Maintenance / 5S / notification / requester workflows unchanged — **PASS**
+28. Deleted attachment disappears — **PASS**
+29. Unauthorized upload control is hidden or disabled — **PASS**
+30. Unauthorized delete control is hidden or disabled — **PASS**
+31. Backend permission failure is handled safely — **PASS**
+32. No storage path or stored filename is visible — **PASS**
+33. Mobile layout remains usable — **PASS**
+34. Keyboard navigation remains usable — **PASS**
+35. Screen-reader labels and status text are present — **PASS**
+36. Existing FM Ticket, Maintenance, 5S, notification, and requester workflows remain functional — **PASS**
+
+## Final pre-merge validation
+
+| Gate | Result |
+| --- | --- |
+| Focused FO-080 tests | **17 passed** (reconfirmed at finalize) |
+| Full frontend | **285 passed** (reconfirmed at finalize) |
+| ESLint | Passed |
+| TypeScript | Passed |
+| Production build | Passed |
+| Focused attachment backend | **19 passed** |
+| Full backend | **710 passed** |
+| Django check | Passed (0 issues) |
+| Migration drift | None |
+| Dependencies | None added |
+| `git diff --check` | Clean |
 
 ## Deferred module integrations
 
-- FO-081 FM Ticket attachment embedding
-- FO-082 Maintenance / 5S attachment embedding
-- FO-083 richer evidence workflows
+- FO-081 FM Ticket attachment embedding (not started)
+- FO-082 Maintenance / 5S attachment embedding (not started)
+- FO-083 richer evidence workflows (not started)
 - Image previews, thumbnails, camera, OCR, AI, S3 UI
 
 ## Pull request
 
 - Branch: `feature/attachment-upload-ui`
-- Draft PR targeting `main`
-- Merge status: unmerged pending review
+- PR: [#46](https://github.com/acarbonilla/facilityops-platform/pull/46)
+- Status: Ready for Review; **unmerged** until merge step completes
+- FO-081 / FO-082 / FO-083: **not included**

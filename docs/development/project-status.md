@@ -14,12 +14,12 @@
 
 ## Current Module
 
-- Attachments — FO-080 Attachment Upload UI in progress on
-  `feature/attachment-upload-ui`
+- Attachments — FO-080 Attachment Upload UI; manual acceptance Passed
+  2026-07-27 (36/36); Ready for Review on PR #46 (unmerged)
 
 ## Current Branch
 
-- `feature/attachment-upload-ui`
+- `feature/attachment-upload-ui` (PR #46 Ready for Review)
 - Branched from synchronized `main` at
   `d9920d9e8ca7ca7a715fa193713015ba4ef5123a`
 
@@ -112,16 +112,17 @@
 
 ## Current Task
 
-- FO-080 Attachment Upload UI in progress on `feature/attachment-upload-ui`
-  (Draft PR pending review). FO-079 backend foundation remains merged.
-- FO-078D Employee-Safe Maintenance Notification Routing is **merged** via
-  PR #44.
+- FO-080 Attachment Upload UI: manual acceptance **Passed** 2026-07-27
+  (36/36); final validation 17/285 frontend and 19/710 backend; PR #46 Ready
+  for Review; **not yet merged**.
+- FO-079 Secure Attachment Backend remains merged via PR #45.
 - Comments and AI remain deferred. FO-081 / FO-082 / FO-083 have not started.
 
 ## Next Milestone
 
-- FO-080 Draft PR review and merge
+- Merge PR #46 (FO-080) when authorized
 - FO-081 / FO-082 module attachment embedding (not started)
+- FO-083 richer evidence workflows (not started)
 
 ## Completed Feature — Master Data Management
 
