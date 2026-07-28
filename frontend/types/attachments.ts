@@ -2,6 +2,9 @@ export type AttachmentCategory = "image_evidence" | "document" | "other";
 export type AttachmentStatus = "active" | "retired";
 
 /** Safe attachment metadata returned by FO-079 APIs. */
+export type AttachmentVisibility = "internal_only" | "requester_visible";
+export type AttachmentOwnerType = "" | "fm_ticket";
+
 export interface Attachment {
   id: string;
   original_filename: string;
@@ -11,15 +14,34 @@ export interface Attachment {
   size_bytes: number;
   category: AttachmentCategory;
   status: AttachmentStatus;
-  uploader_email: string;
+  visibility?: AttachmentVisibility;
+  owner_type?: AttachmentOwnerType | string;
+  owner_id?: string | null;
+  uploader_email?: string;
+  can_delete?: boolean;
   created_at: string;
   updated_at: string;
   download_url: string;
 }
 
+export type AttachmentOwnerContext = {
+  owner_type: string;
+  owner_id: string;
+  visibility?: AttachmentVisibility;
+};
+
 export type AttachmentListParams = {
   page?: number;
   page_size?: number;
+  owner_type?: string;
+  owner_id?: string;
+};
+
+export type AttachmentUploadOptions = {
+  category?: string;
+  owner_type?: string;
+  owner_id?: string;
+  visibility?: AttachmentVisibility;
 };
 
 export const ATTACHMENT_PERMISSIONS = {

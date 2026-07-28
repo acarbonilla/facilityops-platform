@@ -22,11 +22,14 @@ import {
 } from "@/lib/attachments/attachments";
 import { getAttachmentMutationErrorMessage } from "@/hooks/use-attachments";
 import { uploadAttachment } from "@/services/api/attachments";
+import type { AttachmentUploadOptions } from "@/types/attachments";
 
 export interface AttachmentUploaderProps {
   canUpload: boolean;
   disabled?: boolean;
   maxBytes?: number;
+  uploadOptions?: AttachmentUploadOptions;
+  guidanceText?: string;
   onUploaded?: () => void;
 }
 
@@ -34,6 +37,8 @@ export function AttachmentUploader({
   canUpload,
   disabled = false,
   maxBytes = ATTACHMENT_MAX_UPLOAD_BYTES,
+  uploadOptions,
+  guidanceText,
   onUploaded,
 }: AttachmentUploaderProps) {
   const inputId = useId();
@@ -108,7 +113,7 @@ export function AttachmentUploader({
       }),
     );
     try {
-      const uploaded = await uploadAttachment(item.file);
+      const uploaded = await uploadAttachment(item.file, uploadOptions);
       setQueue((current) =>
         markQueuedAttachment(current, item.localId, {
           status: "success",
@@ -188,7 +193,7 @@ export function AttachmentUploader({
             Upload attachments
           </h2>
           <p id={guidanceId} className="mt-1 text-sm text-slate-600">
-            {getAttachmentWorkspaceGuidance()}
+            {guidanceText ?? getAttachmentWorkspaceGuidance()}
           </p>
         </div>
         <button

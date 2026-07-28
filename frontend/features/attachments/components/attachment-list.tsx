@@ -10,6 +10,7 @@ import type { Attachment } from "@/types/attachments";
 import {
   formatAttachmentBytes,
   formatAttachmentDate,
+  formatAttachmentVisibilityLabel,
   getAttachmentTypeLabel,
   isImageAttachment,
   truncateFilename,
@@ -27,6 +28,9 @@ export interface AttachmentListProps {
   canDownload: boolean;
   canDelete: boolean;
   isDeletingId?: string | null;
+  showVisibility?: boolean;
+  hideUploaderEmail?: boolean;
+  heading?: string;
   onRefresh?: () => void;
   onDelete?: (attachment: Attachment) => Promise<void>;
 }
@@ -39,6 +43,9 @@ export function AttachmentList({
   canDownload,
   canDelete,
   isDeletingId = null,
+  showVisibility = false,
+  hideUploaderEmail = false,
+  heading = "Attachments",
   onRefresh,
   onDelete,
 }: AttachmentListProps) {
@@ -138,7 +145,7 @@ export function AttachmentList({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 id="attachment-list-title" className="text-lg font-semibold text-slate-900">
-            Attachment library
+            {heading}
           </h2>
           <p className="mt-1 text-sm text-slate-600">
             Showing files you are authorized to view. Storage paths are never displayed.
@@ -190,6 +197,16 @@ export function AttachmentList({
               : FileText;
             const deleting = isDeletingId === attachment.id;
             const downloading = downloadingId === attachment.id;
+            const itemCanDelete =
+              canDelete && attachment.can_delete !== false;
+            const uploaderLabel =
+              hideUploaderEmail || !attachment.uploader_email
+                ? ""
+                : ` · ${attachment.uploader_email}`;
+            const visibilityLabel =
+              showVisibility && attachment.visibility
+                ? ` · ${formatAttachmentVisibilityLabel(attachment.visibility)}`
+                : "";
             return (
               <li
                 key={attachment.id}
@@ -207,9 +224,8 @@ export function AttachmentList({
                     <p className="text-xs text-slate-600">
                       {typeLabel} · {formatAttachmentBytes(attachment.size_bytes)} ·{" "}
                       {formatAttachmentDate(attachment.created_at)}
-                      {attachment.uploader_email
-                        ? ` · ${attachment.uploader_email}`
-                        : ""}
+                      {visibilityLabel}
+                      {uploaderLabel}
                     </p>
                   </div>
                 </div>
@@ -225,7 +241,7 @@ export function AttachmentList({
                       {downloading ? "Downloading…" : "Download"}
                     </button>
                   ) : null}
-                  {canDelete ? (
+                  {itemCanDelete ? (
                     <button
                       type="button"
                       className="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"

@@ -256,3 +256,24 @@ export function getAttachmentWorkspaceGuidance(): string {
     "Files are validated again by the server. Private storage paths are never shown.",
   ].join(" ");
 }
+
+export function formatAttachmentVisibilityLabel(
+  visibility: string | null | undefined,
+): string {
+  if (visibility === "requester_visible") {
+    return "Requester visible";
+  }
+  return "Internal only";
+}
+
+export function buildAttachmentListOwnerParams(owner: {
+  owner_type: string;
+  owner_id: string;
+  page_size?: number;
+}) {
+  return {
+    owner_type: owner.owner_type,
+    owner_id: owner.owner_id,
+    page_size: owner.page_size ?? 50,
+  };
+}

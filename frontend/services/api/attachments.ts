@@ -2,7 +2,11 @@ import { apiBlobClient, apiClient } from "./client";
 import { API_ENDPOINTS } from "./endpoints";
 import type { PaginatedResponse } from "./types";
 
-import type { Attachment, AttachmentListParams } from "@/types/attachments";
+import type {
+  Attachment,
+  AttachmentListParams,
+  AttachmentUploadOptions,
+} from "@/types/attachments";
 
 export function listAttachments(
   params?: AttachmentListParams,
@@ -21,12 +25,21 @@ export function getAttachment(id: string): Promise<Attachment> {
 
 export function uploadAttachment(
   file: File,
-  category?: string,
+  options?: AttachmentUploadOptions | string,
 ): Promise<Attachment> {
+  const normalized: AttachmentUploadOptions =
+    typeof options === "string" ? { category: options } : options ?? {};
   const body = new FormData();
   body.append("file", file, file.name);
-  if (category) {
-    body.append("category", category);
+  if (normalized.category) {
+    body.append("category", normalized.category);
+  }
+  if (normalized.owner_type && normalized.owner_id) {
+    body.append("owner_type", normalized.owner_type);
+    body.append("owner_id", normalized.owner_id);
+  }
+  if (normalized.visibility) {
+    body.append("visibility", normalized.visibility);
   }
   return apiClient<Attachment>(API_ENDPOINTS.attachments.list, {
     method: "POST",
