@@ -110,16 +110,18 @@
 
 ## Current Task
 
-- FO-080 Attachment Upload UI is **complete and merged** via PR #46 at
-  `76c234c80c4fe7dd80ccb5a05910155bba631e22`.
-- FO-079 Secure Attachment Backend remains merged via PR #45.
-- Comments and AI remain deferred. FO-081 / FO-082 / FO-083 have not started.
+- FO-081 FM Ticket Attachment Integration is **implemented** on shared branch
+  `feature/business-module-attachments` (not merged).
+- FO-079 and FO-080 remain merged on `main`.
+- FO-082 and FO-083 have **not** started.
+- Comments and AI remain deferred.
 
 ## Next Milestone
 
-- FO-081 FM Ticket attachment embedding (not started)
-- FO-082 Maintenance / 5S attachment embedding (not started)
-- FO-083 richer evidence workflows (not started)
+- FO-082 Maintenance / 5S attachment embedding (not started; same shared branch)
+- FO-083 Attachment QA and Stabilization (not started)
+- Final grouped feature PR after FO-083
+- Do not merge FO-081 independently
 
 ## Completed Feature — Master Data Management
 
@@ -173,8 +175,8 @@
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
 - Attachment backend/storage foundation delivered by FO-079; FO-080 adds the
-  reusable frontend attachment workspace. Module embedding remains deferred
-  (FO-081+).
+  reusable frontend attachment workspace. FO-081 embeds FM Ticket attachments
+  on `feature/business-module-attachments` (unmerged; FO-082/FO-083 pending).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit

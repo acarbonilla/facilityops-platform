@@ -18,6 +18,8 @@ import {
   formatAttachmentApiError,
   formatAttachmentBytes,
   formatAttachmentDate,
+  formatAttachmentVisibilityLabel,
+  buildAttachmentListOwnerParams,
   getAttachmentTypeLabel,
   getAttachmentWorkspaceGuidance,
   getFileExtension,
@@ -248,4 +250,24 @@ test("responsive-safe filename truncation preserves extension", () => {
   assert.ok(truncated.endsWith(".jpeg"));
   assert.ok(truncated.includes("…"));
   assert.ok(truncated.length <= 24);
+});
+
+test("visibility labels stay requester-safe", () => {
+  assert.equal(formatAttachmentVisibilityLabel("requester_visible"), "Requester visible");
+  assert.equal(formatAttachmentVisibilityLabel("internal_only"), "Internal only");
+  assert.equal(formatAttachmentVisibilityLabel(undefined), "Internal only");
+});
+
+test("owner list params exclude tenant and uploader ids", () => {
+  const params = buildAttachmentListOwnerParams({
+    owner_type: "fm_ticket",
+    owner_id: "ticket-abc",
+  });
+  assert.deepEqual(params, {
+    owner_type: "fm_ticket",
+    owner_id: "ticket-abc",
+    page_size: 50,
+  });
+  assert.equal("tenant_id" in params, false);
+  assert.equal("uploaded_by" in params, false);
 });
