@@ -22,7 +22,7 @@
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
 | FM Ticketing | FO-078D merged | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D merged via PR #44 (`87c8423…`); Employee-safe Maintenance routing preserved |
-| Attachments | FO-081 implemented on shared branch | FO-079/FO-080 merged; FO-081 FM Ticket integration on `feature/business-module-attachments`; FO-082/FO-083 not started; grouped merge pending |
+| Attachments | FO-082 implemented on shared branch | FO-079/FO-080 merged; FO-081+FO-082 on `feature/business-module-attachments`; FO-083 not started; Draft PR #47 Draft |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -514,9 +514,11 @@ Manages facility-management tickets, including read, create, edit, comments, his
 - FO-080 Attachment Upload UI is **complete and merged** via PR #46 at
   `76c234c80c4fe7dd80ccb5a05910155bba631e22`. Manual acceptance Passed
   2026-07-27 (36/36). Feature branch removed after verification.
-- FO-081 FM Ticket Attachment Integration is **implemented** on shared branch
-  `feature/business-module-attachments` (unmerged). FO-082 / FO-083 have not
-  started. Do not merge FO-081 independently.
+- FO-081 FM Ticket Attachment Integration is **complete** on shared branch
+  `feature/business-module-attachments` (unmerged).
+- FO-082 Maintenance and 5S Attachment Integration is **implemented** on the
+  same shared branch (unmerged). FO-083 has not started. Do not merge Draft
+  PR #47 until FO-083.
 
 ## Maintenance Work Order
 

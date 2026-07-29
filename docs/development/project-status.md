@@ -110,18 +110,17 @@
 
 ## Current Task
 
-- FO-081 FM Ticket Attachment Integration is **implemented** on shared branch
-  `feature/business-module-attachments` (not merged).
-- FO-079 and FO-080 remain merged on `main`.
-- FO-082 and FO-083 have **not** started.
-- Comments and AI remain deferred.
+- FO-082 Maintenance and 5S Attachment Integration is **implemented** on shared
+  branch `feature/business-module-attachments` (not merged).
+- FO-081 remains complete on the same shared branch.
+- FO-083 has **not** started.
+- Draft PR #47 remains OPEN Draft — do not merge until FO-083.
 
 ## Next Milestone
 
-- FO-082 Maintenance / 5S attachment embedding (not started; same shared branch)
 - FO-083 Attachment QA and Stabilization (not started)
-- Final grouped feature PR after FO-083
-- Do not merge FO-081 independently
+- Final grouped feature PR readiness after FO-083
+- Do not merge FO-081/FO-082 independently
 
 ## Completed Feature — Master Data Management
 
@@ -175,8 +174,9 @@
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
 - Attachment backend/storage foundation delivered by FO-079; FO-080 adds the
-  reusable frontend attachment workspace. FO-081 embeds FM Ticket attachments
-  on `feature/business-module-attachments` (unmerged; FO-082/FO-083 pending).
+  reusable frontend attachment workspace. FO-081 (FM Ticket) and FO-082
+  (Maintenance / 5S) are implemented on `feature/business-module-attachments`
+  (unmerged; FO-083 pending).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
