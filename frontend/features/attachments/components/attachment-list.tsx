@@ -1,7 +1,7 @@
 "use client";
 
 import { FileImage, FileText, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
@@ -27,6 +27,8 @@ export interface AttachmentListProps {
   errorMessage?: string;
   canDownload: boolean;
   canDelete: boolean;
+  canUpload?: boolean;
+  totalCount?: number;
   isDeletingId?: string | null;
   showVisibility?: boolean;
   hideUploaderEmail?: boolean;
@@ -42,6 +44,8 @@ export function AttachmentList({
   errorMessage,
   canDownload,
   canDelete,
+  canUpload = false,
+  totalCount,
   isDeletingId = null,
   showVisibility = false,
   hideUploaderEmail = false,
@@ -54,6 +58,11 @@ export function AttachmentList({
   const [actionStatus, setActionStatus] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  const deleteTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const listTitleId = useId();
+  const deleteTitleId = useId();
+  const deleteDescriptionId = useId();
 
   useEffect(() => {
     if (!pendingDelete) {
@@ -63,11 +72,38 @@ export function AttachmentList({
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape" && !isDeletingId) {
         setPendingDelete(null);
+        return;
+      }
+      if (event.key !== "Tab") {
+        return;
+      }
+      const focusable = [cancelRef.current, confirmRef.current].filter(
+        (node): node is HTMLButtonElement => Boolean(node),
+      );
+      if (focusable.length === 0) {
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [pendingDelete, isDeletingId]);
+
+  useEffect(() => {
+    if (pendingDelete) {
+      return;
+    }
+    deleteTriggerRef.current?.focus();
+    deleteTriggerRef.current = null;
+  }, [pendingDelete]);
 
   async function handleDownload(attachment: Attachment) {
     setActionError(null);
@@ -141,14 +177,17 @@ export function AttachmentList({
   }
 
   return (
-    <section className="space-y-4" aria-labelledby="attachment-list-title">
+    <section className="space-y-4" aria-labelledby={listTitleId}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 id="attachment-list-title" className="text-lg font-semibold text-slate-900">
+          <h2 id={listTitleId} className="text-lg font-semibold text-slate-900">
             {heading}
           </h2>
           <p className="mt-1 text-sm text-slate-600">
             Showing files you are authorized to view. Storage paths are never displayed.
+            {typeof totalCount === "number" && totalCount > attachments.length
+              ? ` Showing ${attachments.length} of ${totalCount}.`
+              : null}
           </p>
         </div>
         {onRefresh ? (
@@ -180,7 +219,11 @@ export function AttachmentList({
       {attachments.length === 0 ? (
         <EmptyState
           title="No attachments yet"
-          message="Upload a JPEG, PNG, WEBP, or PDF to populate this library."
+          message={
+            canUpload
+              ? "Upload a JPEG, PNG, WEBP, or PDF to populate this library."
+              : "No attachments are available for your current access."
+          }
         />
       ) : (
         <ul className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -246,7 +289,8 @@ export function AttachmentList({
                       type="button"
                       className="rounded-md border border-red-300 px-2.5 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
                       disabled={Boolean(isDeletingId)}
-                      onClick={() => {
+                      onClick={(event) => {
+                        deleteTriggerRef.current = event.currentTarget;
                         setActionError(null);
                         setPendingDelete(attachment);
                       }}
@@ -266,21 +310,27 @@ export function AttachmentList({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4"
           role="presentation"
+          onClick={() => {
+            if (!isDeletingId) {
+              setPendingDelete(null);
+            }
+          }}
         >
           <div
             role="dialog"
             aria-modal="true"
-            aria-labelledby="attachment-delete-title"
-            aria-describedby="attachment-delete-description"
+            aria-labelledby={deleteTitleId}
+            aria-describedby={deleteDescriptionId}
             className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-lg"
+            onClick={(event) => event.stopPropagation()}
           >
             <h3
-              id="attachment-delete-title"
+              id={deleteTitleId}
               className="text-lg font-semibold text-slate-900"
             >
               Delete attachment?
             </h3>
-            <p id="attachment-delete-description" className="mt-2 text-sm text-slate-600">
+            <p id={deleteDescriptionId} className="mt-2 text-sm text-slate-600">
               Soft-delete{" "}
               <span className="font-medium text-slate-900">
                 {pendingDelete.display_filename}
@@ -298,6 +348,7 @@ export function AttachmentList({
                 Cancel
               </button>
               <button
+                ref={confirmRef}
                 type="button"
                 className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-60"
                 disabled={Boolean(isDeletingId)}

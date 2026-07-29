@@ -176,6 +176,7 @@ export function FmTicketAttachments({
         <AttachmentList
           heading="Ticket attachments"
           attachments={listQuery.data?.results ?? []}
+          totalCount={listQuery.data?.count}
           isLoading={listQuery.isLoading}
           isError={listQuery.isError}
           errorMessage={
@@ -188,6 +189,7 @@ export function FmTicketAttachments({
           }
           canDownload={hasAttachmentDownload}
           canDelete={hasAttachmentDelete}
+          canUpload={canUpload}
           showVisibility={audience === "internal"}
           hideUploaderEmail={audience === "requester"}
           isDeletingId={deletingId}
@@ -198,7 +200,6 @@ export function FmTicketAttachments({
             setDeletingId(attachment.id);
             try {
               await deleteMutation.mutateAsync(attachment.id);
-              await listQuery.refetch();
             } finally {
               setDeletingId(null);
             }

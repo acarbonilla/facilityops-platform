@@ -602,3 +602,36 @@ class MaintenanceAndInspectionAttachmentTests(APITestCase):
             format="multipart",
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_unfiltered_library_list_excludes_module_owned(self):
+        """FO-083: /attachments library must not mix in module evidence."""
+        unlinked = create_attachment(
+            actor=self.fm_a,
+            uploaded_file=_upload("library.jpg", JPEG_BYTES, "image/jpeg"),
+        )
+        owned = self._create_wo(actor=self.fm_a, work_order=self.work_order_a)
+        self.client.force_authenticate(self.fm_a)
+        listed = self.client.get(reverse("attachments-list"))
+        self.assertEqual(listed.status_code, status.HTTP_200_OK)
+        ids = {item["id"] for item in listed.data["results"]}
+        self.assertIn(str(unlinked.id), ids)
+        self.assertNotIn(str(owned.id), ids)
+
+    def test_owned_delete_idempotent_after_work_order_terminal(self):
+        """FO-083: repeated delete stays idempotent after owner becomes immutable."""
+        attachment = self._create_wo(actor=self.fm_a, work_order=self.work_order_a)
+        first = delete_attachment(actor=self.fm_a, attachment_id=attachment.id)
+        self.assertTrue(first.is_deleted)
+
+        self.work_order_a.status = "completed"
+        self.work_order_a.save(update_fields=["status", "updated_at"])
+
+        second = delete_attachment(actor=self.fm_a, attachment_id=attachment.id)
+        self.assertTrue(second.is_deleted)
+        self.assertEqual(
+            AttachmentHistory.objects.filter(
+                attachment=attachment,
+                action=AttachmentHistory.Action.DELETED,
+            ).count(),
+            1,
+        )

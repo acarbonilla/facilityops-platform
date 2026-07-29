@@ -38,9 +38,9 @@ export function AttachmentWorkspaceScreen() {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-4 sm:p-6">
       <PageHeader
-        eyebrow="FO-080 integration surface"
+        eyebrow="Attachments"
         title="Attachments"
-        description="Reusable attachment upload, listing, download, and deletion workspace built on the FO-079 secure backend. Module embedding for FM Tickets, Maintenance, and 5S is deferred to FO-081 and FO-082."
+        description="Secure attachment library for unlinked operational evidence. Module-linked files for FM Tickets, Maintenance, and 5S Inspections are managed on each record’s detail page."
       />
 
       {!permissionsLoading && !canView && !canUpload ? (
@@ -66,6 +66,7 @@ export function AttachmentWorkspaceScreen() {
       {canView ? (
         <AttachmentList
           attachments={listQuery.data?.results ?? []}
+          totalCount={listQuery.data?.count}
           isLoading={listQuery.isLoading || permissionsLoading}
           isError={listQuery.isError}
           errorMessage={
@@ -78,6 +79,7 @@ export function AttachmentWorkspaceScreen() {
           }
           canDownload={canDownload}
           canDelete={canDelete}
+          canUpload={canUpload}
           isDeletingId={deletingId}
           onRefresh={() => {
             void listQuery.refetch();

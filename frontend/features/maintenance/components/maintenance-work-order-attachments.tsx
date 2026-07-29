@@ -133,6 +133,7 @@ export function MaintenanceWorkOrderAttachments({
         <AttachmentList
           heading="Work order attachments"
           attachments={listQuery.data?.results ?? []}
+          totalCount={listQuery.data?.count}
           isLoading={listQuery.isLoading}
           isError={listQuery.isError}
           errorMessage={
@@ -145,6 +146,7 @@ export function MaintenanceWorkOrderAttachments({
           }
           canDownload={hasAttachmentDownload}
           canDelete={hasAttachmentDelete}
+          canUpload={canUpload}
           showVisibility={false}
           isDeletingId={deletingId}
           onRefresh={() => {
@@ -154,7 +156,6 @@ export function MaintenanceWorkOrderAttachments({
             setDeletingId(attachment.id);
             try {
               await deleteMutation.mutateAsync(attachment.id);
-              await listQuery.refetch();
             } finally {
               setDeletingId(null);
             }

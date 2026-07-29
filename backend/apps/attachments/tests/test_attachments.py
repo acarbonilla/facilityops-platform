@@ -1,7 +1,6 @@
 """FO-079 focused attachment foundation tests."""
 
 import hashlib
-import io
 import tempfile
 from pathlib import Path
 from unittest.mock import patch

@@ -160,6 +160,9 @@ export function AttachmentUploader({
       }
     }
     setIsUploading(false);
+    if (successCount > 0) {
+      onUploaded?.();
+    }
     if (failureCount === 0) {
       setBanner(
         successCount === 1
@@ -181,8 +184,11 @@ export function AttachmentUploader({
       return;
     }
     setIsUploading(true);
-    await uploadOne(item);
+    const ok = await uploadOne(item);
     setIsUploading(false);
+    if (ok) {
+      onUploaded?.();
+    }
   }
 
   return (
@@ -242,6 +248,8 @@ export function AttachmentUploader({
           ref={inputRef}
           type="file"
           className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
           accept={ATTACHMENT_ACCEPT_ATTRIBUTE}
           multiple
           disabled={disabled || isUploading}

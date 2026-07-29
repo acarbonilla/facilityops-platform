@@ -238,6 +238,15 @@ def _resolve_attachment_for_actor(*, actor, attachment_id, include_deleted=False
     return attachment
 
 
+def _authorize_owned_or_404(*, actor, attachment, action: str):
+    """Require owned authorization to succeed; never treat False as allow."""
+    authorized = authorize_owned_attachment_access(
+        actor=actor, attachment=attachment, action=action
+    )
+    if authorized is not True:
+        raise Http404
+
+
 def get_attachment(*, actor, attachment_id):
     if not user_can_view_attachments(actor):
         raise Http404
@@ -245,9 +254,7 @@ def get_attachment(*, actor, attachment_id):
         actor=actor, attachment_id=attachment_id
     )
     if is_module_owned_type(attachment.owner_type or "") and attachment.owner_id:
-        authorize_owned_attachment_access(
-            actor=actor, attachment=attachment, action="view"
-        )
+        _authorize_owned_or_404(actor=actor, attachment=attachment, action="view")
     if attachment.status != Attachment.Status.ACTIVE:
         raise Http404
     return attachment
@@ -263,7 +270,12 @@ def list_attachments(*, actor, owner_type=None, owner_id=None):
     )
 
     if normalized_type == AttachmentOwnerType.NONE:
-        return scoped_attachment_queryset(actor).filter(status=Attachment.Status.ACTIVE)
+        # FO-079 library workspace: unlinked rows only (never module evidence).
+        return scoped_attachment_queryset(actor).filter(
+            status=Attachment.Status.ACTIVE,
+            owner_type=AttachmentOwnerType.NONE,
+            owner_id__isnull=True,
+        )
 
     queryset = Attachment.objects.filter(
         is_deleted=False, status=Attachment.Status.ACTIVE
@@ -307,7 +319,7 @@ def download_attachment(*, actor, attachment_id):
         actor=actor, attachment_id=attachment_id
     )
     if is_module_owned_type(attachment.owner_type or "") and attachment.owner_id:
-        authorize_owned_attachment_access(
+        _authorize_owned_or_404(
             actor=actor, attachment=attachment, action="download"
         )
     if attachment.status != Attachment.Status.ACTIVE:
@@ -331,6 +343,17 @@ def download_attachment(*, actor, attachment_id):
     return attachment, content
 
 
+def _assert_unlinked_delete_scope(*, actor, attachment):
+    """FO-079 tenant/uploader scope for library (unlinked) deletes."""
+    if has_global_attachment_scope(actor):
+        return
+    tenant_id = getattr(actor, "tenant_id", None)
+    if not tenant_id or attachment.tenant_id != tenant_id:
+        raise Http404
+    if uses_employee_requester_scope(actor) and attachment.uploaded_by_id != actor.id:
+        raise Http404
+
+
 def delete_attachment(*, actor, attachment_id):
     if not user_can_delete_attachments(actor):
         raise Http404
@@ -338,21 +361,24 @@ def delete_attachment(*, actor, attachment_id):
     attachment = _resolve_attachment_for_actor(
         actor=actor, attachment_id=attachment_id, include_deleted=True
     )
-    if is_module_owned_type(attachment.owner_type or "") and attachment.owner_id:
-        authorize_owned_attachment_access(
-            actor=actor, attachment=attachment, action="delete"
-        )
-    elif not has_global_attachment_scope(actor):
-        # Unlinked delete: reaffirm FO-079 scope (tenant + employee uploader).
-        tenant_id = getattr(actor, "tenant_id", None)
-        if not tenant_id or attachment.tenant_id != tenant_id:
-            raise Http404
-        if uses_employee_requester_scope(actor) and attachment.uploaded_by_id != actor.id:
-            raise Http404
+    is_owned = (
+        is_module_owned_type(attachment.owner_type or "") and attachment.owner_id
+    )
 
-    # Idempotent soft delete.
+    # Idempotent soft delete must succeed even after the owner becomes immutable.
     if attachment.is_deleted or attachment.status == Attachment.Status.RETIRED:
+        if is_owned:
+            _authorize_owned_or_404(
+                actor=actor, attachment=attachment, action="view"
+            )
+        else:
+            _assert_unlinked_delete_scope(actor=actor, attachment=attachment)
         return attachment
+
+    if is_owned:
+        _authorize_owned_or_404(actor=actor, attachment=attachment, action="delete")
+    else:
+        _assert_unlinked_delete_scope(actor=actor, attachment=attachment)
 
     actor_id = str(actor.id)
     now = timezone.now()

@@ -347,7 +347,8 @@ def authorize_owned_attachment_access(*, actor, attachment, action: str):
         return _authorize_inspection_attachment(
             actor=actor, attachment=attachment, action=action, owner_id=owner_id
         )
-    return False
+    # Unsupported or incomplete owner context must never grant access.
+    raise Http404
 
 
 def _authorize_fm_ticket_attachment(*, actor, attachment, action, owner_id):
