@@ -9,7 +9,9 @@
 
 FO-081 connects the merged FO-079 attachment foundation and FO-080 shared upload UI to FM Ticket workflows for both internal operational users and Employee Requesters. Attachments use a server-validated owner context (`owner_type=fm_ticket`, `owner_id=<ticket UUID>`) and a conservative visibility classification (`internal_only` default / `requester_visible`).
 
-FO-082 and FO-083 have **not** started. This unit must not be merged alone.
+FO-082 and FO-083 have since been completed on the same shared branch (see
+FO-082 / FO-083). This unit remains part of the grouped PR #47 and must not be
+merged alone.
 
 ## Architecture
 

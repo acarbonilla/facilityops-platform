@@ -5,7 +5,9 @@
 Complete. Manual acceptance **passed** on **2026-07-27** (36/36). PR #46
 **merged** into `main` at `76c234c80c4fe7dd80ccb5a05910155bba631e22`.
 
-FO-081 / FO-082 / FO-083 have **not** started.
+FO-081 / FO-082 / FO-083 have since been completed on
+`feature/business-module-attachments` (see FO-083). Historical FO-080 delivery
+notes below remain accurate for the merged PR #46 baseline.
 
 ## Business objective
 

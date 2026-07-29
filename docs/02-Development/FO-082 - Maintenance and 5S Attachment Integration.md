@@ -3,7 +3,7 @@
 **Status:** Implemented and validated on `feature/business-module-attachments`  
 **Date:** 2026-07-29  
 **Starting branch SHA:** `4bc61758750e827b9bd9da4cb2cb058806472c75` (FO-081 HEAD)  
-**Draft PR:** #47 (OPEN, Draft — not ready for merge)
+**Draft PR:** #47 (Ready for Review — grouped FO-081–FO-083)
 
 ## Summary
 
@@ -12,7 +12,7 @@ FO-082 extends the shared FO-079/FO-080/FO-081 attachment platform to:
 1. Maintenance Work Orders (`owner_type=maintenance_work_order`)
 2. 5S Inspections (`owner_type=inspection`)
 
-Both modules reuse centralized owner-access authorization, secure storage/download, soft delete, and FO-080 UI components. Employee Requesters remain isolated from Maintenance and inspection evidence. FO-083 has **not** started.
+Both modules reuse centralized owner-access authorization, secure storage/download, soft delete, and FO-080 UI components. Employee Requesters remain isolated from Maintenance and inspection evidence. FO-083 QA/stabilization has since been completed on the same branch.
 
 ## Owner types
 
@@ -94,11 +94,11 @@ Result: **Passed**.
 
 ## Deferred
 
-FO-083 QA/stabilization/merge; galleries; finding-level bindings; attachment transfer to tickets; AI/OCR; S3; attachment notifications.
+Galleries; finding-level bindings; attachment transfer to tickets; AI/OCR; S3; attachment notifications; physical purge after soft-delete.
 
 ## Grouped feature status
 
 - FO-081 complete on shared branch
-- FO-082 implemented on shared branch
-- FO-083 not started
-- Do not merge Draft PR #47 until FO-083
+- FO-082 complete on shared branch
+- FO-083 complete on shared branch
+- PR #47 Ready for Review (not auto-merged)

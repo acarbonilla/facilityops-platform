@@ -14,12 +14,11 @@
 
 ## Current Module
 
-- Attachments — FO-080 Attachment Upload UI complete and merged via PR #46
+- Attachments — FO-079–FO-083 complete on `feature/business-module-attachments`
 
 ## Current Branch
 
-- `main` at `76c234c80c4fe7dd80ccb5a05910155bba631e22` (synchronized with
-  `origin/main` after PR #46 merge)
+- `feature/business-module-attachments` (PR #47 Ready for Review; not merged)
 
 ## Completed Modules
 
@@ -110,17 +109,17 @@
 
 ## Current Task
 
-- FO-082 Maintenance and 5S Attachment Integration is **implemented** on shared
-  branch `feature/business-module-attachments` (not merged).
-- FO-081 remains complete on the same shared branch.
-- FO-083 has **not** started.
-- Draft PR #47 remains OPEN Draft — do not merge until FO-083.
+- FO-083 Attachment QA & Stabilization is **complete** on
+  `feature/business-module-attachments`.
+- FO-079 / FO-080 remain merged on `main`.
+- FO-081 / FO-082 / FO-083 are finalized on the shared branch.
+- PR #47 is Ready for Review — do not auto-merge.
 
 ## Next Milestone
 
-- FO-083 Attachment QA and Stabilization (not started)
-- Final grouped feature PR readiness after FO-083
-- Do not merge FO-081/FO-082 independently
+- Review and merge PR #47 into `main`
+- Post-merge verification
+- Do not reopen FO-081/FO-082 independently
 
 ## Completed Feature — Master Data Management
 
@@ -173,10 +172,8 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment backend/storage foundation delivered by FO-079; FO-080 adds the
-  reusable frontend attachment workspace. FO-081 (FM Ticket) and FO-082
-  (Maintenance / 5S) are implemented on `feature/business-module-attachments`
-  (unmerged; FO-083 pending).
+- Attachment platform FO-079–FO-083 is complete on
+  `feature/business-module-attachments` (PR #47 Ready for Review; not merged).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
