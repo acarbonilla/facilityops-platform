@@ -53,40 +53,9 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
     def get_can_delete(self, obj):
         """Advisory capability for UI; backend still enforces on DELETE."""
-        from apps.attachments.owner_access import (
-            actor_is_requester_audience,
-            can_internal_contribute_to_ticket,
-            ticket_is_immutable,
-        )
-        from apps.attachments.tenant_scope import user_can_delete_attachments
-        from apps.fm_tickets.models import FmTicket
-        from apps.fm_tickets.tenant_scope import scope_fm_ticket_queryset
+        from apps.attachments.owner_access import compute_can_delete_for_attachment
 
-        actor = self._actor()
-        if actor is None or not user_can_delete_attachments(actor):
-            return False
-
-        owner_type = getattr(obj, "owner_type", "") or ""
-        owner_id = getattr(obj, "owner_id", None)
-        if owner_type != AttachmentOwnerType.FM_TICKET or owner_id is None:
-            # Unlinked library: employees may delete own uploads; ops may delete in tenant.
-            if uses_employee_requester_scope(actor):
-                return obj.uploaded_by_id == getattr(actor, "id", None)
-            return True
-
-        ticket = scope_fm_ticket_queryset(
-            FmTicket.objects.filter(is_deleted=False),
-            actor,
-        ).filter(pk=owner_id).first()
-        if ticket is None or ticket_is_immutable(ticket):
-            return False
-
-        if actor_is_requester_audience(actor):
-            return (
-                obj.uploaded_by_id == getattr(actor, "id", None)
-                and obj.visibility == AttachmentVisibility.REQUESTER_VISIBLE
-            )
-        return can_internal_contribute_to_ticket(actor)
+        return compute_can_delete_for_attachment(actor=self._actor(), attachment=obj)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

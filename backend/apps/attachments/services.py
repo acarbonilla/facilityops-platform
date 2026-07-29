@@ -23,8 +23,15 @@ from .models import Attachment, AttachmentHistory
 from .owner_access import (
     authorize_fm_ticket_list,
     authorize_fm_ticket_upload,
+    authorize_inspection_list,
+    authorize_inspection_upload,
     authorize_owned_attachment_access,
+    authorize_work_order_list,
+    authorize_work_order_upload,
     filter_queryset_for_fm_ticket,
+    filter_queryset_for_inspection,
+    filter_queryset_for_work_order,
+    is_module_owned_type,
     normalize_owner_context,
 )
 from .ownership import AttachmentOwnerType, AttachmentVisibility
@@ -100,10 +107,27 @@ def create_attachment(
             ticket_id=normalized_id,
             requested_visibility=visibility,
         )
-        # Tenant must match the ticket tenant (server-derived).
         if ticket.tenant_id != tenant.id and not has_global_attachment_scope(actor):
             raise Http404
         tenant = ticket.tenant
+    elif normalized_type == AttachmentOwnerType.MAINTENANCE_WORK_ORDER:
+        work_order, resolved_visibility = authorize_work_order_upload(
+            actor=actor,
+            work_order_id=normalized_id,
+            requested_visibility=visibility,
+        )
+        if work_order.tenant_id != tenant.id and not has_global_attachment_scope(actor):
+            raise Http404
+        tenant = work_order.tenant
+    elif normalized_type == AttachmentOwnerType.INSPECTION:
+        inspection, resolved_visibility = authorize_inspection_upload(
+            actor=actor,
+            inspection_id=normalized_id,
+            requested_visibility=visibility,
+        )
+        if inspection.tenant_id != tenant.id and not has_global_attachment_scope(actor):
+            raise Http404
+        tenant = inspection.tenant
     elif visibility not in (None, "", AttachmentVisibility.INTERNAL_ONLY):
         # Unlinked uploads cannot opt into requester visibility.
         raise AttachmentValidationError("Invalid attachment visibility.")
@@ -191,8 +215,8 @@ def _resolve_attachment_for_actor(*, actor, attachment_id, include_deleted=False
         raise Http404
 
     owner_type = attachment.owner_type or AttachmentOwnerType.NONE
-    if owner_type == AttachmentOwnerType.FM_TICKET and attachment.owner_id:
-        # Ticket-linked path uses authorize_owned_attachment_access at call sites.
+    if is_module_owned_type(owner_type) and attachment.owner_id:
+        # Module-linked path uses authorize_owned_attachment_access at call sites.
         return attachment
 
     # Unlinked library path — FO-079 tenant/uploader scope.
@@ -220,7 +244,7 @@ def get_attachment(*, actor, attachment_id):
     attachment = _resolve_attachment_for_actor(
         actor=actor, attachment_id=attachment_id
     )
-    if attachment.owner_type == AttachmentOwnerType.FM_TICKET and attachment.owner_id:
+    if is_module_owned_type(attachment.owner_type or "") and attachment.owner_id:
         authorize_owned_attachment_access(
             actor=actor, attachment=attachment, action="view"
         )
@@ -241,18 +265,35 @@ def list_attachments(*, actor, owner_type=None, owner_id=None):
     if normalized_type == AttachmentOwnerType.NONE:
         return scoped_attachment_queryset(actor).filter(status=Attachment.Status.ACTIVE)
 
+    queryset = Attachment.objects.filter(
+        is_deleted=False, status=Attachment.Status.ACTIVE
+    ).select_related("tenant", "uploaded_by")
+
     if normalized_type == AttachmentOwnerType.FM_TICKET:
         ticket, requester_audience = authorize_fm_ticket_list(
             actor=actor, ticket_id=normalized_id
         )
-        queryset = Attachment.objects.filter(
-            is_deleted=False, status=Attachment.Status.ACTIVE
-        ).select_related("tenant", "uploaded_by")
         return filter_queryset_for_fm_ticket(
             queryset=queryset,
             actor=actor,
             ticket=ticket,
             requester_audience=requester_audience,
+        )
+
+    if normalized_type == AttachmentOwnerType.MAINTENANCE_WORK_ORDER:
+        work_order = authorize_work_order_list(
+            actor=actor, work_order_id=normalized_id
+        )
+        return filter_queryset_for_work_order(
+            queryset=queryset, work_order=work_order
+        )
+
+    if normalized_type == AttachmentOwnerType.INSPECTION:
+        inspection = authorize_inspection_list(
+            actor=actor, inspection_id=normalized_id
+        )
+        return filter_queryset_for_inspection(
+            queryset=queryset, inspection=inspection
         )
 
     raise AttachmentValidationError("Invalid attachment owner context.")
@@ -265,7 +306,7 @@ def download_attachment(*, actor, attachment_id):
     attachment = _resolve_attachment_for_actor(
         actor=actor, attachment_id=attachment_id
     )
-    if attachment.owner_type == AttachmentOwnerType.FM_TICKET and attachment.owner_id:
+    if is_module_owned_type(attachment.owner_type or "") and attachment.owner_id:
         authorize_owned_attachment_access(
             actor=actor, attachment=attachment, action="download"
         )
@@ -297,7 +338,7 @@ def delete_attachment(*, actor, attachment_id):
     attachment = _resolve_attachment_for_actor(
         actor=actor, attachment_id=attachment_id, include_deleted=True
     )
-    if attachment.owner_type == AttachmentOwnerType.FM_TICKET and attachment.owner_id:
+    if is_module_owned_type(attachment.owner_type or "") and attachment.owner_id:
         authorize_owned_attachment_access(
             actor=actor, attachment=attachment, action="delete"
         )
