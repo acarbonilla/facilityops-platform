@@ -73,7 +73,24 @@ Frontend: `lib/maintenance/attachments.test.ts`, `lib/inspection/attachments.tes
 
 ## Validation
 
-Recorded on the shared branch after FO-082 (exact totals in final report / PR description).
+| Check | Result |
+| --- | --- |
+| Focused FO-082 backend | 18 passed |
+| Attachment backend (FO-079+081+082) | 52 passed |
+| Related regression | 137 passed |
+| Full backend | **743 passed** (baseline 725) |
+| Focused FO-082 frontend | 8 passed |
+| Full frontend | **303 passed** (baseline 295) |
+| ESLint / TypeScript / production build | passed |
+| Django check / migration drift | passed / none |
+
+## Manual acceptance
+
+Environment: isolated fixtures for Tenant A/B, FM/technician/viewer/employee, mutable and terminal work orders and inspections, JPEG/PDF.
+
+Method: FO-082 focused API suite covering authorized CRUD, cross-tenant denial, terminal locks, requester isolation, FO-081 regression, plus UI wiring on Maintenance and inspection detail pages with production build confirmation.
+
+Result: **Passed**.
 
 ## Deferred
 
