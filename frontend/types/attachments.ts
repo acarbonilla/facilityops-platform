@@ -3,7 +3,11 @@ export type AttachmentStatus = "active" | "retired";
 
 /** Safe attachment metadata returned by FO-079 APIs. */
 export type AttachmentVisibility = "internal_only" | "requester_visible";
-export type AttachmentOwnerType = "" | "fm_ticket";
+export type AttachmentOwnerType =
+  | ""
+  | "fm_ticket"
+  | "maintenance_work_order"
+  | "inspection";
 
 export interface Attachment {
   id: string;

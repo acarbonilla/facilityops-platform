@@ -16,7 +16,6 @@ import {
   calculateTaskCompletionPercent,
   formatDateTime,
   formatDurationHours,
-  formatFileSize,
   formatLocationLabel,
   formatMaintenanceError,
   formatMaintenanceLabel,
@@ -24,7 +23,6 @@ import {
 } from "@/lib/maintenance/display";
 import { getLinkedWorkOrderSyncMessage } from "@/lib/maintenance/ticket-sync";
 import type {
-  MaintenanceAttachment,
   MaintenanceLabor,
   MaintenanceMaterial,
   MaintenanceTask,
@@ -32,6 +30,7 @@ import type {
 
 import { MaintenanceHistoryTimeline } from "./maintenance-history-timeline";
 import { MaintenanceAssignmentCard } from "./maintenance-assignment-card";
+import { MaintenanceWorkOrderAttachments } from "./maintenance-work-order-attachments";
 import { MaintenanceEscalationCard } from "./maintenance-escalation-card";
 import { MaintenanceSLACard } from "./maintenance-sla-card";
 import { MaintenanceLoadingSkeleton } from "./maintenance-loading-skeleton";
@@ -42,18 +41,6 @@ import {
   MaintenanceWorkflowActions,
 } from "./maintenance-workflow-actions";
 import { MetadataList, SectionCard, UnavailableValue } from "./maintenance-shared";
-
-function renderDisabledAction(label: string) {
-  return (
-    <button
-      className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-400"
-      disabled
-      type="button"
-    >
-      {label}
-    </button>
-  );
-}
 
 export function MaintenanceDetailScreen({ id }: { id: string }) {
   const { hasPermission, permissionsLoading } = usePermissions();
@@ -194,39 +181,6 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
       header: "Total Cost",
       cell: () => <UnavailableValue label="Not captured" />,
       className: "min-w-32 whitespace-normal",
-    },
-  ];
-
-  const attachmentColumns: DataTableColumn<MaintenanceAttachment>[] = [
-    {
-      header: "File Name",
-      cell: (item) => (
-        <div className="min-w-0 whitespace-normal">
-          <p className="font-medium text-slate-900">{item.file_name}</p>
-          <p className="mt-1 text-xs text-slate-500">{formatFileSize(item.size_bytes)}</p>
-        </div>
-      ),
-      className: "min-w-56 whitespace-normal",
-    },
-    {
-      header: "Preview",
-      cell: () => renderDisabledAction("Preview unavailable"),
-      className: "min-w-44 whitespace-normal",
-    },
-    {
-      header: "Download",
-      cell: () => renderDisabledAction("Download unavailable"),
-      className: "min-w-44 whitespace-normal",
-    },
-    {
-      header: "Uploaded By",
-      cell: (item) => formatPersonLabel(item.uploaded_by_email, "Unavailable"),
-      className: "min-w-48 whitespace-normal",
-    },
-    {
-      header: "Uploaded Date",
-      cell: (item) => formatDateTime(item.created_at),
-      className: "min-w-40 whitespace-normal",
     },
   ];
 
@@ -440,21 +394,10 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
         )}
       </SectionCard>
 
-      <SectionCard title="Attachments" description="Attachment metadata only. File preview and download are deferred until a later attachment task.">
-        {workOrder.attachments.length === 0 ? (
-          <EmptyState
-            title="No attachments"
-            message="No attachment metadata is currently associated with this work order."
-          />
-        ) : (
-          <DataTable
-            caption="Maintenance attachments"
-            columns={attachmentColumns}
-            getRowKey={(attachment) => attachment.id}
-            rows={workOrder.attachments}
-          />
-        )}
-      </SectionCard>
+      <MaintenanceWorkOrderAttachments
+        workOrderId={workOrder.id}
+        workOrderStatus={workOrder.status}
+      />
 
       <SectionCard title="AI Summary" description="Read-only AI summary fields currently available from the backend foundation.">
         <MetadataList
