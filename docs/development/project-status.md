@@ -110,16 +110,17 @@
 
 ## Current Task
 
-- FO-080 Attachment Upload UI is **complete and merged** via PR #46 at
-  `76c234c80c4fe7dd80ccb5a05910155bba631e22`.
-- FO-079 Secure Attachment Backend remains merged via PR #45.
-- Comments and AI remain deferred. FO-081 / FO-082 / FO-083 have not started.
+- FO-082A FacilityOps Public Landing Page is **implemented** on
+  `feature/public-landing-page` (Draft PR pending review; not merged).
+- FO-079 / FO-080 remain merged on `main`.
+- Attachment module embedding (FO-081+) continues on a separate branch and is
+  intentionally untouched by FO-082A.
 
 ## Next Milestone
 
-- FO-081 FM Ticket attachment embedding (not started)
-- FO-082 Maintenance / 5S attachment embedding (not started)
-- FO-083 richer evidence workflows (not started)
+- Review and accept FO-082A landing page Draft PR
+- Continue attachment integrations on `feature/business-module-attachments`
+  independently
 
 ## Completed Feature — Master Data Management
 
