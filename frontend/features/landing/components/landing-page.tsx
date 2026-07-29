@@ -1,5 +1,6 @@
 import { LandingHero } from "./landing-hero";
 import { LandingNav } from "./landing-nav";
+import { LivePlatformPreview } from "./preview/live-platform-preview";
 import {
   ApplicationsSection,
   BenefitsSection,
@@ -17,7 +18,10 @@ export function LandingPage() {
     <div id="top" className="min-h-screen bg-slate-50 text-slate-950">
       <LandingNav />
       <main>
-        <LandingHero />
+        <div className="bg-[#07111f] pb-4 sm:pb-8">
+          <LandingHero />
+          <LivePlatformPreview />
+        </div>
         <TrustSection />
         <ModulesSection />
         <WorkflowSection />

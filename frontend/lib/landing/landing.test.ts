@@ -25,9 +25,14 @@ import {
   LANDING_WORKFLOW,
 } from "./content";
 import {
+  LIVE_PLATFORM_PREVIEW,
+  PREVIEW_FORBIDDEN_PATTERNS,
+} from "./live-platform-preview";
+import {
   getPublicApplicationStatusLabel,
   PUBLIC_APPLICATIONS,
 } from "./public-applications";
+import { LivePlatformPreview } from "@/features/landing/components/preview/live-platform-preview";
 
 test("landing brand and navigation are presentation-ready", () => {
   assert.equal(LANDING_BRAND.name, "FacilityOps");
@@ -88,6 +93,7 @@ test("landing page renders core landmarks and sections", () => {
   assert.match(html, /id="top"/);
   assert.match(html, /aria-label="Primary"/);
   assert.match(html, /id="platform"/);
+  assert.match(html, /id="live-preview"/);
   assert.match(html, /id="modules"/);
   assert.match(html, /id="applications"/);
   assert.match(html, /Future Capabilities/);
@@ -141,4 +147,46 @@ test("home metadata includes SEO title, description, and social cards", () => {
     "card" in homeMetadata.twitter ? homeMetadata.twitter.card : undefined,
     "summary_large_image",
   );
+});
+
+test("live platform preview renders accessible heading and shell", () => {
+  const html = renderToStaticMarkup(createElement(LivePlatformPreview));
+  assert.match(html, /id="live-preview"/);
+  assert.match(html, /live-platform-preview-heading/);
+  assert.match(html, /Live Platform Preview/);
+  assert.match(html, /Demonstration data/);
+  assert.match(html, /lg:flex/);
+  assert.match(html, /md:hidden|xl:grid-cols-4|sm:grid/);
+});
+
+test("live platform preview renders metrics, activity, and work queue", () => {
+  const html = renderToStaticMarkup(createElement(LivePlatformPreview));
+  for (const metric of LIVE_PLATFORM_PREVIEW.metrics) {
+    assert.ok(html.includes(metric.label), `missing metric: ${metric.label}`);
+    assert.ok(html.includes(metric.value), `missing metric value: ${metric.value}`);
+  }
+  for (const item of LIVE_PLATFORM_PREVIEW.activity) {
+    assert.ok(html.includes(item.type), `missing activity: ${item.type}`);
+    assert.ok(html.includes(item.detail), `missing activity detail: ${item.detail}`);
+  }
+  for (const row of LIVE_PLATFORM_PREVIEW.workQueue) {
+    assert.ok(html.includes(row.reference), `missing queue row: ${row.reference}`);
+  }
+});
+
+test("live platform preview uses static data and labels future AI clearly", () => {
+  assert.equal(LIVE_PLATFORM_PREVIEW.aiInsight.label, "Future Capability");
+  assert.match(LIVE_PLATFORM_PREVIEW.aiInsight.disclaimer, /not available in production/i);
+  const html = renderToStaticMarkup(createElement(LivePlatformPreview));
+  assert.match(html, /Future Capability/);
+  assert.match(html, /Three recurring equipment issues detected this month/);
+  assert.doesNotMatch(html, /fetch\(|axios|api\/|localhost:\d+/i);
+});
+
+test("live platform preview contains no tenant or user identifiers", () => {
+  const serialized = JSON.stringify(LIVE_PLATFORM_PREVIEW);
+  for (const pattern of PREVIEW_FORBIDDEN_PATTERNS) {
+    assert.doesNotMatch(serialized, pattern);
+  }
+  assert.doesNotMatch(serialized, /acarbonilla|hire.?now|real.?tenant/i);
 });

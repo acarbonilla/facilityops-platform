@@ -81,7 +81,7 @@ export function LandingHero() {
   return (
     <section
       id="platform"
-      className="relative overflow-hidden bg-[#07111f] pb-20 pt-28 sm:pb-28 sm:pt-32"
+      className="relative overflow-hidden bg-transparent pb-16 pt-28 sm:pb-24 sm:pt-32"
       aria-labelledby="landing-hero-heading"
     >
       <div className="pointer-events-none absolute inset-0">
@@ -115,7 +115,7 @@ export function LandingHero() {
               Open Platform
             </Link>
             <a
-              href="#modules"
+              href="#live-preview"
               className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"
             >
               Explore Features
