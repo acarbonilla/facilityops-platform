@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-084 foundation on `feature/fo-084-fm-ticket-ai-analysis-foundation`
+- AI-Assisted FM Ticket Analysis — FO-085 Gemini Vision on `feature/fo-085-gemini-vision-structured-analysis`
 
 ## Current Branch
 
-- `feature/fo-084-fm-ticket-ai-analysis-foundation`
+- `feature/fo-085-gemini-vision-structured-analysis` (from FO-084 `5652044…`)
 
 ## Completed Modules
 
@@ -109,19 +109,17 @@
 
 ## Current Task
 
-- FO-084 FM Ticket Image Upload & AI Analysis Foundation is **implemented** on
-  `feature/fo-084-fm-ticket-ai-analysis-foundation`.
-- Create-flow image staging, AITicketAnalysis records, Celery placeholder
-  pipeline, and internal status APIs are in place. Recommendations/dashboard
-  remain deferred.
-- FO-083 Attachment QA & Stabilization remains complete on
-  `feature/business-module-attachments` (PR #47 Ready for Review).
+- FO-085 Gemini Vision Integration & Structured Image Analysis is **implemented** on
+  `feature/fo-085-gemini-vision-structured-analysis`.
+- FO-084 foundation remains on `feature/fo-084-fm-ticket-ai-analysis-foundation`
+  (`5652044…`, pushed).
+- Recommendations / review panel remain deferred to FO-086 / FO-087.
 
 ## Next Milestone
 
-- Validate FO-084 (tests, lint, TypeScript, build, django check, migrations)
-- Independent review of FO-084
-- Continue AI epic after foundation approval
+- Validate and review FO-085 (Draft PR)
+- Independent review of FO-084 / FO-085
+- Continue AI epic (recommendations) after foundation approval
 - Review and merge PR #47 (attachments) into `main` when ready
 
 ## Completed Feature — Master Data Management

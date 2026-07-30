@@ -26,6 +26,7 @@ import { TicketPriorityBadge } from "./ticket-priority-badge";
 import { TicketSlaPanel } from "./ticket-sla-panel";
 import { TicketStatusActions } from "./ticket-status-actions";
 import { TicketStatusBadge } from "./ticket-status-badge";
+import { TicketAiAnalysisStatusPanel } from "./ticket-ai-analysis-status";
 import { TicketSubmittedSuccessBanner } from "./ticket-submitted-success-banner";
 import {
   SectionCard,
@@ -114,6 +115,8 @@ export function TicketDetailScreen({ id }: { id: string }) {
         showCreated={showCreated}
         ticketNumber={ticket.ticket_number}
       />
+
+      <TicketAiAnalysisStatusPanel audience="internal" ticketId={ticket.id} />
 
       <SectionCard title="Ticket Summary">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

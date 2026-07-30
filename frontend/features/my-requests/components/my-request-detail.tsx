@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { TicketAiAnalysisStatusPanel } from "@/features/fm-tickets/components/ticket-ai-analysis-status";
 import { TicketSubmittedSuccessBanner } from "@/features/fm-tickets/components/ticket-submitted-success-banner";
 import { useMyRequestDetail } from "@/hooks/use-my-requests";
 import { readAiQueuedFromSearch, readTicketCreatedFromSearch } from "@/lib/fm-tickets/create-image-staging";
@@ -101,6 +102,8 @@ export function MyRequestDetailScreen({ id }: { id: string }) {
         showCreated={showCreated}
         ticketNumber={request.ticket_number}
       />
+
+      <TicketAiAnalysisStatusPanel audience="requester" ticketId={request.id} />
 
       <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold tracking-tight text-slate-950">
