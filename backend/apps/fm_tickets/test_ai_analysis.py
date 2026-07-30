@@ -200,12 +200,16 @@ class FmTicketAIAnalysisFoundationTests(APITestCase):
         self.assertIsNotNone(analysis.completed_at)
         self.assertIsNotNone(analysis.duration_ms)
         self.assertEqual(analysis.model_name, PlaceholderAIProvider.MODEL_NAME)
+        self.assertEqual(analysis.result_json.get("schema_version"), "1.0")
+        self.assertTrue(analysis.result_json.get("requires_human_review"))
         self.assertEqual(
-            analysis.result_json.get("attachment_ids"),
-            [str(attachment.id)],
+            analysis.result_json.get("meta", {}).get("priority_prediction"),
+            None,
         )
-        self.assertEqual(analysis.result_json.get("recommendations"), [])
-
+        self.assertEqual(
+            analysis.result_json.get("meta", {}).get("category_prediction"),
+            None,
+        )
     def test_processing_failure_marks_failed(self):
         attachment = self._owned_image()
         with patch(
@@ -227,7 +231,9 @@ class FmTicketAIAnalysisFoundationTests(APITestCase):
         analysis.refresh_from_db()
         self.assertFalse(result["ok"])
         self.assertEqual(analysis.status, AITicketAnalysis.Status.FAILED)
-        self.assertIn("provider down", analysis.error_message)
+        self.assertEqual(analysis.error_code, "ANALYSIS_INTERNAL_ERROR")
+        self.assertIn("internal error", analysis.error_message.lower())
+        self.assertNotIn("provider down", analysis.error_message.lower())
 
     def test_rejects_foreign_ticket_attachment(self):
         other_ticket = FmTicket.objects.create(

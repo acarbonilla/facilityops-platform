@@ -123,17 +123,21 @@ class AITicketAnalysisAdmin(admin.ModelAdmin):
         "ticket",
         "tenant",
         "status",
+        "provider",
         "model_name",
+        "error_code",
         "queued_at",
         "completed_at",
         "requested_by",
     )
-    list_filter = ("status", "model_name", "queued_at")
+    list_filter = ("status", "provider", "model_name", "queued_at")
     search_fields = (
         "id",
         "ticket__ticket_number",
         "ticket__title",
         "celery_task_id",
+        "correlation_id",
+        "error_code",
     )
     readonly_fields = (
         "queued_at",
@@ -142,7 +146,9 @@ class AITicketAnalysisAdmin(admin.ModelAdmin):
         "duration_ms",
         "result_json",
         "error_message",
+        "error_code",
         "celery_task_id",
+        "correlation_id",
         "created_at",
         "updated_at",
     )

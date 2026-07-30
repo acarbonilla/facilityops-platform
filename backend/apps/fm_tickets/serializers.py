@@ -732,6 +732,11 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
         read_only=True,
         allow_null=True,
     )
+    result = serializers.SerializerMethodField()
+    schema_version = serializers.CharField(read_only=True)
+    provider = serializers.CharField(read_only=True)
+    error_code = serializers.CharField(read_only=True)
+    retryable = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = AITicketAnalysis
@@ -740,14 +745,22 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             "ticket_id",
             "ticket_number",
             "status",
+            "provider",
+            "model_name",
+            "model_version",
+            "prompt_version",
+            "schema_version",
             "queued_at",
             "started_at",
             "completed_at",
             "duration_ms",
-            "model_name",
-            "model_version",
+            "result",
             "result_json",
             "error_message",
+            "error_code",
+            "retryable",
+            "attempt_count",
+            "input_image_count",
             "attachment_ids",
             "created_at",
             "updated_at",
@@ -759,3 +772,20 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             str(link.attachment_id)
             for link in obj.analysis_attachments.all()
         ]
+
+    def get_result(self, obj):
+        payload = obj.result_json or {}
+        if not isinstance(payload, dict):
+            return {}
+        # Strip debug/raw keys from API responses.
+        return {
+            key: value
+            for key, value in payload.items()
+            if not str(key).startswith("_")
+        }
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Prefer sanitized `result`; keep result_json for FO-084 compatibility but sanitized.
+        data["result_json"] = data.get("result") or {}
+        return data
