@@ -200,6 +200,32 @@ ATTACHMENT_S3_SIGNED_URL_TTL_SECONDS = config_int(
     default=300,
 )
 
+# FO-085: AI provider selection and Gemini Vision configuration.
+# Default remains placeholder so local/tests never require an API key.
+FACILITYOPS_AI_PROVIDER = config("FACILITYOPS_AI_PROVIDER", default="placeholder").strip().lower()
+FACILITYOPS_GEMINI_ENABLED = config_bool("FACILITYOPS_GEMINI_ENABLED", default=False)
+GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
+FACILITYOPS_GEMINI_MODEL = config("FACILITYOPS_GEMINI_MODEL", default="gemini-2.0-flash").strip()
+FACILITYOPS_GEMINI_TIMEOUT_SECONDS = config_int(
+    "FACILITYOPS_GEMINI_TIMEOUT_SECONDS",
+    default=60,
+)
+FACILITYOPS_GEMINI_MAX_IMAGES = config_int("FACILITYOPS_GEMINI_MAX_IMAGES", default=5)
+FACILITYOPS_GEMINI_MAX_TOTAL_BYTES = config_int(
+    "FACILITYOPS_GEMINI_MAX_TOTAL_BYTES",
+    default=15 * 1024 * 1024,
+)
+_gemini_temperature = config("FACILITYOPS_GEMINI_TEMPERATURE", default="0.2")
+try:
+    FACILITYOPS_GEMINI_TEMPERATURE = float(_gemini_temperature)
+except (TypeError, ValueError):
+    FACILITYOPS_GEMINI_TEMPERATURE = 0.2
+FACILITYOPS_AI_STORE_RAW_RESPONSE = config_bool(
+    "FACILITYOPS_AI_STORE_RAW_RESPONSE",
+    default=False,
+)
+FACILITYOPS_AI_MAX_ATTEMPTS = config_int("FACILITYOPS_AI_MAX_ATTEMPTS", default=3)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 

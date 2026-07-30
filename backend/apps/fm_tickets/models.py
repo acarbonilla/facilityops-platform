@@ -448,8 +448,17 @@ class AITicketAnalysis(BaseModel):
     duration_ms = models.PositiveIntegerField(null=True, blank=True)
     model_name = models.CharField(max_length=100, blank=True, default="placeholder")
     model_version = models.CharField(max_length=50, blank=True, default="v0")
+    provider = models.CharField(max_length=50, blank=True, default="placeholder", db_index=True)
+    prompt_version = models.CharField(max_length=50, blank=True)
+    schema_version = models.CharField(max_length=20, blank=True)
     result_json = models.JSONField(default=dict, blank=True)
     error_message = models.TextField(blank=True)
+    error_code = models.CharField(max_length=64, blank=True, db_index=True)
+    retryable = models.BooleanField(default=False)
+    attempt_count = models.PositiveSmallIntegerField(default=0)
+    input_image_count = models.PositiveSmallIntegerField(null=True, blank=True)
+    input_byte_count = models.PositiveIntegerField(null=True, blank=True)
+    correlation_id = models.CharField(max_length=64, blank=True)
     celery_task_id = models.CharField(max_length=255, blank=True)
     requested_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
