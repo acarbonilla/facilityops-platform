@@ -65,6 +65,9 @@ export const API_ENDPOINTS = {
       `/fm-tickets/tickets/${id}/requester-acknowledge/`,
     requesterReopen: (id: string) =>
       `/fm-tickets/tickets/${id}/requester-reopen/`,
+    aiAnalyses: (id: string) => `/fm-tickets/tickets/${id}/ai-analyses/`,
+    aiAnalysis: (id: string, analysisId: string) =>
+      `/fm-tickets/tickets/${id}/ai-analyses/${analysisId}/`,
   },
   maintenance: {
     dashboard: "/maintenance/work-orders/dashboard/",

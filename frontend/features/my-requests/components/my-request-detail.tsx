@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 import { DetailField } from "@/components/common/detail-field";
 import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
+import { TicketSubmittedSuccessBanner } from "@/features/fm-tickets/components/ticket-submitted-success-banner";
 import { useMyRequestDetail } from "@/hooks/use-my-requests";
+import { readAiQueuedFromSearch, readTicketCreatedFromSearch } from "@/lib/fm-tickets/create-image-staging";
 import {
   formatRequesterCategoryLabel,
   formatRequesterDateTime,
@@ -24,6 +27,9 @@ import { MyRequestWorkflowActions } from "./my-request-workflow-actions";
 import { RequesterStatusBadge } from "./requester-status-badge";
 
 export function MyRequestDetailScreen({ id }: { id: string }) {
+  const searchParams = useSearchParams();
+  const showAiQueued = readAiQueuedFromSearch(searchParams.toString());
+  const showCreated = readTicketCreatedFromSearch(searchParams.toString());
   const detailQuery = useMyRequestDetail(id);
 
   if (detailQuery.isLoading) {
@@ -89,6 +95,12 @@ export function MyRequestDetailScreen({ id }: { id: string }) {
           Back to My Requests
         </Link>
       </PageHeader>
+
+      <TicketSubmittedSuccessBanner
+        showAiQueued={showAiQueued}
+        showCreated={showCreated}
+        ticketNumber={request.ticket_number}
+      />
 
       <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-semibold tracking-tight text-slate-950">

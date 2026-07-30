@@ -154,6 +154,34 @@ export interface FmTicketDetail extends FmTicketBaseRecord {
   updated_at: string;
 }
 
+export type FmTicketAiAnalysisStatus =
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed";
+
+export interface FmTicketAiAnalysis {
+  id: string;
+  ticket_id: string;
+  ticket_number: string | null;
+  status: FmTicketAiAnalysisStatus;
+  queued_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_ms: number | null;
+  model_name: string;
+  model_version: string;
+  result_json: Record<string, unknown>;
+  error_message: string;
+  attachment_ids: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type FmTicketAiAnalysisQueuePayload = {
+  attachment_ids: string[];
+};
+
 export type FmTicket = FmTicketDetail;
 
 export interface FmTicketComment {

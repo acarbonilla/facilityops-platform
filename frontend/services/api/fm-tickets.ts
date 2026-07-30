@@ -3,6 +3,8 @@ import { API_ENDPOINTS } from "./endpoints";
 
 import type { PaginatedResponse } from "@/services/api/types";
 import type {
+  FmTicketAiAnalysis,
+  FmTicketAiAnalysisQueuePayload,
   FmTicketAssignmentPayload,
   FmTicketAssignmentResponse,
   FmTicketComment,
@@ -220,6 +222,39 @@ export function generateWorkOrderFromTicket(
     {
       method: "POST",
       body: {},
+    },
+  );
+}
+
+export function queueFmTicketAiAnalysis(
+  ticketId: string,
+  payload: FmTicketAiAnalysisQueuePayload,
+): Promise<FmTicketAiAnalysis> {
+  return apiClient<FmTicketAiAnalysis>(API_ENDPOINTS.fmTickets.aiAnalyses(ticketId), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function getFmTicketAiAnalyses(
+  ticketId: string,
+): Promise<PaginatedResponse<FmTicketAiAnalysis>> {
+  return apiClient<PaginatedResponse<FmTicketAiAnalysis>>(
+    API_ENDPOINTS.fmTickets.aiAnalyses(ticketId),
+    {
+      method: "GET",
+    },
+  );
+}
+
+export function getFmTicketAiAnalysis(
+  ticketId: string,
+  analysisId: string,
+): Promise<FmTicketAiAnalysis> {
+  return apiClient<FmTicketAiAnalysis>(
+    API_ENDPOINTS.fmTickets.aiAnalysis(ticketId, analysisId),
+    {
+      method: "GET",
     },
   );
 }

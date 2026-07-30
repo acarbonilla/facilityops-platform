@@ -2,16 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
 
 import { ProtectedPermissionRoute } from "@/components/auth/protected-permission-route";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { AppShell } from "@/components/layout/app-shell";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   DEFAULT_MASTER_DATA_LIST_PARAMS,
   getFirstQueryErrorMessage,
 } from "@/lib/master-data/display";
+import { buildTicketCreateSuccessHref } from "@/lib/fm-tickets/create-image-staging";
 import {
   getAreas,
   getAssets,
@@ -24,6 +27,7 @@ import {
 import {
   createFmTicket,
   getFmTicket,
+  queueFmTicketAiAnalysis,
   updateFmTicket,
 } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys, masterDataQueryKeys } from "@/services/api/query-keys";
@@ -33,7 +37,12 @@ import type {
   FmTicketFormValues,
   FmTicketUpdatePayload,
 } from "@/types/fm-tickets";
+import { ATTACHMENT_PERMISSIONS } from "@/types/attachments";
 
+import {
+  TicketCreateImageStaging,
+  type TicketCreateImageStagingHandle,
+} from "./ticket-create-image-staging";
 import { TicketForm } from "./ticket-form";
 
 function extractErrorMessage(error: unknown, fallback: string) {
@@ -252,10 +261,13 @@ export function TicketCreatePageContent() {
     organizationsQuery,
     tenantsQuery,
   } = useTicketRelatedOptions();
-  const mutation = useFmTicketMutation(createFmTicket, (record) => {
-    const createdTicket = record as FmTicketDetail;
-    return `/fm-tickets/${createdTicket.id}`;
-  });
+  const queryClient = useQueryClient();
+  const router = useRouter();
+  const { hasPermission } = usePermissions();
+  const canUploadAttachments = hasPermission(ATTACHMENT_PERMISSIONS.upload);
+  const imageStagingRef = useRef<TicketCreateImageStagingHandle>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (
     tenantsQuery.isPending ||
@@ -309,27 +321,75 @@ export function TicketCreatePageContent() {
   return (
     <TicketFormPageLayout
       description="Create a new FM ticket using the existing backend foundation and related master-data references."
-      errorMessage={
-        mutation.isError
-          ? extractErrorMessage(mutation.error, "FM ticket could not be created.")
-          : null
-      }
+      errorMessage={submitError}
       requiredPermission="fm_tickets.create"
       title="New FM Ticket"
     >
       <TicketForm
         areas={areasQuery.data ?? []}
         assets={assetsQuery.data ?? []}
+        beforeSubmit={
+          canUploadAttachments ? (
+            <TicketCreateImageStaging
+              ref={imageStagingRef}
+              canUpload={canUploadAttachments}
+              disabled={isSubmitting}
+            />
+          ) : null
+        }
         buildings={buildingsQuery.data ?? []}
         cancelHref="/fm-tickets"
         departments={departmentsQuery.data ?? []}
         floors={floorsQuery.data ?? []}
-        isSubmitting={mutation.isPending}
+        isSubmitting={isSubmitting}
         onSubmit={async (values) => {
-          await mutation.mutateAsync(mapTicketFormValuesToPayload(values));
+          setSubmitError(null);
+          if (imageStagingRef.current?.hasRejected()) {
+            setSubmitError("Remove or replace rejected images before submitting.");
+            return;
+          }
+
+          setIsSubmitting(true);
+          try {
+            const created = await createFmTicket(mapTicketFormValuesToPayload(values));
+            const uploadable =
+              imageStagingRef.current?.getUploadableFiles().length ?? 0;
+            let aiQueued = false;
+
+            if (uploadable > 0 && imageStagingRef.current) {
+              const attachmentIds = await imageStagingRef.current.uploadAll({
+                owner_type: "fm_ticket",
+                owner_id: created.id,
+                visibility: "internal_only",
+                category: "image_evidence",
+              });
+              if (attachmentIds.length > 0) {
+                await queueFmTicketAiAnalysis(created.id, {
+                  attachment_ids: attachmentIds,
+                });
+                aiQueued = true;
+              }
+            }
+
+            await queryClient.invalidateQueries({
+              queryKey: fmTicketsQueryKeys.all,
+            });
+            router.replace(
+              buildTicketCreateSuccessHref(`/fm-tickets/${created.id}`, {
+                aiQueued,
+              }),
+            );
+            router.refresh();
+          } catch (error) {
+            setSubmitError(
+              extractErrorMessage(error, "FM ticket could not be created."),
+            );
+          } finally {
+            setIsSubmitting(false);
+          }
         }}
         organizations={organizationsQuery.data ?? []}
-        submitLabel="Create ticket"
+        submitLabel="Submit Ticket"
         tenants={tenantsQuery.data ?? []}
       />
     </TicketFormPageLayout>
