@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-085 Gemini Vision Ready for Review (PR #49)
+- AI-Assisted FM Ticket Analysis — next: FO-086 recommendations (baseline FO-085 on `main`)
 
 ## Current Branch
 
-- `feature/fo-085-gemini-vision-structured-analysis` (rebased onto `main` after FO-084 PR #50)
+- `main` @ `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (FO-085 merged via PR #49)
 
 ## Completed Modules
 
@@ -38,6 +38,8 @@
 - Configuration
 - Notifications
 - FM Ticket ↔ Maintenance Integration
+- Attachment Platform (FO-079–FO-083)
+- FM Ticket AI Analysis Foundation + Gemini Vision (FO-084–FO-085)
 
 ## Completed FO Tasks
 
@@ -109,19 +111,13 @@
 
 ## Current Task
 
-- FO-085B merge & PostgreSQL verification is **blocked** pending valid Postgres credentials
-  and human approval of PR #49.
-- FO-085A stack finalization completed; High review fix (`requires_human_review` persistence)
-  pushed on `feature/fo-085-gemini-vision-structured-analysis` (`910b183…`).
-- Recommendations / review panel remain deferred to FO-086 / FO-087.
+- FO-085C Post-Merge Verification & Baseline Establishment completed 2026-07-30.
+- Stable baseline is FO-085 on `main` (`6404e6d…`). FO-086 is next.
 
 ## Next Milestone
 
-- Provide working `DATABASE_URL` (Postgres) and re-run full backend suite, **or** record
-  explicit reviewer acceptance of the Postgres blocker
-- Approve and merge PR #49
-- Begin FO-086 after merge + post-merge verification
-- Live Gemini smoke when a valid development key + synthetic images are available
+- Begin FO-086 — AI Findings, Category & Priority Recommendations
+- Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
 
@@ -176,8 +172,9 @@
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
 - Attachment platform FO-079–FO-083 merged via PR #47.
 - FO-084 AI foundation merged via PR #50 (`6eb4fe5…`).
-- FO-085 Gemini Vision Ready for Review on PR #49 after FO-085A stack
-  finalization; live Gemini smoke not run (no development API key).
+- FO-085 Gemini Vision merged via PR #49 (`6404e6d…`); FO-085C post-merge
+  verification complete. Full Postgres suite and live Gemini smoke remain optional
+  environmental follow-ups.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
@@ -191,13 +188,11 @@
 
 ## Last Merge
 
-- `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (Merge pull request #50 into
-  `main`; FO-084 FM Ticket Image Upload & AI Analysis Foundation)
-- Previous: `d6bfd6b…` (Merge pull request #47 into `main`; business-module
-  attachments FO-081–FO-083)
-- Previous: `76c234c80c4fe7dd80ccb5a05910155bba631e22` (Merge pull request #46 into
-  `main`; FO-080 Attachment Upload UI)
+- `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (PR #49 into `main`; FO-085
+  Gemini Vision Integration & Structured Image Analysis)
+- Previous: `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (PR #50; FO-084)
+- Previous: `d6bfd6b…` (PR #47; FO-081–FO-083 attachments)
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline
+- `0.1.0` synchronized `main` baseline — FO-085 checkpoint

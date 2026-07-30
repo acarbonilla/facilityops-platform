@@ -1,9 +1,9 @@
 # FO-085 — Gemini Vision Integration & Structured Image Analysis
 
-**Status:** Ready for Review on PR #49; FO-085B merge held for PostgreSQL validation + human approval  
+**Status:** Merged to `main` via PR #49 (2026-07-30); FO-085C post-merge verification complete  
 **Date:** 2026-07-30  
-**Base branch:** `main` (after FO-084 merge via PR #50)  
-**Branch HEAD:** `910b183…` on `feature/fo-085-gemini-vision-structured-analysis`  
+**Base branch:** `main`  
+**Merge commit:** `6404e6dc7faffd2e1f183d9b70bee57cf93f7867`  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -123,9 +123,12 @@ With a real `GEMINI_API_KEY` and `FACILITYOPS_AI_PROVIDER=gemini` / `FACILITYOPS
 
 - Review fix: processing now persists `validate_facility_image_analysis(...).model_dump()` so coerced `requires_human_review=True` is stored.
 - Local FO-085A log files relocated under gitignored `.fo085a-artifacts/`.
-- **PostgreSQL full suite: blocked** — PostgreSQL 16 is running, but `facilityops_user` password authentication fails against `localhost:5432/facilityops_db` with `.env.example` credentials; local `.env` uses SQLite. Docker is unavailable. Reviewer acceptance of this blocker (or a successful Postgres suite elsewhere) is required before merge.
-- Live Gemini smoke: still **not run** (no development key).
-- PR #49 remains open / Ready for Review / not merged pending human approval + Postgres acceptance.
+- PR #49 merged to `main` at `6404e6dc7faffd2e1f183d9b70bee57cf93f7867`.
+- Full PostgreSQL suite and live Gemini smoke remain optional environmental follow-ups (see FO-085C).
+
+## FO-085C post-merge verification
+
+Completed 2026-07-30. See `FO-085C - Post-Merge Verification.md`. Feature branches for FO-081–FO-085 deleted after merge confirmation. Development baseline advanced to FO-085; next is FO-086.
 
 ## Deferred
 
