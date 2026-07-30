@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-085 Gemini Vision on `feature/fo-085-gemini-vision-structured-analysis`
+- AI-Assisted FM Ticket Analysis — FO-085 Gemini Vision Ready for Review (PR #49)
 
 ## Current Branch
 
-- `feature/fo-085-gemini-vision-structured-analysis` (from FO-084 `5652044…`)
+- `feature/fo-085-gemini-vision-structured-analysis` (rebased onto `main` after FO-084 PR #50)
 
 ## Completed Modules
 
@@ -109,18 +109,15 @@
 
 ## Current Task
 
-- FO-085 Gemini Vision Integration & Structured Image Analysis is **implemented** on
-  `feature/fo-085-gemini-vision-structured-analysis`.
-- FO-084 foundation remains on `feature/fo-084-fm-ticket-ai-analysis-foundation`
-  (`5652044…`, pushed).
+- FO-085A Gemini Integration Validation & Stack Finalization completed 2026-07-30.
+- FO-084 merged via PR #50; FO-085 PR #49 Ready for Review on updated `main`.
 - Recommendations / review panel remain deferred to FO-086 / FO-087.
 
 ## Next Milestone
 
-- Validate and review FO-085 (Draft PR)
-- Independent review of FO-084 / FO-085
-- Continue AI epic (recommendations) after foundation approval
-- Review and merge PR #47 (attachments) into `main` when ready
+- Independent review and merge of FO-085 (PR #49)
+- Begin FO-086 (recommendations) after FO-085 approval
+- Live Gemini smoke when a valid development key + synthetic images are available
 
 ## Completed Feature — Master Data Management
 
@@ -173,11 +170,10 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment platform FO-079–FO-083 is complete on
-  `feature/business-module-attachments` (PR #47 Ready for Review; not merged).
-- FO-084 AI foundation is implemented on
-  `feature/fo-084-fm-ticket-ai-analysis-foundation` (placeholder provider only;
-  no production recommendations yet).
+- Attachment platform FO-079–FO-083 merged via PR #47.
+- FO-084 AI foundation merged via PR #50 (`6eb4fe5…`).
+- FO-085 Gemini Vision Ready for Review on PR #49 after FO-085A stack
+  finalization; live Gemini smoke not run (no development API key).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit

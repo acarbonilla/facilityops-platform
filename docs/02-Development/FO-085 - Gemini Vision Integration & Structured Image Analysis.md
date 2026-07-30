@@ -1,9 +1,9 @@
 # FO-085 — Gemini Vision Integration & Structured Image Analysis
 
-**Status:** Implemented on `feature/fo-085-gemini-vision-structured-analysis`  
+**Status:** Implemented; FO-085A validation complete; Ready for Review on PR #49  
 **Date:** 2026-07-30  
-**Base branch:** `feature/fo-084-fm-ticket-ai-analysis-foundation`  
-**Starting SHA:** `565204420b26f30ff2974cc44ceae956a52f50b9`  
+**Base branch:** `main` (after FO-084 merge via PR #50)  
+**Branch HEAD:** see FO-085A report / current `feature/fo-085-gemini-vision-structured-analysis`  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -107,6 +107,17 @@ Migration `0004_aiticketanalysis_gemini_metadata` adds provider/prompt/schema/er
 ## Opt-in smoke test
 
 With a real `GEMINI_API_KEY` and `FACILITYOPS_AI_PROVIDER=gemini` / `FACILITYOPS_GEMINI_ENABLED=True`, manually submit synthetic non-client images and verify schema validation, mapping, and no workflow mutation. **Not part of automated CI.**
+
+### FO-085A live smoke status (2026-07-30)
+
+**Not run** — local development `GEMINI_API_KEY` is unset / empty; provider remains `placeholder`. Automated mocked lifecycle coverage is used instead. Do not block review solely for live smoke absence.
+
+## FO-085A validation notes
+
+- Stack order completed: PR #47 (attachments) → FO-084 PR #50 → FO-085 PR #49 retargeted to `main`.
+- Celery lifecycle covered by `test_ai_celery_lifecycle.py` + `test_gemini_analysis.py` (success, transient retry, exhaustion, auth failure, malformed schema, duplicate/idempotency, no stuck PROCESSING).
+- API serializer sanitizes `result` / `result_json`; safe `error_message` only; no API keys, prompts, image bytes, storage paths, or signed URLs.
+- Frontend status panel covers queued/processing/completed/failed + human-review disclaimer; requester-safe; no category/priority mutation.
 
 ## Deferred
 
