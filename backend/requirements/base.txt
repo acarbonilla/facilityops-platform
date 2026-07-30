@@ -7,3 +7,6 @@ dj-database-url
 celery
 redis
 djangorestframework-simplejwt
+# FO-085: official Google Gen AI SDK for Gemini Vision structured analysis
+google-genai==2.15.0
+pydantic>=2.9,<3

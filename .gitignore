@@ -115,3 +115,7 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+# Local FO-085A validation logs
+.fo085a-artifacts/
+

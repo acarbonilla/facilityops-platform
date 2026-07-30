@@ -1,10 +1,11 @@
 # FO-084 — FM Ticket Image Upload & AI Analysis Foundation
 
-**Status:** Implemented on `feature/fo-084-fm-ticket-ai-analysis-foundation`  
+**Status:** Merged to `main` via PR #50 (2026-07-30)  
 **Date:** 2026-07-30  
 **Phase:** Phase 12A — Application Development  
 **Stage:** Stage 3 — Business Modules  
-**Epic:** AI-Assisted FM Ticket Analysis
+**Epic:** AI-Assisted FM Ticket Analysis  
+**Merge:** PR #50 → `main` (`6eb4fe5…`); rebased commit `d8bedf1…` after PR #47 attachments merge
 
 ## Summary
 

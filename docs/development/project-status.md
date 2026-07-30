@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-084 foundation on `feature/fo-084-fm-ticket-ai-analysis-foundation`
+- AI-Assisted FM Ticket Analysis — FO-085 Gemini Vision Ready for Review (PR #49)
 
 ## Current Branch
 
-- `feature/fo-084-fm-ticket-ai-analysis-foundation`
+- `feature/fo-085-gemini-vision-structured-analysis` (rebased onto `main` after FO-084 PR #50)
 
 ## Completed Modules
 
@@ -109,20 +109,19 @@
 
 ## Current Task
 
-- FO-084 FM Ticket Image Upload & AI Analysis Foundation is **implemented** on
-  `feature/fo-084-fm-ticket-ai-analysis-foundation`.
-- Create-flow image staging, AITicketAnalysis records, Celery placeholder
-  pipeline, and internal status APIs are in place. Recommendations/dashboard
-  remain deferred.
-- FO-083 Attachment QA & Stabilization remains complete on
-  `feature/business-module-attachments` (PR #47 Ready for Review).
+- FO-085B merge & PostgreSQL verification is **blocked** pending valid Postgres credentials
+  and human approval of PR #49.
+- FO-085A stack finalization completed; High review fix (`requires_human_review` persistence)
+  pushed on `feature/fo-085-gemini-vision-structured-analysis` (`910b183…`).
+- Recommendations / review panel remain deferred to FO-086 / FO-087.
 
 ## Next Milestone
 
-- Validate FO-084 (tests, lint, TypeScript, build, django check, migrations)
-- Independent review of FO-084
-- Continue AI epic after foundation approval
-- Review and merge PR #47 (attachments) into `main` when ready
+- Provide working `DATABASE_URL` (Postgres) and re-run full backend suite, **or** record
+  explicit reviewer acceptance of the Postgres blocker
+- Approve and merge PR #49
+- Begin FO-086 after merge + post-merge verification
+- Live Gemini smoke when a valid development key + synthetic images are available
 
 ## Completed Feature — Master Data Management
 
@@ -175,11 +174,10 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment platform FO-079–FO-083 is complete on
-  `feature/business-module-attachments` (PR #47 Ready for Review; not merged).
-- FO-084 AI foundation is implemented on
-  `feature/fo-084-fm-ticket-ai-analysis-foundation` (placeholder provider only;
-  no production recommendations yet).
+- Attachment platform FO-079–FO-083 merged via PR #47.
+- FO-084 AI foundation merged via PR #50 (`6eb4fe5…`).
+- FO-085 Gemini Vision Ready for Review on PR #49 after FO-085A stack
+  finalization; live Gemini smoke not run (no development API key).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
@@ -193,12 +191,12 @@
 
 ## Last Merge
 
-- `76c234c80c4fe7dd80ccb5a05910155bba631e22` (Merge pull request #46 into
+- `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (Merge pull request #50 into
+  `main`; FO-084 FM Ticket Image Upload & AI Analysis Foundation)
+- Previous: `d6bfd6b…` (Merge pull request #47 into `main`; business-module
+  attachments FO-081–FO-083)
+- Previous: `76c234c80c4fe7dd80ccb5a05910155bba631e22` (Merge pull request #46 into
   `main`; FO-080 Attachment Upload UI)
-- Previous: `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (Merge pull request #45 into
-  `main`; FO-079 Secure Attachment Backend and Storage Foundation)
-- Previous: `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
-  `main`; FO-078D Employee-Safe Maintenance Notification Routing)
 
 ## Repository Version
 
