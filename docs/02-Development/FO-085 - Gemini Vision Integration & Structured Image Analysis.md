@@ -1,9 +1,9 @@
 # FO-085 — Gemini Vision Integration & Structured Image Analysis
 
-**Status:** Implemented; FO-085A validation complete; Ready for Review on PR #49  
+**Status:** Ready for Review on PR #49; FO-085B merge held for PostgreSQL validation + human approval  
 **Date:** 2026-07-30  
 **Base branch:** `main` (after FO-084 merge via PR #50)  
-**Branch HEAD:** see FO-085A report / current `feature/fo-085-gemini-vision-structured-analysis`  
+**Branch HEAD:** `910b183…` on `feature/fo-085-gemini-vision-structured-analysis`  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -118,6 +118,14 @@ With a real `GEMINI_API_KEY` and `FACILITYOPS_AI_PROVIDER=gemini` / `FACILITYOPS
 - Celery lifecycle covered by `test_ai_celery_lifecycle.py` + `test_gemini_analysis.py` (success, transient retry, exhaustion, auth failure, malformed schema, duplicate/idempotency, no stuck PROCESSING).
 - API serializer sanitizes `result` / `result_json`; safe `error_message` only; no API keys, prompts, image bytes, storage paths, or signed URLs.
 - Frontend status panel covers queued/processing/completed/failed + human-review disclaimer; requester-safe; no category/priority mutation.
+
+## FO-085B merge readiness (2026-07-30)
+
+- Review fix: processing now persists `validate_facility_image_analysis(...).model_dump()` so coerced `requires_human_review=True` is stored.
+- Local FO-085A log files relocated under gitignored `.fo085a-artifacts/`.
+- **PostgreSQL full suite: blocked** — PostgreSQL 16 is running, but `facilityops_user` password authentication fails against `localhost:5432/facilityops_db` with `.env.example` credentials; local `.env` uses SQLite. Docker is unavailable. Reviewer acceptance of this blocker (or a successful Postgres suite elsewhere) is required before merge.
+- Live Gemini smoke: still **not run** (no development key).
+- PR #49 remains open / Ready for Review / not merged pending human approval + Postgres acceptance.
 
 ## Deferred
 

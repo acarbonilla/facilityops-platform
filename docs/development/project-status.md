@@ -109,14 +109,18 @@
 
 ## Current Task
 
-- FO-085A Gemini Integration Validation & Stack Finalization completed 2026-07-30.
-- FO-084 merged via PR #50; FO-085 PR #49 Ready for Review on updated `main`.
+- FO-085B merge & PostgreSQL verification is **blocked** pending valid Postgres credentials
+  and human approval of PR #49.
+- FO-085A stack finalization completed; High review fix (`requires_human_review` persistence)
+  pushed on `feature/fo-085-gemini-vision-structured-analysis` (`910b183…`).
 - Recommendations / review panel remain deferred to FO-086 / FO-087.
 
 ## Next Milestone
 
-- Independent review and merge of FO-085 (PR #49)
-- Begin FO-086 (recommendations) after FO-085 approval
+- Provide working `DATABASE_URL` (Postgres) and re-run full backend suite, **or** record
+  explicit reviewer acceptance of the Postgres blocker
+- Approve and merge PR #49
+- Begin FO-086 after merge + post-merge verification
 - Live Gemini smoke when a valid development key + synthetic images are available
 
 ## Completed Feature — Master Data Management

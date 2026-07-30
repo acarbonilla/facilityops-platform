@@ -21,7 +21,7 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-085 Ready for Review | FO-084 merged (PR #50); FO-085 Gemini structured analysis on PR #49 after FO-085A |
+| FM Ticketing | FO-085 Ready for Review; FO-085B merge blocked | FO-084 merged (PR #50); FO-085 on PR #49; Postgres suite + human approval required before merge |
 | Attachments | Complete; merged | FO-079/FO-080 merged earlier; FO-081–FO-083 merged via PR #47; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
