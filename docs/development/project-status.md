@@ -187,12 +187,12 @@
 
 ## Last Merge
 
-- `76c234c80c4fe7dd80ccb5a05910155bba631e22` (Merge pull request #46 into
+- `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (Merge pull request #50 into
+  `main`; FO-084 FM Ticket Image Upload & AI Analysis Foundation)
+- Previous: `d6bfd6b…` (Merge pull request #47 into `main`; business-module
+  attachments FO-081–FO-083)
+- Previous: `76c234c80c4fe7dd80ccb5a05910155bba631e22` (Merge pull request #46 into
   `main`; FO-080 Attachment Upload UI)
-- Previous: `43bbb8d6eb858fb7043deb3dc600f8c0ab0deace` (Merge pull request #45 into
-  `main`; FO-079 Secure Attachment Backend and Storage Foundation)
-- Previous: `87c842381eb1a1f4c24173361adab12d180fcb26` (Merge pull request #44 into
-  `main`; FO-078D Employee-Safe Maintenance Notification Routing)
 
 ## Repository Version
 
