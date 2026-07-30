@@ -18,6 +18,7 @@ import {
   isGenericMyRequestNotFound,
 } from "@/lib/my-requests/display";
 import { TicketPriorityBadge } from "@/features/fm-tickets/components/ticket-priority-badge";
+import { FmTicketAttachments } from "@/features/fm-tickets/components/fm-ticket-attachments";
 
 import { MyRequestWorkflowActions } from "./my-request-workflow-actions";
 import { RequesterStatusBadge } from "./requester-status-badge";
@@ -160,6 +161,12 @@ export function MyRequestDetailScreen({ id }: { id: string }) {
       </section>
 
       <MyRequestWorkflowActions request={request} />
+
+      <FmTicketAttachments
+        ticketId={request.id}
+        ticketStatus={request.status}
+        audience="requester"
+      />
 
       <section className="rounded-xl border border-slate-200 bg-slate-50 p-6">
         <h2 className="text-lg font-semibold text-slate-950">What happens next</h2>

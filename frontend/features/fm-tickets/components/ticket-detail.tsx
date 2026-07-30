@@ -15,6 +15,7 @@ import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 import { TicketCommentForm } from "./ticket-comment-form";
 import { TicketComments } from "./ticket-comments";
 import { TicketAssignmentPanel } from "./ticket-assignment-panel";
+import { FmTicketAttachments } from "./fm-ticket-attachments";
 import { TicketEscalationForm } from "./ticket-escalation-form";
 import { TicketEscalationHistory } from "./ticket-escalation-history";
 import { TicketGenerateWorkOrderPanel } from "./ticket-generate-work-order-panel";
@@ -151,6 +152,12 @@ export function TicketDetailScreen({ id }: { id: string }) {
       <TicketAssignmentPanel ticket={ticket} />
       <TicketGenerateWorkOrderPanel ticket={ticket} />
       <TicketSlaPanel ticket={ticket} />
+
+      <FmTicketAttachments
+        ticketId={ticket.id}
+        ticketStatus={ticket.status}
+        audience="internal"
+      />
 
       <SectionCard title="Dates">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

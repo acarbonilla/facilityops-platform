@@ -11,7 +11,6 @@ import { useInspectionDetail } from "@/hooks/use-inspection-detail";
 import { usePermissions } from "@/hooks/use-permissions";
 import { readInspectionFormFlash } from "@/lib/inspection/form";
 import type {
-  InspectionAttachment,
   InspectionComment,
   InspectionCorrectiveAction,
   InspectionDetail,
@@ -23,6 +22,7 @@ import type {
 
 import { InspectionLoadingSkeleton } from "./inspection-loading-skeleton";
 import { InspectionAIAnalysis } from "./inspection-ai-analysis";
+import { InspectionAttachments } from "./inspection-attachments";
 import { InspectionFindingsActions } from "./inspection-findings-actions";
 import { InspectionPriorityBadge } from "./inspection-priority-badge";
 import { InspectionStatusBadge } from "./inspection-status-badge";
@@ -81,22 +81,6 @@ function formatScore(value: string | number | null | undefined) {
   }
 
   return String(value);
-}
-
-function formatFileSize(value?: number | null) {
-  if (!value) {
-    return "Size unavailable";
-  }
-
-  if (value < 1024) {
-    return `${value} B`;
-  }
-
-  if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`;
-  }
-
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function formatInspectionError(error: unknown, fallback: string) {
@@ -226,41 +210,6 @@ function buildCorrectiveActionColumns(): DataTableColumn<InspectionCorrectiveAct
       header: "Notes",
       cell: (item) => item.notes || "No notes recorded.",
       className: "min-w-80 whitespace-normal",
-    },
-  ];
-}
-
-function buildAttachmentColumns(): DataTableColumn<InspectionAttachment>[] {
-  return [
-    {
-      header: "File Name",
-      cell: (item) => (
-        <div className="min-w-0 whitespace-normal">
-          <p className="font-medium text-slate-900">{item.file_name}</p>
-          <p className="mt-1 text-xs text-slate-500">{formatFileSize(item.size_bytes)}</p>
-        </div>
-      ),
-      className: "min-w-60 whitespace-normal",
-    },
-    {
-      header: "Type",
-      cell: (item) => item.content_type || "Unknown",
-      className: "min-w-32 whitespace-normal",
-    },
-    {
-      header: "Uploaded By",
-      cell: (item) => formatPersonLabel(item.uploaded_by_email),
-      className: "min-w-48 whitespace-normal",
-    },
-    {
-      header: "Note",
-      cell: (item) => item.note || "No note recorded.",
-      className: "min-w-72 whitespace-normal",
-    },
-    {
-      header: "Created",
-      cell: (item) => formatDateTime(item.created_at),
-      className: "min-w-40 whitespace-normal",
     },
   ];
 }
@@ -563,15 +512,9 @@ export function InspectionDetailScreen({ id }: { id: string }) {
         title="Corrective Actions"
       />
 
-      <DataSection
-        caption="Inspection attachment metadata"
-        columns={buildAttachmentColumns()}
-        description="Attachment metadata only. File upload and download remain outside FO-039."
-        emptyMessage="No attachment metadata is currently associated with this inspection."
-        emptyTitle="No attachments"
-        getRowKey={(item) => item.id}
-        rows={detail.attachments}
-        title="Attachments"
+      <InspectionAttachments
+        inspectionId={detail.id}
+        inspectionStatus={detail.status}
       />
 
       <DataSection

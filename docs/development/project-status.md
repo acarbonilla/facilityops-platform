@@ -14,12 +14,11 @@
 
 ## Current Module
 
-- Attachments — FO-080 Attachment Upload UI complete and merged via PR #46
+- Attachments — FO-079–FO-083 complete on `feature/business-module-attachments`
 
 ## Current Branch
 
-- `main` at `76c234c80c4fe7dd80ccb5a05910155bba631e22` (synchronized with
-  `origin/main` after PR #46 merge)
+- `feature/business-module-attachments` (PR #47 Ready for Review; not merged)
 
 ## Completed Modules
 
@@ -110,16 +109,17 @@
 
 ## Current Task
 
-- FO-080 Attachment Upload UI is **complete and merged** via PR #46 at
-  `76c234c80c4fe7dd80ccb5a05910155bba631e22`.
-- FO-079 Secure Attachment Backend remains merged via PR #45.
-- Comments and AI remain deferred. FO-081 / FO-082 / FO-083 have not started.
+- FO-083 Attachment QA & Stabilization is **complete** on
+  `feature/business-module-attachments`.
+- FO-079 / FO-080 remain merged on `main`.
+- FO-081 / FO-082 / FO-083 are finalized on the shared branch.
+- PR #47 is Ready for Review — do not auto-merge.
 
 ## Next Milestone
 
-- FO-081 FM Ticket attachment embedding (not started)
-- FO-082 Maintenance / 5S attachment embedding (not started)
-- FO-083 richer evidence workflows (not started)
+- Review and merge PR #47 into `main`
+- Post-merge verification
+- Do not reopen FO-081/FO-082 independently
 
 ## Completed Feature — Master Data Management
 
@@ -172,9 +172,8 @@
 - Repository versioning is commit-based today; no release tags are present.
 - Module merge workflow is still manual and depends on branch discipline plus tracker accuracy.
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
-- Attachment backend/storage foundation delivered by FO-079; FO-080 adds the
-  reusable frontend attachment workspace. Module embedding remains deferred
-  (FO-081+).
+- Attachment platform FO-079–FO-083 is complete on
+  `feature/business-module-attachments` (PR #47 Ready for Review; not merged).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit

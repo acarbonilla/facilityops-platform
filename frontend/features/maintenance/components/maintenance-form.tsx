@@ -402,12 +402,12 @@ export function MaintenanceAttachmentSection({
 }) {
   return (
     <MaintenanceFormSection
-      description="Attachment upload remains deferred until the Maintenance upload workflow is available."
+      description="Attachments are managed from Work Order Details after the work order exists."
       title="Attachments"
     >
       <SectionNotice tone="amber">
         {capabilityNote ||
-          "Attachments can be added when the Maintenance upload workflow becomes available."}
+          "Open Work Order Details to upload, download, or delete attachments for this record."}
       </SectionNotice>
     </MaintenanceFormSection>
   );

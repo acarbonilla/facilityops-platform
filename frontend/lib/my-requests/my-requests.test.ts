@@ -557,7 +557,8 @@ test("22b. Automatic closure guidance distinguishes closed states", () => {
 
 test("23. Attachment guidance text", () => {
   assert.equal(getAttachmentGuidanceText(), MY_REQUEST_ATTACHMENT_GUIDANCE);
-  assert.match(getAttachmentGuidanceText(), /later update/i);
+  assert.match(getAttachmentGuidanceText(), /requester-visible/i);
+  assert.doesNotMatch(getAttachmentGuidanceText(), /\/fm-tickets\//);
 });
 
 test("24. No settings permission requirement", () => {

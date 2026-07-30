@@ -6,6 +6,8 @@ from django.db import models
 from apps.core.models import BaseModel
 from apps.master_data.models import Tenant
 
+from .ownership import AttachmentOwnerType, AttachmentVisibility
+
 
 class Attachment(BaseModel):
     """Tenant-owned binary attachment metadata. Storage keys are server-generated."""
@@ -28,6 +30,29 @@ class Attachment(BaseModel):
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="uploaded_attachments",
+    )
+    # FO-081: optional module ownership. Empty owner_type means unlinked library.
+    # Security: tenant and uploader are always server-derived; never trust client IDs.
+    owner_type = models.CharField(
+        max_length=64,
+        blank=True,
+        default=AttachmentOwnerType.NONE,
+        db_index=True,
+        help_text="Owning business object type (e.g. fm_ticket). Blank = unlinked.",
+    )
+    owner_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Owning business object UUID. Null when unlinked.",
+    )
+    # FO-081: requester safety classification. Default internal_only is conservative.
+    visibility = models.CharField(
+        max_length=32,
+        choices=AttachmentVisibility.CHOICES,
+        default=AttachmentVisibility.INTERNAL_ONLY,
+        db_index=True,
+        help_text="Audience visibility. Defaults to internal_only for safety.",
     )
     original_filename = models.CharField(max_length=255)
     display_filename = models.CharField(max_length=255)
@@ -64,6 +89,14 @@ class Attachment(BaseModel):
             models.Index(
                 fields=["tenant", "is_deleted", "-created_at"],
                 name="attach_tenant_deleted_created",
+            ),
+            models.Index(
+                fields=["tenant", "owner_type", "owner_id", "status", "-created_at"],
+                name="attach_owner_status_crt",
+            ),
+            models.Index(
+                fields=["tenant", "owner_type", "owner_id", "visibility", "-created_at"],
+                name="attach_owner_vis_crt",
             ),
         ]
 

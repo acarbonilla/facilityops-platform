@@ -104,7 +104,7 @@ export interface MyRequestFilterValues {
 }
 
 export const MY_REQUEST_ATTACHMENT_GUIDANCE =
-  "Photo and document attachments will be available in a later update.";
+  "You can upload and view requester-visible photos or PDFs on this request. Internal operational files are not shown here.";
 
 export const MY_REQUEST_COMMENTS_GUIDANCE =
   "Comments will be available in a later update.";

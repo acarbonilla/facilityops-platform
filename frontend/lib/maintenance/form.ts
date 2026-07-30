@@ -15,7 +15,7 @@ export const MAINTENANCE_FORM_ASSIGNMENT_GUIDANCE =
   "Create the Work Order first. Technician and Supervisor assignments are managed from the Work Order Details page.";
 
 export const MAINTENANCE_FORM_ATTACHMENT_GUIDANCE =
-  "Attachments can be added when the Maintenance upload workflow becomes available.";
+  "Manage attachments from Work Order Details after the record exists. Create and edit forms do not upload files.";
 
 function formatDateTimeLocalValue(value?: string | null): string {
   if (!value) {

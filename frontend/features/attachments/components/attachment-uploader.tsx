@@ -22,11 +22,14 @@ import {
 } from "@/lib/attachments/attachments";
 import { getAttachmentMutationErrorMessage } from "@/hooks/use-attachments";
 import { uploadAttachment } from "@/services/api/attachments";
+import type { AttachmentUploadOptions } from "@/types/attachments";
 
 export interface AttachmentUploaderProps {
   canUpload: boolean;
   disabled?: boolean;
   maxBytes?: number;
+  uploadOptions?: AttachmentUploadOptions;
+  guidanceText?: string;
   onUploaded?: () => void;
 }
 
@@ -34,6 +37,8 @@ export function AttachmentUploader({
   canUpload,
   disabled = false,
   maxBytes = ATTACHMENT_MAX_UPLOAD_BYTES,
+  uploadOptions,
+  guidanceText,
   onUploaded,
 }: AttachmentUploaderProps) {
   const inputId = useId();
@@ -108,7 +113,7 @@ export function AttachmentUploader({
       }),
     );
     try {
-      const uploaded = await uploadAttachment(item.file);
+      const uploaded = await uploadAttachment(item.file, uploadOptions);
       setQueue((current) =>
         markQueuedAttachment(current, item.localId, {
           status: "success",
@@ -155,6 +160,9 @@ export function AttachmentUploader({
       }
     }
     setIsUploading(false);
+    if (successCount > 0) {
+      onUploaded?.();
+    }
     if (failureCount === 0) {
       setBanner(
         successCount === 1
@@ -176,8 +184,11 @@ export function AttachmentUploader({
       return;
     }
     setIsUploading(true);
-    await uploadOne(item);
+    const ok = await uploadOne(item);
     setIsUploading(false);
+    if (ok) {
+      onUploaded?.();
+    }
   }
 
   return (
@@ -188,7 +199,7 @@ export function AttachmentUploader({
             Upload attachments
           </h2>
           <p id={guidanceId} className="mt-1 text-sm text-slate-600">
-            {getAttachmentWorkspaceGuidance()}
+            {guidanceText ?? getAttachmentWorkspaceGuidance()}
           </p>
         </div>
         <button
@@ -237,6 +248,8 @@ export function AttachmentUploader({
           ref={inputRef}
           type="file"
           className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
           accept={ATTACHMENT_ACCEPT_ATTRIBUTE}
           multiple
           disabled={disabled || isUploading}

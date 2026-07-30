@@ -9,7 +9,10 @@ import {
   uploadAttachment,
 } from "@/services/api/attachments";
 import { attachmentQueryKeys } from "@/services/api/query-keys";
-import type { AttachmentListParams } from "@/types/attachments";
+import type {
+  AttachmentListParams,
+  AttachmentUploadOptions,
+} from "@/types/attachments";
 
 import {
   formatAttachmentApiError,
@@ -27,7 +30,13 @@ export function useAttachmentList(params?: AttachmentListParams, enabled = true)
 export function useUploadAttachment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (file: File) => uploadAttachment(file),
+    mutationFn: ({
+      file,
+      options,
+    }: {
+      file: File;
+      options?: AttachmentUploadOptions;
+    }) => uploadAttachment(file, options),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: attachmentQueryKeys.all });
     },

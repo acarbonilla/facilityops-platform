@@ -39,9 +39,13 @@ class AttachmentViewSet(viewsets.ViewSet):
         paginator = self.pagination_class()
         page = paginator.paginate_queryset(queryset, self.request, view=self)
         if page is not None:
-            serializer = serializer_class(page, many=True)
+            serializer = serializer_class(
+                page, many=True, context={"request": self.request}
+            )
             return paginator.get_paginated_response(serializer.data)
-        serializer = serializer_class(queryset, many=True)
+        serializer = serializer_class(
+            queryset, many=True, context={"request": self.request}
+        )
         return Response(serializer.data)
 
     def create(self, request):
@@ -56,6 +60,9 @@ class AttachmentViewSet(viewsets.ViewSet):
                 )
                 or "",
                 category=serializer.validated_data.get("category"),
+                owner_type=serializer.validated_data.get("owner_type") or "",
+                owner_id=serializer.validated_data.get("owner_id"),
+                visibility=serializer.validated_data.get("visibility"),
             )
         except AttachmentError as exc:
             return Response(
@@ -63,13 +70,17 @@ class AttachmentViewSet(viewsets.ViewSet):
                 status=exc.status_code,
             )
         return Response(
-            AttachmentSerializer(attachment).data,
+            AttachmentSerializer(attachment, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
     def list(self, request):
         try:
-            queryset = list_attachments(actor=request.user)
+            queryset = list_attachments(
+                actor=request.user,
+                owner_type=request.query_params.get("owner_type"),
+                owner_id=request.query_params.get("owner_id"),
+            )
         except AttachmentError as exc:
             return Response(
                 {"detail": exc.message, "code": exc.code},
@@ -79,7 +90,9 @@ class AttachmentViewSet(viewsets.ViewSet):
 
     def retrieve(self, request, pk=None):
         attachment = get_attachment(actor=request.user, attachment_id=pk)
-        return Response(AttachmentSerializer(attachment).data)
+        return Response(
+            AttachmentSerializer(attachment, context={"request": request}).data
+        )
 
     @action(detail=True, methods=["get"], url_path="download")
     def download(self, request, pk=None):
@@ -108,4 +121,6 @@ class AttachmentViewSet(viewsets.ViewSet):
 
     def destroy(self, request, pk=None):
         attachment = delete_attachment(actor=request.user, attachment_id=pk)
-        return Response(AttachmentSerializer(attachment).data)
+        return Response(
+            AttachmentSerializer(attachment, context={"request": request}).data
+        )
