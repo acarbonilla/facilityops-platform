@@ -1,6 +1,8 @@
 from django.contrib import admin
 
 from .models import (
+    AITicketAnalysis,
+    AITicketAnalysisAttachment,
     FmTicket,
     FmTicketComment,
     FmTicketEscalation,
@@ -106,3 +108,42 @@ class FmTicketEscalationAdmin(admin.ModelAdmin):
     )
     list_filter = ("level", "is_active", "created_at")
     readonly_fields = ("created_at", "updated_at", "resolved_at")
+
+
+class AITicketAnalysisAttachmentInline(admin.TabularInline):
+    model = AITicketAnalysisAttachment
+    extra = 0
+    readonly_fields = ("attachment", "created_at")
+
+
+@admin.register(AITicketAnalysis)
+class AITicketAnalysisAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "ticket",
+        "tenant",
+        "status",
+        "model_name",
+        "queued_at",
+        "completed_at",
+        "requested_by",
+    )
+    list_filter = ("status", "model_name", "queued_at")
+    search_fields = (
+        "id",
+        "ticket__ticket_number",
+        "ticket__title",
+        "celery_task_id",
+    )
+    readonly_fields = (
+        "queued_at",
+        "started_at",
+        "completed_at",
+        "duration_ms",
+        "result_json",
+        "error_message",
+        "celery_task_id",
+        "created_at",
+        "updated_at",
+    )
+    inlines = [AITicketAnalysisAttachmentInline]

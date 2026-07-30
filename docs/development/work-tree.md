@@ -21,8 +21,8 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-078D merged | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D merged via PR #44 (`87c8423…`); Employee-safe Maintenance routing preserved |
-| Attachments | FO-083 complete on shared branch | FO-079/FO-080 merged; FO-081–FO-083 on `feature/business-module-attachments`; PR #47 Ready for Review |
+| FM Ticketing | FO-084 AI foundation in progress | Employee Requester merged (FO-075–FO-078C); FO-063 merged via PR #43; FO-078D merged via PR #44 (`87c8423…`); FO-084 create-flow images + AI queue on `feature/fo-084-fm-ticket-ai-analysis-foundation` |
+| Attachments | FO-083 complete on shared branch | FO-079/FO-080 merged; FO-081–FO-083 on `feature/business-module-attachments`; PR #47 Ready for Review; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete | FO-064 through FO-067B complete; PR #38 merged to `main` (`dfd3a44…`); Sol renewed cumulative review APPROVED; export and charts deferred; FO-063 reserved/deferred |
@@ -432,7 +432,7 @@ Supports asset listing, detail, create, edit, and admin alias screens using the 
 
 ## FM Ticketing
 
-Status: Complete
+Status: FO-084 AI foundation in progress
 
 ### Purpose
 
@@ -441,26 +441,26 @@ Manages facility-management tickets, including read, create, edit, comments, his
 ### Backend
 
 - Apps: `apps.fm_tickets`
-- Models: `FmTicket`, `FmTicketEscalation`, `FmTicketComment`, `FmTicketHistory`, `FmTicketStatusHistory`
-- Serializers: operational list/detail/create/update serializers plus dedicated Employee requester-safe list/detail/create and request-options serializers
+- Models: `FmTicket`, `FmTicketEscalation`, `FmTicketComment`, `FmTicketHistory`, `FmTicketStatusHistory`, `AITicketAnalysis`, `AITicketAnalysisAttachment`
+- Serializers: operational list/detail/create/update serializers plus dedicated Employee requester-safe list/detail/create and request-options serializers; AI analysis queue/status serializers (FO-084)
 - ViewSets / Views: `FmTicketViewSet`
-- APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/request-options/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`
-- Services: authoritative FM Ticket tenant-scope helper, ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation
+- APIs: `/api/fm-tickets/tickets/`, `/tickets/{id}/`, `/request-options/`, `/comments/`, `/history/`, `/escalations/`, `/escalate/`, `/assign/`, `/change-status/`, `/ai-analyses/`, `/ai-analyses/{id}/`
+- Services: authoritative FM Ticket tenant-scope helper, ticket creation/update helpers, history recording, status transitions, assignment, escalation resolution and creation, SLA calculation, AI queue/processing/provider adapters (FO-084)
 - Permissions: `HasTicketPermission` with `fm_tickets.view`, `create`, `update`, `assign`, `close`, and `manage`
-- Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`
-- Tests: `backend/apps/fm_tickets/tests.py`, `test_tenant_isolation.py`, and `test_employee_requester.py`
+- Admin: `FmTicketAdmin`, `FmTicketCommentAdmin`, `FmTicketHistoryAdmin`, `FmTicketStatusHistoryAdmin`, `FmTicketEscalationAdmin`, `AITicketAnalysisAdmin`
+- Tests: `backend/apps/fm_tickets/tests.py`, `test_tenant_isolation.py`, `test_employee_requester.py`, `test_ai_analysis.py`
 
 ### Frontend
 
 - Routes: `/fm-tickets`, `/fm-tickets/new`, `/fm-tickets/[id]`, `/fm-tickets/[id]/edit`
 - Module Folder: `frontend/features/fm-tickets`
 - Pages: list, detail, create, and edit pages
-- Components: `TicketListScreen`, `TicketDetailScreen`, `TicketFormPage`, `TicketForm`, `TicketComments`, `TicketCommentForm`, `TicketHistory`, `TicketAssignmentPanel`, `TicketStatusActions`, `TicketSlaPanel`, `TicketEscalationForm`, `TicketEscalationHistory`, badge and shared display components
+- Components: `TicketListScreen`, `TicketDetailScreen`, `TicketFormPage`, `TicketForm`, `TicketCreateImageStaging`, `TicketSubmittedSuccessBanner`, `TicketComments`, `TicketCommentForm`, `TicketHistory`, `TicketAssignmentPanel`, `TicketStatusActions`, `TicketSlaPanel`, `TicketEscalationForm`, `TicketEscalationHistory`, badge and shared display components
 - Hooks: No dedicated FM ticket hook layer; feature components use queries and mutations directly
 - API Files: `services/api/fm-tickets.ts`
 - Types: `types/fm-tickets.ts`
 - RBAC Usage: view, create, update, assign, manage, and close permissions drive route access and action visibility
-- Tests: No dedicated frontend tests
+- Tests: `lib/fm-tickets/create-image-staging.test.ts` (FO-084)
 
 ### Notes
 
@@ -520,6 +520,8 @@ Manages facility-management tickets, including read, create, edit, comments, his
   same shared branch.
 - FO-083 Attachment QA & Stabilization is **complete** on the same shared
   branch. PR #47 is Ready for Review (not auto-merged).
+- FO-084 FM Ticket Image Upload & AI Analysis Foundation is **implemented** on
+  `feature/fo-084-fm-ticket-ai-analysis-foundation` (placeholder AI only).
 
 ## Maintenance Work Order
 

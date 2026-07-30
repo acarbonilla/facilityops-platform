@@ -154,11 +154,14 @@ export interface TicketFormProps {
   areas: Area[];
   assets: Asset[];
   currentStatus?: FmTicketStatus;
+  /** Optional content rendered immediately before the submit actions (FO-084). */
+  beforeSubmit?: React.ReactNode;
 }
 
 export function TicketForm({
   areas,
   assets,
+  beforeSubmit,
   buildings,
   cancelHref,
   currentStatus,
@@ -362,6 +365,8 @@ export function TicketForm({
           type="datetime-local"
         />
       </TicketFormSection>
+
+      {beforeSubmit}
 
       <FormActions
         cancelHref={cancelHref}

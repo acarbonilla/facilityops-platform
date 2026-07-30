@@ -415,3 +415,89 @@ class FmTicketStatusHistory(BaseModel):
 
     def __str__(self):
         return f"{self.ticket} {self.from_status or 'none'} -> {self.to_status}"
+
+
+class AITicketAnalysis(BaseModel):
+    """FO-084: queued FM ticket image analysis request (placeholder provider for now)."""
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Queued"
+        PROCESSING = "processing", "Processing"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="fm_ticket_ai_analyses",
+    )
+    ticket = models.ForeignKey(
+        FmTicket,
+        on_delete=models.CASCADE,
+        related_name="ai_analyses",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.QUEUED,
+        db_index=True,
+    )
+    queued_at = models.DateTimeField(default=timezone.now, db_index=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    duration_ms = models.PositiveIntegerField(null=True, blank=True)
+    model_name = models.CharField(max_length=100, blank=True, default="placeholder")
+    model_version = models.CharField(max_length=50, blank=True, default="v0")
+    result_json = models.JSONField(default=dict, blank=True)
+    error_message = models.TextField(blank=True)
+    celery_task_id = models.CharField(max_length=255, blank=True)
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="requested_fm_ticket_ai_analyses",
+    )
+
+    class Meta:
+        ordering = ["-queued_at", "-created_at"]
+        indexes = [
+            models.Index(
+                fields=["tenant", "ticket", "-queued_at"],
+                name="fm_ai_tenant_ticket_queued",
+            ),
+            models.Index(
+                fields=["tenant", "status", "-queued_at"],
+                name="fm_ai_tenant_status_queued",
+            ),
+        ]
+
+    def __str__(self):
+        return f"AI analysis {self.status} for {self.ticket_id}"
+
+
+class AITicketAnalysisAttachment(BaseModel):
+    """Maps authorized attachment IDs into an AITicketAnalysis job."""
+
+    analysis = models.ForeignKey(
+        AITicketAnalysis,
+        on_delete=models.CASCADE,
+        related_name="analysis_attachments",
+    )
+    attachment = models.ForeignKey(
+        "attachments.Attachment",
+        on_delete=models.PROTECT,
+        related_name="fm_ticket_ai_analysis_links",
+    )
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["analysis", "attachment"],
+                name="uniq_fm_ai_analysis_attachment",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.analysis_id} -> {self.attachment_id}"

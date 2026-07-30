@@ -14,6 +14,8 @@ from django.db.models import Q
 from .filters import apply_query_param_filters
 from .models import FmTicket
 from .serializers import (
+    AITicketAnalysisQueueSerializer,
+    AITicketAnalysisSerializer,
     FmTicketAssignSerializer,
     FmTicketCommentSerializer,
     FmTicketCreateSerializer,
@@ -33,6 +35,12 @@ from .serializers import (
     GeneratedWorkOrderSummarySerializer,
 )
 from .services import assign_ticket, change_ticket_status
+from .ai_queue_service import (
+    AITicketAnalysisValidationError,
+    get_ticket_ai_analysis,
+    list_ticket_ai_analyses,
+    queue_ticket_image_analysis,
+)
 from .requester_workflow import (
     requester_acknowledge_ticket,
     requester_cancel_ticket,
@@ -127,6 +135,15 @@ class FmTicketViewSet(viewsets.ModelViewSet):
                 if self.request.method == "GET"
                 else "fm_tickets.update"
             )
+        elif self.action == "ai_analyses":
+            # Internal status/history/queue — authenticated ticket scope only.
+            self.required_permission = (
+                "fm_tickets.view"
+                if self.request.method == "GET"
+                else "fm_tickets.create"
+            )
+        elif self.action == "ai_analysis_detail":
+            self.required_permission = "fm_tickets.view"
         elif self.action == "assign":
             self.required_permission = "fm_tickets.assign"
         elif self.action == "generate_work_order":
@@ -478,3 +495,50 @@ class FmTicketViewSet(viewsets.ModelViewSet):
             ],
         }
         return Response(EmployeeRequestOptionsSerializer(payload).data)
+
+    @action(detail=True, methods=["get", "post"], url_path="ai-analyses")
+    def ai_analyses(self, request, pk=None):
+        """Internal AI analysis queue + history (FO-084). Not a public endpoint."""
+        ticket = self.get_object()
+
+        if request.method == "GET":
+            queryset = list_ticket_ai_analyses(actor=request.user, ticket_id=ticket.id)
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = AITicketAnalysisSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            serializer = AITicketAnalysisSerializer(queryset, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        serializer = AITicketAnalysisQueueSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            analysis = queue_ticket_image_analysis(
+                actor=request.user,
+                ticket_id=ticket.id,
+                attachment_ids=serializer.validated_data["attachment_ids"],
+            )
+        except AITicketAnalysisValidationError as exc:
+            raise DRFValidationError({"attachment_ids": [str(exc)]}) from exc
+
+        response_serializer = AITicketAnalysisSerializer(analysis)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path=r"ai-analyses/(?P<analysis_id>[^/.]+)",
+    )
+    def ai_analysis_detail(self, request, pk=None, analysis_id=None):
+        """Internal single-analysis status for future polling."""
+        ticket = self.get_object()
+        analysis = get_ticket_ai_analysis(
+            actor=request.user,
+            ticket_id=ticket.id,
+            analysis_id=analysis_id,
+        )
+        return Response(
+            AITicketAnalysisSerializer(analysis).data,
+            status=status.HTTP_200_OK,
+        )
+

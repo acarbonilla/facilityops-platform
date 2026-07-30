@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- Attachments — FO-079–FO-083 complete on `feature/business-module-attachments`
+- AI-Assisted FM Ticket Analysis — FO-084 foundation on `feature/fo-084-fm-ticket-ai-analysis-foundation`
 
 ## Current Branch
 
-- `feature/business-module-attachments` (PR #47 Ready for Review; not merged)
+- `feature/fo-084-fm-ticket-ai-analysis-foundation`
 
 ## Completed Modules
 
@@ -109,17 +109,20 @@
 
 ## Current Task
 
-- FO-083 Attachment QA & Stabilization is **complete** on
-  `feature/business-module-attachments`.
-- FO-079 / FO-080 remain merged on `main`.
-- FO-081 / FO-082 / FO-083 are finalized on the shared branch.
-- PR #47 is Ready for Review — do not auto-merge.
+- FO-084 FM Ticket Image Upload & AI Analysis Foundation is **implemented** on
+  `feature/fo-084-fm-ticket-ai-analysis-foundation`.
+- Create-flow image staging, AITicketAnalysis records, Celery placeholder
+  pipeline, and internal status APIs are in place. Recommendations/dashboard
+  remain deferred.
+- FO-083 Attachment QA & Stabilization remains complete on
+  `feature/business-module-attachments` (PR #47 Ready for Review).
 
 ## Next Milestone
 
-- Review and merge PR #47 into `main`
-- Post-merge verification
-- Do not reopen FO-081/FO-082 independently
+- Validate FO-084 (tests, lint, TypeScript, build, django check, migrations)
+- Independent review of FO-084
+- Continue AI epic after foundation approval
+- Review and merge PR #47 (attachments) into `main` when ready
 
 ## Completed Feature — Master Data Management
 
@@ -174,6 +177,9 @@
 - Cross-tab realtime refresh is not implemented; separately opened tabs may require manual refresh.
 - Attachment platform FO-079–FO-083 is complete on
   `feature/business-module-attachments` (PR #47 Ready for Review; not merged).
+- FO-084 AI foundation is implemented on
+  `feature/fo-084-fm-ticket-ai-analysis-foundation` (placeholder provider only;
+  no production recommendations yet).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit

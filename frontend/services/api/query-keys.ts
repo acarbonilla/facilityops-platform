@@ -135,6 +135,9 @@ export const fmTicketsQueryKeys = {
   comments: (id: string) => ["fm-tickets", id, "comments"] as const,
   history: (id: string) => ["fm-tickets", id, "history"] as const,
   escalations: (id: string) => ["fm-tickets", id, "escalations"] as const,
+  aiAnalyses: (id: string) => ["fm-tickets", id, "ai-analyses"] as const,
+  aiAnalysis: (id: string, analysisId: string) =>
+    ["fm-tickets", id, "ai-analyses", analysisId] as const,
 };
 
 function normalizeMaintenanceParams(

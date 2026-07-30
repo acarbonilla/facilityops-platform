@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 
 import { DetailField } from "@/components/common/detail-field";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { usePermissions } from "@/hooks/use-permissions";
+import { readAiQueuedFromSearch, readTicketCreatedFromSearch } from "@/lib/fm-tickets/create-image-staging";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
 import { getFmTicket } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
@@ -24,6 +26,7 @@ import { TicketPriorityBadge } from "./ticket-priority-badge";
 import { TicketSlaPanel } from "./ticket-sla-panel";
 import { TicketStatusActions } from "./ticket-status-actions";
 import { TicketStatusBadge } from "./ticket-status-badge";
+import { TicketSubmittedSuccessBanner } from "./ticket-submitted-success-banner";
 import {
   SectionCard,
   formatDateTime,
@@ -32,6 +35,9 @@ import {
 } from "./ticket-shared";
 
 export function TicketDetailScreen({ id }: { id: string }) {
+  const searchParams = useSearchParams();
+  const showAiQueued = readAiQueuedFromSearch(searchParams.toString());
+  const showCreated = readTicketCreatedFromSearch(searchParams.toString());
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission("fm_tickets.update");
   const canManage = hasPermission("fm_tickets.manage");
@@ -102,6 +108,12 @@ export function TicketDetailScreen({ id }: { id: string }) {
           <TicketPriorityBadge priority={ticket.priority} />
         </div>
       </PageHeader>
+
+      <TicketSubmittedSuccessBanner
+        showAiQueued={showAiQueued}
+        showCreated={showCreated}
+        ticketNumber={ticket.ticket_number}
+      />
 
       <SectionCard title="Ticket Summary">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
 from .models import (
+    AITicketAnalysis,
     FmTicket,
     FmTicketComment,
     FmTicketEscalation,
@@ -711,3 +712,50 @@ class FmTicketEscalationCreateSerializer(serializers.Serializer):
             reason=validated_data["reason"],
             level=validated_data["level"],
         )
+
+
+class AITicketAnalysisQueueSerializer(serializers.Serializer):
+    """Internal queue payload: authorized attachment IDs only."""
+
+    attachment_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=False,
+        max_length=20,
+    )
+
+
+class AITicketAnalysisSerializer(serializers.ModelSerializer):
+    attachment_ids = serializers.SerializerMethodField()
+    ticket_id = serializers.UUIDField(source="ticket.id", read_only=True)
+    ticket_number = serializers.CharField(
+        source="ticket.ticket_number",
+        read_only=True,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = AITicketAnalysis
+        fields = (
+            "id",
+            "ticket_id",
+            "ticket_number",
+            "status",
+            "queued_at",
+            "started_at",
+            "completed_at",
+            "duration_ms",
+            "model_name",
+            "model_version",
+            "result_json",
+            "error_message",
+            "attachment_ids",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_attachment_ids(self, obj):
+        return [
+            str(link.attachment_id)
+            for link in obj.analysis_attachments.all()
+        ]

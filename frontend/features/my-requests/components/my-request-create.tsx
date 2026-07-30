@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { FormField, getFormFieldAccessibilityProps } from "@/components/common/form-field";
 import { FormActions } from "@/components/common/form-actions";
@@ -11,9 +11,15 @@ import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import {
+  TicketCreateImageStaging,
+  type TicketCreateImageStagingHandle,
+} from "@/features/fm-tickets/components/ticket-create-image-staging";
+import {
   useCreateMyRequest,
   useMyRequestOptions,
 } from "@/hooks/use-my-requests";
+import { usePermissions } from "@/hooks/use-permissions";
+import { buildTicketCreateSuccessHref } from "@/lib/fm-tickets/create-image-staging";
 import {
   formatMyRequestError,
   getAttachmentGuidanceText,
@@ -27,6 +33,8 @@ import {
   clearStaleLocationSelections,
   filterCompatibleAssets,
 } from "@/lib/my-requests/form";
+import { queueFmTicketAiAnalysis } from "@/services/api/fm-tickets";
+import { ATTACHMENT_PERMISSIONS } from "@/types/attachments";
 import type { MyRequestFormValues } from "@/types/my-requests";
 import type { FmTicketCategory } from "@/types/fm-tickets";
 
@@ -50,10 +58,14 @@ export function MyRequestCreateScreen() {
   const router = useRouter();
   const optionsQuery = useMyRequestOptions();
   const createMutation = useCreateMyRequest();
+  const { hasPermission } = usePermissions();
+  const canUploadAttachments = hasPermission(ATTACHMENT_PERMISSIONS.upload);
+  const imageStagingRef = useRef<TicketCreateImageStagingHandle>(null);
   const [values, setValues] = useState<MyRequestFormValues>(EMPTY_VALUES);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const options = optionsQuery.data;
   const organizationName = options?.organization?.name ?? "Your organization";
@@ -124,16 +136,42 @@ export function MyRequestCreateScreen() {
     setFormSuccess(null);
     setFieldErrors({});
 
+    if (imageStagingRef.current?.hasRejected()) {
+      setFormError("Remove or replace rejected images before submitting.");
+      return;
+    }
+
     const payload = buildMyRequestCreatePayload(sanitizedValues);
     if (!payload) {
       setFormError("Complete all required fields before submitting your request.");
       return;
     }
 
+    setIsSubmitting(true);
     try {
       const created = await createMutation.mutateAsync(payload);
+      let aiQueued = false;
+      const uploadable = imageStagingRef.current?.getUploadableFiles().length ?? 0;
+
+      if (uploadable > 0 && imageStagingRef.current) {
+        const attachmentIds = await imageStagingRef.current.uploadAll({
+          owner_type: "fm_ticket",
+          owner_id: created.id,
+          visibility: "requester_visible",
+          category: "image_evidence",
+        });
+        if (attachmentIds.length > 0) {
+          await queueFmTicketAiAnalysis(created.id, {
+            attachment_ids: attachmentIds,
+          });
+          aiQueued = true;
+        }
+      }
+
       setFormSuccess("Request submitted successfully.");
-      router.replace(`/my-requests/${created.id}`);
+      router.replace(
+        buildTicketCreateSuccessHref(`/my-requests/${created.id}`, { aiQueued }),
+      );
       router.refresh();
     } catch (error) {
       const mapped = mapMyRequestFieldValidationErrors(error);
@@ -141,6 +179,8 @@ export function MyRequestCreateScreen() {
         setFieldErrors(mapped);
       }
       setFormError(formatMyRequestError(error));
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -172,6 +212,7 @@ export function MyRequestCreateScreen() {
   }
 
   const hasBuildings = (options?.buildings.length ?? 0) > 0;
+  const busy = isSubmitting || createMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -194,7 +235,7 @@ export function MyRequestCreateScreen() {
         />
       ) : (
         <form
-          aria-busy={createMutation.isPending}
+          aria-busy={busy}
           className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
           noValidate
           onSubmit={(event) => void handleSubmit(event)}
@@ -418,12 +459,21 @@ export function MyRequestCreateScreen() {
             </select>
           </FormField>
 
-          <p className="text-sm text-slate-600">{getAttachmentGuidanceText()}</p>
+          {canUploadAttachments ? (
+            <TicketCreateImageStaging
+              ref={imageStagingRef}
+              canUpload={canUploadAttachments}
+              disabled={busy}
+              guidanceText={`${getAttachmentGuidanceText()} Images upload when you submit. AI analysis runs in the background afterward.`}
+            />
+          ) : (
+            <p className="text-sm text-slate-600">{getAttachmentGuidanceText()}</p>
+          )}
 
           <FormActions
             cancelHref="/my-requests"
-            isSubmitting={createMutation.isPending}
-            submitLabel="Submit request"
+            isSubmitting={busy}
+            submitLabel="Submit Ticket"
           />
         </form>
       )}
