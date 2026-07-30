@@ -110,15 +110,17 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
             correlation_id=correlation_id,
         )
         # Independently validate structured payload before persistence.
-        if result.result_json.get("schema_version"):
+        # Persist the validated model dump so coerced fields (e.g. forced
+        # requires_human_review=True) are stored, not the raw provider payload.
+        result_payload = {
+            key: value
+            for key, value in (result.result_json or {}).items()
+            if key != "meta" and not str(key).startswith("_")
+        }
+        if result_payload.get("schema_version"):
             try:
-                validate_facility_image_analysis(
-                    {
-                        key: value
-                        for key, value in result.result_json.items()
-                        if key != "meta" and not str(key).startswith("_")
-                    }
-                )
+                validated = validate_facility_image_analysis(result_payload)
+                result_payload = validated.model_dump(mode="json")
             except PydanticValidationError as exc:
                 metrics.incr("schema_validation_failures")
                 raise AIAnalysisError(AIErrorCode.SCHEMA_VALIDATION_FAILED) from exc
@@ -148,7 +150,7 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
             locked.schema_version = result.schema_version
             locked.input_image_count = result.input_image_count
             locked.input_byte_count = result.input_byte_count
-            locked.result_json = result.result_json
+            locked.result_json = result_payload
             locked.error_message = ""
             locked.error_code = ""
             locked.retryable = False
