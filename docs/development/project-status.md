@@ -111,11 +111,12 @@
 
 ## Current Task
 
-- FO-085C Post-Merge Verification & Baseline Establishment completed 2026-07-30.
-- Stable baseline is FO-085 on `main` (`6404e6d…`). FO-086 is next.
+- FO-082A-R1 Public Landing Page Recovery in progress on
+  `feature/public-landing-page-restored` (Draft PR). FO-085 remains the AI baseline on `main`.
 
 ## Next Milestone
 
+- Review and merge FO-082A-R1 Draft PR (public landing page restore)
 - Begin FO-086 — AI Findings, Category & Priority Recommendations
 - Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
 
