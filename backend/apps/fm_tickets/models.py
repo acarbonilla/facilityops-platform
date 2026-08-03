@@ -426,6 +426,11 @@ class AITicketAnalysis(BaseModel):
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
 
+    class Decision(models.TextChoices):
+        ACCEPTED = "accepted", "Accepted"
+        MODIFIED = "modified", "Modified"
+        IGNORED = "ignored", "Ignored"
+
     tenant = models.ForeignKey(
         Tenant,
         on_delete=models.PROTECT,
@@ -466,6 +471,25 @@ class AITicketAnalysis(BaseModel):
         null=True,
         blank=True,
         related_name="requested_fm_ticket_ai_analyses",
+    )
+    # FO-087: human review decision (never mutates result_json / ticket fields here).
+    decision = models.CharField(
+        max_length=20,
+        choices=Decision.choices,
+        blank=True,
+        db_index=True,
+    )
+    decision_recommended_category = models.CharField(max_length=100, blank=True)
+    decision_recommended_priority = models.CharField(max_length=50, blank=True)
+    final_category = models.CharField(max_length=50, blank=True)
+    final_priority = models.CharField(max_length=20, blank=True)
+    decision_at = models.DateTimeField(null=True, blank=True)
+    decision_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fm_ticket_ai_recommendation_decisions",
     )
 
     class Meta:
