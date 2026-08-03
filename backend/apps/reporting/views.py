@@ -3,8 +3,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.access_control.permissions import HasPermissionCode
+from apps.fm_tickets.ai_analytics_service import build_ai_recommendation_analytics
 
 from .serializers import (
+    AIRecommendationAnalyticsSerializer,
     OperationalOverviewSerializer,
     ReportingFilterOptionsSerializer,
 )
@@ -40,5 +42,25 @@ class ReportingFilterOptionsView(APIView):
     def get(self, request):
         payload = build_reporting_filter_options(request.user)
         serializer = ReportingFilterOptionsSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+class AIRecommendationInsightsView(APIView):
+    """FO-088 tenant-scoped AI recommendation analytics (informational only).
+
+    Requires ``reporting.view``. Aggregations live in
+    ``AIRecommendationAnalyticsService`` and never mutate tickets or models.
+    Employee requesters without ``reporting.view`` are denied.
+    """
+
+    permission_classes = [IsAuthenticated, HasPermissionCode]
+    required_permission = "reporting.view"
+
+    def get(self, request):
+        payload = build_ai_recommendation_analytics(
+            request.user, request.query_params
+        )
+        serializer = AIRecommendationAnalyticsSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data)
