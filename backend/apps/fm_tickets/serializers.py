@@ -724,6 +724,24 @@ class AITicketAnalysisQueueSerializer(serializers.Serializer):
     )
 
 
+class AIRecommendationDecisionSerializer(serializers.Serializer):
+    """FO-087 human review decision (does not mutate ticket fields)."""
+
+    decision = serializers.ChoiceField(
+        choices=("accepted", "modified", "ignored"),
+    )
+    final_category = serializers.ChoiceField(
+        choices=FmTicket.Category.choices,
+        required=False,
+        allow_blank=True,
+    )
+    final_priority = serializers.ChoiceField(
+        choices=FmTicket.Priority.choices,
+        required=False,
+        allow_blank=True,
+    )
+
+
 class AITicketAnalysisSerializer(serializers.ModelSerializer):
     attachment_ids = serializers.SerializerMethodField()
     ticket_id = serializers.UUIDField(source="ticket.id", read_only=True)
@@ -740,6 +758,15 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
     confidence = serializers.SerializerMethodField()
     reasoning = serializers.SerializerMethodField()
     requires_human_review = serializers.SerializerMethodField()
+    decision_timestamp = serializers.DateTimeField(
+        source="decision_at",
+        read_only=True,
+        allow_null=True,
+    )
+    decision_user = serializers.SerializerMethodField()
+    accepted = serializers.SerializerMethodField()
+    modified = serializers.SerializerMethodField()
+    ignored = serializers.SerializerMethodField()
     schema_version = serializers.CharField(read_only=True)
     provider = serializers.CharField(read_only=True)
     error_code = serializers.CharField(read_only=True)
@@ -770,6 +797,14 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             "confidence",
             "reasoning",
             "requires_human_review",
+            "decision",
+            "accepted",
+            "modified",
+            "ignored",
+            "final_category",
+            "final_priority",
+            "decision_timestamp",
+            "decision_user",
             "error_message",
             "error_code",
             "retryable",
@@ -807,10 +842,14 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
         return findings if isinstance(findings, list) else []
 
     def get_recommended_category(self, obj):
+        if obj.decision_recommended_category:
+            return obj.decision_recommended_category
         value = self._payload(obj).get("recommended_category")
         return value if isinstance(value, str) else None
 
     def get_recommended_priority(self, obj):
+        if obj.decision_recommended_priority:
+            return obj.decision_recommended_priority
         value = self._payload(obj).get("recommended_priority")
         return value if isinstance(value, str) else None
 
@@ -830,8 +869,26 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
         return value if isinstance(value, str) else None
 
     def get_requires_human_review(self, obj):
-        # FO-086: advisory recommendations never auto-apply; always require human review.
+        # FO-086/087: advisory recommendations never auto-apply; always require human review.
         return True
+
+    def get_decision_user(self, obj):
+        user = obj.decision_by
+        if user is None:
+            return None
+        return {
+            "id": str(user.id),
+            "email": getattr(user, "email", "") or "",
+        }
+
+    def get_accepted(self, obj):
+        return obj.decision == AITicketAnalysis.Decision.ACCEPTED
+
+    def get_modified(self, obj):
+        return obj.decision == AITicketAnalysis.Decision.MODIFIED
+
+    def get_ignored(self, obj):
+        return obj.decision == AITicketAnalysis.Decision.IGNORED
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

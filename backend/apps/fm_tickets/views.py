@@ -14,6 +14,7 @@ from django.db.models import Q
 from .filters import apply_query_param_filters
 from .models import FmTicket
 from .serializers import (
+    AIRecommendationDecisionSerializer,
     AITicketAnalysisQueueSerializer,
     AITicketAnalysisSerializer,
     FmTicketAssignSerializer,
@@ -40,6 +41,10 @@ from .ai_queue_service import (
     get_ticket_ai_analysis,
     list_ticket_ai_analyses,
     queue_ticket_image_analysis,
+)
+from .ai_recommendation_review import (
+    AIRecommendationReviewValidationError,
+    record_recommendation_decision,
 )
 from .requester_workflow import (
     requester_acknowledge_ticket,
@@ -144,6 +149,8 @@ class FmTicketViewSet(viewsets.ModelViewSet):
             )
         elif self.action == "ai_analysis_detail":
             self.required_permission = "fm_tickets.view"
+        elif self.action == "ai_recommendation_decision":
+            self.required_permission = "fm_tickets.update"
         elif self.action == "assign":
             self.required_permission = "fm_tickets.assign"
         elif self.action == "generate_work_order":
@@ -537,6 +544,39 @@ class FmTicketViewSet(viewsets.ModelViewSet):
             ticket_id=ticket.id,
             analysis_id=analysis_id,
         )
+        return Response(
+            AITicketAnalysisSerializer(analysis).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"ai-analyses/(?P<analysis_id>[^/.]+)/decision",
+    )
+    def ai_recommendation_decision(self, request, pk=None, analysis_id=None):
+        """FO-087: record accept/modify/ignore without mutating the ticket."""
+        ticket = self.get_object()
+        # Ensure analysis is visible under ticket tenant scope before recording.
+        get_ticket_ai_analysis(
+            actor=request.user,
+            ticket_id=ticket.id,
+            analysis_id=analysis_id,
+        )
+        serializer = AIRecommendationDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            analysis = record_recommendation_decision(
+                actor=request.user,
+                ticket_id=ticket.id,
+                analysis_id=analysis_id,
+                decision=serializer.validated_data["decision"],
+                final_category=serializer.validated_data.get("final_category") or None,
+                final_priority=serializer.validated_data.get("final_priority") or None,
+            )
+        except AIRecommendationReviewValidationError as exc:
+            raise DRFValidationError({"detail": [str(exc)]}) from exc
+
         return Response(
             AITicketAnalysisSerializer(analysis).data,
             status=status.HTTP_200_OK,

@@ -5,6 +5,7 @@ import type { PaginatedResponse } from "@/services/api/types";
 import type {
   FmTicketAiAnalysis,
   FmTicketAiAnalysisQueuePayload,
+  FmTicketAiRecommendationDecisionPayload,
   FmTicketAssignmentPayload,
   FmTicketAssignmentResponse,
   FmTicketComment,
@@ -255,6 +256,20 @@ export function getFmTicketAiAnalysis(
     API_ENDPOINTS.fmTickets.aiAnalysis(ticketId, analysisId),
     {
       method: "GET",
+    },
+  );
+}
+
+export function decideFmTicketAiRecommendation(
+  ticketId: string,
+  analysisId: string,
+  payload: FmTicketAiRecommendationDecisionPayload,
+): Promise<FmTicketAiAnalysis> {
+  return apiClient<FmTicketAiAnalysis>(
+    API_ENDPOINTS.fmTickets.aiRecommendationDecision(ticketId, analysisId),
+    {
+      method: "POST",
+      body: payload,
     },
   );
 }

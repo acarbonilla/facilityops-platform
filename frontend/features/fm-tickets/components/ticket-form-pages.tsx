@@ -1,8 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 
 import { ProtectedPermissionRoute } from "@/components/auth/protected-permission-route";
 import { ErrorState } from "@/components/common/error-state";
@@ -32,9 +32,11 @@ import {
 } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys, masterDataQueryKeys } from "@/services/api/query-keys";
 import type {
+  FmTicketCategory,
   FmTicketCreatePayload,
   FmTicketDetail,
   FmTicketFormValues,
+  FmTicketPriority,
   FmTicketUpdatePayload,
 } from "@/types/fm-tickets";
 import { ATTACHMENT_PERMISSIONS } from "@/types/attachments";
@@ -43,6 +45,7 @@ import {
   TicketCreateImageStaging,
   type TicketCreateImageStagingHandle,
 } from "./ticket-create-image-staging";
+import { TicketAiAnalysisStatusPanel } from "./ticket-ai-analysis-status";
 import { TicketForm } from "./ticket-form";
 
 function extractErrorMessage(error: unknown, fallback: string) {
@@ -396,7 +399,42 @@ export function TicketCreatePageContent() {
   );
 }
 
+function readAiApplyFromSearch(search: string): {
+  category: FmTicketCategory;
+  priority: FmTicketPriority;
+} | null {
+  const params = new URLSearchParams(search);
+  const category = params.get("ai_category");
+  const priority = params.get("ai_priority");
+  const categories = new Set([
+    "electrical",
+    "plumbing",
+    "hvac",
+    "civil",
+    "safety",
+    "cleaning",
+    "security",
+    "other",
+  ]);
+  const priorities = new Set(["low", "medium", "high", "urgent"]);
+  if (
+    category &&
+    priority &&
+    categories.has(category) &&
+    priorities.has(priority)
+  ) {
+    return {
+      category: category as FmTicketCategory,
+      priority: priority as FmTicketPriority,
+    };
+  }
+  return null;
+}
+
 export function TicketEditPageContent({ id }: { id: string }) {
+  const searchParams = useSearchParams();
+  const { hasPermission } = usePermissions();
+  const canUpdate = hasPermission("fm_tickets.update");
   const recordQuery = useQuery({
     queryKey: fmTicketsQueryKeys.detail(id),
     queryFn: () => getFmTicket(id),
@@ -414,6 +452,29 @@ export function TicketEditPageContent({ id }: { id: string }) {
     (payload) => updateFmTicket(id, payload),
     () => `/fm-tickets/${id}`,
   );
+  const [appliedRecommendation, setAppliedRecommendation] = useState<{
+    category: FmTicketCategory;
+    priority: FmTicketPriority;
+    token: number;
+  } | null>(null);
+
+  const searchApply = useMemo(
+    () => readAiApplyFromSearch(searchParams.toString()),
+    [searchParams],
+  );
+
+  const initialApplyToken = useMemo(() => {
+    if (!searchApply) {
+      return null;
+    }
+    return {
+      category: searchApply.category,
+      priority: searchApply.priority,
+      token: 1,
+    };
+  }, [searchApply]);
+
+  const activeApply = appliedRecommendation ?? initialApplyToken;
 
   if (
     recordQuery.isPending ||
@@ -479,23 +540,38 @@ export function TicketEditPageContent({ id }: { id: string }) {
       requiredPermission="fm_tickets.update"
       title="Edit FM Ticket"
     >
-      <TicketForm
-        areas={areasQuery.data ?? []}
-        assets={assetsQuery.data ?? []}
-        buildings={buildingsQuery.data ?? []}
-        cancelHref={`/fm-tickets/${id}`}
-        currentStatus={recordQuery.data.status}
-        departments={departmentsQuery.data ?? []}
-        floors={floorsQuery.data ?? []}
-        initialValues={mapTicketDetailToFormValues(recordQuery.data)}
-        isSubmitting={mutation.isPending}
-        onSubmit={async (values) => {
-          await mutation.mutateAsync(mapTicketFormValuesToPayload(values));
-        }}
-        organizations={organizationsQuery.data ?? []}
-        submitLabel="Save ticket"
-        tenants={tenantsQuery.data ?? []}
-      />
+      <div className="space-y-5">
+        <TicketAiAnalysisStatusPanel
+          audience="internal"
+          canReview={canUpdate}
+          ticketId={id}
+          onApplyRecommendation={(selection) => {
+            setAppliedRecommendation({
+              category: selection.category,
+              priority: selection.priority,
+              token: Date.now(),
+            });
+          }}
+        />
+        <TicketForm
+          areas={areasQuery.data ?? []}
+          assets={assetsQuery.data ?? []}
+          appliedRecommendation={activeApply}
+          buildings={buildingsQuery.data ?? []}
+          cancelHref={`/fm-tickets/${id}`}
+          currentStatus={recordQuery.data.status}
+          departments={departmentsQuery.data ?? []}
+          floors={floorsQuery.data ?? []}
+          initialValues={mapTicketDetailToFormValues(recordQuery.data)}
+          isSubmitting={mutation.isPending}
+          onSubmit={async (values) => {
+            await mutation.mutateAsync(mapTicketFormValuesToPayload(values));
+          }}
+          organizations={organizationsQuery.data ?? []}
+          submitLabel="Save ticket"
+          tenants={tenantsQuery.data ?? []}
+        />
+      </div>
     </TicketFormPageLayout>
   );
 }

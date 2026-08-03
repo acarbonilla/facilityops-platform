@@ -3,8 +3,15 @@ import test from "node:test";
 
 import {
   clampConfidence,
+  decisionBadgeClass,
   extractRecommendationView,
+  formatDecisionLabel,
+  formatTicketCategoryLabel,
+  formatTicketPriorityLabel,
+  getDecisionAnnouncement,
   getRecommendationDisclaimer,
+  mapAiCategoryToTicket,
+  mapAiPriorityToTicket,
   priorityBadgeClass,
   resolveRecommendedPriority,
   resolveRecommendationSeverity,
@@ -79,8 +86,26 @@ test("recommendation rendering helpers cover confidence severity priority reason
   assert.match(getRecommendationDisclaimer(), /suggestions only/i);
 });
 
-test("recommendations panel defaults collapsed for accessibility contract", () => {
-  // TicketAiAnalysisStatusPanel initializes recommendationsOpen=false.
-  const defaultCollapsed = false;
-  assert.equal(defaultCollapsed, false);
+test("FO-087 mapping and decision helpers", () => {
+  assert.equal(mapAiCategoryToTicket("Plumbing"), "plumbing");
+  assert.equal(mapAiCategoryToTicket("Housekeeping"), "cleaning");
+  assert.equal(mapAiPriorityToTicket("Critical"), "urgent");
+  assert.equal(mapAiPriorityToTicket("Medium"), "medium");
+  assert.equal(formatDecisionLabel("accepted"), "Accepted");
+  assert.equal(formatDecisionLabel("modified"), "Modified");
+  assert.equal(formatDecisionLabel("ignored"), "Ignored");
+  assert.match(decisionBadgeClass("accepted"), /emerald/);
+  assert.match(decisionBadgeClass("modified"), /amber/);
+  assert.match(getDecisionAnnouncement("accepted"), /filled into the ticket form/i);
+  assert.match(getDecisionAnnouncement("ignored"), /manual/i);
+  assert.equal(formatTicketCategoryLabel("civil"), "Civil");
+  assert.equal(formatTicketPriorityLabel("urgent"), "Urgent");
+  assert.match(getRecommendationDisclaimer(), /Facilities Team/);
+});
+
+test("FO-087 comparison labels cover accept modify ignore flows", () => {
+  assert.equal(formatDecisionLabel(null), "Pending review");
+  assert.match(getDecisionAnnouncement("modified"), /modified/i);
+  assert.equal(mapAiCategoryToTicket("Unknown"), "other");
+  assert.equal(mapAiPriorityToTicket("High"), "high");
 });

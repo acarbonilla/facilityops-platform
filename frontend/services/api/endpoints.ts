@@ -68,6 +68,8 @@ export const API_ENDPOINTS = {
     aiAnalyses: (id: string) => `/fm-tickets/tickets/${id}/ai-analyses/`,
     aiAnalysis: (id: string, analysisId: string) =>
       `/fm-tickets/tickets/${id}/ai-analyses/${analysisId}/`,
+    aiRecommendationDecision: (id: string, analysisId: string) =>
+      `/fm-tickets/tickets/${id}/ai-analyses/${analysisId}/decision/`,
   },
   maintenance: {
     dashboard: "/maintenance/work-orders/dashboard/",

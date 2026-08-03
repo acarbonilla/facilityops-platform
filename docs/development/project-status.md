@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-086 complete on `main`; next FO-087
+- AI-Assisted FM Ticket Analysis — FO-087 review workflow on `feature/fo-087-ai-review-workflow`
 
 ## Current Branch
 
-- `main` @ `fe583c3…` (FO-086 merge baseline)
+- `feature/fo-087-ai-review-workflow` (from `main` @ `769a620…`)
 
 ## Completed Modules
 
@@ -113,13 +113,14 @@
 
 ## Current Task
 
-- FO-086 AI Findings, Category & Priority Recommendations COMPLETE AND MERGED
-  via PR #52 (`fe583c3…`); FO-086A post-merge verification complete.
+- FO-087 AI Recommendation Review & Assisted Ticket Creation acceptance passed
+  (FO-087A); PR #53 Ready for Review / merge in progress.
 
 ## Next Milestone
 
-- FO-087 human-review apply (apply advisory recommendations under human control)
-- Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
+- Merge FO-087 PR #53 and establish FO-087 stable baseline
+- FO-088 AI Accuracy Analytics (not started)
+- Optional live Gemini smoke when credentials available
 
 ## Completed Feature — Master Data Management
 

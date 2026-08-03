@@ -1,10 +1,13 @@
 "use client";
 
-import { useId, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useId, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 
-import { getFmTicketAiAnalyses } from "@/services/api/fm-tickets";
+import {
+  decideFmTicketAiRecommendation,
+  getFmTicketAiAnalyses,
+} from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 import {
   getAiAnalysisStatusMessage,
@@ -17,19 +20,59 @@ import {
   shouldShowStructuredSummary,
 } from "@/lib/fm-tickets/ai-analysis-status";
 import {
+  decisionBadgeClass,
   extractRecommendationView,
+  formatDecisionLabel,
+  formatTicketCategoryLabel,
+  formatTicketPriorityLabel,
+  getDecisionAnnouncement,
+  mapAiCategoryToTicket,
+  mapAiPriorityToTicket,
   priorityBadgeClass,
   severityBadgeClass,
+  type AiRecommendationDecision,
 } from "@/lib/fm-tickets/ai-recommendations";
 import { cn } from "@/lib/utils";
+import type {
+  FmTicketCategory,
+  FmTicketPriority,
+} from "@/types/fm-tickets";
+
+const CATEGORY_OPTIONS: Array<{ value: FmTicketCategory; label: string }> = [
+  { value: "electrical", label: "Electrical" },
+  { value: "plumbing", label: "Plumbing" },
+  { value: "hvac", label: "HVAC" },
+  { value: "civil", label: "Civil" },
+  { value: "safety", label: "Safety" },
+  { value: "cleaning", label: "Cleaning" },
+  { value: "security", label: "Security" },
+  { value: "other", label: "Other" },
+];
+
+const PRIORITY_OPTIONS: Array<{ value: FmTicketPriority; label: string }> = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "urgent", label: "Urgent" },
+];
+
+export type AppliedAiRecommendation = {
+  category: FmTicketCategory;
+  priority: FmTicketPriority;
+};
 
 export function TicketAiAnalysisStatusPanel({
   ticketId,
   audience = "internal",
+  canReview = false,
+  onApplyRecommendation,
 }: {
   ticketId: string;
   audience?: "internal" | "requester";
+  canReview?: boolean;
+  onApplyRecommendation?: (selection: AppliedAiRecommendation) => void;
 }) {
+  const queryClient = useQueryClient();
   const analysesQuery = useQuery({
     queryKey: fmTicketsQueryKeys.aiAnalyses(ticketId),
     queryFn: () => getFmTicketAiAnalyses(ticketId),
@@ -43,7 +86,71 @@ export function TicketAiAnalysisStatusPanel({
   const latest = analysesQuery.data?.results?.[0];
   const uiStatus = resolveAiAnalysisUiStatus(latest?.status);
   const recommendationPanelId = useId();
+  const liveRegionId = useId();
   const [recommendationsOpen, setRecommendationsOpen] = useState(false);
+  const [modifyMode, setModifyMode] = useState(false);
+  const [modifyCategory, setModifyCategory] = useState<FmTicketCategory>("other");
+  const [modifyPriority, setModifyPriority] = useState<FmTicketPriority>("medium");
+  const [actionMessage, setActionMessage] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const recommendation = extractRecommendationView(
+    (latest?.result as Record<string, unknown> | undefined) ||
+      (latest?.result_json as Record<string, unknown> | undefined),
+  );
+
+  useEffect(() => {
+    if (!recommendation) {
+      return;
+    }
+    setModifyCategory(
+      mapAiCategoryToTicket(recommendation.recommendedCategory) as FmTicketCategory,
+    );
+    setModifyPriority(
+      mapAiPriorityToTicket(recommendation.recommendedPriority) as FmTicketPriority,
+    );
+  }, [recommendation]);
+
+  const decisionMutation = useMutation({
+    mutationFn: (payload: {
+      decision: AiRecommendationDecision;
+      final_category?: string;
+      final_priority?: string;
+    }) => {
+      if (!latest?.id) {
+        throw new Error("No AI analysis available.");
+      }
+      return decideFmTicketAiRecommendation(ticketId, latest.id, payload);
+    },
+    onSuccess: async (data, variables) => {
+      setActionError(null);
+      setModifyMode(false);
+      setRecommendationsOpen(true);
+      setActionMessage(getDecisionAnnouncement(variables.decision));
+      await queryClient.invalidateQueries({
+        queryKey: fmTicketsQueryKeys.aiAnalyses(ticketId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: fmTicketsQueryKeys.history(ticketId),
+      });
+
+      if (
+        variables.decision === "accepted" ||
+        variables.decision === "modified"
+      ) {
+        const category = (data.final_category ||
+          mapAiCategoryToTicket(data.recommended_category)) as FmTicketCategory;
+        const priority = (data.final_priority ||
+          mapAiPriorityToTicket(data.recommended_priority)) as FmTicketPriority;
+        onApplyRecommendation?.({ category, priority });
+      }
+    },
+    onError: () => {
+      setActionError(
+        "Recommendation decision could not be saved. Try again or continue manually.",
+      );
+    },
+  });
 
   if (!shouldShowAiAnalysisPanel(uiStatus, { audience })) {
     return null;
@@ -53,10 +160,13 @@ export function TicketAiAnalysisStatusPanel({
     typeof latest?.result_json?.analysis_summary === "string"
       ? latest.result_json.analysis_summary
       : null;
-  const recommendation = extractRecommendationView(
-    (latest?.result as Record<string, unknown> | undefined) ||
-      (latest?.result_json as Record<string, unknown> | undefined),
-  );
+  const hasDecision = Boolean(latest?.decision);
+  const showReviewActions =
+    canReview &&
+    audience === "internal" &&
+    uiStatus === "completed" &&
+    recommendation &&
+    !hasDecision;
 
   return (
     <section
@@ -73,6 +183,10 @@ export function TicketAiAnalysisStatusPanel({
         AI-generated · requires human review
       </p>
       <p className="mt-1 text-xs text-slate-600">{getAiGeneratedDisclaimer()}</p>
+
+      <div className="sr-only" id={liveRegionId} role="status" aria-live="assertive">
+        {actionMessage}
+      </div>
 
       {shouldShowStructuredSummary(uiStatus, audience) && summary ? (
         <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3">
@@ -112,13 +226,27 @@ export function TicketAiAnalysisStatusPanel({
           </button>
 
           {recommendationsOpen ? (
-            <div id={recommendationPanelId} className="space-y-4 border-t border-slate-200 px-3 py-3">
-              <p
-                className="inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-900"
-                role="status"
-              >
-                Human review required
-              </p>
+            <div
+              id={recommendationPanelId}
+              className="space-y-4 border-t border-slate-200 px-3 py-3"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <p
+                  className="inline-flex rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-900"
+                  role="status"
+                >
+                  Human review required
+                </p>
+                <p
+                  className={cn(
+                    "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                    decisionBadgeClass(latest?.decision),
+                  )}
+                  role="status"
+                >
+                  {formatDecisionLabel(latest?.decision)}
+                </p>
+              </div>
               <p className="text-xs text-slate-700">
                 {getRecommendationHumanReviewNotice()}
               </p>
@@ -131,8 +259,12 @@ export function TicketAiAnalysisStatusPanel({
                       key={`${finding.title}-${finding.description}`}
                       className="rounded-md border border-slate-200 bg-white p-3"
                     >
-                      <p className="text-sm font-medium text-slate-950">{finding.title}</p>
-                      <p className="mt-1 text-sm text-slate-700">{finding.description}</p>
+                      <p className="text-sm font-medium text-slate-950">
+                        {finding.title}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-700">
+                        {finding.description}
+                      </p>
                       <div className="mt-2">
                         <p className="text-xs font-medium text-slate-600">
                           Confidence {finding.confidence}%
@@ -235,6 +367,166 @@ export function TicketAiAnalysisStatusPanel({
                     {recommendation.reasoning}
                   </p>
                 </div>
+              ) : null}
+
+              {hasDecision ? (
+                <div className="rounded-md border border-slate-300 bg-white p-3">
+                  <h3 className="text-sm font-semibold text-slate-950">
+                    Recommendation comparison
+                  </h3>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        AI recommendation
+                      </p>
+                      <p className="mt-1 text-sm text-slate-800">
+                        Category: {latest?.recommended_category || "—"}
+                      </p>
+                      <p className="text-sm text-slate-800">
+                        Priority: {latest?.recommended_priority || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Final selection
+                      </p>
+                      <p className="mt-1 text-sm text-slate-800">
+                        Category:{" "}
+                        {formatTicketCategoryLabel(latest?.final_category)}
+                      </p>
+                      <p className="text-sm text-slate-800">
+                        Priority:{" "}
+                        {formatTicketPriorityLabel(latest?.final_priority)}
+                      </p>
+                    </div>
+                  </div>
+                  {latest?.decision_timestamp ? (
+                    <p className="mt-2 text-xs text-slate-600">
+                      Decided{" "}
+                      {new Date(latest.decision_timestamp).toLocaleString()}
+                      {latest.decision_user?.email
+                        ? ` by ${latest.decision_user.email}`
+                        : ""}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {showReviewActions ? (
+                <div className="space-y-3 rounded-md border border-slate-200 bg-white p-3">
+                  <p className="text-sm font-semibold text-slate-950">
+                    Review recommendation
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Accept fills category and priority into the ticket form only.
+                    Save or update the ticket to persist changes.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="rounded-md bg-emerald-700 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+                      disabled={decisionMutation.isPending}
+                      aria-label="Accept AI recommendation"
+                      onClick={() =>
+                        decisionMutation.mutate({ decision: "accepted" })
+                      }
+                    >
+                      Accept recommendation
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                      disabled={decisionMutation.isPending}
+                      aria-label="Modify AI recommendation"
+                      aria-expanded={modifyMode}
+                      onClick={() => setModifyMode((open) => !open)}
+                    >
+                      Modify recommendation
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50 disabled:opacity-60"
+                      disabled={decisionMutation.isPending}
+                      aria-label="Ignore AI recommendation"
+                      onClick={() =>
+                        decisionMutation.mutate({ decision: "ignored" })
+                      }
+                    >
+                      Ignore recommendation
+                    </button>
+                  </div>
+
+                  {modifyMode ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-sm text-slate-700">
+                        Final category
+                        <select
+                          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          value={modifyCategory}
+                          aria-label="Final category for modified recommendation"
+                          onChange={(event) =>
+                            setModifyCategory(
+                              event.target.value as FmTicketCategory,
+                            )
+                          }
+                        >
+                          {CATEGORY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block text-sm text-slate-700">
+                        Final priority
+                        <select
+                          className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+                          value={modifyPriority}
+                          aria-label="Final priority for modified recommendation"
+                          onChange={(event) =>
+                            setModifyPriority(
+                              event.target.value as FmTicketPriority,
+                            )
+                          }
+                        >
+                          {PRIORITY_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="sm:col-span-2">
+                        <button
+                          type="button"
+                          className="rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                          disabled={decisionMutation.isPending}
+                          aria-label="Confirm modified recommendation"
+                          onClick={() =>
+                            decisionMutation.mutate({
+                              decision: "modified",
+                              final_category: modifyCategory,
+                              final_priority: modifyPriority,
+                            })
+                          }
+                        >
+                          Confirm modified values
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {actionError ? (
+                <p className="text-sm text-red-700" role="alert">
+                  {actionError}
+                </p>
+              ) : null}
+              {actionMessage ? (
+                <p className="text-sm text-slate-700" role="status">
+                  {actionMessage}
+                </p>
               ) : null}
 
               <p className="text-xs text-slate-600">
