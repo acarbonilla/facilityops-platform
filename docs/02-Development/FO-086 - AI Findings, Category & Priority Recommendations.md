@@ -1,10 +1,11 @@
 # FO-086 — AI Findings, Category & Priority Recommendations
 
-**Status:** Implemented on `feature/fo-086-ai-recommendations` (Draft PR)  
+**Status:** Complete; merged to `main` via PR #52 (`fe583c3…`)  
 **Date:** 2026-08-03  
 **Base:** `main` @ `a5c1963…` (FO-085 + FO-082A)  
 **Phase:** Phase 12A — Application Development  
-**Epic:** AI-Assisted FM Ticket Analysis
+**Epic:** AI-Assisted FM Ticket Analysis  
+**Post-merge:** See `FO-086A - Finalize, Merge & Post-Merge Verification.md`
 
 ## Objective
 

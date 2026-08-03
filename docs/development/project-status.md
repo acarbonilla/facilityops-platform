@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-086 recommendations on `feature/fo-086-ai-recommendations`
+- AI-Assisted FM Ticket Analysis — FO-086 complete on `main`; next FO-087
 
 ## Current Branch
 
-- `feature/fo-086-ai-recommendations` (from `main` @ `a5c1963…`)
+- `main` @ `fe583c3…` (FO-086 merge baseline)
 
 ## Completed Modules
 
@@ -40,6 +40,7 @@
 - FM Ticket ↔ Maintenance Integration
 - Attachment Platform (FO-079–FO-083)
 - FM Ticket AI Analysis Foundation + Gemini Vision (FO-084–FO-085)
+- AI Findings, Category & Priority Recommendations (FO-086)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -112,13 +113,12 @@
 
 ## Current Task
 
-- FO-086 AI Findings, Category & Priority Recommendations implemented on
-  `feature/fo-086-ai-recommendations` (Draft PR).
+- FO-086 AI Findings, Category & Priority Recommendations COMPLETE AND MERGED
+  via PR #52 (`fe583c3…`); FO-086A post-merge verification complete.
 
 ## Next Milestone
 
-- Review and merge FO-086 Draft PR
-- Continue AI epic (FO-087 human-review apply) after FO-086 approval
+- FO-087 human-review apply (apply advisory recommendations under human control)
 - Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
@@ -178,6 +178,8 @@
   verification complete. Full Postgres suite and live Gemini smoke remain optional
   environmental follow-ups.
 - FO-082A public landing page COMPLETE AND MERGED via PR #51 (`3fe79e5…`).
+- FO-086 AI recommendations COMPLETE AND MERGED via PR #52 (`fe583c3…`);
+  FO-086A post-merge verification complete. Live Gemini smoke remains optional.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
@@ -191,11 +193,12 @@
 
 ## Last Merge
 
-- `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034` (PR #51 into `main`; FO-082A
-  Public Landing Page restore)
+- `fe583c3de0d1c49a6cbf0d56a385f350278ae55d` (PR #52 into `main`; FO-086
+  AI Findings, Category & Priority Recommendations)
+- Previous: `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034` (PR #51; FO-082A)
 - Previous: `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (PR #49; FO-085)
 - Previous: `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (PR #50; FO-084)
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline — FO-085 + FO-082A landing checkpoint
+- `0.1.0` synchronized `main` baseline — FO-086 AI recommendations checkpoint
