@@ -1,10 +1,11 @@
 # FO-087 — AI Recommendation Review & Assisted Ticket Creation
 
-**Status:** Implemented on `feature/fo-087-ai-review-workflow` (Draft PR)  
+**Status:** Acceptance passed (FO-087A); Draft PR #53 Ready for merge  
 **Date:** 2026-08-03  
 **Base:** `main` @ `769a620…` (FO-086)  
 **Phase:** Phase 12A — Application Development  
-**Epic:** AI-Assisted FM Ticket Analysis
+**Epic:** AI-Assisted FM Ticket Analysis  
+**Post-merge:** See `FO-087A - Finalize, Merge & Post-Merge Verification.md`
 
 ## Objective
 

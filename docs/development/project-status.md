@@ -113,13 +113,14 @@
 
 ## Current Task
 
-- FO-087 AI Recommendation Review & Assisted Ticket Creation implemented on
-  `feature/fo-087-ai-review-workflow` (Draft PR).
+- FO-087 AI Recommendation Review & Assisted Ticket Creation acceptance passed
+  (FO-087A); PR #53 Ready for Review / merge in progress.
 
 ## Next Milestone
 
-- Review and merge FO-087 Draft PR
-- Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
+- Merge FO-087 PR #53 and establish FO-087 stable baseline
+- FO-088 AI Accuracy Analytics (not started)
+- Optional live Gemini smoke when credentials available
 
 ## Completed Feature — Master Data Management
 
