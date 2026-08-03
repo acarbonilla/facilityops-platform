@@ -1,7 +1,8 @@
-"""Gemini Vision provider adapter (FO-085).
+"""Gemini Vision provider adapter (FO-085 + FO-086 recommendations).
 
 Uses the official google-genai SDK with generate_content + JSON schema.
 Image strategy: inline bytes via Part.from_bytes (no Files API for v1).
+FO-086 selects fm_ticket_recommendation_v1 + FacilityRecommendationV1 automatically.
 """
 
 from __future__ import annotations
@@ -13,17 +14,17 @@ from django.conf import settings
 
 from .errors import AIAnalysisError, AIErrorCode
 from .image_input import PreparedImage, build_minimal_ticket_context, prepare_analysis_images
-from .prompts.fm_ticket_image_analysis_v1 import (
+from .prompts.fm_ticket_recommendation_v1 import (
     PROMPT_NAME,
     PROMPT_VERSION,
     SYSTEM_INSTRUCTION,
     build_user_prompt,
 )
-from .schema_v1 import (
+from .schema_recommendation_v1 import (
     SCHEMA_NAME,
     SCHEMA_VERSION,
-    facility_image_analysis_json_schema,
-    validate_facility_image_analysis,
+    facility_recommendation_json_schema,
+    validate_facility_recommendation,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,6 @@ class GeminiVisionProvider:
             ticket=ticket,
             prepared_images=prepared,
         )
-        # Defensive: ensure no accidental PII keys.
         for forbidden in (
             "requester_email",
             "email",
@@ -83,8 +83,7 @@ class GeminiVisionProvider:
             prepared=prepared,
             correlation_id=correlation_id,
         )
-        validated = validate_facility_image_analysis(analysis)
-        # Enforce attachment provenance order.
+        validated = validate_facility_recommendation(analysis)
         by_id = {image.attachment_id: image for image in prepared}
         for image_result in validated.image_results:
             if image_result.attachment_id not in by_id:
@@ -103,7 +102,20 @@ class GeminiVisionProvider:
             "correlation_id": correlation_id or "",
             "ai_generated": True,
             "requires_human_review": True,
+            "advisory_only": True,
         }
+        logger.info(
+            "ai.gemini_recommendation_ready",
+            extra={
+                "provider": self.PROVIDER_NAME,
+                "model": model,
+                "correlation_id": correlation_id,
+                "overall_confidence": validated.overall_confidence,
+                "recommended_category": validated.recommended_category.value,
+                "recommended_priority": validated.recommended_priority.value,
+                "finding_count": len(validated.findings),
+            },
+        )
         return AIProviderResult(
             model_name=model,
             model_version=PROMPT_VERSION,
@@ -147,7 +159,7 @@ class GeminiVisionProvider:
             system_instruction=SYSTEM_INSTRUCTION,
             temperature=temperature,
             response_mime_type="application/json",
-            response_json_schema=facility_image_analysis_json_schema(),
+            response_json_schema=facility_recommendation_json_schema(),
             http_options=types.HttpOptions(timeout=timeout * 1000),
         )
 
@@ -191,7 +203,6 @@ class GeminiVisionProvider:
             raise AIAnalysisError(AIErrorCode.INVALID_PROVIDER_RESPONSE)
 
         if getattr(settings, "FACILITYOPS_AI_STORE_RAW_RESPONSE", False):
-            # Bounded, redacted debug only — never includes API key or image bytes.
             payload = {
                 **payload,
                 "_debug_raw_text_preview": (getattr(response, "text", None) or "")[:2000],
@@ -205,6 +216,8 @@ class GeminiVisionProvider:
                 "correlation_id": correlation_id,
                 "image_count": len(prepared),
                 "finish_reason": finish_reason,
+                "prompt_version": PROMPT_VERSION,
+                "schema_name": SCHEMA_NAME,
             },
         )
         return payload

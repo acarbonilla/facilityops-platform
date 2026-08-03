@@ -17,6 +17,7 @@ from .ai.errors import (
     RETRYABLE_ERROR_CODES,
     safe_message_for_code,
 )
+from .ai.schema_recommendation_v1 import validate_facility_recommendation
 from .ai.schema_v1 import validate_facility_image_analysis
 from .ai_provider import get_ai_provider
 from .models import AITicketAnalysis
@@ -119,7 +120,13 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
         }
         if result_payload.get("schema_version"):
             try:
-                validated = validate_facility_image_analysis(result_payload)
+                if (
+                    result_payload.get("schema_name") == "FacilityRecommendationV1"
+                    or "findings" in result_payload
+                ):
+                    validated = validate_facility_recommendation(result_payload)
+                else:
+                    validated = validate_facility_image_analysis(result_payload)
                 result_payload = validated.model_dump(mode="json")
             except PydanticValidationError as exc:
                 metrics.incr("schema_validation_failures")
@@ -184,6 +191,11 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
                 "model": result.model_name,
                 "attempt": attempt,
                 "duration_ms": duration_ms,
+                "overall_confidence": result_payload.get("overall_confidence"),
+                "recommended_category": result_payload.get("recommended_category"),
+                "recommended_priority": result_payload.get("recommended_priority"),
+                "finding_count": len(result_payload.get("findings") or []),
+                "success": True,
             },
         )
         return {

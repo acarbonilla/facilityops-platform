@@ -733,6 +733,13 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     result = serializers.SerializerMethodField()
+    findings = serializers.SerializerMethodField()
+    recommended_category = serializers.SerializerMethodField()
+    recommended_priority = serializers.SerializerMethodField()
+    severity = serializers.SerializerMethodField()
+    confidence = serializers.SerializerMethodField()
+    reasoning = serializers.SerializerMethodField()
+    requires_human_review = serializers.SerializerMethodField()
     schema_version = serializers.CharField(read_only=True)
     provider = serializers.CharField(read_only=True)
     error_code = serializers.CharField(read_only=True)
@@ -756,6 +763,13 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             "duration_ms",
             "result",
             "result_json",
+            "findings",
+            "recommended_category",
+            "recommended_priority",
+            "severity",
+            "confidence",
+            "reasoning",
+            "requires_human_review",
             "error_message",
             "error_code",
             "retryable",
@@ -783,6 +797,41 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             for key, value in payload.items()
             if not str(key).startswith("_")
         }
+
+    def _payload(self, obj) -> dict:
+        payload = obj.result_json or {}
+        return payload if isinstance(payload, dict) else {}
+
+    def get_findings(self, obj):
+        findings = self._payload(obj).get("findings")
+        return findings if isinstance(findings, list) else []
+
+    def get_recommended_category(self, obj):
+        value = self._payload(obj).get("recommended_category")
+        return value if isinstance(value, str) else None
+
+    def get_recommended_priority(self, obj):
+        value = self._payload(obj).get("recommended_priority")
+        return value if isinstance(value, str) else None
+
+    def get_severity(self, obj):
+        value = self._payload(obj).get("severity")
+        return value if isinstance(value, str) else None
+
+    def get_confidence(self, obj):
+        payload = self._payload(obj)
+        value = payload.get("overall_confidence", payload.get("confidence"))
+        if isinstance(value, (int, float)):
+            return int(value)
+        return None
+
+    def get_reasoning(self, obj):
+        value = self._payload(obj).get("reasoning")
+        return value if isinstance(value, str) else None
+
+    def get_requires_human_review(self, obj):
+        # FO-086: advisory recommendations never auto-apply; always require human review.
+        return True
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

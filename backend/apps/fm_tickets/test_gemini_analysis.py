@@ -65,6 +65,31 @@ def _valid_payload(attachment_id: str) -> dict:
     }
 
 
+def _valid_recommendation_payload(attachment_id: str) -> dict:
+    payload = _valid_payload(attachment_id)
+    payload.update(
+        {
+            "schema_name": "FacilityRecommendationV1",
+            "findings": [
+                {
+                    "title": "Water leak",
+                    "description": "Visible staining and moisture near the fixture.",
+                    "confidence": 82,
+                }
+            ],
+            "recommended_category": "Plumbing",
+            "recommended_priority": "Medium",
+            "severity": "Moderate",
+            "overall_confidence": 78,
+            "reasoning": (
+                "Visible water stains indicate a plumbing issue. "
+                "Damage appears localized. Medium priority is recommended."
+            ),
+        }
+    )
+    return payload
+
+
 @override_settings(
     PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",),
     FACILITYOPS_AI_PROVIDER="placeholder",
@@ -195,7 +220,7 @@ class GeminiVisionFoundationTests(TestCase):
         FACILITYOPS_GEMINI_MODEL="gemini-2.0-flash",
     )
     def test_gemini_provider_uses_authorized_images_only(self):
-        payload = _valid_payload(str(self.attachment.id))
+        payload = _valid_recommendation_payload(str(self.attachment.id))
         mock_response = MagicMock()
         mock_response.parsed = payload
         mock_response.text = ""
@@ -212,7 +237,10 @@ class GeminiVisionFoundationTests(TestCase):
         )
         self.assertEqual(result.provider, "gemini")
         self.assertEqual(result.result_json["schema_version"], "1.0")
+        self.assertEqual(result.result_json["schema_name"], "FacilityRecommendationV1")
         self.assertTrue(result.result_json["requires_human_review"])
+        self.assertEqual(result.result_json["recommended_category"], "Plumbing")
+        self.assertEqual(result.prompt_version, "v1")
         call_kwargs = mock_client.models.generate_content.call_args.kwargs
         # Prompt + one image part
         self.assertEqual(len(call_kwargs["contents"]), 2)
