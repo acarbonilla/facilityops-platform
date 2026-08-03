@@ -1,21 +1,22 @@
 # FO-087A — Finalize, Merge & Post-Merge Verification
 
-**Status:** Acceptance complete; merge pending / in progress  
+**Status:** Complete  
 **Date:** 2026-08-03  
 **Phase:** Phase 12A — Application Development  
 **Stage:** Stage 3 — Business Modules  
 **Epic:** AI-Assisted FM Ticket Analysis  
 **Type:** Finalization, merge, verification, and baseline establishment
 
-## Preflight
+## Merge verification
 
 | Item | Value |
 | --- | --- |
-| Starting main | `769a620…` (= `origin/main`) |
-| Feature HEAD | `5b6f32d…` (= `origin/feature/fo-087-ai-review-workflow`) |
-| PR #53 | OPEN, Draft, MERGEABLE, CLEAN, base `main` |
-| FO-088 | Not present (no branch/doc/commit) |
-| Tracked tree | Clean (local sqlite/upload/build noise only) |
+| PR | [#53](https://github.com/acarbonilla/facilityops-platform/pull/53) MERGED |
+| Merge strategy | Merge commit (not squash / not rebase) |
+| Merge commit | `3ef353dde8dc1fa1d1a636b395ac2565c6f438ef` |
+| Starting `main` | `769a620a597285e76161767f0fd3f1ebe4bf8e8d` |
+| Feature tip at merge | `00baddc36e1eb12ed6d78b474ea3fa1c6036fa96` |
+| Final `main` | Recorded after baseline docs commit |
 
 ## Manual acceptance
 
@@ -23,44 +24,35 @@
 | --- | --- |
 | Date | 2026-08-03 |
 | Environment | Local Django; placeholder AI provider; isolated acceptance data |
-| Result | **PASS** (24/24 checklist assertions) |
+| Result | **PASS** (24/24) |
 | Defects found | None |
 | Defects corrected | N/A |
 
-Confirmed: recommendation display fields; accept/modify/ignore decision recording with user/timestamp; `result_json` unchanged; ticket category/priority/status/assignee unchanged until explicit save; history retained; attachments intact; cross-tenant blocked; employee lacks `fm_tickets.update`; ARIA labels + live regions present; responsive grid layout.
-
-Live browser session and live Gemini smoke remain optional.
-
-## Pre-merge validation
+## Validation
 
 | Gate | Result |
 | --- | --- |
-| Focused AI (SQLite, includes FO-087–FO-084 + tenant isolation + attachments) | **116 passed** |
-| Focused AI core (FO-087–FO-084) | **43 passed** |
-| Attachment regression (within 116) | included / previously 54 alone |
-| PostgreSQL focused AI (FO-087–FO-084) | **43 passed** (`--noinput`) |
-| Full PostgreSQL `apps.fm_tickets` + attachments | **239 passed** (`--noinput`) |
-| Frontend suite | **332 passed** |
-| ESLint | Passed |
-| TypeScript | Passed |
-| Production build | Passed |
-| Django check | Passed |
-| `makemigrations --check` | Clean |
-| Migration `0005` file | Present |
-| Dependencies | Unchanged (`google-genai`, `pydantic` only as existing) |
-| `git diff --check` | Clean |
+| Focused AI FO-087–FO-084 (SQLite) | 43 passed |
+| AI + tenant isolation + attachments (SQLite) | 116 passed |
+| PostgreSQL focused AI FO-087–FO-084 | 43 passed |
+| PostgreSQL `apps.fm_tickets` + `apps.attachments` | **239 passed** |
+| Frontend suite | 332 passed |
+| ESLint / TypeScript / production build | Passed |
+| Django check / makemigrations --check | Clean |
+| Migration `0005` | Present on `main` |
 
-## Human-in-the-loop / security
+## Branch cleanup
 
-- AI never auto-mutates ticket category/priority/status/assignment/WO
-- Decision requires `fm_tickets.update`
-- Tenant isolation enforced (cross-tenant decision blocked)
-- Original AI recommendation preserved
+Deleted locally and on `origin` after merge:
 
-## Explicit exclusions
+- `feature/fo-087-ai-review-workflow`
 
-**FO-088 has not started.** No AI analytics, dashboards, auto mutations, or provider changes.
+## Stable baseline
 
-## Merge
+- **Latest stable:** FO-087 — AI Recommendation Review & Assisted Ticket Creation
+- **Next planned:** FO-088 — AI Accuracy Analytics & Recommendation Insights (**not started**)
 
-Recorded after PR #53 merge in final report.
+## Remaining optional items
+
+- Live Gemini smoke with synthetic images when API key is configured
+- Live browser keyboard/mobile walkthrough if additional UX sign-off is required

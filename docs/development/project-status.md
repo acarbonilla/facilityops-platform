@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-087 review workflow on `feature/fo-087-ai-review-workflow`
+- AI-Assisted FM Ticket Analysis — FO-087 complete on `main`; next FO-088 (not started)
 
 ## Current Branch
 
-- `feature/fo-087-ai-review-workflow` (from `main` @ `769a620…`)
+- `main` @ FO-087 merge baseline (`3ef353d…` + FO-087A docs)
 
 ## Completed Modules
 
@@ -41,6 +41,7 @@
 - Attachment Platform (FO-079–FO-083)
 - FM Ticket AI Analysis Foundation + Gemini Vision (FO-084–FO-085)
 - AI Findings, Category & Priority Recommendations (FO-086)
+- AI Recommendation Review & Assisted Ticket Creation (FO-087)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -113,14 +114,13 @@
 
 ## Current Task
 
-- FO-087 AI Recommendation Review & Assisted Ticket Creation acceptance passed
-  (FO-087A); PR #53 Ready for Review / merge in progress.
+- FO-087 AI Recommendation Review & Assisted Ticket Creation COMPLETE AND MERGED
+  via PR #53 (`3ef353d…`); FO-087A post-merge verification complete.
 
 ## Next Milestone
 
-- Merge FO-087 PR #53 and establish FO-087 stable baseline
-- FO-088 AI Accuracy Analytics (not started)
-- Optional live Gemini smoke when credentials available
+- FO-088 AI Accuracy Analytics & Recommendation Insights (**not started**)
+- Optional live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
 
@@ -194,12 +194,12 @@
 
 ## Last Merge
 
-- `fe583c3de0d1c49a6cbf0d56a385f350278ae55d` (PR #52 into `main`; FO-086
-  AI Findings, Category & Priority Recommendations)
+- `3ef353dde8dc1fa1d1a636b395ac2565c6f438ef` (PR #53 into `main`; FO-087
+  AI Recommendation Review & Assisted Ticket Creation)
+- Previous: `fe583c3de0d1c49a6cbf0d56a385f350278ae55d` (PR #52; FO-086)
 - Previous: `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034` (PR #51; FO-082A)
 - Previous: `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (PR #49; FO-085)
-- Previous: `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (PR #50; FO-084)
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline — FO-086 AI recommendations checkpoint
+- `0.1.0` synchronized `main` baseline — FO-087 human-in-the-loop AI review checkpoint
