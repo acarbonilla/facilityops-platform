@@ -119,3 +119,7 @@ Desktop.ini
 # Local FO-085A validation logs
 .fo085a-artifacts/
 
+
+# Local FO-082A-R1 validation logs
+.fo082ar1-artifacts/
+
