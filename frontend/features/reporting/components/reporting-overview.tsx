@@ -295,6 +295,14 @@ export function ReportingOverviewScreen() {
               filters affect only their corresponding module totals.
             </p>
           ) : null}
+          <p>
+            <Link
+              className="font-medium text-blue-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              href="/reporting/ai-insights"
+            >
+              Open AI Recommendation Insights
+            </Link>
+          </p>
         </div>
       </PageHeader>
 

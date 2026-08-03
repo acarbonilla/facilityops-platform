@@ -5,6 +5,7 @@ import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
+import type { AIInsightsParams } from "@/types/ai-insights";
 import type { ReportingOverviewParams } from "@/types/reporting";
 import { myRequestsQueryKeys } from "@/lib/my-requests/query-keys";
 
@@ -206,6 +207,8 @@ export const reportingQueryKeys = {
   overview: (params?: ReportingOverviewParams) =>
     ["reporting", "overview", normalizeReportingParams(params)] as const,
   filterOptions: () => ["reporting", "filter-options"] as const,
+  aiInsights: (params?: AIInsightsParams) =>
+    ["reporting", "ai-insights", stripNilParams(params)] as const,
 };
 
 export const attachmentQueryKeys = {

@@ -38,7 +38,7 @@ export const APP_NAVIGATION: NavigationItem[] = [
     href: "/reporting",
     authenticatedOnly: true,
     requiredPermissions: ["reporting.view"],
-    matchStrategy: "exact",
+    matchStrategy: "prefix",
   },
   {
     label: "Attachments",

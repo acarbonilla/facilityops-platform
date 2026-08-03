@@ -3,6 +3,10 @@ import { API_ENDPOINTS } from "./endpoints";
 
 import { omitBlankReportingParams } from "@/lib/reporting/filters";
 import type {
+  AIInsightsParams,
+  AIRecommendationInsights,
+} from "@/types/ai-insights";
+import type {
   ReportingFilterOptionsResponse,
   ReportingOperationalOverview,
   ReportingOverviewParams,
@@ -27,6 +31,20 @@ export function getReportingFilterOptions(): Promise<ReportingFilterOptionsRespo
     API_ENDPOINTS.reporting.filterOptions,
     {
       method: "GET",
+    },
+  );
+}
+
+export function getAIRecommendationInsights(
+  params?: AIInsightsParams,
+): Promise<AIRecommendationInsights> {
+  const query = omitBlankReportingParams(params ?? {});
+
+  return apiClient<AIRecommendationInsights>(
+    API_ENDPOINTS.reporting.aiInsights,
+    {
+      method: "GET",
+      query,
     },
   );
 }
