@@ -11,7 +11,12 @@ const config: Config = {
     "./utils/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ["var(--font-body)", "Source Sans 3", "Segoe UI", "sans-serif"],
+        display: ["var(--font-display)", "Manrope", "Segoe UI", "sans-serif"],
+      },
+    },
   },
   plugins: [],
 };
