@@ -5,8 +5,10 @@ import {
   getAiAnalysisStatusMessage,
   getAiAnalysisStatusTitle,
   getAiGeneratedDisclaimer,
+  getRecommendationHumanReviewNotice,
   resolveAiAnalysisUiStatus,
   shouldShowAiAnalysisPanel,
+  shouldShowRecommendations,
   shouldShowStructuredSummary,
 } from "./ai-analysis-status";
 
@@ -29,9 +31,12 @@ test("status copy covers queued processing completed failed", () => {
 
 test("disclaimer and visibility helpers", () => {
   assert.match(getAiGeneratedDisclaimer(), /Human review/i);
+  assert.match(getRecommendationHumanReviewNotice(), /Facilities Team/);
   assert.equal(shouldShowAiAnalysisPanel("none"), false);
   assert.equal(shouldShowAiAnalysisPanel("queued"), true);
   assert.equal(shouldShowStructuredSummary("completed", "internal"), true);
   assert.equal(shouldShowStructuredSummary("completed", "requester"), false);
   assert.equal(shouldShowStructuredSummary("failed", "internal"), false);
+  assert.equal(shouldShowRecommendations("completed", "internal"), true);
+  assert.equal(shouldShowRecommendations("completed", "requester"), false);
 });

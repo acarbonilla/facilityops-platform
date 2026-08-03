@@ -170,6 +170,8 @@ class AICeleryLifecycleTests(TestCase):
         self.assertEqual(analysis.status, AITicketAnalysis.Status.COMPLETED)
         self.assertNotEqual(analysis.status, AITicketAnalysis.Status.PROCESSING)
         self.assertTrue(analysis.result_json.get("requires_human_review") is True)
+
+    def test_retry_exhaustion_marks_failed(self):
         analysis = self._queue()
         with patch(
             "apps.fm_tickets.ai_processing_service.get_ai_provider",

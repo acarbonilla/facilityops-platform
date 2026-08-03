@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from django.conf import settings
 
 from .ai.errors import AIAnalysisError, AIErrorCode
-from .ai.schema_v1 import SCHEMA_VERSION
+from .ai.schema_recommendation_v1 import SCHEMA_NAME, SCHEMA_VERSION
 
 
 @dataclass(frozen=True)
@@ -89,6 +89,7 @@ class PlaceholderAIProvider(AIImageAnalysisProvider):
 
         result_json = {
             "schema_version": SCHEMA_VERSION,
+            "schema_name": SCHEMA_NAME,
             "analysis_summary": (
                 "Placeholder AI analysis completed. "
                 "Real Gemini vision observations are deferred until the gemini provider is enabled."
@@ -96,6 +97,24 @@ class PlaceholderAIProvider(AIImageAnalysisProvider):
             "image_results": image_results,
             "cross_image_findings": [],
             "overall_image_quality": "limited",
+            "findings": [
+                {
+                    "title": "Unknown",
+                    "description": (
+                        "Placeholder provider did not inspect images. "
+                        "No operational finding should be acted on."
+                    ),
+                    "confidence": 0,
+                }
+            ],
+            "recommended_category": "Unknown",
+            "recommended_priority": "Low",
+            "severity": "Minor",
+            "overall_confidence": 0,
+            "reasoning": (
+                "Placeholder mode is advisory scaffolding only. "
+                "Enable Gemini to produce evidence-based recommendations."
+            ),
             "requires_human_review": True,
             "limitations": [
                 "Placeholder provider does not perform visual inspection.",
@@ -106,13 +125,12 @@ class PlaceholderAIProvider(AIImageAnalysisProvider):
                 "model": self.MODEL_NAME,
                 "prompt_name": "placeholder",
                 "prompt_version": self.MODEL_VERSION,
+                "schema_name": SCHEMA_NAME,
                 "schema_version": SCHEMA_VERSION,
                 "ai_generated": True,
                 "requires_human_review": True,
+                "advisory_only": True,
                 "correlation_id": correlation_id or "",
-                "recommendations": [],
-                "priority_prediction": None,
-                "category_prediction": None,
             },
         }
         return AIProviderResult(

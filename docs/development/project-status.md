@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- Public Landing Page — FO-082A COMPLETE AND MERGED; AI epic next is FO-086
+- AI-Assisted FM Ticket Analysis — FO-086 recommendations on `feature/fo-086-ai-recommendations`
 
 ## Current Branch
 
-- `main` @ FO-082A-R2 merge (PR #51) atop FO-085 baseline
+- `feature/fo-086-ai-recommendations` (from `main` @ `a5c1963…`)
 
 ## Completed Modules
 
@@ -112,12 +112,13 @@
 
 ## Current Task
 
-- FO-082A-R2 Public Landing Page finalize & merge completed 2026-08-03 (PR #51).
-- Stable baseline is FO-085 + FO-082A landing page on `main`. FO-086 is next.
+- FO-086 AI Findings, Category & Priority Recommendations implemented on
+  `feature/fo-086-ai-recommendations` (Draft PR).
 
 ## Next Milestone
 
-- Begin FO-086 — AI Findings, Category & Priority Recommendations
+- Review and merge FO-086 Draft PR
+- Continue AI epic (FO-087 human-review apply) after FO-086 approval
 - Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
