@@ -176,6 +176,17 @@ export interface FmTicketAiAnalysis {
   duration_ms: number | null;
   result?: Record<string, unknown>;
   result_json: Record<string, unknown>;
+  findings?: Array<{
+    title: string;
+    description: string;
+    confidence: number;
+  }>;
+  recommended_category?: string | null;
+  recommended_priority?: string | null;
+  severity?: string | null;
+  confidence?: number | null;
+  reasoning?: string | null;
+  requires_human_review?: boolean;
   error_message: string;
   error_code?: string;
   retryable?: boolean;

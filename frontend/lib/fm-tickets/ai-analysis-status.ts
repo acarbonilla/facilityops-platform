@@ -58,6 +58,10 @@ export function getAiGeneratedDisclaimer(): string {
   return "AI-generated observations. Human review is required before any operational decision.";
 }
 
+export function getRecommendationHumanReviewNotice(): string {
+  return "AI recommendations are suggestions only. Final decisions remain with the Facilities Team.";
+}
+
 export function shouldShowAiAnalysisPanel(
   status: AiAnalysisUiStatus,
   options?: { audience?: "internal" | "requester" },
@@ -73,6 +77,13 @@ export function shouldShowAiAnalysisPanel(
 }
 
 export function shouldShowStructuredSummary(
+  status: AiAnalysisUiStatus,
+  audience: "internal" | "requester" = "internal",
+): boolean {
+  return audience === "internal" && status === "completed";
+}
+
+export function shouldShowRecommendations(
   status: AiAnalysisUiStatus,
   audience: "internal" | "requester" = "internal",
 ): boolean {
