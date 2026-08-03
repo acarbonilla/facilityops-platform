@@ -1,9 +1,10 @@
 # FO-082A-R1 — Public Landing Page Recovery
 
-**Status:** Restored on `feature/public-landing-page-restored` (Draft PR)  
+**Status:** COMPLETE AND MERGED via FO-082A-R2 (PR #51 → `main`)  
 **Date:** 2026-08-03  
 **Type:** Recovery / Repository Safety  
 **Recovered tip:** `4fb72ad862117ecf1ecfa57a3920b8779e255275`  
+**Merge commit:** `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034`  
 **Safety tag:** `recovery-pre-fo-082a-20260803-0910` @ `69f6c72…`
 
 ## Cause of loss
@@ -69,21 +70,23 @@ No merge conflict markers. Shared files were hand-reapplied onto current main ra
 
 ## Validation
 
-Recovery branch gates: frontend tests 301 pass; ESLint; TypeScript; production build — all passed.
+Recovery and pre-merge gates: landing 16 / full frontend 326; ESLint; TypeScript; production build — all passed (FO-082A-R2).
 
-Integration branch gates: recorded in the FO-082A-R1 final report / PR body after execution.
+## Manual acceptance (FO-082A-R2)
 
-## Manual acceptance
+HTTP verification on `http://127.0.0.1:3000/` after merge:
 
-Performed via production build + static route inspection and focused landing tests. Browser walkthrough checklist is documented in the Draft PR; automated gates confirm `/` builds as the premium landing page.
+- Premium landing markers present (FacilityOps, Smarter Facility Operations, Live Platform Preview, Sign In)
+- `/login` returns 200
+- Focused landing tests confirm static preview data (no tenant IDs) and `/login` CTAs
 
 ## PR / merge status
 
-- Draft PR targeting `main` — **not merged**
-- `main` history unchanged by recovery commits
+- PR #51 merged to `main` with merge commit `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034`
+- Recovery/feature branches deleted after post-merge verification
 
 ## Safety confirmations
 
-- No `reset --hard`, `clean -fd`, force-push, branch `-D`, or GC/prune of dangling objects
-- Safety tag retained
-- Attachment and AI functionality on current main left intact
+- No force-push to main; merge used normal merge commit
+- Attachment and AI functionality on main left intact
+- Safety tag `recovery-pre-fo-082a-20260803-0910` retained

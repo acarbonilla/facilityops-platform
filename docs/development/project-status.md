@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — next: FO-086 recommendations (baseline FO-085 on `main`)
+- Public Landing Page — FO-082A COMPLETE AND MERGED; AI epic next is FO-086
 
 ## Current Branch
 
-- `main` @ `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (FO-085 merged via PR #49)
+- `main` @ FO-082A-R2 merge (PR #51) atop FO-085 baseline
 
 ## Completed Modules
 
@@ -40,6 +40,7 @@
 - FM Ticket ↔ Maintenance Integration
 - Attachment Platform (FO-079–FO-083)
 - FM Ticket AI Analysis Foundation + Gemini Vision (FO-084–FO-085)
+- Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
 
@@ -111,12 +112,11 @@
 
 ## Current Task
 
-- FO-082A-R1 Public Landing Page Recovery in progress on
-  `feature/public-landing-page-restored` (Draft PR). FO-085 remains the AI baseline on `main`.
+- FO-082A-R2 Public Landing Page finalize & merge completed 2026-08-03 (PR #51).
+- Stable baseline is FO-085 + FO-082A landing page on `main`. FO-086 is next.
 
 ## Next Milestone
 
-- Review and merge FO-082A-R1 Draft PR (public landing page restore)
 - Begin FO-086 — AI Findings, Category & Priority Recommendations
 - Optionally complete full PostgreSQL suite / live Gemini smoke when credentials are available
 
@@ -176,6 +176,7 @@
 - FO-085 Gemini Vision merged via PR #49 (`6404e6d…`); FO-085C post-merge
   verification complete. Full Postgres suite and live Gemini smoke remain optional
   environmental follow-ups.
+- FO-082A public landing page COMPLETE AND MERGED via PR #51 (`3fe79e5…`).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
@@ -189,11 +190,11 @@
 
 ## Last Merge
 
-- `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (PR #49 into `main`; FO-085
-  Gemini Vision Integration & Structured Image Analysis)
+- `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034` (PR #51 into `main`; FO-082A
+  Public Landing Page restore)
+- Previous: `6404e6dc7faffd2e1f183d9b70bee57cf93f7867` (PR #49; FO-085)
 - Previous: `6eb4fe580c43a5bd2f0992b41e9b1aed28e0a695` (PR #50; FO-084)
-- Previous: `d6bfd6b…` (PR #47; FO-081–FO-083 attachments)
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline — FO-085 checkpoint
+- `0.1.0` synchronized `main` baseline — FO-085 + FO-082A landing checkpoint

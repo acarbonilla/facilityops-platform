@@ -1,15 +1,15 @@
 # FO-082A — FacilityOps Public Landing Page
 
-**Status:** Recovered via FO-082A-R1 onto `feature/public-landing-page-restored` (Draft PR; not merged)
-**Original branch:** `feature/public-landing-page` (lost; tip recovered at `4fb72ad…`)
-**Date:** 2026-07-29 (implementation) / 2026-08-03 (recovery)
-**Starting SHA:** `e60b79b247be0c9fd615e19e6fbdf3a45edf6096`
+**Status:** COMPLETE AND MERGED to `main` via PR #51 (FO-082A-R2)  
+**Original branch:** `feature/public-landing-page` (lost; tip recovered at `4fb72ad…`)  
+**Date:** 2026-07-29 (implementation) / 2026-08-03 (recovery & merge)  
+**Merge commit:** `3fe79e5c1de1ee8ef815bfc26be6db0e9e8ac034`  
+**Starting SHA:** `e60b79b247be0c9fd615e19e6fbdf3a45edf6096`  
 **Independent of:** FO-081 / FO-082 attachment work (`feature/business-module-attachments`)
 
 ## Recovery note
 
-See `FO-082A-R1 - Public Landing Page Recovery.md` for dangling-commit inspection, recovery branch backup, and selective restore onto current `main`.
-
+See `FO-082A-R1 - Public Landing Page Recovery.md` for dangling-commit inspection and selective restore. FO-082A-R2 finalized acceptance and merged PR #51.
 ## Summary
 
 FO-082A replaces the Stage 1 foundation home page with a premium public landing experience for FacilityOps. The page is designed for customer presentations, demonstrations, and future production use.
