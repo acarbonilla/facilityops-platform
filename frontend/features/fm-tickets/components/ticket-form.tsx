@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import { FormActions } from "@/components/common/form-actions";
@@ -26,7 +27,9 @@ import type {
   Tenant,
 } from "@/types/master-data";
 import type {
+  FmTicketCategory,
   FmTicketFormValues,
+  FmTicketPriority,
   FmTicketStatus,
 } from "@/types/fm-tickets";
 
@@ -156,11 +159,18 @@ export interface TicketFormProps {
   currentStatus?: FmTicketStatus;
   /** Optional content rendered immediately before the submit actions (FO-084). */
   beforeSubmit?: React.ReactNode;
+  /** FO-087: advisory populate of category/priority without auto-save. */
+  appliedRecommendation?: {
+    category: FmTicketCategory;
+    priority: FmTicketPriority;
+    token: number;
+  } | null;
 }
 
 export function TicketForm({
   areas,
   assets,
+  appliedRecommendation,
   beforeSubmit,
   buildings,
   cancelHref,
@@ -179,6 +189,7 @@ export function TicketForm({
     formState: { errors },
     handleSubmit,
     register,
+    setValue,
   } = useForm<FmTicketFormValues>({
     resolver: zodResolver(fmTicketSchema),
     defaultValues: getDefaultValues(initialValues),
@@ -188,6 +199,20 @@ export function TicketForm({
   const selectedBuilding = useWatch({ control, name: "building" });
   const selectedFloor = useWatch({ control, name: "floor" });
   const selectedArea = useWatch({ control, name: "area" });
+
+  useEffect(() => {
+    if (!appliedRecommendation) {
+      return;
+    }
+    setValue("category", appliedRecommendation.category, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setValue("priority", appliedRecommendation.priority, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [appliedRecommendation, setValue]);
 
   const filteredOrganizations = filterOrganizationsByTenant(
     organizations,

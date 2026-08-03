@@ -187,6 +187,14 @@ export interface FmTicketAiAnalysis {
   confidence?: number | null;
   reasoning?: string | null;
   requires_human_review?: boolean;
+  decision?: "accepted" | "modified" | "ignored" | "" | null;
+  accepted?: boolean;
+  modified?: boolean;
+  ignored?: boolean;
+  final_category?: string | null;
+  final_priority?: string | null;
+  decision_timestamp?: string | null;
+  decision_user?: { id: string; email: string } | null;
   error_message: string;
   error_code?: string;
   retryable?: boolean;
@@ -199,6 +207,12 @@ export interface FmTicketAiAnalysis {
 
 export type FmTicketAiAnalysisQueuePayload = {
   attachment_ids: string[];
+};
+
+export type FmTicketAiRecommendationDecisionPayload = {
+  decision: "accepted" | "modified" | "ignored";
+  final_category?: string;
+  final_priority?: string;
 };
 
 export type FmTicket = FmTicketDetail;

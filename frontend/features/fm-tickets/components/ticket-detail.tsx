@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { DetailField } from "@/components/common/detail-field";
 import { ErrorState } from "@/components/common/error-state";
@@ -36,6 +36,7 @@ import {
 } from "./ticket-shared";
 
 export function TicketDetailScreen({ id }: { id: string }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const showAiQueued = readAiQueuedFromSearch(searchParams.toString());
   const showCreated = readTicketCreatedFromSearch(searchParams.toString());
@@ -116,7 +117,18 @@ export function TicketDetailScreen({ id }: { id: string }) {
         ticketNumber={ticket.ticket_number}
       />
 
-      <TicketAiAnalysisStatusPanel audience="internal" ticketId={ticket.id} />
+      <TicketAiAnalysisStatusPanel
+        audience="internal"
+        canReview={canUpdate}
+        ticketId={ticket.id}
+        onApplyRecommendation={(selection) => {
+          const params = new URLSearchParams({
+            ai_category: selection.category,
+            ai_priority: selection.priority,
+          });
+          router.push(`/fm-tickets/${ticket.id}/edit?${params.toString()}`);
+        }}
+      />
 
       <SectionCard title="Ticket Summary">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">

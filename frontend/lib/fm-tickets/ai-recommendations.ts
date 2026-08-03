@@ -139,3 +139,112 @@ export function severityBadgeClass(severity: AiRecommendationSeverity): string {
       return "bg-emerald-100 text-emerald-900 ring-emerald-200";
   }
 }
+
+/** FO-087: map AI recommendation labels to FM ticket form codes. */
+const AI_CATEGORY_TO_TICKET: Record<string, string> = {
+  plumbing: "plumbing",
+  electrical: "electrical",
+  hvac: "hvac",
+  civil: "civil",
+  safety: "safety",
+  housekeeping: "cleaning",
+  cleaning: "cleaning",
+  security: "security",
+  carpentry: "other",
+  "pest control": "other",
+  painting: "other",
+  "general maintenance": "other",
+  unknown: "other",
+  other: "other",
+};
+
+const AI_PRIORITY_TO_TICKET: Record<string, string> = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+  critical: "urgent",
+  urgent: "urgent",
+};
+
+export type AiRecommendationDecision = "accepted" | "modified" | "ignored";
+
+export function mapAiCategoryToTicket(value: string | null | undefined): string {
+  if (!value) {
+    return "other";
+  }
+  return AI_CATEGORY_TO_TICKET[value.trim().toLowerCase()] ?? "other";
+}
+
+export function mapAiPriorityToTicket(value: string | null | undefined): string {
+  if (!value) {
+    return "medium";
+  }
+  return AI_PRIORITY_TO_TICKET[value.trim().toLowerCase()] ?? "medium";
+}
+
+export function decisionBadgeClass(decision: string | null | undefined): string {
+  switch (decision) {
+    case "accepted":
+      return "bg-emerald-100 text-emerald-900";
+    case "modified":
+      return "bg-amber-100 text-amber-900";
+    case "ignored":
+      return "bg-slate-200 text-slate-800";
+    default:
+      return "bg-sky-100 text-sky-900";
+  }
+}
+
+export function formatDecisionLabel(decision: string | null | undefined): string {
+  switch (decision) {
+    case "accepted":
+      return "Accepted";
+    case "modified":
+      return "Modified";
+    case "ignored":
+      return "Ignored";
+    default:
+      return "Pending review";
+  }
+}
+
+export function formatTicketCategoryLabel(code: string | null | undefined): string {
+  if (!code) {
+    return "—";
+  }
+  const labels: Record<string, string> = {
+    electrical: "Electrical",
+    plumbing: "Plumbing",
+    hvac: "HVAC",
+    civil: "Civil",
+    safety: "Safety",
+    cleaning: "Cleaning",
+    security: "Security",
+    other: "Other",
+  };
+  return labels[code] ?? code;
+}
+
+export function formatTicketPriorityLabel(code: string | null | undefined): string {
+  if (!code) {
+    return "—";
+  }
+  const labels: Record<string, string> = {
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    urgent: "Urgent",
+  };
+  return labels[code] ?? code;
+}
+
+export function getDecisionAnnouncement(decision: AiRecommendationDecision): string {
+  switch (decision) {
+    case "accepted":
+      return "AI recommendation accepted. Category and priority were filled into the ticket form for your review before saving.";
+    case "modified":
+      return "AI recommendation recorded as modified. Your selected category and priority were filled into the ticket form for your review before saving.";
+    case "ignored":
+      return "AI recommendation ignored. Continue with the manual ticket workflow.";
+  }
+}
