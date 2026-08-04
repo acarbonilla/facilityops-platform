@@ -55,8 +55,10 @@ Deleted locally and on `origin` after merge:
 
 - **Latest stable:** FO-091 — AI Knowledge Base & Similar Cases
 - **Latest merge SHA:** `f1e616885bd50f7a19afd0095367a924b46797f6`
+- **Latest main SHA:** `50d6d598b533e41692513f045de39422e9847888`
 - **Next:** FO-092 ready to begin (**not started**)
 - Rule-based similarity remains Version 1; semantic/vector search deferred
+- **Working tree:** clean (untracked local sqlite/attachments junk excluded)
 
 ## Confirmation
 
