@@ -4,8 +4,12 @@ from rest_framework.views import APIView
 
 from apps.access_control.permissions import HasPermissionCode
 from apps.fm_tickets.ai_analytics_service import build_ai_recommendation_analytics
+from apps.fm_tickets.ai_operational_insights_service import (
+    build_ai_operational_insights,
+)
 
 from .serializers import (
+    AIOperationalInsightsSerializer,
     AIRecommendationAnalyticsSerializer,
     OperationalOverviewSerializer,
     ReportingFilterOptionsSerializer,
@@ -62,5 +66,22 @@ class AIRecommendationInsightsView(APIView):
             request.user, request.query_params
         )
         serializer = AIRecommendationAnalyticsSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+class AIOperationalInsightsView(APIView):
+    """FO-089 tenant-scoped AI operational insights (informational only).
+
+    Requires ``reporting.view``. Builds on FO-088 analytics; never mutates
+    tickets, prompts, models, or assignments.
+    """
+
+    permission_classes = [IsAuthenticated, HasPermissionCode]
+    required_permission = "reporting.view"
+
+    def get(self, request):
+        payload = build_ai_operational_insights(request.user, request.query_params)
+        serializer = AIOperationalInsightsSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data)
