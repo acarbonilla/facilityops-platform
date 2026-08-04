@@ -316,6 +316,13 @@ export function ReportingOverviewScreen() {
             >
               Open AI Attention Center
             </Link>
+            {" · "}
+            <Link
+              className="font-medium text-blue-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              href="/reporting/ai-similar-cases"
+            >
+              Open AI Similar Cases
+            </Link>
           </p>
         </div>
       </PageHeader>

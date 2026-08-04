@@ -418,3 +418,93 @@ class AIAttentionCenterSerializer(serializers.Serializer):
     recent_review_activity = AIAttentionRecentActivitySerializer()
     interpretation = AIAnalyticsInterpretationSerializer()
     generated_at = serializers.CharField()
+
+
+class AISimilarCaseAlgorithmSerializer(serializers.Serializer):
+    version = serializers.CharField()
+    name = serializers.CharField()
+    weights = serializers.DictField(child=serializers.IntegerField())
+    note = serializers.CharField()
+
+
+class AISimilarCaseFiltersSerializer(serializers.Serializer):
+    ticket_id = serializers.CharField(allow_null=True, required=False)
+    analysis_id = serializers.CharField(allow_null=True, required=False)
+    category = serializers.CharField(allow_null=True, required=False)
+    priority = serializers.CharField(allow_null=True, required=False)
+    status = serializers.CharField(allow_null=True, required=False)
+    building = serializers.CharField(allow_null=True, required=False)
+    asset = serializers.CharField(allow_null=True, required=False)
+    min_similarity = serializers.IntegerField()
+    limit = serializers.IntegerField()
+    source = serializers.CharField()
+
+
+class AISimilarDecisionSummarySerializer(serializers.Serializer):
+    recommended_category = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    recommended_priority = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    has_findings = serializers.BooleanField(required=False)
+    decision_outcome = serializers.CharField(required=False, allow_blank=True)
+    final_category = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    final_priority = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    note = serializers.CharField()
+
+
+class AISimilarCaseCardSerializer(serializers.Serializer):
+    source_type = serializers.CharField()
+    case_id = serializers.CharField()
+    reference = serializers.CharField()
+    title = serializers.CharField()
+    category = serializers.CharField(allow_null=True, required=False)
+    priority = serializers.CharField(allow_null=True, required=False)
+    status = serializers.CharField(allow_null=True, required=False)
+    building_code = serializers.CharField(allow_null=True, required=False)
+    asset_code = serializers.CharField(allow_null=True, required=False)
+    ai_decision_summary = AISimilarDecisionSummarySerializer(
+        allow_null=True, required=False
+    )
+    human_decision_summary = AISimilarDecisionSummarySerializer(
+        allow_null=True, required=False
+    )
+
+
+class AISimilarHistoricalOutcomeSerializer(serializers.Serializer):
+    resolved_category = serializers.CharField(allow_null=True, required=False)
+    resolved_priority = serializers.CharField(allow_null=True, required=False)
+    status = serializers.CharField(allow_null=True, required=False)
+    resolution_summary = serializers.CharField(allow_blank=True)
+    decision_outcome = serializers.CharField()
+
+
+class AISimilarCaseMatchSerializer(AISimilarCaseCardSerializer):
+    similarity_score = serializers.IntegerField()
+    reasons = serializers.ListField(child=serializers.CharField())
+    components = serializers.DictField(child=serializers.IntegerField())
+    historical_outcome = AISimilarHistoricalOutcomeSerializer()
+    updated_at = serializers.CharField(allow_null=True, required=False)
+
+
+class AISimilarCasesSummarySerializer(serializers.Serializer):
+    match_count = serializers.IntegerField()
+    candidate_evaluated = serializers.IntegerField()
+    min_similarity = serializers.IntegerField()
+    top_score = serializers.IntegerField()
+
+
+class AISimilarCasesSerializer(serializers.Serializer):
+    period = AIAnalyticsPeriodSerializer()
+    filters = AISimilarCaseFiltersSerializer()
+    algorithm = AISimilarCaseAlgorithmSerializer()
+    current_case = AISimilarCaseCardSerializer()
+    similar_cases = AISimilarCaseMatchSerializer(many=True)
+    summary = AISimilarCasesSummarySerializer()
+    interpretation = AIAnalyticsInterpretationSerializer()
+    generated_at = serializers.CharField()

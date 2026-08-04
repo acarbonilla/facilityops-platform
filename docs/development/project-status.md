@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-090 COMPLETE AND MERGED (stable baseline)
+- AI-Assisted FM Ticket Analysis — FO-091 AI Knowledge Base (FO-091A Ready for Review)
 
 ## Current Branch
 
-- `main` @ FO-090 merge `93bb534…` (FO-090A post-merge verification)
+- `feature/fo-091-ai-knowledge-base` (PR #57 Ready; base `main` @ `d342793…`)
 
 ## Completed Modules
 
@@ -117,13 +117,13 @@
 
 ## Current Task
 
-- FO-090 AI Attention Center & Actionable Work Queue COMPLETE AND MERGED
-  via PR #56 (`93bb534…`); FO-090A post-merge verification complete.
-- Latest stable baseline: **FO-090**
+- FO-091A finalizing FO-091 AI Knowledge Base (PR #57 Ready for Review)
+  on `feature/fo-091-ai-knowledge-base`; base `main` @ `d342793…`.
+- FO-090 remains COMPLETE AND MERGED (`93bb534…`); prior stable baseline FO-090.
 
 ## Next Milestone
 
-- FO-091 ready to begin (**not started**)
+- FO-092 (**not started**)
 - Optional live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
@@ -191,7 +191,7 @@
 - FO-089 AI operational insights COMPLETE AND MERGED via PR #55 (`19fea43…`);
   FO-089A post-merge verification complete. FO-090 AI attention center
   COMPLETE AND MERGED via PR #56 (`93bb534…`); FO-090A complete. FO-091
-  ready to begin (**not started**).
+  PR #57 Ready for Review (FO-091A). FO-092 not started.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit

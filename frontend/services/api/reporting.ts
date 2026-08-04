@@ -15,6 +15,10 @@ import type {
   AIOperationalInsightsParams,
 } from "@/types/ai-operational-insights";
 import type {
+  AISimilarCases,
+  AISimilarCasesParams,
+} from "@/types/ai-similar-cases";
+import type {
   ReportingFilterOptionsResponse,
   ReportingOperationalOverview,
   ReportingOverviewParams,
@@ -83,4 +87,15 @@ export function getAIAttentionCenter(
       query,
     },
   );
+}
+
+export function getAISimilarCases(
+  params?: AISimilarCasesParams,
+): Promise<AISimilarCases> {
+  const query = omitBlankReportingParams(params ?? {});
+
+  return apiClient<AISimilarCases>(API_ENDPOINTS.reporting.aiSimilarCases, {
+    method: "GET",
+    query,
+  });
 }
