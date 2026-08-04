@@ -1,9 +1,10 @@
 # FO-091 — AI Knowledge Base & Similar Cases
 
-**Status:** Complete; Draft PR ready  
+**Status:** Complete; Ready for Review (FO-091A)  
 **Date:** 2026-08-04  
 **Base:** `main` @ `d342793…` (FO-090 stable baseline)  
 **Branch:** `feature/fo-091-ai-knowledge-base`  
+**PR:** [#57](https://github.com/acarbonilla/facilityops-platform/pull/57)  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -76,12 +77,13 @@ FO-092 may replace the matcher with semantic/embedding search without changing t
 - Work orders have no category; inspections have no asset — those components score 0 when absent
 - FO-092 (embeddings / semantic search) **not started**
 
-## Validation snapshot
+## Validation snapshot (FO-091A)
 
-- Focused FO-091 backend: **12 passed**
-- FO-090 / FO-089 regressions: **11 / 14 passed**
+- Focused FO-091 backend (SQLite keepdb / PostgreSQL): **12 / 12 passed**
+- FO-090 / FO-089 / FO-088 / FO-087 / FO-086: **11 / 14 / 14 / 8 / 8 passed**
+- FO-085 analysis + celery: **15 passed**
 - Reporting regression: **86 passed**
-- AI combo FO-091–FO-085 focused: **82 passed**
+- AI combo FO-091–FO-085: **82 passed**
 - Focused FO-091 frontend: **6 passed**
 - Full frontend suite: **360 passed / 0 failed**
 - ESLint / TypeScript / production build: Passed (`/reporting/ai-similar-cases` present)
@@ -90,6 +92,8 @@ FO-092 may replace the matcher with semantic/embedding search without changing t
 
 ## Manual acceptance
 
-- Environment: Local Django; Tenant A/B fixtures; code-path review of API/dashboard/privacy
-- Result: **PASS** (ranking, reasons, outcomes, permissions, tenant isolation, no sensitive leakage)
+- Date: 2026-08-04
+- Environment: Local Django on PostgreSQL; Tenant A/B fixtures; code-path review
+- Result: **PASS** (ranking, reasons, outcomes, permissions, tenant isolation, privacy, no workflow mutation)
 - Defects: None
+- See `FO-091A - Finalize, Merge & Post-Merge Verification.md`

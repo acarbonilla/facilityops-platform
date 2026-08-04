@@ -21,12 +21,12 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-091 knowledge base Draft PR | FO-090 on `main` via PR #56 (`93bb534…`); FO-091 on `feature/fo-091-ai-knowledge-base`; FO-092 not started |
+| FM Ticketing | FO-091 knowledge base Ready for Review | FO-090 on `main` via PR #56 (`93bb534…`); FO-091 PR #57 Ready (FO-091A); FO-092 not started |
 | Public Landing | FO-082A COMPLETE AND MERGED | Premium `/` landing + Live Platform Preview on `main` via PR #51 (`3fe79e5…`) |
 | Attachments | Complete; merged | FO-079–FO-083 on `main`; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
-| Reporting and Operational Analytics | Complete + FO-090 on main; FO-091 Draft | FO-064–FO-090 on main; FO-091 similar cases Draft under `reporting.view`; FO-092 not started |
+| Reporting and Operational Analytics | Complete + FO-090 on main; FO-091 Ready | FO-064–FO-090 on main; FO-091 similar cases PR #57 Ready under `reporting.view`; FO-092 not started |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
