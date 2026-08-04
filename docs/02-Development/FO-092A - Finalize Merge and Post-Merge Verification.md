@@ -64,7 +64,7 @@ Deleted locally and on `origin` after merge:
 
 - **Latest stable:** FO-092 — Executive AI Dashboard
 - **Latest merge SHA:** `586215250a9b156f4cd41fa45f2d23d37d5265f9`
-- **Latest main SHA:** _updated after baseline docs commit_
+- **Latest main SHA:** `2bf401cd0d89c16c75e3aa37bfede6d21563649e`
 - **Next:** FO-093 — AI Administration & Governance (**not started**)
 - Executive summaries remain rule-based; no generative AI for summaries
 - FO-091 knowledge-usage metrics remain deferred where unsupported
