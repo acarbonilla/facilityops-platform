@@ -3,6 +3,10 @@ import { API_ENDPOINTS } from "./endpoints";
 
 import { omitBlankReportingParams } from "@/lib/reporting/filters";
 import type {
+  AIAttentionCenter,
+  AIAttentionCenterParams,
+} from "@/types/ai-attention-center";
+import type {
   AIInsightsParams,
   AIRecommendationInsights,
 } from "@/types/ai-insights";
@@ -60,6 +64,20 @@ export function getAIOperationalInsights(
 
   return apiClient<AIOperationalInsights>(
     API_ENDPOINTS.reporting.aiOperationalInsights,
+    {
+      method: "GET",
+      query,
+    },
+  );
+}
+
+export function getAIAttentionCenter(
+  params?: AIAttentionCenterParams,
+): Promise<AIAttentionCenter> {
+  const query = omitBlankReportingParams(params ?? {});
+
+  return apiClient<AIAttentionCenter>(
+    API_ENDPOINTS.reporting.aiAttentionCenter,
     {
       method: "GET",
       query,

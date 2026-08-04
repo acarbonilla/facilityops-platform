@@ -5,6 +5,7 @@ import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
+import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
 import type { ReportingOverviewParams } from "@/types/reporting";
@@ -212,6 +213,8 @@ export const reportingQueryKeys = {
     ["reporting", "ai-insights", stripNilParams(params)] as const,
   aiOperationalInsights: (params?: AIOperationalInsightsParams) =>
     ["reporting", "ai-operational-insights", stripNilParams(params)] as const,
+  aiAttentionCenter: (params?: AIAttentionCenterParams) =>
+    ["reporting", "ai-attention-center", stripNilParams(params)] as const,
 };
 
 export const attachmentQueryKeys = {
