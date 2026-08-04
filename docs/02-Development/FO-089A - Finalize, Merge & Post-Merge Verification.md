@@ -52,7 +52,7 @@ Deleted locally and on `origin` after merge:
 
 - **Latest stable:** FO-089 — AI Continuous Improvement & Operational Insights
 - **Latest merge SHA:** `19fea43f05377985de2c61a686d1c68381cc0781`
-- **Latest main SHA:** recorded after baseline documentation commit on `main`
+- **Latest main SHA:** `e2dc1efd4ee0dc443bba56c315f866aa02eb97a8`
 - **Next:** FO-090 pending reconciliation via Draft PR [#56](https://github.com/acarbonilla/facilityops-platform/pull/56) (**not merged**)
 - **FO-091:** not started
 
