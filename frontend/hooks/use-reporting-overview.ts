@@ -6,10 +6,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { REPORTING_PERMISSION } from "@/lib/reporting/navigation";
 import {
+  getAIRecommendationInsights,
   getReportingFilterOptions,
   getReportingOverview,
 } from "@/services/api/reporting";
 import { reportingQueryKeys } from "@/services/api/query-keys";
+import type { AIInsightsParams } from "@/types/ai-insights";
 import type { ReportingOverviewParams } from "@/types/reporting";
 
 function useReportingQueriesEnabled() {
@@ -40,6 +42,16 @@ export function useReportingFilterOptions() {
   return useQuery({
     queryKey: reportingQueryKeys.filterOptions(),
     queryFn: getReportingFilterOptions,
+    enabled,
+  });
+}
+
+export function useAIRecommendationInsights(params?: AIInsightsParams | null) {
+  const enabled = useReportingQueriesEnabled() && Boolean(params);
+
+  return useQuery({
+    queryKey: reportingQueryKeys.aiInsights(params ?? undefined),
+    queryFn: () => getAIRecommendationInsights(params ?? undefined),
     enabled,
   });
 }
