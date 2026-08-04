@@ -508,3 +508,148 @@ class AISimilarCasesSerializer(serializers.Serializer):
     summary = AISimilarCasesSummarySerializer()
     interpretation = AIAnalyticsInterpretationSerializer()
     generated_at = serializers.CharField()
+
+
+class ExecutiveAIPeriodSerializer(serializers.Serializer):
+    start_date = serializers.CharField(allow_null=True, required=False)
+    end_date = serializers.CharField(allow_null=True, required=False)
+    preset = serializers.CharField(allow_null=True, required=False)
+    inclusive = serializers.BooleanField()
+    max_range_days = serializers.IntegerField()
+    previous_start_date = serializers.CharField(allow_null=True, required=False)
+    previous_end_date = serializers.CharField(allow_null=True, required=False)
+
+
+class ExecutiveAISummarySerializer(serializers.Serializer):
+    completed_analyses = serializers.IntegerField()
+    recommendations_generated = serializers.IntegerField()
+    reviewed_count = serializers.IntegerField()
+    pending_review_count = serializers.IntegerField()
+    accepted_count = serializers.IntegerField()
+    modified_count = serializers.IntegerField()
+    ignored_count = serializers.IntegerField()
+    acceptance_rate = serializers.FloatField()
+    modification_rate = serializers.FloatField()
+    ignore_rate = serializers.FloatField()
+    override_rate = serializers.FloatField()
+    category_agreement_rate = serializers.FloatField()
+    priority_agreement_rate = serializers.FloatField()
+    full_agreement_rate = serializers.FloatField()
+    average_confidence = serializers.FloatField(allow_null=True, required=False)
+    operational_health_score = serializers.IntegerField()
+    operational_health_band = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    operational_health_label = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    attention_urgency_score = serializers.IntegerField()
+    attention_urgency_level = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    attention_urgency_label = serializers.CharField(
+        allow_null=True, required=False, allow_blank=True
+    )
+    critical_attention_count = serializers.IntegerField()
+    high_attention_count = serializers.IntegerField()
+
+
+class ExecutiveAIExecutiveSummarySerializer(serializers.Serializer):
+    status = serializers.CharField()
+    label = serializers.CharField()
+    headline = serializers.CharField()
+    details = serializers.ListField(child=serializers.CharField())
+    positive_trend = serializers.CharField(allow_null=True, required=False)
+    primary_concern = serializers.CharField(allow_null=True, required=False)
+    recommended_review_area = serializers.CharField(
+        allow_null=True, required=False
+    )
+
+
+class ExecutiveAITrendEntrySerializer(serializers.Serializer):
+    direction = serializers.CharField()
+    label = serializers.CharField()
+    current = serializers.FloatField(allow_null=True, required=False)
+    previous = serializers.FloatField(allow_null=True, required=False)
+    delta = serializers.FloatField(allow_null=True, required=False)
+
+
+class ExecutiveAIPeriodComparisonSerializer(serializers.Serializer):
+    recommendation_volume = ExecutiveAITrendEntrySerializer()
+    acceptance_rate = ExecutiveAITrendEntrySerializer()
+    modification_rate = ExecutiveAITrendEntrySerializer()
+    ignore_rate = ExecutiveAITrendEntrySerializer()
+    category_agreement_rate = ExecutiveAITrendEntrySerializer()
+    priority_agreement_rate = ExecutiveAITrendEntrySerializer()
+    full_agreement_rate = ExecutiveAITrendEntrySerializer()
+    average_confidence = ExecutiveAITrendEntrySerializer()
+    operational_health_score = ExecutiveAITrendEntrySerializer()
+    attention_urgency_score = ExecutiveAITrendEntrySerializer()
+    pending_review_count = ExecutiveAITrendEntrySerializer()
+    stable_tolerance = serializers.DictField()
+
+
+class ExecutiveAIAttentionItemSerializer(serializers.Serializer):
+    code = serializers.CharField(allow_null=True, required=False)
+    title = serializers.CharField(allow_null=True, required=False)
+    message = serializers.CharField(allow_null=True, required=False)
+    urgency_score = serializers.IntegerField(allow_null=True, required=False)
+    priority = serializers.DictField(required=False)
+    suggested_action = serializers.DictField(required=False)
+
+
+class ExecutiveAIAttentionSummarySerializer(serializers.Serializer):
+    attention_count = serializers.IntegerField()
+    critical_count = serializers.IntegerField()
+    high_count = serializers.IntegerField()
+    pending_review_count = serializers.IntegerField()
+    urgency_score = serializers.IntegerField()
+    urgency_level = serializers.DictField()
+    top_attention_items = ExecutiveAIAttentionItemSerializer(many=True)
+    suggested_actions = serializers.ListField(child=serializers.DictField())
+
+
+class ExecutiveAIOperationalHealthSerializer(serializers.Serializer):
+    score = serializers.IntegerField(allow_null=True, required=False)
+    band = serializers.CharField(allow_null=True, required=False, allow_blank=True)
+    label = serializers.CharField(allow_null=True, required=False, allow_blank=True)
+    components = serializers.DictField()
+
+
+class ExecutiveAIInsightSerializer(serializers.Serializer):
+    code = serializers.CharField(allow_null=True, required=False)
+    severity = serializers.CharField(allow_null=True, required=False)
+    title = serializers.CharField(allow_null=True, required=False)
+    message = serializers.CharField(allow_null=True, required=False)
+
+
+class ExecutiveAIKnowledgeSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    available = serializers.BooleanField()
+    reason = serializers.CharField()
+    endpoint = serializers.CharField()
+    algorithm = serializers.DictField()
+    corpus_signals = serializers.DictField()
+    search_usage = serializers.JSONField(allow_null=True, required=False)
+    source_distribution = serializers.JSONField(allow_null=True, required=False)
+    advisory_note = serializers.CharField()
+
+
+class ExecutiveAIDashboardSerializer(serializers.Serializer):
+    period = ExecutiveAIPeriodSerializer()
+    filters = AIAnalyticsFiltersSerializer()
+    summary = ExecutiveAISummarySerializer()
+    executive_summary = ExecutiveAIExecutiveSummarySerializer()
+    period_comparison = ExecutiveAIPeriodComparisonSerializer()
+    decision_distribution = AIAnalyticsDecisionCountSerializer(many=True)
+    decision_trend = AIAnalyticsTrendPointSerializer(many=True)
+    confidence_by_decision = AIAnalyticsConfidenceByDecisionSerializer(many=True)
+    confidence_bands = AIAnalyticsConfidenceBandSerializer(many=True)
+    top_category_overrides = AIAnalyticsOverrideSerializer(many=True)
+    top_priority_overrides = AIAnalyticsOverrideSerializer(many=True)
+    attention_summary = ExecutiveAIAttentionSummarySerializer()
+    operational_health = ExecutiveAIOperationalHealthSerializer()
+    operational_insights = ExecutiveAIInsightSerializer(many=True)
+    knowledge_summary = ExecutiveAIKnowledgeSerializer()
+    interpretation = AIAnalyticsInterpretationSerializer()
+    generated_at = serializers.CharField()

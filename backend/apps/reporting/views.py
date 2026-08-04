@@ -9,12 +9,16 @@ from apps.fm_tickets.ai_operational_insights_service import (
     build_ai_operational_insights,
 )
 from apps.fm_tickets.ai_similar_case_service import build_ai_similar_cases
+from apps.fm_tickets.executive_ai_dashboard_service import (
+    build_executive_ai_dashboard,
+)
 
 from .serializers import (
     AIAttentionCenterSerializer,
     AIOperationalInsightsSerializer,
     AIRecommendationAnalyticsSerializer,
     AISimilarCasesSerializer,
+    ExecutiveAIDashboardSerializer,
     OperationalOverviewSerializer,
     ReportingFilterOptionsSerializer,
 )
@@ -122,5 +126,22 @@ class AISimilarCasesView(APIView):
     def get(self, request):
         payload = build_ai_similar_cases(request.user, request.query_params)
         serializer = AISimilarCasesSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+class ExecutiveAIDashboardView(APIView):
+    """FO-092 tenant-scoped Executive AI Dashboard (informational only).
+
+    Requires ``reporting.view``. Orchestrates FO-088/089/090 services.
+    Never mutates tickets, prompts, models, or assignments.
+    """
+
+    permission_classes = [IsAuthenticated, HasPermissionCode]
+    required_permission = "reporting.view"
+
+    def get(self, request):
+        payload = build_executive_ai_dashboard(request.user, request.query_params)
+        serializer = ExecutiveAIDashboardSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data)
