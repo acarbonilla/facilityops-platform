@@ -8,11 +8,13 @@ from apps.fm_tickets.ai_attention_center_service import build_ai_attention_cente
 from apps.fm_tickets.ai_operational_insights_service import (
     build_ai_operational_insights,
 )
+from apps.fm_tickets.ai_similar_case_service import build_ai_similar_cases
 
 from .serializers import (
     AIAttentionCenterSerializer,
     AIOperationalInsightsSerializer,
     AIRecommendationAnalyticsSerializer,
+    AISimilarCasesSerializer,
     OperationalOverviewSerializer,
     ReportingFilterOptionsSerializer,
 )
@@ -102,5 +104,23 @@ class AIAttentionCenterView(APIView):
     def get(self, request):
         payload = build_ai_attention_center(request.user, request.query_params)
         serializer = AIAttentionCenterSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+class AISimilarCasesView(APIView):
+    """FO-091 tenant-scoped AI Knowledge Base similar cases (read-only).
+
+    Requires ``reporting.view``. Rule-based Version 1 matcher; never mutates
+    tickets, prompts, models, or assignments. Never exposes attachments,
+    prompts, raw Gemini output, or identities.
+    """
+
+    permission_classes = [IsAuthenticated, HasPermissionCode]
+    required_permission = "reporting.view"
+
+    def get(self, request):
+        payload = build_ai_similar_cases(request.user, request.query_params)
+        serializer = AISimilarCasesSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data)

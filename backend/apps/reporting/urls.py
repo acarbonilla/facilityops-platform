@@ -4,6 +4,7 @@ from .views import (
     AIAttentionCenterView,
     AIOperationalInsightsView,
     AIRecommendationInsightsView,
+    AISimilarCasesView,
     OperationalOverviewView,
     ReportingFilterOptionsView,
 )
@@ -33,5 +34,10 @@ urlpatterns = [
         "ai-attention-center/",
         AIAttentionCenterView.as_view(),
         name="reporting-ai-attention-center",
+    ),
+    path(
+        "ai-similar-cases/",
+        AISimilarCasesView.as_view(),
+        name="reporting-ai-similar-cases",
     ),
 ]
