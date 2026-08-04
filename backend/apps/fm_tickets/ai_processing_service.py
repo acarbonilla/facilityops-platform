@@ -229,7 +229,9 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
 
 
 def _fail_or_retry(*, analysis, started_at, attempt: int, code: str, retryable: bool) -> dict:
-    max_attempts = max(1, int(getattr(settings, "FACILITYOPS_AI_MAX_ATTEMPTS", 3)))
+    from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
+    max_attempts = max(1, int(get_runtime_setting("FACILITYOPS_AI_MAX_ATTEMPTS", 3)))
     should_retry = retryable and code in RETRYABLE_ERROR_CODES and attempt < max_attempts
 
     completed_at = timezone.now()

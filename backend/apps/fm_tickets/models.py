@@ -534,3 +534,76 @@ class AITicketAnalysisAttachment(BaseModel):
 
     def __str__(self):
         return f"{self.analysis_id} -> {self.attachment_id}"
+
+
+class AIAdminConfig(BaseModel):
+    """FO-093: global AI administration configuration (singleton row).
+
+    Scope is platform-global in V1 (no TenantSettings store). Null provider
+    fields inherit Django/env defaults. Feature flags default enabled so
+    existing workflows remain available until an administrator disables them.
+    """
+
+    # Provider (blank/null inherit from Django settings / env)
+    provider = models.CharField(max_length=50, blank=True, default="")
+    model_name = models.CharField(max_length=100, blank=True, default="")
+    enabled = models.BooleanField(null=True, blank=True)
+    timeout_seconds = models.PositiveIntegerField(null=True, blank=True)
+    max_images = models.PositiveSmallIntegerField(null=True, blank=True)
+    max_upload_bytes = models.PositiveIntegerField(null=True, blank=True)
+    retry_attempts = models.PositiveSmallIntegerField(null=True, blank=True)
+    store_raw_response = models.BooleanField(null=True, blank=True)
+
+    # Feature flags — fail safe when explicitly False
+    flag_image_analysis = models.BooleanField(default=True)
+    flag_recommendation_engine = models.BooleanField(default=True)
+    flag_executive_dashboard = models.BooleanField(default=True)
+    flag_similar_cases = models.BooleanField(default=True)
+    flag_attention_center = models.BooleanField(default=True)
+    flag_operational_insights = models.BooleanField(default=True)
+
+    # Thresholds (null inherit from Django settings)
+    confidence_threshold = models.FloatField(null=True, blank=True)
+    health_warning_threshold = models.PositiveIntegerField(null=True, blank=True)
+    health_critical_threshold = models.PositiveIntegerField(null=True, blank=True)
+    attention_warning_threshold = models.PositiveIntegerField(null=True, blank=True)
+    attention_critical_threshold = models.PositiveIntegerField(null=True, blank=True)
+    acceptance_healthy_rate = models.FloatField(null=True, blank=True)
+    override_warning_rate = models.FloatField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "AI admin config"
+        verbose_name_plural = "AI admin config"
+
+    def __str__(self):
+        return f"AIAdminConfig({self.pk})"
+
+
+class AIAdminAuditEntry(BaseModel):
+    """FO-093: audit trail for AI governance configuration changes."""
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_admin_audit_entries",
+    )
+    actor_email = models.EmailField(blank=True, default="")
+    changed_field = models.CharField(max_length=100, db_index=True)
+    old_value = models.TextField(blank=True, default="")
+    new_value = models.TextField(blank=True, default="")
+    scope = models.CharField(max_length=20, default="global", db_index=True)
+    note = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["-created_at", "changed_field"],
+                name="fm_ai_admin_audit_created",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.changed_field} @ {self.created_at}"

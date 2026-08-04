@@ -146,10 +146,18 @@ class PlaceholderAIProvider(AIImageAnalysisProvider):
 
 
 def get_ai_provider() -> AIImageAnalysisProvider:
-    """Resolve provider from settings. Controllers must not call Gemini directly."""
-    selected = (getattr(settings, "FACILITYOPS_AI_PROVIDER", "placeholder") or "placeholder").lower()
+    """Resolve provider from effective FO-093 config (falls back to Django settings)."""
+    from .ai_administration_service import get_runtime_setting, is_feature_enabled
+
+    if not is_feature_enabled("image_analysis"):
+        raise AIAnalysisError(AIErrorCode.PROVIDER_NOT_CONFIGURED)
+
+    selected = (
+        get_runtime_setting("FACILITYOPS_AI_PROVIDER", "placeholder") or "placeholder"
+    )
+    selected = str(selected).lower()
     if selected in {"gemini", "gemini_vision"}:
-        if not getattr(settings, "FACILITYOPS_GEMINI_ENABLED", False):
+        if not get_runtime_setting("FACILITYOPS_GEMINI_ENABLED", False):
             raise AIAnalysisError(AIErrorCode.PROVIDER_NOT_CONFIGURED)
         from .ai.gemini_provider import GeminiVisionProvider
 

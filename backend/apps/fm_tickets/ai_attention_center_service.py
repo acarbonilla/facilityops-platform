@@ -48,7 +48,9 @@ ITEM_BASE_URGENCY = {
 
 
 def _setting_float(name: str, default: float) -> float:
-    value = getattr(settings, name, default)
+    from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
+    value = get_runtime_setting(name, default)
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -56,7 +58,9 @@ def _setting_float(name: str, default: float) -> float:
 
 
 def _setting_int(name: str, default: int) -> int:
-    value = getattr(settings, name, default)
+    from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
+    value = get_runtime_setting(name, default)
     try:
         return int(value)
     except (TypeError, ValueError):
