@@ -5,6 +5,7 @@ from .views import (
     AIOperationalInsightsView,
     AIRecommendationInsightsView,
     AISimilarCasesView,
+    ExecutiveAIDashboardView,
     OperationalOverviewView,
     ReportingFilterOptionsView,
 )
@@ -39,5 +40,10 @@ urlpatterns = [
         "ai-similar-cases/",
         AISimilarCasesView.as_view(),
         name="reporting-ai-similar-cases",
+    ),
+    path(
+        "ai-executive-dashboard/",
+        ExecutiveAIDashboardView.as_view(),
+        name="reporting-ai-executive-dashboard",
     ),
 ]
