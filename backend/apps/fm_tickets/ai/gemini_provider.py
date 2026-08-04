@@ -37,9 +37,11 @@ class GeminiVisionProvider:
         self._client = client
 
     def _require_config(self) -> tuple[str, str]:
+        from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
         api_key = (getattr(settings, "GEMINI_API_KEY", None) or "").strip()
-        model = (getattr(settings, "FACILITYOPS_GEMINI_MODEL", None) or "").strip()
-        enabled = bool(getattr(settings, "FACILITYOPS_GEMINI_ENABLED", False))
+        model = (get_runtime_setting("FACILITYOPS_GEMINI_MODEL", None) or "").strip()
+        enabled = bool(get_runtime_setting("FACILITYOPS_GEMINI_ENABLED", False))
         if not enabled or not api_key or not model:
             raise AIAnalysisError(AIErrorCode.PROVIDER_NOT_CONFIGURED)
         return api_key, model
@@ -139,7 +141,9 @@ class GeminiVisionProvider:
         from google.genai import types
 
         client = self._get_client(api_key)
-        timeout = max(5, int(getattr(settings, "FACILITYOPS_GEMINI_TIMEOUT_SECONDS", 60)))
+        from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
+        timeout = max(5, int(get_runtime_setting("FACILITYOPS_GEMINI_TIMEOUT_SECONDS", 60)))
         temperature = float(getattr(settings, "FACILITYOPS_GEMINI_TEMPERATURE", 0.2))
 
         parts: list[Any] = [

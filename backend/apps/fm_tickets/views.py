@@ -519,6 +519,13 @@ class FmTicketViewSet(viewsets.ModelViewSet):
 
         serializer = AITicketAnalysisQueueSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        from apps.fm_tickets.ai_administration_service import is_feature_enabled
+        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+
+        if not is_feature_enabled("image_analysis"):
+            raise DRFPermissionDenied(
+                "Image analysis is disabled by AI administration."
+            )
         try:
             analysis = queue_ticket_image_analysis(
                 actor=request.user,

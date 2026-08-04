@@ -1,8 +1,10 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 
 from apps.access_control.permissions import HasPermissionCode
+from apps.fm_tickets.ai_administration_service import is_feature_enabled
 from apps.fm_tickets.ai_analytics_service import build_ai_recommendation_analytics
 from apps.fm_tickets.ai_attention_center_service import build_ai_attention_center
 from apps.fm_tickets.ai_operational_insights_service import (
@@ -23,6 +25,13 @@ from .serializers import (
     ReportingFilterOptionsSerializer,
 )
 from .services import build_operational_overview, build_reporting_filter_options
+
+
+def _require_ai_feature(flag_key: str, label: str) -> None:
+    if not is_feature_enabled(flag_key):
+        raise PermissionDenied(
+            f"{label} is disabled by AI administration. Contact a system administrator."
+        )
 
 
 class OperationalOverviewView(APIView):
@@ -70,6 +79,7 @@ class AIRecommendationInsightsView(APIView):
     required_permission = "reporting.view"
 
     def get(self, request):
+        _require_ai_feature("recommendation_engine", "AI Recommendation Insights")
         payload = build_ai_recommendation_analytics(
             request.user, request.query_params
         )
@@ -89,6 +99,7 @@ class AIOperationalInsightsView(APIView):
     required_permission = "reporting.view"
 
     def get(self, request):
+        _require_ai_feature("operational_insights", "AI Operational Insights")
         payload = build_ai_operational_insights(request.user, request.query_params)
         serializer = AIOperationalInsightsSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
@@ -106,6 +117,7 @@ class AIAttentionCenterView(APIView):
     required_permission = "reporting.view"
 
     def get(self, request):
+        _require_ai_feature("attention_center", "AI Attention Center")
         payload = build_ai_attention_center(request.user, request.query_params)
         serializer = AIAttentionCenterSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
@@ -124,6 +136,7 @@ class AISimilarCasesView(APIView):
     required_permission = "reporting.view"
 
     def get(self, request):
+        _require_ai_feature("similar_cases", "AI Similar Cases")
         payload = build_ai_similar_cases(request.user, request.query_params)
         serializer = AISimilarCasesSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
@@ -141,6 +154,7 @@ class ExecutiveAIDashboardView(APIView):
     required_permission = "reporting.view"
 
     def get(self, request):
+        _require_ai_feature("executive_dashboard", "Executive AI Dashboard")
         payload = build_executive_ai_dashboard(request.user, request.query_params)
         serializer = ExecutiveAIDashboardSerializer(data=payload)
         serializer.is_valid(raise_exception=True)

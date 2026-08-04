@@ -61,10 +61,12 @@ def prepare_analysis_images(
     ticket,
     attachments,
 ) -> list[PreparedImage]:
-    max_images = max(1, int(getattr(settings, "FACILITYOPS_GEMINI_MAX_IMAGES", 5)))
+    from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
+    max_images = max(1, int(get_runtime_setting("FACILITYOPS_GEMINI_MAX_IMAGES", 5)))
     max_total = max(
         1024,
-        int(getattr(settings, "FACILITYOPS_GEMINI_MAX_TOTAL_BYTES", 15 * 1024 * 1024)),
+        int(get_runtime_setting("FACILITYOPS_GEMINI_MAX_TOTAL_BYTES", 15 * 1024 * 1024)),
     )
     max_single = int(getattr(settings, "ATTACHMENT_MAX_UPLOAD_BYTES", 10 * 1024 * 1024))
 
