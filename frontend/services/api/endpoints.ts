@@ -137,6 +137,7 @@ export const API_ENDPOINTS = {
     aiOperationalInsights: "/reporting/ai-operational-insights/",
     aiAttentionCenter: "/reporting/ai-attention-center/",
     aiSimilarCases: "/reporting/ai-similar-cases/",
+    aiExecutiveDashboard: "/reporting/ai-executive-dashboard/",
   },
   attachments: {
     list: "/attachments/",

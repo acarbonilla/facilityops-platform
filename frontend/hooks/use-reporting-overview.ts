@@ -10,6 +10,7 @@ import {
   getAIOperationalInsights,
   getAIRecommendationInsights,
   getAISimilarCases,
+  getExecutiveAIDashboard,
   getReportingFilterOptions,
   getReportingOverview,
 } from "@/services/api/reporting";
@@ -18,6 +19,7 @@ import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
 import type { AISimilarCasesParams } from "@/types/ai-similar-cases";
+import type { ExecutiveAIDashboardParams } from "@/types/ai-executive-dashboard";
 import type { ReportingOverviewParams } from "@/types/reporting";
 
 function useReportingQueriesEnabled() {
@@ -92,6 +94,18 @@ export function useAISimilarCases(params?: AISimilarCasesParams | null) {
   return useQuery({
     queryKey: reportingQueryKeys.aiSimilarCases(params ?? undefined),
     queryFn: () => getAISimilarCases(params ?? undefined),
+    enabled,
+  });
+}
+
+export function useExecutiveAIDashboard(
+  params?: ExecutiveAIDashboardParams | null,
+) {
+  const enabled = useReportingQueriesEnabled() && Boolean(params);
+
+  return useQuery({
+    queryKey: reportingQueryKeys.aiExecutiveDashboard(params ?? undefined),
+    queryFn: () => getExecutiveAIDashboard(params ?? undefined),
     enabled,
   });
 }

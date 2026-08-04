@@ -19,6 +19,10 @@ import type {
   AISimilarCasesParams,
 } from "@/types/ai-similar-cases";
 import type {
+  ExecutiveAIDashboard,
+  ExecutiveAIDashboardParams,
+} from "@/types/ai-executive-dashboard";
+import type {
   ReportingFilterOptionsResponse,
   ReportingOperationalOverview,
   ReportingOverviewParams,
@@ -98,4 +102,18 @@ export function getAISimilarCases(
     method: "GET",
     query,
   });
+}
+
+export function getExecutiveAIDashboard(
+  params?: ExecutiveAIDashboardParams,
+): Promise<ExecutiveAIDashboard> {
+  const query = omitBlankReportingParams(params ?? {});
+
+  return apiClient<ExecutiveAIDashboard>(
+    API_ENDPOINTS.reporting.aiExecutiveDashboard,
+    {
+      method: "GET",
+      query,
+    },
+  );
 }

@@ -323,6 +323,13 @@ export function ReportingOverviewScreen() {
             >
               Open AI Similar Cases
             </Link>
+            {" · "}
+            <Link
+              className="font-medium text-blue-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              href="/reporting/ai-executive-dashboard"
+            >
+              Open Executive AI Dashboard
+            </Link>
           </p>
         </div>
       </PageHeader>
