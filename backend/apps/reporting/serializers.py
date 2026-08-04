@@ -298,3 +298,123 @@ class AIOperationalInsightsSerializer(serializers.Serializer):
     priority_overrides = AIAnalyticsOverrideSerializer(many=True)
     manager_notes = AIOperationalManagerNotesSerializer()
     interpretation = AIAnalyticsInterpretationSerializer()
+
+
+class AIAttentionPrioritySerializer(serializers.Serializer):
+    code = serializers.CharField()
+    label = serializers.CharField()
+
+
+class AIAttentionSuggestedActionSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+    message = serializers.CharField()
+    actionable = serializers.BooleanField()
+    note = serializers.CharField()
+
+
+class AIAttentionItemSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    category = serializers.CharField()
+    title = serializers.CharField()
+    message = serializers.CharField()
+    urgency_score = serializers.IntegerField()
+    priority = AIAttentionPrioritySerializer()
+    trend = serializers.CharField(allow_null=True, required=False)
+    suggested_action = AIAttentionSuggestedActionSerializer()
+    created_at = serializers.CharField()
+
+
+class AIAttentionUrgencyComponentsSerializer(serializers.Serializer):
+    pending = serializers.FloatField()
+    override = serializers.FloatField()
+    health_inverse = serializers.FloatField()
+    trend = serializers.FloatField()
+    confidence = serializers.FloatField()
+    volume = serializers.FloatField()
+
+
+class AIAttentionUrgencyWeightsSerializer(serializers.Serializer):
+    pending = serializers.FloatField()
+    override = serializers.FloatField()
+    health_inverse = serializers.FloatField()
+    trend = serializers.FloatField()
+    confidence = serializers.FloatField()
+    volume = serializers.FloatField()
+
+
+class AIAttentionUrgencySerializer(serializers.Serializer):
+    score = serializers.IntegerField()
+    level = AIAttentionPrioritySerializer()
+    components = AIAttentionUrgencyComponentsSerializer()
+    weights = AIAttentionUrgencyWeightsSerializer()
+    interpretation = serializers.CharField()
+
+
+class AIAttentionSummarySerializer(serializers.Serializer):
+    attention_count = serializers.IntegerField()
+    critical_count = serializers.IntegerField()
+    high_count = serializers.IntegerField()
+    pending_review_count = serializers.IntegerField()
+    recommendation_count = serializers.IntegerField()
+    acceptance_rate = serializers.FloatField()
+    modification_rate = serializers.FloatField()
+    operational_health_score = serializers.IntegerField()
+    operational_health_band = serializers.CharField()
+
+
+class AIAttentionGroupSerializer(serializers.Serializer):
+    category = serializers.CharField()
+    label = serializers.CharField()
+    count = serializers.IntegerField()
+    items = AIAttentionItemSerializer(many=True)
+
+
+class AIAttentionThresholdsSerializer(serializers.Serializer):
+    pending_review_count = serializers.IntegerField()
+    high_override_rate = serializers.FloatField()
+    low_acceptance_rate = serializers.FloatField()
+    high_volume_count = serializers.IntegerField()
+    health_needs_review_min = serializers.IntegerField()
+    level_critical_min = serializers.IntegerField()
+    level_high_min = serializers.IntegerField()
+    level_medium_min = serializers.IntegerField()
+
+
+class AIAttentionOperationalHealthSerializer(serializers.Serializer):
+    score = serializers.IntegerField()
+    band = serializers.CharField()
+    label = serializers.CharField()
+    components = AIOperationalHealthComponentsSerializer()
+
+
+class AIAttentionPendingSummarySerializer(serializers.Serializer):
+    pending_review_count = serializers.IntegerField()
+    recommendation_count = serializers.IntegerField()
+    reviewed_count = serializers.IntegerField()
+
+
+class AIAttentionRecentActivitySerializer(serializers.Serializer):
+    accepted_rate = serializers.FloatField()
+    modification_rate = serializers.FloatField()
+    ignore_rate = serializers.FloatField()
+    full_agreement_rate = serializers.FloatField()
+    note = serializers.CharField()
+
+
+class AIAttentionCenterSerializer(serializers.Serializer):
+    period = AIAnalyticsPeriodSerializer()
+    comparison_period = AIOperationalComparisonPeriodSerializer()
+    filters = AIAnalyticsFiltersSerializer()
+    thresholds = AIAttentionThresholdsSerializer()
+    summary = AIAttentionSummarySerializer()
+    urgency_score = AIAttentionUrgencySerializer()
+    attention_items = AIAttentionItemSerializer(many=True)
+    critical_items = AIAttentionItemSerializer(many=True)
+    groups = AIAttentionGroupSerializer(many=True)
+    trend = AIOperationalTrendSerializer()
+    operational_health = AIAttentionOperationalHealthSerializer()
+    pending_review_summary = AIAttentionPendingSummarySerializer()
+    recent_review_activity = AIAttentionRecentActivitySerializer()
+    interpretation = AIAnalyticsInterpretationSerializer()
+    generated_at = serializers.CharField()

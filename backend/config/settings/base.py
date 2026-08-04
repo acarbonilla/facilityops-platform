@@ -309,6 +309,56 @@ try:
 except (TypeError, ValueError):
     FACILITYOPS_AI_HEALTH_WEIGHT_CONFIDENCE = 0.20
 
+# FO-090: AI Attention Center urgency weights and level bands.
+try:
+    FACILITYOPS_AI_ATTENTION_WEIGHT_PENDING = float(
+        config("FACILITYOPS_AI_ATTENTION_WEIGHT_PENDING", default="0.25")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_ATTENTION_WEIGHT_PENDING = 0.25
+try:
+    FACILITYOPS_AI_ATTENTION_WEIGHT_OVERRIDE = float(
+        config("FACILITYOPS_AI_ATTENTION_WEIGHT_OVERRIDE", default="0.20")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_ATTENTION_WEIGHT_OVERRIDE = 0.20
+try:
+    FACILITYOPS_AI_ATTENTION_WEIGHT_HEALTH = float(
+        config("FACILITYOPS_AI_ATTENTION_WEIGHT_HEALTH", default="0.20")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_ATTENTION_WEIGHT_HEALTH = 0.20
+try:
+    FACILITYOPS_AI_ATTENTION_WEIGHT_TREND = float(
+        config("FACILITYOPS_AI_ATTENTION_WEIGHT_TREND", default="0.15")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_ATTENTION_WEIGHT_TREND = 0.15
+try:
+    FACILITYOPS_AI_ATTENTION_WEIGHT_CONFIDENCE = float(
+        config("FACILITYOPS_AI_ATTENTION_WEIGHT_CONFIDENCE", default="0.10")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_ATTENTION_WEIGHT_CONFIDENCE = 0.10
+try:
+    FACILITYOPS_AI_ATTENTION_WEIGHT_VOLUME = float(
+        config("FACILITYOPS_AI_ATTENTION_WEIGHT_VOLUME", default="0.10")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_ATTENTION_WEIGHT_VOLUME = 0.10
+FACILITYOPS_AI_ATTENTION_CRITICAL_MIN = config_int(
+    "FACILITYOPS_AI_ATTENTION_CRITICAL_MIN",
+    default=80,
+)
+FACILITYOPS_AI_ATTENTION_HIGH_MIN = config_int(
+    "FACILITYOPS_AI_ATTENTION_HIGH_MIN",
+    default=60,
+)
+FACILITYOPS_AI_ATTENTION_MEDIUM_MIN = config_int(
+    "FACILITYOPS_AI_ATTENTION_MEDIUM_MIN",
+    default=40,
+)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 
