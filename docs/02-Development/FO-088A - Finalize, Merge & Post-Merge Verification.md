@@ -137,7 +137,7 @@ Deleted locally and on `origin` after merge:
 - **Latest stable:** FO-088 — AI Accuracy Analytics & Recommendation Insights
 - **Next planned:** FO-089 (**not started**)
 - **Latest merge SHA:** `5b258c145f3c0943fbfbf0e4ff8d4dd56f06889b`
-- **Latest main SHA:** recorded after this baseline documentation commit on `main`
+- **Latest main SHA:** `eb26ca39a20c0c32eb913c9cb064befa4dc3d16b`
 
 ## Remaining optional items
 
