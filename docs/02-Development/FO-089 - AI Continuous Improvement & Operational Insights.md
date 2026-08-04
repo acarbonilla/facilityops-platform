@@ -1,9 +1,10 @@
 # FO-089 — AI Continuous Improvement & Operational Insights
 
-**Status:** Complete; Draft PR ready  
+**Status:** Complete; Ready for Review (FO-089A finalization)  
 **Date:** 2026-08-04  
 **Base:** `main` @ `b4d2cb5dd6b6f5982ab83130fce21f7467288dc7` (FO-088 baseline)  
 **Branch:** `feature/fo-089-ai-operational-insights`  
+**PR:** [#55](https://github.com/acarbonilla/facilityops-platform/pull/55)  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -109,24 +110,25 @@ Informational management suggestions only (`actionable: false`). Examples: revie
 - No automatic workflow mutation
 - Manager notes are read-only placeholders
 - No CSV/PDF export
-- FO-090 not started
+- FO-090 exists as Draft PR #56 stacked for reconciliation after FO-089 merge (not part of this PR)
 
-## Manual acceptance
+## Manual acceptance (FO-089A)
 
+- Date: 2026-08-04
 - Environment: Local Django on PostgreSQL; isolated Tenant A/B fixtures
-- Result: PASS (health, insights, recommendations, trends, permissions, tenant isolation)
+- Result: **PASS** (health, insights, recommendations, trends, permissions, tenant isolation)
 - Defects: None
+- See `FO-089A - Finalize, Merge & Post-Merge Verification.md`
 
-## Validation snapshot
+## Validation snapshot (FO-089A)
 
 - Focused FO-089 backend (PostgreSQL): **14 passed**
-- FO-088 regression: **14 passed**
-- FO-087 regression: **8 passed**
+- FO-088 / FO-087 regressions: **14 / 8 passed**
 - Reporting regression: **86 passed**
-- AI combo (FO-089–FO-085 focused): **63 passed**
+- AI combo (FO-089–FO-085): **63 passed**
 - Focused FO-089 frontend: **8 passed**
 - Full frontend suite: **348 passed / 0 failed**
-- ESLint / TypeScript / production build: Passed (`/reporting/ai-operational-insights` present)
+- ESLint / TypeScript / production build: Passed
 - Django check / makemigrations --check / git diff --check: Clean
 - Secret scan: CLEAN
-- FO-090: not started
+- PR #56 remains open (not merged)
