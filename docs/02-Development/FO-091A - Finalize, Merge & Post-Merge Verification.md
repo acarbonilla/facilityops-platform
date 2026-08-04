@@ -1,50 +1,35 @@
 # FO-091A — Finalize, Merge & Post-Merge Verification
 
-**Status:** In progress (pre-merge)  
+**Status:** Complete  
 **Date:** 2026-08-04  
 **Phase:** Phase 12A — Application Development  
 **Stage:** Stage 3 — Business Modules  
 **Epic:** AI-Assisted FM Ticket Analysis  
 **Type:** Finalization, merge, verification, and baseline establishment
 
-## Preflight
+## Merge verification
 
 | Item | Value |
 | --- | --- |
+| PR | [#57](https://github.com/acarbonilla/facilityops-platform/pull/57) MERGED |
+| Merge strategy | Merge commit (not squash / not rebase) |
+| Merge commit | `f1e616885bd50f7a19afd0095367a924b46797f6` |
 | Starting `main` | `d342793c69d0c4fed4adc5322ff6b3427cdf8445` |
 | Starting feature | `6368c1c209c1bef7ac4688006b9ccd908e691a9a` |
-| PR | [#57](https://github.com/acarbonilla/facilityops-platform/pull/57) OPEN Draft |
-| Mergeable | MERGEABLE / CLEAN |
-| GitGuardian | SUCCESS |
-| Review threads | None |
-| FO-092 | Not present |
-
-## Architecture review
-
-| Check | Result |
-| --- | --- |
-| Centralized `AISimilarCaseService` | Pass |
-| Rule-based `rule_v1` only | Pass |
-| No embeddings / vector DB / external AI calls | Pass |
-| `reporting.view` + tenant scope before ranking | Pass |
-| Read-only; no ticket mutation | Pass |
-| Soft-deleted / cross-tenant excluded | Pass |
-| Employee requester denied | Pass |
+| Feature tip at merge | `06fc96cf55e7436cbea60c3d4661174800f84769` |
+| Final `main` (merge tip) | `f1e616885bd50f7a19afd0095367a924b46797f6` |
 
 ## Manual acceptance
 
 | Item | Value |
 | --- | --- |
 | Date | 2026-08-04 |
-| Environment | Local Django on PostgreSQL test DB; Tenant A/B fixtures in `test_ai_similar_cases`; code-path review of dashboard/API/privacy |
+| Environment | Local Django on PostgreSQL; Tenant A/B fixtures; code-path review |
 | Result | **PASS** |
-| Surfaces | Current case, ranked similar cases, scores 0–100, reasons, historical outcomes, AI/human decision summaries, filters, empty/loading/error UX |
-| Security | Tenant isolation; employee/unauthorized 403; no identities/emails/attachments/prompts/raw Gemini |
-| Workflow | No category/priority mutation; no WO/inspection creation; FO-087–FO-090 surfaces intact |
 | Defects found | None |
 | Defects corrected | N/A |
 
-## Validation (pre-merge)
+## Validation
 
 | Gate | Result |
 | --- | --- |
@@ -55,24 +40,24 @@
 | Reporting regression | **86 passed** |
 | AI combo FO-091–FO-085 | **82 passed** |
 | Focused FO-091 frontend | **6 passed** |
-| Reporting AI helpers | **28 passed** |
 | Full frontend suite | **360 passed / 0 failed** |
-| ESLint / TypeScript / production build | Passed (`/reporting/ai-similar-cases` present) |
+| ESLint / TypeScript / production build | Passed |
 | Django check / makemigrations --check | Clean |
-| Dependencies | Unchanged; no vector/embed packages |
-| Secret safety | GitGuardian SUCCESS; no new secrets |
-| git diff --check | Clean |
+| Post-merge FO-091 / FO-090 / frontend | **12 / 11 / 360 passed** |
 
-## Merge plan
+## Branch cleanup
 
-- Mark PR #57 Ready for Review
-- Merge with merge commit: `gh pr merge 57 --merge`
-- Do not squash / rebase / force-push
-- Do not start FO-092
+Deleted locally and on `origin` after merge:
 
-## Post-merge (to be completed)
+- `feature/fo-091-ai-knowledge-base`
 
-- Checkout `main`, pull, verify similar-cases page/API/service
-- Re-run focused FO-091, frontend suite, Django check, makemigrations
-- Delete local/remote `feature/fo-091-ai-knowledge-base`
-- Establish FO-091 as latest stable baseline
+## Stable baseline
+
+- **Latest stable:** FO-091 — AI Knowledge Base & Similar Cases
+- **Latest merge SHA:** `f1e616885bd50f7a19afd0095367a924b46797f6`
+- **Next:** FO-092 ready to begin (**not started**)
+- Rule-based similarity remains Version 1; semantic/vector search deferred
+
+## Confirmation
+
+FO-092 has not started. No embeddings / vector DB / RAG / external knowledge ingestion. No automatic case copying or ticket mutation.

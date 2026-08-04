@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-091 AI Knowledge Base (FO-091A Ready for Review)
+- AI-Assisted FM Ticket Analysis — FO-091 COMPLETE AND MERGED (stable baseline)
 
 ## Current Branch
 
-- `feature/fo-091-ai-knowledge-base` (PR #57 Ready; base `main` @ `d342793…`)
+- `main` @ FO-091 merge `f1e6168…` (FO-091A post-merge verification)
 
 ## Completed Modules
 
@@ -45,6 +45,7 @@
 - AI Accuracy Analytics & Recommendation Insights (FO-088)
 - AI Continuous Improvement & Operational Insights (FO-089)
 - AI Attention Center & Actionable Work Queue (FO-090)
+- AI Knowledge Base & Similar Cases (FO-091)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -117,13 +118,13 @@
 
 ## Current Task
 
-- FO-091A finalizing FO-091 AI Knowledge Base (PR #57 Ready for Review)
-  on `feature/fo-091-ai-knowledge-base`; base `main` @ `d342793…`.
-- FO-090 remains COMPLETE AND MERGED (`93bb534…`); prior stable baseline FO-090.
+- FO-091 AI Knowledge Base & Similar Cases COMPLETE AND MERGED
+  via PR #57 (`f1e6168…`); FO-091A post-merge verification complete.
+- Latest stable baseline: **FO-091**
 
 ## Next Milestone
 
-- FO-092 (**not started**)
+- FO-092 ready to begin (**not started**)
 - Optional live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
@@ -191,7 +192,8 @@
 - FO-089 AI operational insights COMPLETE AND MERGED via PR #55 (`19fea43…`);
   FO-089A post-merge verification complete. FO-090 AI attention center
   COMPLETE AND MERGED via PR #56 (`93bb534…`); FO-090A complete. FO-091
-  PR #57 Ready for Review (FO-091A). FO-092 not started.
+  AI knowledge base COMPLETE AND MERGED via PR #57 (`f1e6168…`); FO-091A
+  complete. FO-092 ready to begin (**not started**).
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
@@ -205,7 +207,9 @@
 
 ## Last Merge
 
-- `93bb53447914a905a1960dbe2035fbe0d3ee2b6c` (PR #56 into `main`; FO-090
+- `f1e616885bd50f7a19afd0095367a924b46797f6` (PR #57 into `main`; FO-091
+  AI Knowledge Base & Similar Cases)
+- Previous: `93bb53447914a905a1960dbe2035fbe0d3ee2b6c` (PR #56 into `main`; FO-090
   AI Attention Center & Actionable Work Queue)
 - Previous: `19fea43f05377985de2c61a686d1c68381cc0781` (PR #55 into `main`; FO-089
   AI Continuous Improvement & Operational Insights)
@@ -218,4 +222,4 @@
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline — FO-090 attention center checkpoint
+- `0.1.0` synchronized `main` baseline — FO-091 knowledge base checkpoint
