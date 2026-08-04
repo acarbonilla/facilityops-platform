@@ -159,3 +159,142 @@ class AIRecommendationAnalyticsSerializer(serializers.Serializer):
     priority_overrides = AIAnalyticsOverrideSerializer(many=True)
     confidence_bands = AIAnalyticsConfidenceBandSerializer(many=True)
     interpretation = AIAnalyticsInterpretationSerializer()
+
+
+class AIOperationalBadgeSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    label = serializers.CharField()
+
+
+class AIOperationalHealthComponentsSerializer(serializers.Serializer):
+    acceptance = serializers.FloatField()
+    agreement = serializers.FloatField()
+    pending_throughput = serializers.FloatField()
+    confidence = serializers.FloatField()
+
+
+class AIOperationalHealthWeightsSerializer(serializers.Serializer):
+    acceptance = serializers.FloatField()
+    agreement = serializers.FloatField()
+    pending_throughput = serializers.FloatField()
+    confidence = serializers.FloatField()
+
+
+class AIOperationalHealthSerializer(serializers.Serializer):
+    score = serializers.IntegerField()
+    band = serializers.CharField()
+    label = serializers.CharField()
+    components = AIOperationalHealthComponentsSerializer()
+    weights = AIOperationalHealthWeightsSerializer()
+    interpretation = serializers.CharField()
+
+
+class AIOperationalTrendMetricSerializer(serializers.Serializer):
+    direction = serializers.CharField()
+    badge = AIOperationalBadgeSerializer()
+    current = serializers.FloatField(allow_null=True)
+    previous = serializers.FloatField(allow_null=True)
+    delta = serializers.FloatField(allow_null=True)
+
+
+class AIOperationalTrendSerializer(serializers.Serializer):
+    acceptance = AIOperationalTrendMetricSerializer()
+    override = AIOperationalTrendMetricSerializer()
+    confidence = AIOperationalTrendMetricSerializer()
+    agreement = AIOperationalTrendMetricSerializer()
+    volume = AIOperationalTrendMetricSerializer()
+
+
+class AIOperationalComparisonSideSerializer(serializers.Serializer):
+    recommendation_count = serializers.IntegerField()
+    acceptance_rate = serializers.FloatField()
+    modification_rate = serializers.FloatField()
+    full_agreement_rate = serializers.FloatField()
+    average_confidence = serializers.FloatField(allow_null=True)
+    pending_review_count = serializers.IntegerField()
+
+
+class AIOperationalComparisonSerializer(serializers.Serializer):
+    current = AIOperationalComparisonSideSerializer()
+    previous = AIOperationalComparisonSideSerializer()
+
+
+class AIOperationalInsightSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    severity = serializers.CharField()
+    badge = AIOperationalBadgeSerializer()
+    title = serializers.CharField()
+    message = serializers.CharField()
+    metric = serializers.CharField(allow_null=True, required=False)
+    value = serializers.FloatField(allow_null=True, required=False)
+
+
+class AIOperationalRecommendationSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+    message = serializers.CharField()
+    actionable = serializers.BooleanField()
+    note = serializers.CharField()
+
+
+class AIOperationalCardSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    label = serializers.CharField()
+    value = serializers.JSONField(allow_null=True)
+    display = serializers.CharField()
+    badge = AIOperationalBadgeSerializer()
+
+
+class AIOperationalSummarySerializer(serializers.Serializer):
+    recommendation_count = serializers.IntegerField()
+    reviewed_count = serializers.IntegerField()
+    pending_review_count = serializers.IntegerField()
+    acceptance_rate = serializers.FloatField()
+    modification_rate = serializers.FloatField()
+    ignore_rate = serializers.FloatField()
+    full_agreement_rate = serializers.FloatField()
+    average_confidence = serializers.FloatField(allow_null=True)
+
+
+class AIOperationalThresholdsSerializer(serializers.Serializer):
+    high_override_rate = serializers.FloatField()
+    low_acceptance_rate = serializers.FloatField()
+    high_acceptance_rate = serializers.FloatField()
+    pending_review_count = serializers.IntegerField()
+    low_confidence = serializers.FloatField()
+    high_confidence = serializers.FloatField()
+    high_volume_count = serializers.IntegerField()
+    low_volume_count = serializers.IntegerField()
+    trend_stable_delta = serializers.FloatField()
+    health_healthy_min = serializers.IntegerField()
+    health_needs_review_min = serializers.IntegerField()
+
+
+class AIOperationalComparisonPeriodSerializer(serializers.Serializer):
+    start_date = serializers.CharField()
+    end_date = serializers.CharField()
+    inclusive = serializers.BooleanField()
+    max_range_days = serializers.IntegerField()
+
+
+class AIOperationalManagerNotesSerializer(serializers.Serializer):
+    placeholder = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+class AIOperationalInsightsSerializer(serializers.Serializer):
+    period = AIAnalyticsPeriodSerializer()
+    comparison_period = AIOperationalComparisonPeriodSerializer()
+    filters = AIAnalyticsFiltersSerializer()
+    thresholds = AIOperationalThresholdsSerializer()
+    summary = AIOperationalSummarySerializer()
+    health_score = AIOperationalHealthSerializer()
+    trend = AIOperationalTrendSerializer()
+    comparison = AIOperationalComparisonSerializer()
+    insights = AIOperationalInsightSerializer(many=True)
+    recommendations = AIOperationalRecommendationSerializer(many=True)
+    cards = AIOperationalCardSerializer(many=True)
+    category_overrides = AIAnalyticsOverrideSerializer(many=True)
+    priority_overrides = AIAnalyticsOverrideSerializer(many=True)
+    manager_notes = AIOperationalManagerNotesSerializer()
+    interpretation = AIAnalyticsInterpretationSerializer()

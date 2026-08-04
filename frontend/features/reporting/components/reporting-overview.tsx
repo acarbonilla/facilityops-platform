@@ -302,6 +302,13 @@ export function ReportingOverviewScreen() {
             >
               Open AI Recommendation Insights
             </Link>
+            {" · "}
+            <Link
+              className="font-medium text-blue-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+              href="/reporting/ai-operational-insights"
+            >
+              Open AI Operational Insights
+            </Link>
           </p>
         </div>
       </PageHeader>

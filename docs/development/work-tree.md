@@ -21,12 +21,12 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-088 COMPLETE AND MERGED | FO-088 on `main` via PR #54 (`5b258c1…`); FO-087 via PR #53 (`3ef353d…`); FO-089 not started |
+| FM Ticketing | FO-089 Ready for Review | FO-088 on `main` via PR #54 (`5b258c1…`); FO-089 on `feature/fo-089-ai-operational-insights` (PR #55); FO-090 Draft #56 pending reconciliation |
 | Public Landing | FO-082A COMPLETE AND MERGED | Premium `/` landing + Live Platform Preview on `main` via PR #51 (`3fe79e5…`) |
 | Attachments | Complete; merged | FO-079–FO-083 on `main`; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
-| Reporting and Operational Analytics | Complete + FO-088 AI insights on main | FO-064 through FO-067B complete; FO-088 adds `/reporting/ai-insights` under `reporting.view` (PR #54) |
+| Reporting and Operational Analytics | Complete + FO-089 operational insights (Draft) | FO-064–FO-067B + FO-088 on main; FO-089 adds `/reporting/ai-operational-insights` under `reporting.view` |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |

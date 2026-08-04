@@ -226,6 +226,89 @@ FACILITYOPS_AI_STORE_RAW_RESPONSE = config_bool(
 )
 FACILITYOPS_AI_MAX_ATTEMPTS = config_int("FACILITYOPS_AI_MAX_ATTEMPTS", default=3)
 
+# FO-089: AI operational insight thresholds (informational; no auto-actions).
+# Rates are fractions in [0, 1]. Confidence uses FO-086 0–100 scale.
+try:
+    FACILITYOPS_AI_HIGH_OVERRIDE_RATE = float(
+        config("FACILITYOPS_AI_HIGH_OVERRIDE_RATE", default="0.40")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HIGH_OVERRIDE_RATE = 0.40
+try:
+    FACILITYOPS_AI_LOW_ACCEPTANCE_RATE = float(
+        config("FACILITYOPS_AI_LOW_ACCEPTANCE_RATE", default="0.40")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_LOW_ACCEPTANCE_RATE = 0.40
+try:
+    FACILITYOPS_AI_HIGH_ACCEPTANCE_RATE = float(
+        config("FACILITYOPS_AI_HIGH_ACCEPTANCE_RATE", default="0.70")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HIGH_ACCEPTANCE_RATE = 0.70
+FACILITYOPS_AI_PENDING_REVIEW_COUNT = config_int(
+    "FACILITYOPS_AI_PENDING_REVIEW_COUNT",
+    default=10,
+)
+try:
+    FACILITYOPS_AI_LOW_CONFIDENCE_THRESHOLD = float(
+        config("FACILITYOPS_AI_LOW_CONFIDENCE_THRESHOLD", default="50")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_LOW_CONFIDENCE_THRESHOLD = 50.0
+try:
+    FACILITYOPS_AI_HIGH_CONFIDENCE_THRESHOLD = float(
+        config("FACILITYOPS_AI_HIGH_CONFIDENCE_THRESHOLD", default="75")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HIGH_CONFIDENCE_THRESHOLD = 75.0
+FACILITYOPS_AI_HIGH_VOLUME_COUNT = config_int(
+    "FACILITYOPS_AI_HIGH_VOLUME_COUNT",
+    default=50,
+)
+FACILITYOPS_AI_LOW_VOLUME_COUNT = config_int(
+    "FACILITYOPS_AI_LOW_VOLUME_COUNT",
+    default=5,
+)
+try:
+    FACILITYOPS_AI_TREND_STABLE_DELTA = float(
+        config("FACILITYOPS_AI_TREND_STABLE_DELTA", default="0.05")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_TREND_STABLE_DELTA = 0.05
+FACILITYOPS_AI_HEALTH_HEALTHY_MIN = config_int(
+    "FACILITYOPS_AI_HEALTH_HEALTHY_MIN",
+    default=75,
+)
+FACILITYOPS_AI_HEALTH_NEEDS_REVIEW_MIN = config_int(
+    "FACILITYOPS_AI_HEALTH_NEEDS_REVIEW_MIN",
+    default=50,
+)
+try:
+    FACILITYOPS_AI_HEALTH_WEIGHT_ACCEPTANCE = float(
+        config("FACILITYOPS_AI_HEALTH_WEIGHT_ACCEPTANCE", default="0.30")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HEALTH_WEIGHT_ACCEPTANCE = 0.30
+try:
+    FACILITYOPS_AI_HEALTH_WEIGHT_AGREEMENT = float(
+        config("FACILITYOPS_AI_HEALTH_WEIGHT_AGREEMENT", default="0.30")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HEALTH_WEIGHT_AGREEMENT = 0.30
+try:
+    FACILITYOPS_AI_HEALTH_WEIGHT_PENDING = float(
+        config("FACILITYOPS_AI_HEALTH_WEIGHT_PENDING", default="0.20")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HEALTH_WEIGHT_PENDING = 0.20
+try:
+    FACILITYOPS_AI_HEALTH_WEIGHT_CONFIDENCE = float(
+        config("FACILITYOPS_AI_HEALTH_WEIGHT_CONFIDENCE", default="0.20")
+    )
+except (TypeError, ValueError):
+    FACILITYOPS_AI_HEALTH_WEIGHT_CONFIDENCE = 0.20
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
 

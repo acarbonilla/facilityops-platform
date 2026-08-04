@@ -134,6 +134,7 @@ export const API_ENDPOINTS = {
     overview: "/reporting/overview/",
     filterOptions: "/reporting/filter-options/",
     aiInsights: "/reporting/ai-insights/",
+    aiOperationalInsights: "/reporting/ai-operational-insights/",
   },
   attachments: {
     list: "/attachments/",

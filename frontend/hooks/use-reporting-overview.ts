@@ -6,12 +6,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { REPORTING_PERMISSION } from "@/lib/reporting/navigation";
 import {
+  getAIOperationalInsights,
   getAIRecommendationInsights,
   getReportingFilterOptions,
   getReportingOverview,
 } from "@/services/api/reporting";
 import { reportingQueryKeys } from "@/services/api/query-keys";
 import type { AIInsightsParams } from "@/types/ai-insights";
+import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
 import type { ReportingOverviewParams } from "@/types/reporting";
 
 function useReportingQueriesEnabled() {
@@ -52,6 +54,18 @@ export function useAIRecommendationInsights(params?: AIInsightsParams | null) {
   return useQuery({
     queryKey: reportingQueryKeys.aiInsights(params ?? undefined),
     queryFn: () => getAIRecommendationInsights(params ?? undefined),
+    enabled,
+  });
+}
+
+export function useAIOperationalInsights(
+  params?: AIOperationalInsightsParams | null,
+) {
+  const enabled = useReportingQueriesEnabled() && Boolean(params);
+
+  return useQuery({
+    queryKey: reportingQueryKeys.aiOperationalInsights(params ?? undefined),
+    queryFn: () => getAIOperationalInsights(params ?? undefined),
     enabled,
   });
 }

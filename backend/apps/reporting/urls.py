@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    AIOperationalInsightsView,
     AIRecommendationInsightsView,
     OperationalOverviewView,
     ReportingFilterOptionsView,
@@ -21,5 +22,10 @@ urlpatterns = [
         "ai-insights/",
         AIRecommendationInsightsView.as_view(),
         name="reporting-ai-insights",
+    ),
+    path(
+        "ai-operational-insights/",
+        AIOperationalInsightsView.as_view(),
+        name="reporting-ai-operational-insights",
     ),
 ]
