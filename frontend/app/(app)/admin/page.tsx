@@ -56,11 +56,12 @@ export default function AdminPage() {
   const canViewUsers = hasPermission("users.view");
   const canViewRoles = hasPermission("roles.view");
   const canManageRoles = hasPermission("roles.manage");
+  const canManageAI = hasPermission("settings.manage");
 
   return (
     <ProtectedPermissionRoute
       mode="any"
-      requiredPermissions={["users.view", "roles.view", "roles.manage", "settings.view"]}
+      requiredPermissions={["users.view", "roles.view", "roles.manage", "settings.view", "settings.manage"]}
     >
       <AppShell>
         <div className="space-y-6">
@@ -89,6 +90,10 @@ export default function AdminPage() {
               <DetailField
                 label="Permissions access"
                 value={canManageRoles ? "Available" : "Requires roles.manage"}
+              />
+              <DetailField
+                label="AI administration"
+                value={canManageAI ? "Available" : "Requires settings.manage"}
               />
               <DetailField
                 label="User management"
@@ -129,7 +134,13 @@ export default function AdminPage() {
               title="Permissions"
             />
             <AdminCard
-              description="Audit-log workflows are not part of this foundation task."
+              description="Configure AI providers, feature flags, thresholds, policies, health, and audit history."
+              enabled={canManageAI}
+              href="/admin/ai"
+              title="AI Administration"
+            />
+            <AdminCard
+              description="General audit-log workflows remain planned for a later task. AI config audit is available under AI Administration."
               enabled={false}
               title="Audit Logs"
             />

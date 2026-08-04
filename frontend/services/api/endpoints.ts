@@ -139,6 +139,13 @@ export const API_ENDPOINTS = {
     aiSimilarCases: "/reporting/ai-similar-cases/",
     aiExecutiveDashboard: "/reporting/ai-executive-dashboard/",
   },
+  adminAi: {
+    config: "/admin/ai/config/",
+    prompts: "/admin/ai/prompts/",
+    policies: "/admin/ai/policies/",
+    health: "/admin/ai/health/",
+    audit: "/admin/ai/audit/",
+  },
   attachments: {
     list: "/attachments/",
     detail: (id: string) => `/attachments/${id}/`,
