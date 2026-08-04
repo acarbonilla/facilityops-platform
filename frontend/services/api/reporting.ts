@@ -7,6 +7,10 @@ import type {
   AIRecommendationInsights,
 } from "@/types/ai-insights";
 import type {
+  AIOperationalInsights,
+  AIOperationalInsightsParams,
+} from "@/types/ai-operational-insights";
+import type {
   ReportingFilterOptionsResponse,
   ReportingOperationalOverview,
   ReportingOverviewParams,
@@ -42,6 +46,20 @@ export function getAIRecommendationInsights(
 
   return apiClient<AIRecommendationInsights>(
     API_ENDPOINTS.reporting.aiInsights,
+    {
+      method: "GET",
+      query,
+    },
+  );
+}
+
+export function getAIOperationalInsights(
+  params?: AIOperationalInsightsParams,
+): Promise<AIOperationalInsights> {
+  const query = omitBlankReportingParams(params ?? {});
+
+  return apiClient<AIOperationalInsights>(
+    API_ENDPOINTS.reporting.aiOperationalInsights,
     {
       method: "GET",
       query,
