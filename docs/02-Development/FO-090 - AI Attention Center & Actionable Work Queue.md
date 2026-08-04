@@ -1,9 +1,10 @@
 # FO-090 — AI Attention Center & Actionable Work Queue
 
-**Status:** Complete; Draft PR ready  
+**Status:** Complete; Ready for Review (FO-090A)  
 **Date:** 2026-08-04  
-**Base:** `feature/fo-089-ai-operational-insights` @ `ffd8ec7…` (FO-089 tip; `main` @ `b4d2cb5…`)  
+**Base:** Reconciled onto `main` @ `f7c7ba9…` (FO-089 merged via `19fea43…`)  
 **Branch:** `feature/fo-090-ai-attention-center`  
+**PR:** [#56](https://github.com/acarbonilla/facilityops-platform/pull/56)  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -69,24 +70,25 @@ Informational only (`actionable: false`). Examples: review AI backlog, investiga
 ## Limitations
 
 - No automation / ML / prompt tuning
-- Branch stacked on FO-089 Draft PR #55 (not yet on `main`)
+- Reconciled onto updated `main` during FO-090A (FO-089 already merged)
 - FO-091 not started
 
-## Validation snapshot
+## Validation snapshot (FO-090A)
 
-- Focused FO-090 backend (PostgreSQL): **11 passed**
-- FO-089 regression: **14 passed**
-- FO-088 regression: **14 passed**
-- Reporting regression: **86 passed**
-- AI combo (FO-090–FO-085 focused): **74 passed**
+- Focused FO-090 backend (SQLite / PostgreSQL): **11 / 11 passed**
+- FO-089 regression (SQLite / PG): **14 / 14 passed**
+- FO-088 / FO-087 regressions: **14 / 8 passed**
+- Reporting regression (SQLite / PG): **86 / 86 passed**
+- AI combo (FO-090–FO-085 focused): **70 passed**
 - Focused FO-090 frontend: **6 passed**
-- Full frontend suite: **354 passed / 0 failed** (expected 348+6)
+- Full frontend suite: **354 passed / 0 failed**
 - ESLint / TypeScript / production build: Passed (`/reporting/ai-attention-center` present)
 - Django check / makemigrations --check: Clean
 - FO-091: not started
 
 ## Manual acceptance
 
-- Environment: Local Django on PostgreSQL; isolated Tenant A/B fixtures
-- Result: **PASS** (queue, urgency ordering, permissions, tenant isolation)
+- Environment: Local Django on PostgreSQL; isolated Tenant A/B fixtures; code-path review
+- Result: **PASS** (queue, urgency ordering, permissions, tenant isolation, privacy)
 - Defects: None
+- See `FO-090A - Finalize, Merge & Post-Merge Verification.md`
