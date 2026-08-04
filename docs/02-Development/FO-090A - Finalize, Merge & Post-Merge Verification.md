@@ -63,7 +63,9 @@ Deleted locally and on `origin` after merge:
 
 - **Latest stable:** FO-090 — AI Attention Center & Actionable Work Queue
 - **Latest merge SHA:** `93bb53447914a905a1960dbe2035fbe0d3ee2b6c`
+- **Latest main SHA:** `997ce9a16021745400d75ddb82e56bad2013458f`
 - **Next:** FO-091 ready to begin (**not started**)
+- **Working tree:** clean (untracked local sqlite/attachments junk excluded)
 
 ## Confirmation
 
