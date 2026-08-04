@@ -26,7 +26,7 @@
 | Attachments | Complete; merged | FO-079–FO-083 on `main`; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
-| Reporting and Operational Analytics | Complete + FO-089 operational insights (Draft) | FO-064–FO-067B + FO-088 on main; FO-089 adds `/reporting/ai-operational-insights` under `reporting.view` |
+| Reporting and Operational Analytics | Complete + FO-089 AI insights on main | FO-064–FO-088 + FO-089 on main; FO-090 Draft #56 pending reconciliation under `reporting.view` |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
