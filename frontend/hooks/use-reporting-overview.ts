@@ -9,6 +9,7 @@ import {
   getAIAttentionCenter,
   getAIOperationalInsights,
   getAIRecommendationInsights,
+  getAISimilarCases,
   getReportingFilterOptions,
   getReportingOverview,
 } from "@/services/api/reporting";
@@ -16,6 +17,7 @@ import { reportingQueryKeys } from "@/services/api/query-keys";
 import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
+import type { AISimilarCasesParams } from "@/types/ai-similar-cases";
 import type { ReportingOverviewParams } from "@/types/reporting";
 
 function useReportingQueriesEnabled() {
@@ -80,6 +82,16 @@ export function useAIAttentionCenter(
   return useQuery({
     queryKey: reportingQueryKeys.aiAttentionCenter(params ?? undefined),
     queryFn: () => getAIAttentionCenter(params ?? undefined),
+    enabled,
+  });
+}
+
+export function useAISimilarCases(params?: AISimilarCasesParams | null) {
+  const enabled = useReportingQueriesEnabled() && Boolean(params);
+
+  return useQuery({
+    queryKey: reportingQueryKeys.aiSimilarCases(params ?? undefined),
+    queryFn: () => getAISimilarCases(params ?? undefined),
     enabled,
   });
 }

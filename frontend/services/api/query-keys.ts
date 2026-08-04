@@ -8,6 +8,7 @@ import type { NotificationListParams } from "@/types/notifications";
 import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
+import type { AISimilarCasesParams } from "@/types/ai-similar-cases";
 import type { ReportingOverviewParams } from "@/types/reporting";
 import { myRequestsQueryKeys } from "@/lib/my-requests/query-keys";
 
@@ -215,6 +216,8 @@ export const reportingQueryKeys = {
     ["reporting", "ai-operational-insights", stripNilParams(params)] as const,
   aiAttentionCenter: (params?: AIAttentionCenterParams) =>
     ["reporting", "ai-attention-center", stripNilParams(params)] as const,
+  aiSimilarCases: (params?: AISimilarCasesParams) =>
+    ["reporting", "ai-similar-cases", stripNilParams(params)] as const,
 };
 
 export const attachmentQueryKeys = {
