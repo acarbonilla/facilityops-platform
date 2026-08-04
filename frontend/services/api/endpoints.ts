@@ -135,6 +135,7 @@ export const API_ENDPOINTS = {
     filterOptions: "/reporting/filter-options/",
     aiInsights: "/reporting/ai-insights/",
     aiOperationalInsights: "/reporting/ai-operational-insights/",
+    aiAttentionCenter: "/reporting/ai-attention-center/",
   },
   attachments: {
     list: "/attachments/",

@@ -4,11 +4,13 @@ from rest_framework.views import APIView
 
 from apps.access_control.permissions import HasPermissionCode
 from apps.fm_tickets.ai_analytics_service import build_ai_recommendation_analytics
+from apps.fm_tickets.ai_attention_center_service import build_ai_attention_center
 from apps.fm_tickets.ai_operational_insights_service import (
     build_ai_operational_insights,
 )
 
 from .serializers import (
+    AIAttentionCenterSerializer,
     AIOperationalInsightsSerializer,
     AIRecommendationAnalyticsSerializer,
     OperationalOverviewSerializer,
@@ -83,5 +85,22 @@ class AIOperationalInsightsView(APIView):
     def get(self, request):
         payload = build_ai_operational_insights(request.user, request.query_params)
         serializer = AIOperationalInsightsSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data)
+
+
+class AIAttentionCenterView(APIView):
+    """FO-090 tenant-scoped AI Attention Center (informational only).
+
+    Requires ``reporting.view``. Reuses FO-089 insights / FO-088 analytics.
+    Never mutates tickets, prompts, models, or assignments.
+    """
+
+    permission_classes = [IsAuthenticated, HasPermissionCode]
+    required_permission = "reporting.view"
+
+    def get(self, request):
+        payload = build_ai_attention_center(request.user, request.query_params)
+        serializer = AIAttentionCenterSerializer(data=payload)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data)

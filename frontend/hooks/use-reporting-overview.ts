@@ -6,12 +6,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { REPORTING_PERMISSION } from "@/lib/reporting/navigation";
 import {
+  getAIAttentionCenter,
   getAIOperationalInsights,
   getAIRecommendationInsights,
   getReportingFilterOptions,
   getReportingOverview,
 } from "@/services/api/reporting";
 import { reportingQueryKeys } from "@/services/api/query-keys";
+import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
 import type { ReportingOverviewParams } from "@/types/reporting";
@@ -66,6 +68,18 @@ export function useAIOperationalInsights(
   return useQuery({
     queryKey: reportingQueryKeys.aiOperationalInsights(params ?? undefined),
     queryFn: () => getAIOperationalInsights(params ?? undefined),
+    enabled,
+  });
+}
+
+export function useAIAttentionCenter(
+  params?: AIAttentionCenterParams | null,
+) {
+  const enabled = useReportingQueriesEnabled() && Boolean(params);
+
+  return useQuery({
+    queryKey: reportingQueryKeys.aiAttentionCenter(params ?? undefined),
+    queryFn: () => getAIAttentionCenter(params ?? undefined),
     enabled,
   });
 }
