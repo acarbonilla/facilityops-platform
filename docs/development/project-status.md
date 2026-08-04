@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI-Assisted FM Ticket Analysis — FO-089 AI Operational Insights on `feature/fo-089-ai-operational-insights`
+- AI-Assisted FM Ticket Analysis — FO-090 AI Attention Center on `feature/fo-090-ai-attention-center`
 
 ## Current Branch
 
-- `feature/fo-089-ai-operational-insights` (FO-089 Draft PR; base `main` @ `b4d2cb5…`)
+- `feature/fo-090-ai-attention-center` (FO-090 Draft PR; stacked on FO-089 tip `ffd8ec7…`)
 
 ## Completed Modules
 
@@ -115,13 +115,13 @@
 
 ## Current Task
 
-- FO-089 AI Continuous Improvement & Operational Insights implemented on
-  `feature/fo-089-ai-operational-insights` (Draft PR).
-- FO-088 remains COMPLETE AND MERGED via PR #54 (`5b258c1…`).
+- FO-090 AI Attention Center & Actionable Work Queue implemented on
+  `feature/fo-090-ai-attention-center` (Draft PR; stacked on FO-089).
+- FO-089 remains Draft PR #55 (not yet merged to `main`).
 
 ## Next Milestone
 
-- FO-090 (**not started**)
+- FO-091 (**not started**)
 - Optional live Gemini smoke when credentials are available
 
 ## Completed Feature — Master Data Management
@@ -186,8 +186,8 @@
 - FO-087 AI recommendation review COMPLETE AND MERGED via PR #53 (`3ef353d…`).
 - FO-088 AI analytics COMPLETE AND MERGED via PR #54 (`5b258c1…`); FO-088A
   post-merge verification complete.
-- FO-089 AI operational insights implemented on feature branch (Draft PR);
-  FO-090 not started.
+- FO-089 AI operational insights on Draft PR #55; FO-090 attention center
+  implemented on stacked feature branch (Draft PR); FO-091 not started.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
