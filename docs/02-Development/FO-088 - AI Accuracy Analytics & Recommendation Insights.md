@@ -1,9 +1,10 @@
 # FO-088 — AI Accuracy Analytics & Recommendation Insights
 
-**Status:** Complete; Draft PR ready  
-**Date:** 2026-08-03  
+**Status:** Complete; Ready for Review (FO-088A finalization)  
+**Date:** 2026-08-04  
 **Base:** `main` @ `8dbf5a6938866e89e5a72b9e892273da8d09bd37` (FO-087 baseline)  
 **Branch:** `feature/fo-088-ai-accuracy-analytics`  
+**PR:** [#54](https://github.com/acarbonilla/facilityops-platform/pull/54)  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI-Assisted FM Ticket Analysis
 
@@ -79,13 +80,25 @@ FO-088 does not retrain Gemini, fine-tune models, auto-tune prompts/thresholds, 
 - Backend: `apps/fm_tickets/test_ai_analytics.py` (14 tests)
 - Frontend: `lib/reporting/ai-insights.test.ts` (8 tests; suite 340)
 
-## Validation snapshot
+## Manual acceptance (FO-088A)
 
-- Focused FO-088 backend: 14 passed
-- AI + reporting regression: 128 passed
-- Django check: clean
-- makemigrations --check: no changes
-- Frontend focused + full suite: 340 passed, 0 failed
+- Date: 2026-08-04
+- Environment: Local Django on PostgreSQL; isolated Tenant A / Tenant B fixtures
+- Result: **PASS** (metrics, privacy, tenant isolation, permission denial)
+- Defects found: None
+- See `FO-088A - Finalize, Merge & Post-Merge Verification.md`
+
+## Validation snapshot (FO-088A)
+
+- Focused FO-088 backend (PostgreSQL): **14 passed**
+- FO-087 / FO-086 / FO-085 regressions: **8 / 8 / 19 passed**
+- Reporting regression: **86 passed**
+- Combined AI + reporting + employee + attachments (PostgreSQL): **210 passed**
+- Focused FO-088 frontend: **8 passed**
+- Full frontend suite: **340 passed / 0 failed**
+- ESLint / TypeScript / production build: Passed
+- Django check / makemigrations --check / git diff --check: Clean
+- Secret scan: CLEAN
 - FO-089: not started
 
 ## Deferred
@@ -95,3 +108,4 @@ FO-088 does not retrain Gemini, fine-tune models, auto-tune prompts/thresholds, 
 - New chart library
 - Cross-tenant benchmarking
 - Personal employee performance scoring
+- Live Gemini smoke / live browser keyboard walkthrough (optional)
