@@ -4,6 +4,7 @@
 **Date:** 2026-08-05  
 **Base:** `main` @ `7a79097ff5fbf2e0c3c7fd5eea6c238c1b7dcc66`  
 **Branch:** `feature/fo-095-ai-platform-production-readiness`  
+**PR:** [#61](https://github.com/acarbonilla/facilityops-platform/pull/61)  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI Platform QA & Production Readiness  
 **Type:** Platform-wide validation and stabilization (no new end-user features)
