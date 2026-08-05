@@ -87,12 +87,39 @@ def queue_ticket_image_analysis(
     ticket_id,
     attachment_ids: list,
 ) -> AITicketAnalysis:
-    """Create a queued AITicketAnalysis and dispatch background processing."""
+    """Create a queued AITicketAnalysis and dispatch background processing.
+
+    FO-097: If the ticket already has an active (queued/processing) analysis,
+    return that analysis instead of creating a duplicate queue entry.
+    """
     ticket = _scoped_ticket_or_404(actor=actor, ticket_id=ticket_id)
     attachments = _load_authorized_attachments(
         ticket=ticket,
         attachment_ids=attachment_ids,
     )
+
+    active = (
+        AITicketAnalysis.objects.filter(
+            ticket=ticket,
+            is_deleted=False,
+            status__in=(
+                AITicketAnalysis.Status.QUEUED,
+                AITicketAnalysis.Status.PROCESSING,
+            ),
+        )
+        .order_by("-queued_at", "-created_at")
+        .first()
+    )
+    if active is not None:
+        logger.info(
+            "Reusing active FM ticket AI analysis",
+            extra={
+                "ticket_id": str(ticket.id),
+                "analysis_id": str(active.id),
+                "status": active.status,
+            },
+        )
+        return active
 
     actor_id = str(actor.id) if actor is not None else None
     analysis = AITicketAnalysis.objects.create(

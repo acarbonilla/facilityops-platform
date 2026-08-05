@@ -30,7 +30,7 @@ export interface AttachmentUploaderProps {
   maxBytes?: number;
   uploadOptions?: AttachmentUploadOptions;
   guidanceText?: string;
-  onUploaded?: () => void;
+  onUploaded?: (uploadedIds: string[]) => void;
 }
 
 export function AttachmentUploader({
@@ -105,7 +105,7 @@ export function AttachmentUploader({
     }
   }
 
-  async function uploadOne(item: QueuedAttachmentFile) {
+  async function uploadOne(item: QueuedAttachmentFile): Promise<string | null> {
     setQueue((current) =>
       markQueuedAttachment(current, item.localId, {
         status: "uploading",
@@ -121,8 +121,7 @@ export function AttachmentUploader({
           errorMessage: undefined,
         }),
       );
-      onUploaded?.();
-      return true;
+      return uploaded.id;
     } catch (error) {
       setQueue((current) =>
         markQueuedAttachment(current, item.localId, {
@@ -133,7 +132,7 @@ export function AttachmentUploader({
           ),
         }),
       );
-      return false;
+      return null;
     }
   }
 
@@ -151,17 +150,19 @@ export function AttachmentUploader({
     setBanner(null);
     let successCount = 0;
     let failureCount = 0;
+    const uploadedIds: string[] = [];
     for (const item of targets) {
-      const ok = await uploadOne(item);
-      if (ok) {
+      const uploadedId = await uploadOne(item);
+      if (uploadedId) {
         successCount += 1;
+        uploadedIds.push(uploadedId);
       } else {
         failureCount += 1;
       }
     }
     setIsUploading(false);
-    if (successCount > 0) {
-      onUploaded?.();
+    if (uploadedIds.length > 0) {
+      onUploaded?.(uploadedIds);
     }
     if (failureCount === 0) {
       setBanner(
@@ -184,10 +185,10 @@ export function AttachmentUploader({
       return;
     }
     setIsUploading(true);
-    const ok = await uploadOne(item);
+    const uploadedId = await uploadOne(item);
     setIsUploading(false);
-    if (ok) {
-      onUploaded?.();
+    if (uploadedId) {
+      onUploaded?.([uploadedId]);
     }
   }
 

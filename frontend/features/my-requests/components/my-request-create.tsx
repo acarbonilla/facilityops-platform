@@ -19,7 +19,12 @@ import {
   useMyRequestOptions,
 } from "@/hooks/use-my-requests";
 import { usePermissions } from "@/hooks/use-permissions";
-import { buildTicketCreateSuccessHref } from "@/lib/fm-tickets/create-image-staging";
+import {
+  buildEmployeeSubmitSuccessHref,
+  getEmployeeSubmitPhaseLabel,
+  type EmployeeAiOutcome,
+  type EmployeeSubmitPhase,
+} from "@/lib/my-requests/ai-first-submit";
 import {
   formatMyRequestError,
   getAttachmentGuidanceText,
@@ -51,6 +56,7 @@ export function MyRequestCreateScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<EmployeeSubmitPhase>("idle");
   const [stagedImageCount, setStagedImageCount] = useState(0);
   const submitGuardRef = useRef(false);
 
@@ -89,38 +95,55 @@ export function MyRequestCreateScreen() {
 
     submitGuardRef.current = true;
     setIsSubmitting(true);
+    setSubmitPhase("creating_ticket");
     try {
       const created = await createMutation.mutateAsync(payload);
-      let aiQueued = false;
+      let aiOutcome: EmployeeAiOutcome = "not_requested";
+      let uploadedCount = 0;
+      let failedUploadCount = 0;
       const uploadable = imageStagingRef.current?.getUploadableFiles().length ?? 0;
 
       if (uploadable > 0 && imageStagingRef.current) {
-        try {
-          const attachmentIds = await imageStagingRef.current.uploadAll({
+        setSubmitPhase("uploading_images");
+        const { uploadedIds, failedCount } =
+          await imageStagingRef.current.uploadAll({
             owner_type: "fm_ticket",
             owner_id: created.id,
             visibility: "requester_visible",
             category: "image_evidence",
           });
-          if (attachmentIds.length > 0) {
+        uploadedCount = uploadedIds.length;
+        failedUploadCount = failedCount;
+
+        if (uploadedIds.length > 0) {
+          setSubmitPhase("queueing_ai");
+          try {
             await queueFmTicketAiAnalysis(created.id, {
-              attachment_ids: attachmentIds,
+              attachment_ids: uploadedIds,
             });
-            aiQueued = true;
+            aiOutcome = "queued";
+          } catch {
+            aiOutcome = "unavailable";
           }
-        } catch {
-          // Ticket remains usable if attachment/AI steps fail (FO-096 / UX-001).
+        } else if (failedCount > 0) {
+          aiOutcome = "partial_upload";
         }
       }
 
+      setSubmitPhase("completed");
       setFormSuccess(
         "Concern submitted. The Facilities Team will review and classify it.",
       );
       router.replace(
-        buildTicketCreateSuccessHref(`/my-requests/${created.id}`, { aiQueued }),
+        buildEmployeeSubmitSuccessHref(`/my-requests/${created.id}`, {
+          aiOutcome,
+          uploadedCount,
+          failedUploadCount,
+        }),
       );
       router.refresh();
     } catch (error) {
+      setSubmitPhase("failed");
       const mapped = mapMyRequestFieldValidationErrors(error);
       if (Object.keys(mapped).length > 0) {
         setFieldErrors(mapped);
@@ -195,6 +218,16 @@ export function MyRequestCreateScreen() {
             role="status"
           >
             {formSuccess}
+          </p>
+        ) : null}
+
+        {busy && submitPhase !== "idle" ? (
+          <p
+            aria-live="polite"
+            className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800"
+            role="status"
+          >
+            {getEmployeeSubmitPhaseLabel(submitPhase)}
           </p>
         ) : null}
 

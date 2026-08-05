@@ -38,7 +38,9 @@ export type TicketCreateImageStagingHandle = {
   getQueue: () => QueuedAttachmentFile[];
   getUploadableFiles: () => QueuedAttachmentFile[];
   hasRejected: () => boolean;
-  uploadAll: (options: AttachmentUploadOptions) => Promise<string[]>;
+  uploadAll: (
+    options: AttachmentUploadOptions,
+  ) => Promise<{ uploadedIds: string[]; failedCount: number }>;
 };
 
 export interface TicketCreateImageStagingProps {
@@ -106,7 +108,7 @@ export const TicketCreateImageStaging = forwardRef<
       uploadAll: async (options: AttachmentUploadOptions) => {
         const targets = getUploadableQueueItems(queue);
         if (targets.length === 0) {
-          return [];
+          return { uploadedIds: [], failedCount: 0 };
         }
         setIsUploading(true);
         setBanner(null);
@@ -149,17 +151,17 @@ export const TicketCreateImageStaging = forwardRef<
         if (failureCount > 0) {
           setBanner(
             uploadedIds.length === 0
-              ? "Image upload failed. Fix the errors and submit again."
+              ? "Image upload failed. You can retry from the request page."
               : `${uploadedIds.length} image(s) uploaded; ${failureCount} failed.`,
           );
-          throw new Error("One or more image uploads failed.");
+        } else {
+          setBanner(
+            uploadedIds.length === 1
+              ? "Image uploaded successfully."
+              : `${uploadedIds.length} images uploaded successfully.`,
+          );
         }
-        setBanner(
-          uploadedIds.length === 1
-            ? "Image uploaded successfully."
-            : `${uploadedIds.length} images uploaded successfully.`,
-        );
-        return uploadedIds;
+        return { uploadedIds, failedCount: failureCount };
       },
     }),
     [queue],

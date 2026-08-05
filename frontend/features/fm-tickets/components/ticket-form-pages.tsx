@@ -360,15 +360,15 @@ export function TicketCreatePageContent() {
             let aiQueued = false;
 
             if (uploadable > 0 && imageStagingRef.current) {
-              const attachmentIds = await imageStagingRef.current.uploadAll({
+              const { uploadedIds } = await imageStagingRef.current.uploadAll({
                 owner_type: "fm_ticket",
                 owner_id: created.id,
                 visibility: "internal_only",
                 category: "image_evidence",
               });
-              if (attachmentIds.length > 0) {
+              if (uploadedIds.length > 0) {
                 await queueFmTicketAiAnalysis(created.id, {
-                  attachment_ids: attachmentIds,
+                  attachment_ids: uploadedIds,
                 });
                 aiQueued = true;
               }
