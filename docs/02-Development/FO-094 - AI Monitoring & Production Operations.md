@@ -4,6 +4,7 @@
 **Date:** 2026-08-05  
 **Base:** `main` @ `432124f2f881e14cae4e8b6ea65ba492fac7e53c`  
 **Branch:** `feature/fo-094-ai-monitoring-production`  
+**PR:** [#60](https://github.com/acarbonilla/facilityops-platform/pull/60)  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI Monitoring & Production Operations
 
