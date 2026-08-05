@@ -151,10 +151,12 @@ test("rate and confidence formatters", () => {
 
 test("summary cards and empty state", () => {
   const cards = buildAIInsightsSummaryCards(sampleInsights());
-  assert.equal(cards.length, 9);
+  assert.equal(cards.length, 10);
   assert.equal(cards[0]?.label, "Recommendations");
-  assert.equal(cards[3]?.value, "33.3%");
-  assert.equal(cards[8]?.label, "Average Confidence");
+  assert.equal(cards[2]?.label, "AI Decision Pending");
+  assert.equal(cards[3]?.label, "AI Ready · Awaiting Classification");
+  assert.equal(cards[4]?.value, "33.3%");
+  assert.equal(cards[9]?.label, "Average Confidence");
 
   assert.equal(isAIInsightsEmpty(sampleInsights()), false);
   assert.equal(
