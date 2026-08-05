@@ -155,12 +155,18 @@ export function AIAdministrationScreen() {
         title="AI Administration & Governance"
       >
         <p className="text-sm text-slate-600">{AI_ADMIN_DISCLAIMER}</p>
-        <p className="text-sm text-slate-600">
+        <p className="flex flex-wrap gap-3 text-sm text-slate-600">
           <Link
             className="font-medium text-blue-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
             href="/admin"
           >
             Back to Admin
+          </Link>
+          <Link
+            className="font-medium text-blue-700 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+            href="/admin/ai/monitoring"
+          >
+            AI Production Monitoring
           </Link>
         </p>
       </PageHeader>

@@ -68,10 +68,9 @@ No API keys, prompt text, raw Gemini payloads, or attachment paths in responses.
 - Migration `0006_fo093_ai_admin_governance`: verified on main
 - Manual acceptance (FO-093A): **PASS** — see `FO-093A - Finalize Merge and Post-Merge Verification.md`
 - FO-088 `test_decision_filter_and_date_filter`: **pre-existing on main**; not introduced by FO-093
-- FO-094: **not started**
 
 ## Limitations
 
 - Global scope only (V1)
 - No prompt editing / API key management
-- FO-094 **not started**
+- Production monitoring is delivered in FO-094 (separate feature)

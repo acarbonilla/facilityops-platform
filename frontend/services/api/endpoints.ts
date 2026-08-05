@@ -145,6 +145,10 @@ export const API_ENDPOINTS = {
     policies: "/admin/ai/policies/",
     health: "/admin/ai/health/",
     audit: "/admin/ai/audit/",
+    monitoring: "/admin/ai/monitoring/",
+    monitoringRuntime: "/admin/ai/monitoring/runtime/",
+    monitoringQueue: "/admin/ai/monitoring/queue/",
+    monitoringAlerts: "/admin/ai/monitoring/alerts/",
   },
   attachments: {
     list: "/attachments/",
