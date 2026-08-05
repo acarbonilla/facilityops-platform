@@ -19,6 +19,10 @@ test("resolveAiAnalysisUiStatus maps known statuses", () => {
   assert.equal(resolveAiAnalysisUiStatus("failed"), "failed");
   assert.equal(resolveAiAnalysisUiStatus("other"), "none");
   assert.equal(resolveAiAnalysisUiStatus(null), "none");
+  assert.equal(
+    resolveAiAnalysisUiStatus(null, { hasAnalyses: false }),
+    "not_requested",
+  );
 });
 
 test("status copy covers queued processing completed failed", () => {
@@ -29,11 +33,30 @@ test("status copy covers queued processing completed failed", () => {
   assert.match(getAiAnalysisStatusTitle("failed"), /could not be completed/i);
 });
 
+test("requester audience uses safe copy", () => {
+  assert.match(
+    getAiAnalysisStatusTitle("queued", "requester"),
+    /Photos received/i,
+  );
+  assert.match(
+    getAiAnalysisStatusMessage("not_requested", "requester"),
+    /No photos were analyzed/i,
+  );
+});
+
 test("disclaimer and visibility helpers", () => {
   assert.match(getAiGeneratedDisclaimer(), /Human review/i);
   assert.match(getRecommendationHumanReviewNotice(), /Facilities Team/);
   assert.equal(shouldShowAiAnalysisPanel("none"), false);
   assert.equal(shouldShowAiAnalysisPanel("queued"), true);
+  assert.equal(
+    shouldShowAiAnalysisPanel("not_requested", { audience: "requester" }),
+    true,
+  );
+  assert.equal(
+    shouldShowAiAnalysisPanel("not_requested", { audience: "internal" }),
+    false,
+  );
   assert.equal(shouldShowStructuredSummary("completed", "internal"), true);
   assert.equal(shouldShowStructuredSummary("completed", "requester"), false);
   assert.equal(shouldShowStructuredSummary("failed", "internal"), false);
