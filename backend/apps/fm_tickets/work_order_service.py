@@ -6,6 +6,7 @@ from apps.maintenance.models import MaintenanceWorkOrder
 from apps.maintenance.services import create_work_order, record_history
 from apps.maintenance.work_order_assignment_service import assign_work_order
 
+from .classification_readiness import assert_ticket_ready_for_operational_actions
 from .models import FmTicket
 from .services import record_ticket_history
 from .tenant_scope import scope_fm_ticket_queryset
@@ -42,6 +43,8 @@ def _validate_generation_eligibility(*, ticket, generated_by):
     caller_tenant_id = getattr(generated_by, "tenant_id", None)
     if caller_tenant_id is None or ticket.tenant_id != caller_tenant_id:
         raise FmTicket.DoesNotExist()
+
+    assert_ticket_ready_for_operational_actions(ticket=ticket)
 
     if ticket.assignee_id is None:
         raise ValidationError(

@@ -30,6 +30,8 @@ export interface FmTicketAttachmentsProps {
   audience: FmTicketAttachmentAudience;
   /** Internal uploads may request requester-visible sharing. */
   defaultVisibility?: AttachmentVisibility;
+  /** FO-097: notified after successful uploads (attachment IDs). */
+  onUploaded?: (uploadedIds: string[]) => void;
 }
 
 export function FmTicketAttachments({
@@ -37,6 +39,7 @@ export function FmTicketAttachments({
   ticketStatus,
   audience,
   defaultVisibility,
+  onUploaded,
 }: FmTicketAttachmentsProps) {
   const { hasPermission, permissionsLoading } = usePermissions();
   const [selectedVisibility, setSelectedVisibility] = useState<AttachmentVisibility>(
@@ -157,8 +160,9 @@ export function FmTicketAttachments({
           canUpload={canUpload}
           uploadOptions={uploadOptions}
           guidanceText={getFmTicketAttachmentSectionGuidance(audience)}
-          onUploaded={() => {
+          onUploaded={(uploadedIds) => {
             void listQuery.refetch();
+            onUploaded?.(uploadedIds);
           }}
         />
       ) : (

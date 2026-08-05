@@ -36,6 +36,9 @@ DEFAULT_LEVEL_MEDIUM_MIN = 40
 ITEM_BASE_URGENCY = {
     "large_pending_review_queue": 85,
     "long_unreviewed_ai_recommendations": 80,
+    "unclassified_classification_backlog": 82,
+    "long_classification_delay": 78,
+    "ai_ready_awaiting_fm_classification": 80,
     "low_ai_operational_health": 78,
     "high_override_rate": 75,
     "increasing_override_trend": 70,
@@ -311,6 +314,18 @@ def _suggested_action(code: str, context: dict[str, Any]) -> dict[str, Any]:
             "Investigate decreasing acceptance",
             "Compare current acceptance rate with the previous equivalent period.",
         ),
+        "unclassified_classification_backlog": (
+            "Classify employee concerns",
+            "Complete operational classification for unclassified or pending-review tickets.",
+        ),
+        "long_classification_delay": (
+            "Reduce classification delay",
+            "Prioritize older employee concerns still awaiting Facility Manager classification.",
+        ),
+        "ai_ready_awaiting_fm_classification": (
+            "Review AI-ready classifications",
+            "AI findings are ready; complete category, priority, and building classification.",
+        ),
     }
     title, message = mapping.get(
         code,
@@ -337,7 +352,7 @@ class AIAttentionCenterService:
         thresholds = get_attention_thresholds()
         insights = build_ai_operational_insights(user, query_params)
         urgency = compute_overall_urgency(insights, thresholds)
-        items = self._build_attention_items(insights, thresholds, urgency)
+        items = self._build_attention_items(insights, thresholds, urgency, user=user)
         items.sort(key=lambda row: (-row["urgency_score"], row["code"]))
 
         critical_items = [item for item in items if item["priority"]["code"] == "critical"]
@@ -372,6 +387,12 @@ class AIAttentionCenterService:
                 "modification_rate": summary["modification_rate"],
                 "operational_health_score": health["score"],
                 "operational_health_band": health["band"],
+                "unclassified_ticket_count": summary.get(
+                    "unclassified_ticket_recommendation_count", 0
+                ),
+                "ai_ready_awaiting_classification_count": summary.get(
+                    "ai_ready_awaiting_classification_count", 0
+                ),
             },
             "urgency_score": urgency,
             "attention_items": items,
@@ -388,6 +409,17 @@ class AIAttentionCenterService:
                 "pending_review_count": summary["pending_review_count"],
                 "recommendation_count": summary["recommendation_count"],
                 "reviewed_count": summary["reviewed_count"],
+            },
+            "classification_backlog_summary": {
+                "unclassified_ticket_recommendation_count": summary.get(
+                    "unclassified_ticket_recommendation_count", 0
+                ),
+                "pending_classification_recommendation_count": summary.get(
+                    "pending_classification_recommendation_count", 0
+                ),
+                "ai_ready_awaiting_classification_count": summary.get(
+                    "ai_ready_awaiting_classification_count", 0
+                ),
             },
             "recent_review_activity": {
                 "accepted_rate": summary["acceptance_rate"],
@@ -418,6 +450,8 @@ class AIAttentionCenterService:
         insights: dict[str, Any],
         thresholds: dict[str, float | int],
         overall: dict[str, Any],
+        *,
+        user=None,
     ) -> list[dict[str, Any]]:
         summary = insights["summary"]
         trends = insights["trend"]
@@ -460,6 +494,77 @@ class AIAttentionCenterService:
         reviewed = int(summary.get("reviewed_count") or 0)
         override_rate = float(summary.get("modification_rate") or 0.0)
         acceptance_rate = float(summary.get("acceptance_rate") or 0.0)
+
+        # FO-100: classification backlog is independent of AI recommendation volume.
+        unclassified_ai = int(
+            summary.get("unclassified_ticket_recommendation_count") or 0
+        )
+        ai_ready_awaiting = int(
+            summary.get("ai_ready_awaiting_classification_count") or 0
+        )
+        classification_incomplete = 0
+        long_delay_count = 0
+        if user is not None:
+            from datetime import timedelta
+
+            from apps.fm_tickets.intake_reporting import (
+                CLASSIFICATION_INCOMPLETE_Q,
+                annotate_ticket_intake_counts,
+            )
+            from apps.fm_tickets.models import FmTicket
+            from apps.reporting.tenant_scope import scope_queryset_to_user
+
+            tickets = scope_queryset_to_user(
+                FmTicket.objects.filter(is_deleted=False),
+                user,
+                tenant_field="tenant_id",
+            )
+            intake = annotate_ticket_intake_counts(tickets)
+            classification_incomplete = intake["classification_incomplete_count"]
+            delay_cutoff = timezone.now() - timedelta(days=2)
+            long_delay_count = tickets.filter(
+                CLASSIFICATION_INCOMPLETE_Q,
+                reported_at__lt=delay_cutoff,
+            ).count()
+
+        if classification_incomplete >= int(thresholds.get("pending_review_count", 10)):
+            add(
+                "unclassified_classification_backlog",
+                "classification",
+                "Large Classification Backlog",
+                (
+                    f"{classification_incomplete} tickets still need operational "
+                    "classification (unclassified, pending review, or missing building)."
+                ),
+                urgency=ITEM_BASE_URGENCY["unclassified_classification_backlog"]
+                + min(15, classification_incomplete),
+            )
+        if long_delay_count >= 3:
+            add(
+                "long_classification_delay",
+                "classification",
+                "Long Classification Delay",
+                (
+                    f"{long_delay_count} tickets have awaited classification for more "
+                    "than 2 days."
+                ),
+                urgency=ITEM_BASE_URGENCY["long_classification_delay"]
+                + min(10, long_delay_count),
+            )
+        if ai_ready_awaiting >= 3 or (
+            unclassified_ai >= 3 and volume > 0
+        ):
+            add(
+                "ai_ready_awaiting_fm_classification",
+                "classification",
+                "AI Ready Awaiting Classification",
+                (
+                    f"{max(ai_ready_awaiting, unclassified_ai)} completed AI analyses "
+                    "still need Facility Manager operational classification."
+                ),
+                urgency=ITEM_BASE_URGENCY["ai_ready_awaiting_fm_classification"]
+                + min(10, max(ai_ready_awaiting, unclassified_ai)),
+            )
 
         if volume == 0:
             return items
@@ -618,6 +723,7 @@ class AIAttentionCenterService:
 
     def _group_items(self, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         order = [
+            "classification",
             "pending_review",
             "override",
             "trend",
@@ -628,6 +734,7 @@ class AIAttentionCenterService:
             "volume",
         ]
         labels = {
+            "classification": "Classification",
             "pending_review": "Pending Review",
             "override": "Overrides",
             "trend": "Trends",

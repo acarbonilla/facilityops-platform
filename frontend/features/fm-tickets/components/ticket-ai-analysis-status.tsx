@@ -32,6 +32,7 @@ import {
   severityBadgeClass,
   type AiRecommendationDecision,
 } from "@/lib/fm-tickets/ai-recommendations";
+import { valuesDiffer } from "@/lib/fm-tickets/fm-review-experience";
 import { cn } from "@/lib/utils";
 import type {
   FmTicketCategory,
@@ -39,6 +40,7 @@ import type {
 } from "@/types/fm-tickets";
 
 const CATEGORY_OPTIONS: Array<{ value: FmTicketCategory; label: string }> = [
+  { value: "unclassified", label: "Unclassified" },
   { value: "electrical", label: "Electrical" },
   { value: "plumbing", label: "Plumbing" },
   { value: "hvac", label: "HVAC" },
@@ -50,6 +52,7 @@ const CATEGORY_OPTIONS: Array<{ value: FmTicketCategory; label: string }> = [
 ];
 
 const PRIORITY_OPTIONS: Array<{ value: FmTicketPriority; label: string }> = [
+  { value: "pending_review", label: "Pending Review" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
@@ -65,11 +68,14 @@ export function TicketAiAnalysisStatusPanel({
   ticketId,
   audience = "internal",
   canReview = false,
+  headingMode = "standalone",
   onApplyRecommendation,
 }: {
   ticketId: string;
   audience?: "internal" | "requester";
   canReview?: boolean;
+  /** FO-098: embed under an outer "AI Recommendation" section without duplicate H2. */
+  headingMode?: "standalone" | "embedded";
   onApplyRecommendation?: (selection: AppliedAiRecommendation) => void;
 }) {
   const queryClient = useQueryClient();
@@ -84,7 +90,13 @@ export function TicketAiAnalysisStatusPanel({
   });
 
   const latest = analysesQuery.data?.results?.[0];
-  const uiStatus = resolveAiAnalysisUiStatus(latest?.status);
+  const hasAnalyses = (analysesQuery.data?.results?.length ?? 0) > 0;
+  const uiStatus = (() => {
+    if (audience === "requester" && analysesQuery.isFetched && !hasAnalyses) {
+      return "not_requested" as const;
+    }
+    return resolveAiAnalysisUiStatus(latest?.status);
+  })();
   const recommendationPanelId = useId();
   const liveRegionId = useId();
   const [recommendationsOpen, setRecommendationsOpen] = useState(false);
@@ -171,18 +183,36 @@ export function TicketAiAnalysisStatusPanel({
   return (
     <section
       aria-live="polite"
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+      className={
+        headingMode === "embedded"
+          ? "rounded-md border border-slate-200 bg-slate-50 p-4"
+          : "rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+      }
     >
-      <h2 className="text-lg font-semibold text-slate-950">
-        {getAiAnalysisStatusTitle(uiStatus)}
-      </h2>
+      {headingMode === "standalone" ? (
+        <h2 className="text-lg font-semibold text-slate-950">
+          {getAiAnalysisStatusTitle(uiStatus, audience)}
+        </h2>
+      ) : (
+        <h3 className="text-base font-semibold text-slate-950">
+          {getAiAnalysisStatusTitle(uiStatus, audience)}
+        </h3>
+      )}
       <p className="mt-2 text-sm text-slate-700">
-        {getAiAnalysisStatusMessage(uiStatus)}
+        {getAiAnalysisStatusMessage(uiStatus, audience)}
       </p>
-      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-        AI-generated · requires human review
-      </p>
-      <p className="mt-1 text-xs text-slate-600">{getAiGeneratedDisclaimer()}</p>
+      {audience === "internal" ? (
+        <>
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+            AI-generated · requires human review
+          </p>
+          <p className="mt-1 text-xs text-slate-600">{getAiGeneratedDisclaimer()}</p>
+        </>
+      ) : (
+        <p className="mt-2 text-xs text-slate-600">
+          AI suggestions are never final. Facilities decides how to classify your concern.
+        </p>
+      )}
 
       <div className="sr-only" id={liveRegionId} role="status" aria-live="assertive">
         {actionMessage}
@@ -400,6 +430,32 @@ export function TicketAiAnalysisStatusPanel({
                       </p>
                     </div>
                   </div>
+                  {(valuesDiffer(
+                    mapAiCategoryToTicket(latest?.recommended_category),
+                    latest?.final_category,
+                  ) ||
+                    valuesDiffer(
+                      mapAiPriorityToTicket(latest?.recommended_priority),
+                      latest?.final_priority,
+                    )) &&
+                  latest?.decision === "modified" ? (
+                    <p
+                      className="mt-2 text-xs font-medium text-violet-900"
+                      role="status"
+                    >
+                      Difference: final operational values differ from the AI
+                      recommendation.
+                    </p>
+                  ) : null}
+                  <p
+                    className={cn(
+                      "mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                      decisionBadgeClass(latest?.decision),
+                    )}
+                    role="status"
+                  >
+                    {formatDecisionLabel(latest?.decision)}
+                  </p>
                   {latest?.decision_timestamp ? (
                     <p className="mt-2 text-xs text-slate-600">
                       Decided{" "}

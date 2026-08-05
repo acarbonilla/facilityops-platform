@@ -20,6 +20,7 @@ from apps.fm_tickets.ai_recommendation_review import (
     map_ai_category_to_ticket,
     map_ai_priority_to_ticket,
 )
+from apps.fm_tickets.intake_reporting import is_non_operational_final_value
 from apps.fm_tickets.models import AITicketAnalysis, FmTicket
 from apps.reporting.tenant_scope import scope_queryset_to_user
 
@@ -364,6 +365,9 @@ class AIRecommendationAnalyticsService:
                     "severity": severity,
                     "completed_at": row["completed_at"],
                     "decision_at": row["decision_at"],
+                    "ticket_category": row["ticket__category"] or "",
+                    "ticket_priority": row["ticket__priority"] or "",
+                    "ticket_building_id": row["ticket__building_id"],
                 }
             )
 
@@ -392,6 +396,12 @@ class AIRecommendationAnalyticsService:
         full_agree_den = 0
 
         for row in reviewed:
+            # FO-100: do not let intake placeholders distort agreement rates.
+            if is_non_operational_final_value(
+                category=row["final_category"],
+                priority=row["final_priority"],
+            ):
+                continue
             has_cat = bool(row["final_category"]) and bool(row["mapped_category"])
             has_pri = bool(row["final_priority"]) and bool(row["mapped_priority"])
             cat_match = False
@@ -410,6 +420,24 @@ class AIRecommendationAnalyticsService:
                 full_agree_den += 1
                 if cat_match and pri_match:
                     full_agree_num += 1
+
+        unclassified_ticket_recommendation_count = sum(
+            1
+            for row in records
+            if row.get("ticket_category") == FmTicket.Category.UNCLASSIFIED
+        )
+        pending_classification_recommendation_count = sum(
+            1
+            for row in records
+            if row.get("ticket_priority") == FmTicket.Priority.PENDING_REVIEW
+        )
+        ai_ready_awaiting_classification_count = sum(
+            1
+            for row in records
+            if row.get("ticket_category") == FmTicket.Category.UNCLASSIFIED
+            or row.get("ticket_priority") == FmTicket.Priority.PENDING_REVIEW
+            or not row.get("ticket_building_id")
+        )
 
         confidences = [r["confidence"] for r in records if r["confidence"] is not None]
         avg_confidence = _safe_avg(sum(confidences), len(confidences))
@@ -510,6 +538,15 @@ class AIRecommendationAnalyticsService:
                 "category_agreement_sample_size": category_agree_den,
                 "priority_agreement_sample_size": priority_agree_den,
                 "full_agreement_sample_size": full_agree_den,
+                "unclassified_ticket_recommendation_count": (
+                    unclassified_ticket_recommendation_count
+                ),
+                "pending_classification_recommendation_count": (
+                    pending_classification_recommendation_count
+                ),
+                "ai_ready_awaiting_classification_count": (
+                    ai_ready_awaiting_classification_count
+                ),
             },
             "decision_distribution": [
                 {
@@ -542,12 +579,21 @@ class AIRecommendationAnalyticsService:
                 "note": (
                     "Rates reflect human agreement with AI recommendations "
                     "in FacilityOps workflows. They are not a ground-truth "
-                    "accuracy score for maintenance diagnosis or compliance."
+                    "accuracy score for maintenance diagnosis or compliance. "
+                    "pending_review_count is AI decision backlog (FO-087), not "
+                    "ticket priority pending_review (FO-096 classification)."
                 ),
                 "labels": {
                     "acceptance_rate": "Recommendation Acceptance",
                     "modification_rate": "Human Override Rate (modified)",
                     "ignore_rate": "Ignore Rate",
+                    "pending_review_count": "AI Decision Pending",
+                    "pending_classification_recommendation_count": (
+                        "Ticket Classification Pending"
+                    ),
+                    "ai_ready_awaiting_classification_count": (
+                        "AI Ready Awaiting Classification"
+                    ),
                     "category_agreement_rate": "Category Agreement",
                     "priority_agreement_rate": "Priority Agreement",
                     "full_agreement_rate": "Full Recommendation Agreement",

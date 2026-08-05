@@ -625,6 +625,24 @@ export function ReportingOverviewScreen() {
                       overview.inspections.average_score,
                     )}
                   />
+                  <ReportingMetricCard
+                    label="Unclassified Tickets"
+                    value={formatReportingNumber(
+                      overview.tickets.unclassified_count ?? 0,
+                    )}
+                  />
+                  <ReportingMetricCard
+                    label="Pending Classification"
+                    value={formatReportingNumber(
+                      overview.tickets.pending_classification_count ?? 0,
+                    )}
+                  />
+                  <ReportingMetricCard
+                    label="Employee Intake (placeholder)"
+                    value={formatReportingNumber(
+                      overview.tickets.employee_intake_count ?? 0,
+                    )}
+                  />
                 </div>
                 {overviewQuery.isFetching ? (
                   <p className="text-sm text-slate-500" role="status">

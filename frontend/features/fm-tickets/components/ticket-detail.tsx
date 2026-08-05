@@ -10,14 +10,21 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { usePermissions } from "@/hooks/use-permissions";
 import { readAiQueuedFromSearch, readTicketCreatedFromSearch } from "@/lib/fm-tickets/create-image-staging";
+import {
+  FM_REVIEW_LAYOUT_DESCRIPTION,
+  buildReviewGuidanceSteps,
+  formatClassificationBlockReason,
+  getClassificationBlockReason,
+  isOperationalClassificationComplete,
+} from "@/lib/fm-tickets/fm-review-experience";
 import { getFirstQueryErrorMessage } from "@/lib/master-data/display";
-import { getFmTicket } from "@/services/api/fm-tickets";
+import { getFmTicket, getFmTicketAiAnalyses } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
+import { resolveAiAnalysisUiStatus } from "@/lib/fm-tickets/ai-analysis-status";
 
 import { TicketCommentForm } from "./ticket-comment-form";
 import { TicketComments } from "./ticket-comments";
 import { TicketAssignmentPanel } from "./ticket-assignment-panel";
-import { FmTicketAttachments } from "./fm-ticket-attachments";
 import { TicketEscalationForm } from "./ticket-escalation-form";
 import { TicketEscalationHistory } from "./ticket-escalation-history";
 import { TicketGenerateWorkOrderPanel } from "./ticket-generate-work-order-panel";
@@ -28,11 +35,16 @@ import { TicketStatusActions } from "./ticket-status-actions";
 import { TicketStatusBadge } from "./ticket-status-badge";
 import { TicketAiAnalysisStatusPanel } from "./ticket-ai-analysis-status";
 import { TicketSubmittedSuccessBanner } from "./ticket-submitted-success-banner";
+import { FmReviewEmployeeReport } from "./fm-review-employee-report";
+import { FmReviewOperationalClassification } from "./fm-review-operational-classification";
+import {
+  FmReviewGuidanceStrip,
+  FmReviewSection,
+} from "./fm-review-section";
 import {
   SectionCard,
   formatDateTime,
   formatPersonLabel,
-  formatTicketLabel,
 } from "./ticket-shared";
 
 export function TicketDetailScreen({ id }: { id: string }) {
@@ -51,12 +63,17 @@ export function TicketDetailScreen({ id }: { id: string }) {
     queryKey: fmTicketsQueryKeys.detail(id),
     queryFn: () => getFmTicket(id),
   });
+  const analysesQuery = useQuery({
+    queryKey: fmTicketsQueryKeys.aiAnalyses(id),
+    queryFn: () => getFmTicketAiAnalyses(id),
+    enabled: Boolean(ticketQuery.data),
+  });
 
   if (ticketQuery.isPending) {
     return (
       <LoadingState
         title="Loading ticket detail"
-        message="Retrieving the selected FM ticket and its current read-only summary."
+        message="Retrieving the Facility Manager review workspace for this concern."
       />
     );
   }
@@ -83,12 +100,21 @@ export function TicketDetailScreen({ id }: { id: string }) {
   }
 
   const ticket = ticketQuery.data;
+  const latestAnalysis = analysesQuery.data?.results?.[0];
+  const aiStatus = resolveAiAnalysisUiStatus(latestAnalysis?.status);
+  const classificationComplete = isOperationalClassificationComplete(ticket);
+  const classificationBlock = getClassificationBlockReason(ticket);
+  const guidanceSteps = buildReviewGuidanceSteps({
+    classificationComplete,
+    hasAiDecision: Boolean(latestAnalysis?.decision),
+    aiCompleted: aiStatus === "completed",
+  });
 
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`FM ticket detail for ${ticket.ticket_number}. Comments, status workflow, SLA status, and escalation history are supported here, while manual escalation remains permission-aware.`}
-        eyebrow="FM Ticketing"
+        description={FM_REVIEW_LAYOUT_DESCRIPTION}
+        eyebrow="FM Ticketing · Guided Review"
         title={ticket.title}
       >
         <div className="flex flex-wrap gap-3">
@@ -117,74 +143,83 @@ export function TicketDetailScreen({ id }: { id: string }) {
         ticketNumber={ticket.ticket_number}
       />
 
-      <TicketAiAnalysisStatusPanel
-        audience="internal"
-        canReview={canUpdate}
-        ticketId={ticket.id}
-        onApplyRecommendation={(selection) => {
-          const params = new URLSearchParams({
-            ai_category: selection.category,
-            ai_priority: selection.priority,
-          });
-          router.push(`/fm-tickets/${ticket.id}/edit?${params.toString()}`);
-        }}
+      <FmReviewGuidanceStrip steps={guidanceSteps} />
+
+      <p className="text-sm text-slate-600" role="status">
+        Ticket {ticket.ticket_number}
+        {classificationBlock
+          ? ` · ${formatClassificationBlockReason(classificationBlock)}`
+          : " · Ready for operational workflow after review"}
+      </p>
+
+      <FmReviewEmployeeReport ticket={ticket} />
+
+      <FmReviewSection
+        step={2}
+        title="AI Recommendation"
+        description="Advisory findings only. Accept, modify, or ignore — then save final operational values."
+      >
+        <TicketAiAnalysisStatusPanel
+          audience="internal"
+          canReview={canUpdate}
+          headingMode="embedded"
+          ticketId={ticket.id}
+          onApplyRecommendation={(selection) => {
+            const params = new URLSearchParams({
+              ai_category: selection.category,
+              ai_priority: selection.priority,
+            });
+            router.push(`/fm-tickets/${ticket.id}/edit?${params.toString()}`);
+          }}
+        />
+      </FmReviewSection>
+
+      <FmReviewOperationalClassification
+        canUpdate={canUpdate}
+        ticket={ticket}
       />
 
-      <SectionCard title="Ticket Summary">
-        <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <DetailField label="Ticket number" value={ticket.ticket_number} />
-          <DetailField label="Status" value={<TicketStatusBadge status={ticket.status} />} />
-          <DetailField
-            label="Priority"
-            value={<TicketPriorityBadge priority={ticket.priority} />}
-          />
-          <DetailField label="Category" value={formatTicketLabel(ticket.category)} />
-          <DetailField label="Source" value={formatTicketLabel(ticket.source)} />
-          <DetailField
-            label="Description"
-            value={
-              <span className="whitespace-pre-wrap font-normal text-slate-700">
-                {ticket.description}
-              </span>
-            }
-          />
-        </dl>
-      </SectionCard>
+      <FmReviewSection
+        step={4}
+        title="Operational Assignment"
+        description="Assign technicians and review SLA after classification is complete."
+      >
+        {classificationBlock ? (
+          <div
+            className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3"
+            role="status"
+          >
+            <p className="text-sm text-amber-950">
+              {formatClassificationBlockReason(classificationBlock)}
+            </p>
+          </div>
+        ) : null}
+        <TicketAssignmentPanel
+          classificationBlocked={Boolean(classificationBlock)}
+          classificationBlockedMessage={formatClassificationBlockReason(
+            classificationBlock,
+          )}
+          embedded
+          ticket={ticket}
+        />
+        <div className="mt-4">
+          <TicketSlaPanel ticket={ticket} />
+        </div>
+      </FmReviewSection>
 
-      <SectionCard title="Location">
-        <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <DetailField label="Tenant" value={ticket.tenant_name} />
-          <DetailField label="Organization" value={ticket.organization_name} />
-          <DetailField
-            label="Department"
-            value={ticket.department_name || "Not assigned"}
-          />
-          <DetailField label="Building" value={ticket.building_name} />
-          <DetailField label="Floor" value={ticket.floor_name || "Not assigned"} />
-          <DetailField label="Area" value={ticket.area_name || "Not assigned"} />
-          <DetailField label="Asset" value={ticket.asset_name || "Not assigned"} />
-        </dl>
-      </SectionCard>
-
-      <SectionCard title="People">
-        <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <DetailField
-            label="Requester"
-            value={formatPersonLabel(ticket.requester_email, "Unavailable")}
-          />
-          <DetailField label="Assignee" value={formatPersonLabel(ticket.assignee_email)} />
-        </dl>
-      </SectionCard>
-
-      <TicketAssignmentPanel ticket={ticket} />
-      <TicketGenerateWorkOrderPanel ticket={ticket} />
-      <TicketSlaPanel ticket={ticket} />
-
-      <FmTicketAttachments
-        ticketId={ticket.id}
-        ticketStatus={ticket.status}
-        audience="internal"
-      />
+      <FmReviewSection
+        step={5}
+        title="Actions"
+        description="Status workflow, work orders, escalation, comments, and history."
+      >
+        <TicketGenerateWorkOrderPanel ticket={ticket} />
+        {canRunStatusWorkflow ? <TicketStatusActions ticket={ticket} /> : null}
+        {canEscalate ? <TicketEscalationForm ticket={ticket} /> : null}
+        <TicketEscalationHistory ticketId={ticket.id} />
+        {canComment ? <TicketCommentForm ticketId={ticket.id} /> : null}
+        <TicketComments ticketId={ticket.id} />
+        <TicketHistory ticketId={ticket.id} />
+      </FmReviewSection>
 
       <SectionCard title="Dates">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -195,24 +230,36 @@ export function TicketDetailScreen({ id }: { id: string }) {
         </dl>
       </SectionCard>
 
-      {canEscalate ? <TicketEscalationForm ticket={ticket} /> : null}
-      <TicketEscalationHistory ticketId={ticket.id} />
-
-      <SectionCard title="System Metadata">
-        <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <SectionCard title="People & ownership">
+        <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <DetailField
-            label="Ticket ID"
-            value={<span className="font-mono text-xs">{ticket.id}</span>}
+            label="Requester"
+            value={formatPersonLabel(ticket.requester_email, "Unavailable")}
           />
-          <DetailField label="Created at" value={formatDateTime(ticket.created_at)} />
-          <DetailField label="Updated at" value={formatDateTime(ticket.updated_at)} />
+          <DetailField
+            label="Assignee"
+            value={formatPersonLabel(ticket.assignee_email)}
+          />
+          <DetailField label="Organization" value={ticket.organization_name} />
+          <DetailField
+            label="Department"
+            value={ticket.department_name || "Not assigned"}
+          />
         </dl>
       </SectionCard>
 
-      {canRunStatusWorkflow ? <TicketStatusActions ticket={ticket} /> : null}
-      {canComment ? <TicketCommentForm ticketId={ticket.id} /> : null}
-      <TicketComments ticketId={ticket.id} />
-      <TicketHistory ticketId={ticket.id} />
+      {canManage ? (
+        <SectionCard title="System Metadata">
+          <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <DetailField
+              label="Ticket ID"
+              value={<span className="font-mono text-xs">{ticket.id}</span>}
+            />
+            <DetailField label="Created at" value={formatDateTime(ticket.created_at)} />
+            <DetailField label="Updated at" value={formatDateTime(ticket.updated_at)} />
+          </dl>
+        </SectionCard>
+      ) : null}
     </div>
   );
 }

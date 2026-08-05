@@ -18,6 +18,7 @@ export const REPORTING_TICKET_STATUS_VALUES: FmTicketStatus[] = [
 ];
 
 export const REPORTING_TICKET_PRIORITY_VALUES: FmTicketPriority[] = [
+  "pending_review",
   "low",
   "medium",
   "high",

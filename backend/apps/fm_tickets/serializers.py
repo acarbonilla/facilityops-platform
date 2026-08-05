@@ -3,7 +3,6 @@ import copy
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -26,6 +25,7 @@ from .tenant_scope import (
     has_global_fm_ticket_scope,
     is_eligible_employee_requester,
 )
+from apps.master_data.models import Building
 
 
 User = get_user_model()
@@ -138,10 +138,30 @@ class EmployeeFmTicketListSerializer(serializers.ModelSerializer):
         source="organization.name",
         read_only=True,
     )
-    building_name = serializers.CharField(source="building.name", read_only=True)
-    floor_name = serializers.CharField(source="floor.name", read_only=True)
-    area_name = serializers.CharField(source="area.name", read_only=True)
-    asset_name = serializers.CharField(source="asset.name", read_only=True)
+    building_name = serializers.CharField(
+        source="building.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
+    floor_name = serializers.CharField(
+        source="floor.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
+    area_name = serializers.CharField(
+        source="area.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
+    asset_name = serializers.CharField(
+        source="asset.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
 
     class Meta:
         model = FmTicket
@@ -229,10 +249,30 @@ class FmTicketListSerializer(serializers.ModelSerializer):
         source="organization.name",
         read_only=True,
     )
-    building_name = serializers.CharField(source="building.name", read_only=True)
-    floor_name = serializers.CharField(source="floor.name", read_only=True)
-    area_name = serializers.CharField(source="area.name", read_only=True)
-    asset_name = serializers.CharField(source="asset.name", read_only=True)
+    building_name = serializers.CharField(
+        source="building.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
+    floor_name = serializers.CharField(
+        source="floor.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
+    area_name = serializers.CharField(
+        source="area.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
+    asset_name = serializers.CharField(
+        source="asset.name",
+        read_only=True,
+        allow_null=True,
+        default=None,
+    )
     requester_email = serializers.EmailField(source="requester.email", read_only=True)
     assignee_email = serializers.EmailField(source="assignee.email", read_only=True)
 
@@ -331,6 +371,11 @@ class FmTicketCreateSerializer(TicketValidationMixin, serializers.ModelSerialize
         read_only=True,
     )
     reported_at = serializers.DateTimeField(read_only=True)
+    building = serializers.PrimaryKeyRelatedField(
+        queryset=Building.objects.all(),
+        required=True,
+        allow_null=False,
+    )
 
     class Meta:
         model = FmTicket
@@ -363,6 +408,8 @@ class FmTicketCreateSerializer(TicketValidationMixin, serializers.ModelSerialize
 
 
 class EmployeeFmTicketCreateSerializer(serializers.ModelSerializer):
+    """FO-096: Employee intake accepts title + optional description only."""
+
     protected_fields = (
         "requester",
         "tenant",
@@ -372,6 +419,11 @@ class EmployeeFmTicketCreateSerializer(serializers.ModelSerializer):
         "priority",
         "status",
         "assignee",
+        "category",
+        "building",
+        "floor",
+        "area",
+        "asset",
         "due_at",
         "response_due_at",
         "resolution_due_at",
@@ -381,74 +433,17 @@ class EmployeeFmTicketCreateSerializer(serializers.ModelSerializer):
         "resolved_at",
         "closed_at",
     )
+    description = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+    )
 
     class Meta:
         model = FmTicket
         fields = (
             "title",
             "description",
-            "category",
-            "building",
-            "floor",
-            "area",
-            "asset",
-        )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        request = self.context.get("request")
-        user = getattr(request, "user", None)
-        tenant_id = getattr(user, "tenant_id", None)
-        organization_id = getattr(user, "organization_id", None)
-
-        building_queryset = self.fields["building"].queryset
-        floor_queryset = self.fields["floor"].queryset
-        area_queryset = self.fields["area"].queryset
-        asset_queryset = self.fields["asset"].queryset
-        if not is_eligible_employee_requester(user):
-            self.fields["building"].queryset = building_queryset.none()
-            self.fields["floor"].queryset = floor_queryset.none()
-            self.fields["area"].queryset = area_queryset.none()
-            self.fields["asset"].queryset = asset_queryset.none()
-            return
-
-        lifecycle_scope = {
-            "tenant_id": tenant_id,
-            "is_active": True,
-            "is_deleted": False,
-        }
-        self.fields["building"].queryset = building_queryset.filter(
-            organization_id=organization_id,
-            **lifecycle_scope,
-        )
-        self.fields["floor"].queryset = floor_queryset.filter(
-            building__organization_id=organization_id,
-            building__is_active=True,
-            building__is_deleted=False,
-            **lifecycle_scope,
-        )
-        self.fields["area"].queryset = area_queryset.filter(
-            building__organization_id=organization_id,
-            building__is_active=True,
-            building__is_deleted=False,
-            floor__is_active=True,
-            floor__is_deleted=False,
-            **lifecycle_scope,
-        )
-        self.fields["asset"].queryset = (
-            asset_queryset.filter(
-                organization_id=organization_id,
-                building__is_active=True,
-                building__is_deleted=False,
-                **lifecycle_scope,
-            )
-            .filter(
-                Q(floor__isnull=True)
-                | Q(floor__is_active=True, floor__is_deleted=False)
-            )
-            .filter(
-                Q(area__isnull=True) | Q(area__is_active=True, area__is_deleted=False)
-            )
         )
 
     def to_internal_value(self, data):
@@ -469,14 +464,29 @@ class EmployeeFmTicketCreateSerializer(serializers.ModelSerializer):
                 "Employee requests require an active Tenant and Organization."
             )
 
+        title = (attrs.get("title") or "").strip()
+        if not title:
+            raise serializers.ValidationError(
+                {"title": ["Title is required."]}
+            )
+        attrs["title"] = title
+        attrs["description"] = (attrs.get("description") or "").strip()
+
         attrs.update(
             {
                 "tenant": user.tenant,
                 "organization": user.organization,
                 "requester": user,
                 "source": FmTicket.Source.WEB,
-                "priority": FmTicket.Priority.MEDIUM,
+                "category": FmTicket.Category.UNCLASSIFIED,
+                "priority": FmTicket.Priority.PENDING_REVIEW,
                 "status": FmTicket.Status.OPEN,
+                "building": None,
+                "floor": None,
+                "area": None,
+                "asset": None,
+                "department": None,
+                "assignee": None,
             }
         )
         ticket = FmTicket(**attrs)
@@ -895,3 +905,49 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
         # Prefer sanitized `result`; keep result_json for FO-084 compatibility but sanitized.
         data["result_json"] = data.get("result") or {}
         return data
+
+
+class RequesterSafeAITicketAnalysisSerializer(serializers.ModelSerializer):
+    """FO-101: audience-safe AI status for employee-only requesters.
+
+    Exposes lifecycle status for progress UI only. Omits recommendations,
+    confidence, reasoning, provider/model/prompt metadata, and result payloads.
+    """
+
+    ticket_id = serializers.UUIDField(source="ticket.id", read_only=True)
+    ticket_number = serializers.CharField(
+        source="ticket.ticket_number",
+        read_only=True,
+        allow_null=True,
+    )
+    attachment_ids = serializers.SerializerMethodField()
+    error_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AITicketAnalysis
+        fields = (
+            "id",
+            "ticket_id",
+            "ticket_number",
+            "status",
+            "queued_at",
+            "started_at",
+            "completed_at",
+            "input_image_count",
+            "attachment_ids",
+            "error_message",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_attachment_ids(self, obj):
+        return [
+            str(link.attachment_id)
+            for link in obj.analysis_attachments.all()
+        ]
+
+    def get_error_message(self, obj):
+        if obj.status != AITicketAnalysis.Status.FAILED:
+            return ""
+        return "Image analysis could not be completed. Facilities can still review your report."

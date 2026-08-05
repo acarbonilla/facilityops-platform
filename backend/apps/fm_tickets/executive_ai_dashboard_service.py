@@ -205,6 +205,14 @@ def _build_executive_summary(
         )
         recommended_review = "Work through the pending AI recommendation queue."
         details.append(primary_concern)
+    elif _int(analytics_summary.get("ai_ready_awaiting_classification_count")) >= 5:
+        primary_concern = (
+            "AI-ready employee concerns still await operational classification."
+        )
+        recommended_review = (
+            "Complete Facility Manager classification for AI-ready tickets."
+        )
+        details.append(primary_concern)
     elif health_band in {"needs_review", "attention"}:
         primary_concern = (
             f"AI Operational Health is {health.get('label') or health_band} "
@@ -414,6 +422,15 @@ class ExecutiveAIDashboardService:
             "attention_urgency_label": (urgency.get("level") or {}).get("label"),
             "critical_attention_count": _int(t_summary.get("critical_count")),
             "high_attention_count": _int(t_summary.get("high_count")),
+            "unclassified_ticket_recommendation_count": _int(
+                a_summary.get("unclassified_ticket_recommendation_count")
+            ),
+            "pending_classification_recommendation_count": _int(
+                a_summary.get("pending_classification_recommendation_count")
+            ),
+            "ai_ready_awaiting_classification_count": _int(
+                a_summary.get("ai_ready_awaiting_classification_count")
+            ),
         }
 
         executive_summary = _build_executive_summary(

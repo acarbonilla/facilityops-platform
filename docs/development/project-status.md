@@ -14,13 +14,15 @@
 
 ## Current Module
 
-- UX-001 — Intelligent Employee Ticket Intake Design (**COMPLETE AND MERGED**)
-- AI Platform MVP — RM-001 COMPLETE (AI Platform v1.0 release baseline frozen)
+- Intelligent Employee Ticket Intake — FO-101A finalization in progress
+- FO-096–FO-101 complete on shared feature branch; PR #63 Ready for Review
+- UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 
 ## Current Branch
 
-- `main` @ `e78719f…` (UX-001 post-merge baseline; merge commit `a5041ee…`)
-- AI Platform v1.0 freeze: `98c1661…` (FO-095 MVP) — **FROZEN AND UNCHANGED**
+- `feature/intelligent-employee-intake` (FO-096–FO-101A; unmerged until PR #63 merges)
+- Synchronized `main` tip: `0033655…`
+- AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
 ## Completed Modules
@@ -127,22 +129,16 @@
 
 ## Current Task
 
-- UX-001 / UX-001A COMPLETE AND MERGED via PR #62 (merge `a5041ee…`; baseline
-  tip `e78719f…`). Approved UX baseline for simplified employee intake. Design
-  acceptance: **PASS WITH DOCUMENTATION CORRECTIONS**. No production code.
-  FO-096 **not started**.
-- RM-001 AI Platform MVP Release Milestone complete. AI Platform v1.0 remains
-  the frozen architectural baseline (`98c1661…`). FO-084 through FO-095 are
-  frozen as the completed AI Platform MVP.
+- FO-101A — Finalize Merge and Post-Merge Verification **in progress** on
+  `feature/intelligent-employee-intake`. Pre-merge: PostgreSQL `0007` applied
+  (rollback/reapply OK); backend 183 OK; frontend 400 OK; privacy re-verified;
+  readiness **READY WITH ACCEPTED LIMITATIONS**. PR #63 Ready for Review.
+- FO-096–FO-101 complete on the same branch.
+- UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- FO-096 — Intelligent Employee Intake Foundation (**not started**)
-- FO-097 — AI-First Submission Pipeline
-- FO-098 — Facility Manager Review Experience
-- FO-099 — Smart Notifications and Workflow
-- FO-100 — Reporting and Analytics Alignment
-- FO-101 — Intelligent Intake QA and Production Readiness
+- Complete FO-101A merge of PR #63; establish Intelligent Employee Intake baseline
 - Follow-up: FO-088 date-window flake remains watchlisted
 - Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
@@ -229,7 +225,9 @@
   COMPLETE AND MERGED via PR #61 (`7a61950…`); FO-095A complete.
   AI Platform MVP (FO-084–FO-095) **COMPLETE**. RM-001 AI Platform v1.0 release
   milestone complete (`98c1661…`). UX-001/UX-001A **COMPLETE AND MERGED**
-  (PR #62, `a5041ee…`). FO-096 **not started**.
+  (PR #62). FO-096–FO-101 complete on `feature/intelligent-employee-intake`
+  (unmerged Draft feature PR). FO-101A merge **not started**. Readiness:
+  READY WITH ACCEPTED LIMITATIONS.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.

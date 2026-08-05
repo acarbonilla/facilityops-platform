@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { FormField, getFormFieldAccessibilityProps } from "@/components/common/form-field";
 import { FormActions } from "@/components/common/form-actions";
-import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
@@ -14,48 +13,39 @@ import {
   TicketCreateImageStaging,
   type TicketCreateImageStagingHandle,
 } from "@/features/fm-tickets/components/ticket-create-image-staging";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useCreateMyRequest,
   useMyRequestOptions,
 } from "@/hooks/use-my-requests";
 import { usePermissions } from "@/hooks/use-permissions";
-import { buildTicketCreateSuccessHref } from "@/lib/fm-tickets/create-image-staging";
+import {
+  buildEmployeeSubmitSuccessHref,
+  getEmployeeSubmitPhaseLabel,
+  type EmployeeAiOutcome,
+  type EmployeeSubmitPhase,
+} from "@/lib/my-requests/ai-first-submit";
 import {
   formatMyRequestError,
   getAttachmentGuidanceText,
   mapMyRequestFieldValidationErrors,
 } from "@/lib/my-requests/display";
 import {
-  applyAreaChange,
-  applyBuildingChange,
-  applyFloorChange,
   buildMyRequestCreatePayload,
-  clearStaleLocationSelections,
-  filterCompatibleAssets,
+  shouldShowMyRequestDetailSoftWarning,
 } from "@/lib/my-requests/form";
 import { queueFmTicketAiAnalysis } from "@/services/api/fm-tickets";
 import { ATTACHMENT_PERMISSIONS } from "@/types/attachments";
 import type { MyRequestFormValues } from "@/types/my-requests";
-import type { FmTicketCategory } from "@/types/fm-tickets";
 
 const EMPTY_VALUES: MyRequestFormValues = {
   title: "",
   description: "",
-  category: "",
-  building: "",
-  floor: "",
-  area: "",
-  asset: "",
 };
-
-function toSelectOptions(
-  items: Array<{ id: string; name: string }>,
-): Array<{ value: string; label: string }> {
-  return items.map((item) => ({ value: item.id, label: item.name }));
-}
 
 export function MyRequestCreateScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const optionsQuery = useMyRequestOptions();
   const createMutation = useCreateMyRequest();
   const { hasPermission } = usePermissions();
@@ -66,72 +56,27 @@ export function MyRequestCreateScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState<EmployeeSubmitPhase>("idle");
+  const [stagedImageCount, setStagedImageCount] = useState(0);
+  const submitGuardRef = useRef(false);
 
-  const options = optionsQuery.data;
-  const organizationName = options?.organization?.name ?? "Your organization";
+  const organizationName = optionsQuery.data?.organization?.name ?? "Your organization";
+  const requesterName = [user?.first_name, user?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim() || user?.email || "You";
 
-  const sanitizedValues = useMemo(() => {
-    if (!options) {
-      return values;
-    }
-    return clearStaleLocationSelections(values, {
-      floors: options.floors,
-      areas: options.areas,
-      assets: options.assets,
-    });
-  }, [options, values]);
-
-  const floorOptions = useMemo(() => {
-    if (!options || !sanitizedValues.building) {
-      return [];
-    }
-    return toSelectOptions(
-      options.floors.filter(
-        (floor) => floor.building_id === sanitizedValues.building,
-      ),
-    );
-  }, [options, sanitizedValues.building]);
-
-  const areaOptions = useMemo(() => {
-    if (!options || !sanitizedValues.building) {
-      return [];
-    }
-    return toSelectOptions(
-      options.areas.filter((area) => {
-        if (area.building_id !== sanitizedValues.building) {
-          return false;
-        }
-        if (sanitizedValues.floor) {
-          return area.floor_id === sanitizedValues.floor;
-        }
-        return true;
-      }),
-    );
-  }, [options, sanitizedValues.building, sanitizedValues.floor]);
-
-  const assetOptions = useMemo(() => {
-    if (!options) {
-      return [];
-    }
-    return toSelectOptions(
-      filterCompatibleAssets(options.assets, sanitizedValues).map((asset) => ({
-        id: asset.id,
-        name: asset.name,
-      })),
-    );
-  }, [options, sanitizedValues]);
-
-  const categoryOptions = useMemo(
-    () =>
-      (options?.categories ?? []).map((category) => ({
-        value: category.value,
-        label: category.label,
-      })),
-    [options?.categories],
+  const showSoftWarning = shouldShowMyRequestDetailSoftWarning(
+    values,
+    stagedImageCount,
   );
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submitGuardRef.current || isSubmitting || createMutation.isPending) {
+      return;
+    }
+
     setFormError(null);
     setFormSuccess(null);
     setFieldErrors({});
@@ -141,44 +86,70 @@ export function MyRequestCreateScreen() {
       return;
     }
 
-    const payload = buildMyRequestCreatePayload(sanitizedValues);
+    const payload = buildMyRequestCreatePayload(values);
     if (!payload) {
-      setFormError("Complete all required fields before submitting your request.");
+      setFieldErrors({ title: "Title is required." });
+      setFormError("Enter a title before submitting your concern.");
       return;
     }
 
+    submitGuardRef.current = true;
     setIsSubmitting(true);
+    setSubmitPhase("creating_ticket");
     try {
       const created = await createMutation.mutateAsync(payload);
-      let aiQueued = false;
+      let aiOutcome: EmployeeAiOutcome = "not_requested";
+      let uploadedCount = 0;
+      let failedUploadCount = 0;
       const uploadable = imageStagingRef.current?.getUploadableFiles().length ?? 0;
 
       if (uploadable > 0 && imageStagingRef.current) {
-        const attachmentIds = await imageStagingRef.current.uploadAll({
-          owner_type: "fm_ticket",
-          owner_id: created.id,
-          visibility: "requester_visible",
-          category: "image_evidence",
-        });
-        if (attachmentIds.length > 0) {
-          await queueFmTicketAiAnalysis(created.id, {
-            attachment_ids: attachmentIds,
+        setSubmitPhase("uploading_images");
+        const { uploadedIds, failedCount } =
+          await imageStagingRef.current.uploadAll({
+            owner_type: "fm_ticket",
+            owner_id: created.id,
+            visibility: "requester_visible",
+            category: "image_evidence",
           });
-          aiQueued = true;
+        uploadedCount = uploadedIds.length;
+        failedUploadCount = failedCount;
+
+        if (uploadedIds.length > 0) {
+          setSubmitPhase("queueing_ai");
+          try {
+            await queueFmTicketAiAnalysis(created.id, {
+              attachment_ids: uploadedIds,
+            });
+            aiOutcome = "queued";
+          } catch {
+            aiOutcome = "unavailable";
+          }
+        } else if (failedCount > 0) {
+          aiOutcome = "partial_upload";
         }
       }
 
-      setFormSuccess("Request submitted successfully.");
+      setSubmitPhase("completed");
+      setFormSuccess(
+        "Concern submitted. The Facilities Team will review and classify it.",
+      );
       router.replace(
-        buildTicketCreateSuccessHref(`/my-requests/${created.id}`, { aiQueued }),
+        buildEmployeeSubmitSuccessHref(`/my-requests/${created.id}`, {
+          aiOutcome,
+          uploadedCount,
+          failedUploadCount,
+        }),
       );
       router.refresh();
     } catch (error) {
+      setSubmitPhase("failed");
       const mapped = mapMyRequestFieldValidationErrors(error);
       if (Object.keys(mapped).length > 0) {
         setFieldErrors(mapped);
       }
       setFormError(formatMyRequestError(error));
+      submitGuardRef.current = false;
     } finally {
       setIsSubmitting(false);
     }
@@ -187,8 +158,8 @@ export function MyRequestCreateScreen() {
   if (optionsQuery.isLoading) {
     return (
       <LoadingState
-        message="Loading buildings and categories for your organization."
-        title="Preparing request form"
+        message="Loading your organization context."
+        title="Preparing concern form"
       />
     );
   }
@@ -205,278 +176,161 @@ export function MyRequestCreateScreen() {
             Retry
           </button>
         }
-        message="Request options could not be loaded. Retry to continue."
-        title="Unable to load request options"
+        message="Requester context could not be loaded. Retry to continue."
+        title="Unable to load request context"
       />
     );
   }
 
-  const hasBuildings = (options?.buildings.length ?? 0) > 0;
   const busy = isSubmitting || createMutation.isPending;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-xl space-y-6">
       <PageHeader
-        description="Submit a facility request for your organization. Only the details below are required."
-        title="Submit a Request"
+        description="Report a facility concern. The Facilities Team will classify and assign the work."
+        title="Raise a Facility Concern"
       >
         <Link
-          className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="inline-flex min-h-11 items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           href="/my-requests"
         >
           Back to My Requests
         </Link>
       </PageHeader>
 
-      {!hasBuildings ? (
-        <EmptyState
-          message="No buildings are available for your organization yet. Contact your facilities team before submitting a request."
-          title="No buildings available"
-        />
-      ) : (
-        <form
-          aria-busy={busy}
-          className="space-y-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-          noValidate
-          onSubmit={(event) => void handleSubmit(event)}
+      <form
+        aria-busy={busy}
+        className="space-y-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+        noValidate
+        onSubmit={(event) => void handleSubmit(event)}
+      >
+        {formError ? (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
+            <p className="font-medium text-red-900">Unable to submit concern</p>
+            <p className="mt-1 text-sm text-red-800">{formError}</p>
+          </div>
+        ) : null}
+
+        {formSuccess ? (
+          <p
+            aria-live="polite"
+            className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+            role="status"
+          >
+            {formSuccess}
+          </p>
+        ) : null}
+
+        {busy && submitPhase !== "idle" ? (
+          <p
+            aria-live="polite"
+            className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800"
+            role="status"
+          >
+            {getEmployeeSubmitPhaseLabel(submitPhase)}
+          </p>
+        ) : null}
+
+        <section
+          aria-label="Requester context"
+          className="rounded-lg border border-slate-200 bg-slate-50 p-4"
         >
-          {formError ? (
-            <div className="rounded-md border border-red-200 bg-red-50 p-4" role="alert">
-              <p className="font-medium text-red-900">Unable to submit request</p>
-              <p className="mt-1 text-sm text-red-800">{formError}</p>
+          <h2 className="text-sm font-semibold text-slate-900">Requester context</h2>
+          <dl className="mt-3 space-y-2 text-sm text-slate-700">
+            <div>
+              <dt className="font-medium text-slate-500">Requester</dt>
+              <dd>{requesterName}</dd>
             </div>
-          ) : null}
+            <div>
+              <dt className="font-medium text-slate-500">Organization</dt>
+              <dd>{organizationName}</dd>
+            </div>
+          </dl>
+        </section>
 
-          {formSuccess ? (
-            <p className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900" role="status">
-              {formSuccess}
-            </p>
-          ) : null}
-
-          <FormField
-            description="Your assigned organization for this request."
-            htmlFor="my-request-organization"
-            label="Organization"
-          >
-            <input
-              className="block w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-slate-700"
-              id="my-request-organization"
-              readOnly
-              value={organizationName}
-            />
-          </FormField>
-
-          <FormField
-            error={fieldErrors.title}
-            htmlFor="my-request-title"
-            label="Title"
-          >
-            <input
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              id="my-request-title"
-              onChange={(event) =>
-                setValues((current) => ({ ...current, title: event.target.value }))
-              }
-              required
-              value={sanitizedValues.title}
-              {...getFormFieldAccessibilityProps(
-                "my-request-title",
-                undefined,
-                fieldErrors.title,
-              )}
-            />
-          </FormField>
-
-          <FormField
-            error={fieldErrors.description}
-            htmlFor="my-request-description"
-            label="Description"
-          >
-            <textarea
-              className="block min-h-32 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              id="my-request-description"
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-              required
-              value={sanitizedValues.description}
-              {...getFormFieldAccessibilityProps(
-                "my-request-description",
-                undefined,
-                fieldErrors.description,
-              )}
-            />
-          </FormField>
-
-          <FormField
-            error={fieldErrors.category}
-            htmlFor="my-request-category"
-            label="Category"
-          >
-            <select
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              id="my-request-category"
-              onChange={(event) =>
-                setValues((current) => ({
-                  ...current,
-                  category: event.target.value as FmTicketCategory | "",
-                }))
-              }
-              required
-              value={sanitizedValues.category}
-              {...getFormFieldAccessibilityProps(
-                "my-request-category",
-                undefined,
-                fieldErrors.category,
-              )}
-            >
-              <option value="">Select a category</option>
-              {categoryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField
-            error={fieldErrors.building}
-            htmlFor="my-request-building"
-            label="Building"
-          >
-            <select
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
-              id="my-request-building"
-              onChange={(event) =>
-                setValues((current) =>
-                  applyBuildingChange(current, event.target.value),
-                )
-              }
-              required
-              value={sanitizedValues.building}
-              {...getFormFieldAccessibilityProps(
-                "my-request-building",
-                undefined,
-                fieldErrors.building,
-              )}
-            >
-              <option value="">Select a building</option>
-              {toSelectOptions(options?.buildings ?? []).map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField
-            description="Optional"
-            error={fieldErrors.floor}
-            htmlFor="my-request-floor"
-            label="Floor"
-          >
-            <select
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-              disabled={!sanitizedValues.building || floorOptions.length === 0}
-              id="my-request-floor"
-              onChange={(event) =>
-                setValues((current) => applyFloorChange(current, event.target.value))
-              }
-              value={sanitizedValues.floor}
-              {...getFormFieldAccessibilityProps(
-                "my-request-floor",
-                "Optional",
-                fieldErrors.floor,
-              )}
-            >
-              <option value="">No floor selected</option>
-              {floorOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField
-            description="Optional"
-            error={fieldErrors.area}
-            htmlFor="my-request-area"
-            label="Area"
-          >
-            <select
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-              disabled={!sanitizedValues.building || areaOptions.length === 0}
-              id="my-request-area"
-              onChange={(event) =>
-                setValues((current) => applyAreaChange(current, event.target.value))
-              }
-              value={sanitizedValues.area}
-              {...getFormFieldAccessibilityProps(
-                "my-request-area",
-                "Optional",
-                fieldErrors.area,
-              )}
-            >
-              <option value="">No area selected</option>
-              {areaOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField
-            description="Optional"
-            error={fieldErrors.asset}
-            htmlFor="my-request-asset"
-            label="Asset"
-          >
-            <select
-              className="block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100"
-              disabled={!sanitizedValues.building || assetOptions.length === 0}
-              id="my-request-asset"
-              onChange={(event) =>
-                setValues((current) => ({ ...current, asset: event.target.value }))
-              }
-              value={sanitizedValues.asset}
-              {...getFormFieldAccessibilityProps(
-                "my-request-asset",
-                "Optional",
-                fieldErrors.asset,
-              )}
-            >
-              <option value="">No asset selected</option>
-              {assetOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          {canUploadAttachments ? (
-            <TicketCreateImageStaging
-              ref={imageStagingRef}
-              canUpload={canUploadAttachments}
-              disabled={busy}
-              guidanceText={`${getAttachmentGuidanceText()} Images upload when you submit. AI analysis runs in the background afterward.`}
-            />
-          ) : (
-            <p className="text-sm text-slate-600">{getAttachmentGuidanceText()}</p>
-          )}
-
-          <FormActions
-            cancelHref="/my-requests"
-            isSubmitting={busy}
-            submitLabel="Submit Ticket"
+        <FormField
+          error={fieldErrors.title}
+          htmlFor="my-request-title"
+          label="Title *"
+        >
+          <input
+            className="block min-h-11 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            id="my-request-title"
+            maxLength={200}
+            onChange={(event) =>
+              setValues((current) => ({ ...current, title: event.target.value }))
+            }
+            required
+            value={values.title}
+            {...getFormFieldAccessibilityProps(
+              "my-request-title",
+              undefined,
+              fieldErrors.title,
+            )}
           />
-        </form>
-      )}
+        </FormField>
+
+        <FormField
+          description="Optional. Add details when photos cannot capture the issue."
+          error={fieldErrors.description}
+          htmlFor="my-request-description"
+          label="Description"
+        >
+          <textarea
+            className="block min-h-32 w-full rounded-md border border-slate-300 px-3 py-2 text-slate-950 shadow-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            id="my-request-description"
+            onChange={(event) =>
+              setValues((current) => ({
+                ...current,
+                description: event.target.value,
+              }))
+            }
+            value={values.description}
+            {...getFormFieldAccessibilityProps(
+              "my-request-description",
+              "Optional. Add details when photos cannot capture the issue.",
+              fieldErrors.description,
+            )}
+          />
+        </FormField>
+
+        {canUploadAttachments ? (
+          <TicketCreateImageStaging
+            ref={imageStagingRef}
+            canUpload={canUploadAttachments}
+            disabled={busy}
+            guidanceText={`${getAttachmentGuidanceText()} Photos are recommended but optional. Images upload when you submit. AI analysis may run in the background afterward and is not a final decision.`}
+            onQueueChange={(queue) => {
+              setStagedImageCount(
+                queue.filter((item) => item.status !== "rejected").length,
+              );
+            }}
+          />
+        ) : (
+          <p className="text-sm text-slate-600">{getAttachmentGuidanceText()}</p>
+        )}
+
+        {showSoftWarning ? (
+          <p
+            aria-live="polite"
+            className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950"
+            role="status"
+          >
+            Adding a short description or a photo helps the Facilities Team
+            investigate. You can still submit without them.
+          </p>
+        ) : null}
+
+        <div aria-live="polite" className="sr-only">
+          {busy ? "Submitting your concern." : null}
+        </div>
+
+        <FormActions
+          cancelHref="/my-requests"
+          isSubmitting={busy}
+          submitLabel="Submit Concern"
+        />
+      </form>
     </div>
   );
 }

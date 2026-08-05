@@ -260,6 +260,7 @@ export function TicketForm({
           error={getFieldErrorMessage(errors.category?.message)}
           label="Category"
           options={[
+            { value: "unclassified", label: "Unclassified" },
             { value: "electrical", label: "Electrical" },
             { value: "plumbing", label: "Plumbing" },
             { value: "hvac", label: "HVAC" },
@@ -276,6 +277,7 @@ export function TicketForm({
           error={getFieldErrorMessage(errors.priority?.message)}
           label="Priority"
           options={[
+            { value: "pending_review", label: "Pending Review" },
             { value: "low", label: "Low" },
             { value: "medium", label: "Medium" },
             { value: "high", label: "High" },

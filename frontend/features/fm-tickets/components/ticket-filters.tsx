@@ -39,6 +39,7 @@ const STATUS_OPTIONS: SelectOption[] = [
 ];
 
 const PRIORITY_OPTIONS: SelectOption[] = [
+  { value: "pending_review", label: "Pending Review" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
@@ -46,6 +47,7 @@ const PRIORITY_OPTIONS: SelectOption[] = [
 ];
 
 const CATEGORY_OPTIONS: SelectOption[] = [
+  { value: "unclassified", label: "Unclassified" },
   { value: "electrical", label: "Electrical" },
   { value: "plumbing", label: "Plumbing" },
   { value: "hvac", label: "HVAC" },

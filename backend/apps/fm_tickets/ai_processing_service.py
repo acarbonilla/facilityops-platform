@@ -198,6 +198,22 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
                 "success": True,
             },
         )
+        try:
+            from apps.fm_tickets.notification_service import notify_ai_analysis_ready
+
+            locked.refresh_from_db()
+            ticket = getattr(locked, "ticket", None)
+            if ticket is None:
+                from apps.fm_tickets.models import FmTicket
+
+                ticket = FmTicket.objects.filter(pk=locked.ticket_id).first()
+            if ticket is not None:
+                notify_ai_analysis_ready(ticket=ticket, analysis=locked)
+        except Exception:
+            logger.exception(
+                "ai.analysis_ready_notification_failed analysis_id=%s",
+                analysis_id,
+            )
         return {
             "ok": True,
             "status": AITicketAnalysis.Status.COMPLETED,
@@ -307,6 +323,21 @@ def _fail_or_retry(*, analysis, started_at, attempt: int, code: str, retryable: 
             "error_code": code,
         },
     )
+    try:
+        from apps.fm_tickets.notification_service import notify_ai_analysis_failed
+
+        failed = (
+            AITicketAnalysis.objects.select_related("ticket")
+            .filter(pk=analysis.pk)
+            .first()
+        )
+        if failed is not None and failed.ticket_id:
+            notify_ai_analysis_failed(ticket=failed.ticket, analysis=failed)
+    except Exception:
+        logger.exception(
+            "ai.analysis_failed_notification_failed analysis_id=%s",
+            analysis.id,
+        )
     return {
         "ok": False,
         "status": AITicketAnalysis.Status.FAILED,

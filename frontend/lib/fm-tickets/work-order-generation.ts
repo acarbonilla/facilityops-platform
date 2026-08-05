@@ -20,12 +20,19 @@ export type WorkOrderGenerationDisabledReason =
   | "missing_asset"
   | "invalid_status"
   | "already_linked"
-  | "missing_permission";
+  | "missing_permission"
+  | "classification_incomplete";
 
 export function getWorkOrderGenerationDisabledReason(
   ticket: Pick<
     FmTicketDetail,
-    "status" | "assignee" | "asset" | "linked_work_order"
+    | "status"
+    | "assignee"
+    | "asset"
+    | "linked_work_order"
+    | "category"
+    | "priority"
+    | "building"
   >,
   canManageGeneration = true,
 ): WorkOrderGenerationDisabledReason | null {
@@ -34,6 +41,13 @@ export function getWorkOrderGenerationDisabledReason(
   }
   if (ticket.linked_work_order) {
     return "already_linked";
+  }
+  if (
+    ticket.category === "unclassified" ||
+    ticket.priority === "pending_review" ||
+    !ticket.building
+  ) {
+    return "classification_incomplete";
   }
   if (!ticket.assignee) {
     return "missing_assignee";
@@ -61,6 +75,8 @@ export function formatWorkOrderGenerationDisabledReason(
       return "A Work Order is already linked.";
     case "missing_permission":
       return "You do not have permission to generate a Work Order.";
+    case "classification_incomplete":
+      return "Complete operational classification (category, priority, and building) first.";
     default:
       return null;
   }
@@ -69,7 +85,13 @@ export function formatWorkOrderGenerationDisabledReason(
 export function canGenerateWorkOrderFromTicket(
   ticket: Pick<
     FmTicketDetail,
-    "status" | "assignee" | "asset" | "linked_work_order"
+    | "status"
+    | "assignee"
+    | "asset"
+    | "linked_work_order"
+    | "category"
+    | "priority"
+    | "building"
   >,
   canManageGeneration = true,
 ): boolean {

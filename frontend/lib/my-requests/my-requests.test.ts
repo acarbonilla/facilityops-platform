@@ -32,6 +32,7 @@ import {
   isAssetCompatibleWithSelection,
   normalizeMyRequestFilters,
   normalizeMyRequestListParams,
+  shouldShowMyRequestDetailSoftWarning,
 } from "./form";
 import {
   filterNavigationForEmployeeRequester,
@@ -337,23 +338,30 @@ test("13. Request payload includes only approved fields", () => {
   const values: MyRequestFormValues = {
     title: " Leak ",
     description: " Water near sink ",
-    category: "plumbing",
-    building: "b1",
-    floor: "f1",
-    area: "",
-    asset: "a1",
   };
   assert.deepEqual(buildMyRequestCreatePayload(values), {
     title: "Leak",
     description: "Water near sink",
-    category: "plumbing",
-    building: "b1",
-    floor: "f1",
-    asset: "a1",
   });
+  assert.equal(buildMyRequestCreatePayload({ ...values, title: "" }), null);
+  assert.deepEqual(
+    buildMyRequestCreatePayload({ title: "Title only", description: "" }),
+    { title: "Title only", description: "" },
+  );
+});
+
+test("13b. Soft warning when description and images are absent", () => {
   assert.equal(
-    buildMyRequestCreatePayload({ ...values, title: "" }),
-    null,
+    shouldShowMyRequestDetailSoftWarning({ description: "" }, 0),
+    true,
+  );
+  assert.equal(
+    shouldShowMyRequestDetailSoftWarning({ description: "text" }, 0),
+    false,
+  );
+  assert.equal(
+    shouldShowMyRequestDetailSoftWarning({ description: "" }, 1),
+    false,
   );
 });
 

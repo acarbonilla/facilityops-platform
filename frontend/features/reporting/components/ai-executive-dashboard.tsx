@@ -206,8 +206,14 @@ function ResultsView({ data }: { data: ExecutiveAIDashboard }) {
           value={formatExecutiveRate(summary.acceptance_rate)}
         />
         <MetricCard
-          label="Pending Reviews"
+          label="AI Decision Pending"
           value={formatReportingNumber(summary.pending_review_count)}
+        />
+        <MetricCard
+          label="AI Ready · Awaiting Classification"
+          value={formatReportingNumber(
+            summary.ai_ready_awaiting_classification_count ?? 0,
+          )}
         />
       </div>
 

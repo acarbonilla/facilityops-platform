@@ -17,6 +17,7 @@ from .serializers import (
     AIRecommendationDecisionSerializer,
     AITicketAnalysisQueueSerializer,
     AITicketAnalysisSerializer,
+    RequesterSafeAITicketAnalysisSerializer,
     FmTicketAssignSerializer,
     FmTicketCommentSerializer,
     FmTicketCreateSerializer,
@@ -503,18 +504,25 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         }
         return Response(EmployeeRequestOptionsSerializer(payload).data)
 
+    def _ai_analysis_serializer_class(self):
+        """FO-101: employee-only requesters receive audience-safe AI payloads."""
+        if uses_employee_requester_scope(self.request.user):
+            return RequesterSafeAITicketAnalysisSerializer
+        return AITicketAnalysisSerializer
+
     @action(detail=True, methods=["get", "post"], url_path="ai-analyses")
     def ai_analyses(self, request, pk=None):
-        """Internal AI analysis queue + history (FO-084). Not a public endpoint."""
+        """AI analysis queue + history (FO-084). Audience-scoped for requesters."""
         ticket = self.get_object()
+        serializer_class = self._ai_analysis_serializer_class()
 
         if request.method == "GET":
             queryset = list_ticket_ai_analyses(actor=request.user, ticket_id=ticket.id)
             page = self.paginate_queryset(queryset)
             if page is not None:
-                serializer = AITicketAnalysisSerializer(page, many=True)
+                serializer = serializer_class(page, many=True)
                 return self.get_paginated_response(serializer.data)
-            serializer = AITicketAnalysisSerializer(queryset, many=True)
+            serializer = serializer_class(queryset, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         serializer = AITicketAnalysisQueueSerializer(data=request.data)
@@ -535,7 +543,7 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         except AITicketAnalysisValidationError as exc:
             raise DRFValidationError({"attachment_ids": [str(exc)]}) from exc
 
-        response_serializer = AITicketAnalysisSerializer(analysis)
+        response_serializer = serializer_class(analysis)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     @action(
@@ -544,15 +552,16 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         url_path=r"ai-analyses/(?P<analysis_id>[^/.]+)",
     )
     def ai_analysis_detail(self, request, pk=None, analysis_id=None):
-        """Internal single-analysis status for future polling."""
+        """Single-analysis status; audience-scoped for employee requesters."""
         ticket = self.get_object()
         analysis = get_ticket_ai_analysis(
             actor=request.user,
             ticket_id=ticket.id,
             analysis_id=analysis_id,
         )
+        serializer_class = self._ai_analysis_serializer_class()
         return Response(
-            AITicketAnalysisSerializer(analysis).data,
+            serializer_class(analysis).data,
             status=status.HTTP_200_OK,
         )
 

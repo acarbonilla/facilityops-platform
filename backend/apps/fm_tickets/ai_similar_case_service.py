@@ -280,7 +280,10 @@ def compute_similarity(
 
     cur_cat = _normalize_category(current.get("category"))
     cand_cat = _normalize_category(candidate.get("category"))
-    if cur_cat and cand_cat and cur_cat == cand_cat:
+    if cur_cat in {"unclassified", ""} or cand_cat in {"unclassified", ""}:
+        # FO-100: unclassified sides do not contribute category similarity.
+        pass
+    elif cur_cat and cand_cat and cur_cat == cand_cat:
         components["category"] = weights["category"]
         reasons.append(f"Category matched ({_label(cur_cat)})")
 
@@ -797,6 +800,9 @@ class AISimilarCaseService:
                 updated_at__lte=filters["end"],
             )
             .exclude(id=current["case_id"])
+            # FO-100: do not let unclassified / pending-review tickets pollute history.
+            .exclude(category=FmTicket.Category.UNCLASSIFIED)
+            .exclude(priority=FmTicket.Priority.PENDING_REVIEW)
             .select_related("building", "asset")
             .prefetch_related(
                 Prefetch(

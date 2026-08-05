@@ -55,6 +55,12 @@ export interface ReportingTicketSummary {
   by_status: ReportingCountDictionary;
   by_priority: ReportingCountDictionary;
   by_category: ReportingCountDictionary;
+  unclassified_count?: number;
+  pending_classification_count?: number;
+  missing_building_count?: number;
+  classification_incomplete_count?: number;
+  classified_count?: number;
+  employee_intake_count?: number;
   sla: ReportingTicketSlaSummary;
 }
 

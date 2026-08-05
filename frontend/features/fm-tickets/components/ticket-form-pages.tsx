@@ -111,7 +111,7 @@ function mapTicketDetailToFormValues(ticket: FmTicketDetail): FmTicketFormValues
     tenant: ticket.tenant,
     organization: ticket.organization,
     department: ticket.department ?? "",
-    building: ticket.building,
+    building: ticket.building ?? "",
     floor: ticket.floor ?? "",
     area: ticket.area ?? "",
     asset: ticket.asset ?? "",
@@ -360,15 +360,15 @@ export function TicketCreatePageContent() {
             let aiQueued = false;
 
             if (uploadable > 0 && imageStagingRef.current) {
-              const attachmentIds = await imageStagingRef.current.uploadAll({
+              const { uploadedIds } = await imageStagingRef.current.uploadAll({
                 owner_type: "fm_ticket",
                 owner_id: created.id,
                 visibility: "internal_only",
                 category: "image_evidence",
               });
-              if (attachmentIds.length > 0) {
+              if (uploadedIds.length > 0) {
                 await queueFmTicketAiAnalysis(created.id, {
-                  attachment_ids: attachmentIds,
+                  attachment_ids: uploadedIds,
                 });
                 aiQueued = true;
               }
@@ -407,6 +407,7 @@ function readAiApplyFromSearch(search: string): {
   const category = params.get("ai_category");
   const priority = params.get("ai_priority");
   const categories = new Set([
+    "unclassified",
     "electrical",
     "plumbing",
     "hvac",
@@ -416,7 +417,13 @@ function readAiApplyFromSearch(search: string): {
     "security",
     "other",
   ]);
-  const priorities = new Set(["low", "medium", "high", "urgent"]);
+  const priorities = new Set([
+    "pending_review",
+    "low",
+    "medium",
+    "high",
+    "urgent",
+  ]);
   if (
     category &&
     priority &&

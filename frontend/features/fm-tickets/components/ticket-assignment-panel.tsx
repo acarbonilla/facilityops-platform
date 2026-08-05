@@ -27,7 +27,17 @@ import type { FmTicketDetail } from "@/types/fm-tickets";
 
 import { SectionCard, formatPersonLabel } from "./ticket-shared";
 
-export function TicketAssignmentPanel({ ticket }: { ticket: FmTicketDetail }) {
+export function TicketAssignmentPanel({
+  ticket,
+  classificationBlocked = false,
+  classificationBlockedMessage = null,
+  embedded = false,
+}: {
+  ticket: FmTicketDetail;
+  classificationBlocked?: boolean;
+  classificationBlockedMessage?: string | null;
+  embedded?: boolean;
+}) {
   const { hasPermission } = usePermissions();
   const canAssign = hasPermission("fm_tickets.assign");
   const canReadDirectory = hasPermission("users.directory");
@@ -103,11 +113,23 @@ export function TicketAssignmentPanel({ ticket }: { ticket: FmTicketDetail }) {
     mutation.mutate(payload);
   }
 
-  return (
-    <SectionCard
-      title="Assignment"
-      description="Assign an active technician from the ticket tenant. Backend authorization remains authoritative."
-    >
+  const body = (
+    <>
+      {classificationBlocked ? (
+        <div
+          className="rounded-lg border border-amber-200 bg-amber-50 p-4"
+          role="status"
+        >
+          <p className="font-medium text-amber-950">
+            Complete classification before assigning
+          </p>
+          <p className="mt-1 text-sm text-amber-900">
+            {classificationBlockedMessage ||
+              "Set final category, priority, and building first."}
+          </p>
+        </div>
+      ) : null}
+
       <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <DetailField
           label="Current technician"
@@ -142,7 +164,7 @@ export function TicketAssignmentPanel({ ticket }: { ticket: FmTicketDetail }) {
         </div>
       ) : null}
 
-      {assignmentState === "ready" ? (
+      {assignmentState === "ready" && !classificationBlocked ? (
         <div className="space-y-4">
           <UserDirectoryPicker
             allowClear={false}
@@ -198,6 +220,19 @@ export function TicketAssignmentPanel({ ticket }: { ticket: FmTicketDetail }) {
           {successMessage}
         </p>
       ) : null}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="space-y-4">{body}</div>;
+  }
+
+  return (
+    <SectionCard
+      title="Assignment"
+      description="Assign an active technician from the ticket tenant. Backend authorization remains authoritative."
+    >
+      {body}
     </SectionCard>
   );
 }
