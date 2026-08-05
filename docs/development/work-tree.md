@@ -21,13 +21,13 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | AI Platform MVP COMPLETE (RM-001); UX-001 COMPLETE | AI Platform v1.0 freeze `98c1661…`; UX-001 baseline on `main` (`a5041ee…`); FO-096 **not started** |
+| FM Ticketing | AI Platform MVP COMPLETE (RM-001); UX-001 COMPLETE | AI Platform v1.0 freeze `98c1661…`; UX-001 baseline on `main` (`c1690e2…`); FO-096 **not started** |
 | Public Landing | FO-082A COMPLETE AND MERGED | Premium `/` landing + Live Platform Preview on `main` via PR #51 (`3fe79e5…`) |
 | Attachments | Complete; merged | FO-079–FO-083 on `main`; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
 | Reporting and Operational Analytics | Complete + AI Platform MVP v1.0 | FO-064–FO-095 on main; RM-001 freeze; FO-100 planned for intake reporting alignment; FO-096 **not started** |
-| Intelligent Employee Intake (design) | UX-001 COMPLETE AND MERGED | Approved baseline in `docs/03-UX/`; PR #62 `a5041ee…`; FO-096–FO-101 planned; FO-096 **not started** |
+| Intelligent Employee Intake (design) | UX-001 COMPLETE AND MERGED | Approved baseline in `docs/03-UX/`; PR #62 merge `a5041ee…`; tip `c1690e2…`; FO-096–FO-101 planned; FO-096 **not started** |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
