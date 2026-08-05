@@ -36,12 +36,14 @@ class FmTicket(BaseModel):
         CANCELLED = "cancelled", "Cancelled"
 
     class Priority(models.TextChoices):
+        PENDING_REVIEW = "pending_review", "Pending Review"
         LOW = "low", "Low"
         MEDIUM = "medium", "Medium"
         HIGH = "high", "High"
         URGENT = "urgent", "Urgent"
 
     class Category(models.TextChoices):
+        UNCLASSIFIED = "unclassified", "Unclassified"
         ELECTRICAL = "electrical", "Electrical"
         PLUMBING = "plumbing", "Plumbing"
         HVAC = "hvac", "HVAC"
@@ -79,6 +81,8 @@ class FmTicket(BaseModel):
         Building,
         on_delete=models.PROTECT,
         related_name="fm_tickets",
+        null=True,
+        blank=True,
     )
     floor = models.ForeignKey(
         Floor,
@@ -121,7 +125,7 @@ class FmTicket(BaseModel):
         db_index=True,
     )
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True, default="")
     category = models.CharField(
         max_length=50,
         choices=Category.choices,
@@ -183,17 +187,21 @@ class FmTicket(BaseModel):
                 errors["building"] = (
                     "Building must belong to the selected organization."
                 )
+        elif self.floor_id or self.area_id or self.asset_id:
+            errors["building"] = (
+                "Building is required when floor, area, or asset is set."
+            )
 
         if self.floor_id:
             if self.floor.tenant_id != self.tenant_id:
                 errors["floor"] = "Floor must belong to the selected tenant."
-            if self.floor.building_id != self.building_id:
+            if self.building_id and self.floor.building_id != self.building_id:
                 errors["floor"] = "Floor must belong to the selected building."
 
         if self.area_id:
             if self.area.tenant_id != self.tenant_id:
                 errors["area"] = "Area must belong to the selected tenant."
-            if self.area.building_id != self.building_id:
+            if self.building_id and self.area.building_id != self.building_id:
                 errors["area"] = "Area must belong to the selected building."
             if self.floor_id and self.area.floor_id != self.floor_id:
                 errors["area"] = "Area must belong to the selected floor."
@@ -203,7 +211,7 @@ class FmTicket(BaseModel):
                 errors["asset"] = "Asset must belong to the selected tenant."
             if self.asset.organization_id != self.organization_id:
                 errors["asset"] = "Asset must belong to the selected organization."
-            if self.asset.building_id != self.building_id:
+            if self.building_id and self.asset.building_id != self.building_id:
                 errors["asset"] = "Asset must belong to the selected building."
             if self.floor_id and self.asset.floor_id != self.floor_id:
                 errors["asset"] = "Asset must belong to the selected floor."
