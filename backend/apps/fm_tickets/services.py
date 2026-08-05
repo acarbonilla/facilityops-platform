@@ -12,11 +12,18 @@ from .models import (
     FmTicketHistory,
     FmTicketStatusHistory,
 )
-from .classification_readiness import assert_ticket_ready_for_operational_actions
+from .classification_readiness import (
+    assert_ticket_ready_for_operational_actions,
+    get_classification_block_reason,
+)
 from .notification_service import (
+    maybe_notify_classification_completed,
+    notify_employee_concern_created,
+    notify_employee_concern_submitted,
     notify_fm_ticket_assigned,
     notify_fm_ticket_status_changed,
 )
+from .tenant_scope import uses_employee_requester_creation
 
 
 SLA_AT_RISK_WINDOW = timedelta(hours=4)
@@ -175,11 +182,15 @@ def create_ticket(*, requester, data):
         changed_by=requester,
         note="Initial ticket status.",
     )
+    if uses_employee_requester_creation(requester):
+        notify_employee_concern_created(ticket=ticket, actor=requester)
+        notify_employee_concern_submitted(ticket=ticket, actor=None)
     return ticket
 
 
 def update_ticket(*, ticket, data, actor=None):
     changes = {}
+    previously_incomplete = get_classification_block_reason(ticket) is not None
 
     for field, value in data.items():
         previous_value = getattr(ticket, field)
@@ -202,6 +213,11 @@ def update_ticket(*, ticket, data, actor=None):
         description="Ticket details updated.",
         actor=actor,
         metadata={"changes": changes},
+    )
+    maybe_notify_classification_completed(
+        ticket=ticket,
+        previous_incomplete=previously_incomplete,
+        actor=actor,
     )
     return ticket
 
