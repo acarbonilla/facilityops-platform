@@ -86,7 +86,13 @@ export function TicketAiAnalysisStatusPanel({
   });
 
   const latest = analysesQuery.data?.results?.[0];
-  const uiStatus = resolveAiAnalysisUiStatus(latest?.status);
+  const hasAnalyses = (analysesQuery.data?.results?.length ?? 0) > 0;
+  const uiStatus = (() => {
+    if (audience === "requester" && analysesQuery.isFetched && !hasAnalyses) {
+      return "not_requested" as const;
+    }
+    return resolveAiAnalysisUiStatus(latest?.status);
+  })();
   const recommendationPanelId = useId();
   const liveRegionId = useId();
   const [recommendationsOpen, setRecommendationsOpen] = useState(false);
@@ -176,15 +182,23 @@ export function TicketAiAnalysisStatusPanel({
       className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
     >
       <h2 className="text-lg font-semibold text-slate-950">
-        {getAiAnalysisStatusTitle(uiStatus)}
+        {getAiAnalysisStatusTitle(uiStatus, audience)}
       </h2>
       <p className="mt-2 text-sm text-slate-700">
-        {getAiAnalysisStatusMessage(uiStatus)}
+        {getAiAnalysisStatusMessage(uiStatus, audience)}
       </p>
-      <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-        AI-generated · requires human review
-      </p>
-      <p className="mt-1 text-xs text-slate-600">{getAiGeneratedDisclaimer()}</p>
+      {audience === "internal" ? (
+        <>
+          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+            AI-generated · requires human review
+          </p>
+          <p className="mt-1 text-xs text-slate-600">{getAiGeneratedDisclaimer()}</p>
+        </>
+      ) : (
+        <p className="mt-2 text-xs text-slate-600">
+          AI suggestions are never final. Facilities decides how to classify your concern.
+        </p>
+      )}
 
       <div className="sr-only" id={liveRegionId} role="status" aria-live="assertive">
         {actionMessage}
