@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI Platform QA & Production Readiness — FO-095 Ready for Review (FO-095A acceptance PASS)
+- AI Platform QA & Production Readiness — FO-095 COMPLETE AND MERGED (AI Platform MVP baseline)
 
 ## Current Branch
 
-- `feature/fo-095-ai-platform-production-readiness` @ `d338bcb…` (+ FO-095A finalization commit)
+- `main` @ FO-095 merge `7a61950…` (FO-095A post-merge verification)
 
 ## Completed Modules
 
@@ -49,7 +49,7 @@
 - Executive AI Dashboard (FO-092)
 - AI Administration & Governance (FO-093) — COMPLETE AND MERGED
 - AI Monitoring & Production Operations (FO-094) — COMPLETE AND MERGED
-- AI Platform QA & Production Readiness (FO-095) — Ready for Review (FO-095A PASS)
+- AI Platform QA & Production Readiness (FO-095) — COMPLETE AND MERGED (AI Platform MVP)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -122,15 +122,16 @@
 
 ## Current Task
 
-- FO-095 AI Platform QA & Production Readiness — FO-095A final acceptance **PASS**;
-  PR #61 Ready for Review. Latest stable merged baseline remains
-  **FO-094** on `main` until merge. Readiness: **READY WITH ACCEPTED LIMITATIONS**.
+- FO-095 AI Platform QA & Production Readiness COMPLETE AND MERGED via PR #61
+  (`7a61950…`); FO-095A post-merge verification complete. AI Platform MVP
+  spanning FO-084–FO-095 is **COMPLETE**. Latest stable baseline is **FO-095**
+  on `main`.
 
 ## Next Milestone
 
-- Merge PR #61 (merge commit) and establish FO-095 AI Platform MVP baseline
 - FO-096 — Intelligent Employee Ticket Intake (**not started**)
 - Follow-up: FO-088 date-window flake remains watchlisted (passed 3/3 in FO-095A)
+- Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Completed Feature — Master Data Management
 
@@ -203,8 +204,8 @@
   COMPLETE AND MERGED via PR #59 (`9968e16…`); FO-093A complete.
   FO-094 AI Monitoring & Production Operations COMPLETE AND MERGED via PR #60
   (`f5bf6ae…`); FO-094A complete. FO-095 AI Platform QA & Production Readiness
-  Ready for Review (FO-095A PASS; READY WITH ACCEPTED LIMITATIONS);
-  FO-096 **not started**.
+  COMPLETE AND MERGED via PR #61 (`7a61950…`); FO-095A complete.
+  AI Platform MVP (FO-084–FO-095) **COMPLETE**. FO-096 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.
@@ -220,7 +221,9 @@
 
 ## Last Merge
 
-- `f5bf6aed239c751e45f596bf87ef17c0777bd0cc` (PR #60 into `main`; FO-094
+- `7a61950a5e451c9a463eeb5ab238a944a9bfe88a` (PR #61 into `main`; FO-095
+  AI Platform QA & Production Readiness)
+- Previous: `f5bf6aed239c751e45f596bf87ef17c0777bd0cc` (PR #60 into `main`; FO-094
   AI Monitoring & Production Operations)
 - Previous: `9968e161707db3d8c0033866b29407698ca51462` (PR #59 into `main`; FO-093
   AI Administration & Governance)
@@ -241,4 +244,4 @@
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline — FO-094 AI Monitoring & Production Operations checkpoint
+- `0.1.0` synchronized `main` baseline — FO-095 AI Platform MVP checkpoint
