@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI Monitoring & Production Operations — FO-094 COMPLETE AND MERGED (stable baseline)
+- AI Platform QA & Production Readiness — FO-095 (Draft PR)
 
 ## Current Branch
 
-- `main` @ FO-094A baseline `34827fd…` (FO-094 COMPLETE AND MERGED)
+- `feature/fo-095-ai-platform-production-readiness` (base `main` @ `7a79097…`)
 
 ## Completed Modules
 
@@ -49,6 +49,7 @@
 - Executive AI Dashboard (FO-092)
 - AI Administration & Governance (FO-093) — COMPLETE AND MERGED
 - AI Monitoring & Production Operations (FO-094) — COMPLETE AND MERGED
+- AI Platform QA & Production Readiness (FO-095) — Draft PR (not merged)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -121,16 +122,16 @@
 
 ## Current Task
 
-- FO-094 AI Monitoring & Production Operations COMPLETE AND MERGED via PR #60
-  (`f5bf6ae…`); FO-094A post-merge verification complete. Latest stable
-  baseline is **FO-094** on `main`.
+- FO-095 AI Platform QA & Production Readiness implemented on
+  `feature/fo-095-ai-platform-production-readiness` (Draft PR). Latest stable
+  merged baseline remains **FO-094** on `main` (`7a79097…`).
 
 ## Next Milestone
 
-- FO-095 — AI Platform QA & Production Readiness (**not started**)
+- FO-095 Draft PR review / merge (FO-095A)
+- FO-096 **not started**
 - Optional live Gemini smoke when credentials are available
-- Follow-up: FO-088 date-window flake (`test_decision_filter_and_date_filter`) is pre-existing on main
-- Deferred: token/cost monitoring; Prometheus/Grafana/OpenTelemetry; automatic remediation remains excluded
+- Follow-up: FO-088 date-window flake remains watchlisted (passed in FO-095 run)
 
 ## Completed Feature — Master Data Management
 
@@ -202,9 +203,10 @@
   (`5862152…`); FO-092A complete. FO-093 AI Administration & Governance
   COMPLETE AND MERGED via PR #59 (`9968e16…`); FO-093A complete.
   FO-094 AI Monitoring & Production Operations COMPLETE AND MERGED via PR #60
-  (`f5bf6ae…`); FO-094A complete. FO-095 **not started**.
+  (`f5bf6ae…`); FO-094A complete. FO-095 AI Platform QA & Production Readiness
+  implemented (Draft PR); FO-096 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
-  flake on `main` (confirmed FO-093A); not attributed to FO-093.
+  flake on `main` (confirmed FO-093A); passed during FO-095 keepdb run; remain watchlisted.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit
