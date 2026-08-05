@@ -4,6 +4,7 @@
 **Date:** 2026-08-05  
 **Branch:** `feature/intelligent-employee-intake`  
 **Previous checkpoint:** FO-096 (`8eee251…`)  
+**Branch HEAD:** `537046e8212677f825eda7324dc773907e26ff71`  
 **AI Platform:** FO-084–095 reused (not redesigned)  
 **Next:** FO-098 — Facility Manager Review Experience  
 **PR policy:** No standalone FO-097 PR; feature remains unmerged
