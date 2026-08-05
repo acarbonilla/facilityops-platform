@@ -141,7 +141,7 @@ No FO-096 implementation; no form/serializer/model/migration/AI/notification/rep
 | --- | --- |
 | Merge method | Merge commit (`gh pr merge 62 --merge`) |
 | Merge commit | `a5041eedfd64c1d1fddf970b3feafc1e1c2ecd48` |
-| Final main SHA (post-merge baseline docs) | `c1690e2cc74d4d2abfd7649cb6015a03512549d9` |
+| Final main SHA (post-merge baseline docs) | `e78719f53c68ba06146929af45daa77f20f02612` |
 | PR #62 state | MERGED |
 | Branch cleanup | Local and remote `docs/ux-001-intelligent-employee-intake` deleted after verification |
 | UX baseline status | **COMPLETE AND MERGED** — approved design baseline for FO-096–FO-101 |

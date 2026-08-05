@@ -19,7 +19,7 @@
 
 ## Current Branch
 
-- `main` @ `c1690e2…` (UX-001 post-merge baseline; merge commit `a5041ee…`)
+- `main` @ `e78719f…` (UX-001 post-merge baseline; merge commit `a5041ee…`)
 - AI Platform v1.0 freeze: `98c1661…` (FO-095 MVP) — **FROZEN AND UNCHANGED**
 
 
@@ -128,7 +128,7 @@
 ## Current Task
 
 - UX-001 / UX-001A COMPLETE AND MERGED via PR #62 (merge `a5041ee…`; baseline
-  tip `c1690e2…`). Approved UX baseline for simplified employee intake. Design
+  tip `e78719f…`). Approved UX baseline for simplified employee intake. Design
   acceptance: **PASS WITH DOCUMENTATION CORRECTIONS**. No production code.
   FO-096 **not started**.
 - RM-001 AI Platform MVP Release Milestone complete. AI Platform v1.0 remains
@@ -270,4 +270,4 @@
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` tip `c1690e2…` (UX-001 baseline); AI Platform v1.0 freeze `98c1661…`
+- `0.1.0` synchronized `main` tip `e78719f…` (UX-001 baseline); AI Platform v1.0 freeze `98c1661…`
