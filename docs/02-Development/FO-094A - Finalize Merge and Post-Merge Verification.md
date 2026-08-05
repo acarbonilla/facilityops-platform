@@ -73,7 +73,7 @@ AIProductionMonitoringService
 | Merge strategy | Merge commit (not squash / not rebase) |
 | Merge commit | `f5bf6aed239c751e45f596bf87ef17c0777bd0cc` |
 | Finalization commit | `0b0a433ad8f14e134d251cfb0955666dc53cfd70` |
-| Final `main` (merge tip) | `f5bf6aed239c751e45f596bf87ef17c0777bd0cc` |
+| Baseline docs commit | `34827fd30f3e553735e29fefa250073c59b75dcf` |
 
 ## Post-merge verification
 
@@ -94,7 +94,7 @@ AIProductionMonitoringService
 ## Stable baseline
 
 - **Latest Stable Feature:** FO-094 — AI Monitoring & Production Operations
-- **Latest Stable Main SHA (merge tip):** `f5bf6aed239c751e45f596bf87ef17c0777bd0cc`
+- **Latest Stable Main SHA:** `34827fd30f3e553735e29fefa250073c59b75dcf` (after baseline docs; merge tip `f5bf6ae…`)
 - **Next Planned:** FO-095 — AI Platform QA & Production Readiness (**not started**)
 - Monitoring alerts remain informational only
 - Automatic remediation remains excluded
