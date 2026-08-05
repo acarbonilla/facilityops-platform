@@ -19,6 +19,9 @@ const eligibleTicket = {
   assignee: "tech-1",
   asset: "asset-1",
   linked_work_order: null,
+  category: "plumbing" as const,
+  priority: "high" as const,
+  building: "building-1",
 };
 
 test("eligible assigned ticket can generate a work order", () => {
@@ -89,6 +92,19 @@ test("generation disabled reasons identify missing requirements", () => {
   assert.equal(
     formatWorkOrderGenerationDisabledReason("missing_permission"),
     "You do not have permission to generate a Work Order.",
+  );
+  assert.equal(
+    getWorkOrderGenerationDisabledReason({
+      ...eligibleTicket,
+      category: "unclassified",
+      priority: "pending_review",
+      building: null,
+    }),
+    "classification_incomplete",
+  );
+  assert.equal(
+    formatWorkOrderGenerationDisabledReason("classification_incomplete"),
+    "Complete operational classification (category, priority, and building) first.",
   );
 });
 

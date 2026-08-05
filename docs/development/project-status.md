@@ -14,13 +14,13 @@
 
 ## Current Module
 
-- Intelligent Employee Ticket Intake — FO-097 complete on shared feature branch
-- FO-096 intake foundation complete on same branch
+- Intelligent Employee Ticket Intake — FO-098 complete on shared feature branch
+- FO-096 and FO-097 complete on the same branch
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 
 ## Current Branch
 
-- `feature/intelligent-employee-intake` (FO-096 + FO-097; unmerged)
+- `feature/intelligent-employee-intake` (FO-096–FO-098; unmerged)
 - Synchronized `main` tip: `0033655…`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
@@ -129,18 +129,17 @@
 
 ## Current Task
 
-- FO-097 — AI-First Submission Pipeline **complete** on
-  `feature/intelligent-employee-intake` (unmerged). Eligible images auto-queue
-  into existing FO-084–095 pipeline; requester progress/timeline/status;
-  duplicate active queue prevented; ticket remains usable on AI failure.
-  FO-098 **not started**.
-- FO-096 intake foundation complete on the same branch.
+- FO-098 — Facility Manager Review Experience **complete** on
+  `feature/intelligent-employee-intake` (unmerged). Guided FM review layout
+  (Employee Report / AI Recommendation / Operational Classification /
+  Assignment / Actions); FO-087 decisions reused; classification readiness
+  gates for assign/WO. FO-099 **not started**.
+- FO-096 and FO-097 complete on the same branch.
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- FO-098 — Facility Manager Review Experience (**not started**)
-- FO-099 — Smart Notifications and Workflow
+- FO-099 — Smart Notifications and Workflow (**not started**)
 - FO-100 — Reporting and Analytics Alignment
 - FO-101 — Intelligent Intake QA and Production Readiness
 - Follow-up: FO-088 date-window flake remains watchlisted
@@ -229,8 +228,8 @@
   COMPLETE AND MERGED via PR #61 (`7a61950…`); FO-095A complete.
   AI Platform MVP (FO-084–FO-095) **COMPLETE**. RM-001 AI Platform v1.0 release
   milestone complete (`98c1661…`). UX-001/UX-001A **COMPLETE AND MERGED**
-  (PR #62). FO-096 and FO-097 complete on `feature/intelligent-employee-intake`
-  (unmerged). FO-098 **not started**.
+  (PR #62). FO-096, FO-097, and FO-098 complete on `feature/intelligent-employee-intake`
+  (unmerged). FO-099 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.
