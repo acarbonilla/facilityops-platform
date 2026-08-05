@@ -14,13 +14,15 @@
 
 ## Current Module
 
+- Intelligent Employee Ticket Intake — FO-096 complete on shared feature branch
 - UX-001 — Intelligent Employee Ticket Intake Design (**COMPLETE AND MERGED**)
 - AI Platform MVP — RM-001 COMPLETE (AI Platform v1.0 release baseline frozen)
 
 ## Current Branch
 
-- `main` @ `e78719f…` (UX-001 post-merge baseline; merge commit `a5041ee…`)
-- AI Platform v1.0 freeze: `98c1661…` (FO-095 MVP) — **FROZEN AND UNCHANGED**
+- `feature/intelligent-employee-intake` (FO-096 checkpoint; unmerged)
+- Synchronized `main` tip: `0033655…` (UX-001 baseline)
+- AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
 ## Completed Modules
@@ -127,18 +129,16 @@
 
 ## Current Task
 
-- UX-001 / UX-001A COMPLETE AND MERGED via PR #62 (merge `a5041ee…`; baseline
-  tip `e78719f…`). Approved UX baseline for simplified employee intake. Design
-  acceptance: **PASS WITH DOCUMENTATION CORRECTIONS**. No production code.
-  FO-096 **not started**.
-- RM-001 AI Platform MVP Release Milestone complete. AI Platform v1.0 remains
-  the frozen architectural baseline (`98c1661…`). FO-084 through FO-095 are
-  frozen as the completed AI Platform MVP.
+- FO-096 — Intelligent Employee Intake Foundation **complete** on
+  `feature/intelligent-employee-intake` (unmerged). Employee form simplified;
+  server-derived ownership; `unclassified` / `pending_review` persisted choices;
+  migration `0007`. No standalone FO-096 PR. FO-097 **not started**.
+- UX-001 / UX-001A COMPLETE AND MERGED via PR #62. Approved UX baseline.
+- RM-001 AI Platform MVP complete. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- FO-096 — Intelligent Employee Intake Foundation (**not started**)
-- FO-097 — AI-First Submission Pipeline
+- FO-097 — AI-First Submission Pipeline (**not started**)
 - FO-098 — Facility Manager Review Experience
 - FO-099 — Smart Notifications and Workflow
 - FO-100 — Reporting and Analytics Alignment
@@ -229,7 +229,8 @@
   COMPLETE AND MERGED via PR #61 (`7a61950…`); FO-095A complete.
   AI Platform MVP (FO-084–FO-095) **COMPLETE**. RM-001 AI Platform v1.0 release
   milestone complete (`98c1661…`). UX-001/UX-001A **COMPLETE AND MERGED**
-  (PR #62, `a5041ee…`). FO-096 **not started**.
+  (PR #62). FO-096 complete on `feature/intelligent-employee-intake` (unmerged).
+  FO-097 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.

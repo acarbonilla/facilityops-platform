@@ -264,11 +264,6 @@ class EmployeeRequesterAuthorizationTests(APITestCase):
         return {
             "title": "Employee request",
             "description": "Employee-created facility request.",
-            "category": FmTicket.Category.HVAC,
-            "building": str(self.data_a["building"].id),
-            "floor": str(self.data_a["floor"].id),
-            "area": str(self.data_a["area"].id),
-            "asset": str(self.data_a["asset"].id),
         }
 
     def test_employee_list_is_requester_owned_and_soft_deleted_rows_stay_hidden(self):
@@ -530,8 +525,10 @@ class EmployeeRequesterAuthorizationTests(APITestCase):
         self.assertEqual(ticket.organization, self.data_a["organization"])
         self.assertIsNone(ticket.department)
         self.assertEqual(ticket.source, FmTicket.Source.WEB)
-        self.assertEqual(ticket.priority, FmTicket.Priority.MEDIUM)
+        self.assertEqual(ticket.category, FmTicket.Category.UNCLASSIFIED)
+        self.assertEqual(ticket.priority, FmTicket.Priority.PENDING_REVIEW)
         self.assertEqual(ticket.status, FmTicket.Status.OPEN)
+        self.assertIsNone(ticket.building)
         self.assertEqual(ticket.history_entries.count(), 1)
         self.assertEqual(ticket.status_history_entries.count(), 1)
         self.assertEqual(Notification.objects.filter(source_object_id=ticket.id).count(), 0)
@@ -545,17 +542,18 @@ class EmployeeRequesterAuthorizationTests(APITestCase):
             reverse("fm-ticket-list"),
             {
                 "title": "Minimal Employee request",
-                "description": "Optional location fields are omitted.",
-                "category": FmTicket.Category.OTHER,
-                "building": str(self.data_a["building"].id),
             },
             format="json",
         )
         self.assertEqual(minimal_response.status_code, status.HTTP_201_CREATED)
         minimal_ticket = FmTicket.objects.get(id=minimal_response.data["id"])
+        self.assertEqual(minimal_ticket.description, "")
+        self.assertIsNone(minimal_ticket.building)
         self.assertIsNone(minimal_ticket.floor)
         self.assertIsNone(minimal_ticket.area)
         self.assertIsNone(minimal_ticket.asset)
+        self.assertEqual(minimal_ticket.category, FmTicket.Category.UNCLASSIFIED)
+        self.assertEqual(minimal_ticket.priority, FmTicket.Priority.PENDING_REVIEW)
 
     def test_employee_creation_rejects_all_protected_overrides_without_side_effects(self):
         self._authenticate(self.employee_a)
@@ -568,6 +566,11 @@ class EmployeeRequesterAuthorizationTests(APITestCase):
             "priority": FmTicket.Priority.URGENT,
             "status": FmTicket.Status.CLOSED,
             "assignee": str(self.technician.id),
+            "category": FmTicket.Category.HVAC,
+            "building": str(self.data_a["building"].id),
+            "floor": str(self.data_a["floor"].id),
+            "area": str(self.data_a["area"].id),
+            "asset": str(self.data_a["asset"].id),
             "due_at": "2030-01-01T00:00:00Z",
             "response_due_at": "2030-01-01T00:00:00Z",
             "resolution_due_at": "2030-01-02T00:00:00Z",
@@ -609,57 +612,51 @@ class EmployeeRequesterAuthorizationTests(APITestCase):
             {
                 **self._valid_create_payload(),
                 "building": str(self.data_b["building"].id),
-                "floor": str(self.data_b["floor"].id),
-                "area": str(self.data_b["area"].id),
-                "asset": str(self.data_b["asset"].id),
             },
             format="json",
         )
         self.assertEqual(cross_scope.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("building", cross_scope.data)
 
-        alternate_building = Building.objects.create(
-            tenant=self.data_a["tenant"],
-            organization=self.data_a["organization"],
-            name="Alternate Building",
-            code="employee-alternate-building",
-        )
-        invalid_hierarchy = self.client.post(
+        spoofed_category = self.client.post(
             reverse("fm-ticket-list"),
             {
                 **self._valid_create_payload(),
-                "building": str(alternate_building.id),
+                "category": FmTicket.Category.HVAC,
             },
             format="json",
         )
-        self.assertEqual(
-            invalid_hierarchy.status_code,
-            status.HTTP_400_BAD_REQUEST,
-        )
-        self.assertIn("floor", invalid_hierarchy.data)
+        self.assertEqual(spoofed_category.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("category", spoofed_category.data)
 
     def test_employee_creation_rejects_inactive_and_deleted_options(self):
+        """Location fields are rejected on employee create; inactive buildings do not block title-only create."""
         self._authenticate(self.employee_a)
+        option = self.data_a["building"]
+        original = option.is_active
+        option.is_active = False
+        option.save(update_fields=("is_active", "updated_at"))
+        try:
+            rejected = self.client.post(
+                reverse("fm-ticket-list"),
+                {
+                    **self._valid_create_payload(),
+                    "building": str(option.id),
+                },
+                format="json",
+            )
+            self.assertEqual(rejected.status_code, status.HTTP_400_BAD_REQUEST)
+            self.assertIn("building", rejected.data)
 
-        for option_name in ("building", "floor", "area", "asset"):
-            option = self.data_a[option_name]
-            for field, value in (("is_active", False), ("is_deleted", True)):
-                with self.subTest(option=option_name, field=field):
-                    original = getattr(option, field)
-                    setattr(option, field, value)
-                    option.save(update_fields=(field, "updated_at"))
-                    response = self.client.post(
-                        reverse("fm-ticket-list"),
-                        self._valid_create_payload(),
-                        format="json",
-                    )
-                    self.assertEqual(
-                        response.status_code,
-                        status.HTTP_400_BAD_REQUEST,
-                    )
-                    self.assertIn(option_name, response.data)
-                    setattr(option, field, original)
-                    option.save(update_fields=(field, "updated_at"))
+            created = self.client.post(
+                reverse("fm-ticket-list"),
+                self._valid_create_payload(),
+                format="json",
+            )
+            self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        finally:
+            option.is_active = original
+            option.save(update_fields=("is_active", "updated_at"))
 
     def test_request_options_are_minimal_and_account_scoped(self):
         inactive_building = Building.objects.create(
