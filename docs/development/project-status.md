@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI Platform QA & Production Readiness — FO-095 COMPLETE AND MERGED (AI Platform MVP baseline)
+- AI Platform MVP — RM-001 COMPLETE (AI Platform v1.0 release baseline)
 
 ## Current Branch
 
-- `main` @ FO-095A baseline `9a2ddb9…` (FO-095 COMPLETE AND MERGED; AI Platform MVP)
+- `main` @ `98c1661…` (AI Platform v1.0 / FO-095 MVP freeze)
 
 ## Completed Modules
 
@@ -50,6 +50,7 @@
 - AI Administration & Governance (FO-093) — COMPLETE AND MERGED
 - AI Monitoring & Production Operations (FO-094) — COMPLETE AND MERGED
 - AI Platform QA & Production Readiness (FO-095) — COMPLETE AND MERGED (AI Platform MVP)
+- AI Platform MVP Release (RM-001) — COMPLETE (AI Platform v1.0)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -122,16 +123,24 @@
 
 ## Current Task
 
-- FO-095 AI Platform QA & Production Readiness COMPLETE AND MERGED via PR #61
-  (`7a61950…`); FO-095A post-merge verification complete. AI Platform MVP
-  spanning FO-084–FO-095 is **COMPLETE**. Latest stable baseline is **FO-095**
-  on `main`.
+- RM-001 AI Platform MVP Release Milestone complete. AI Platform v1.0 is the
+  current architectural baseline on `main` (`98c1661…`). FO-084 through FO-095
+  are frozen as the completed AI Platform MVP.
 
 ## Next Milestone
 
 - FO-096 — Intelligent Employee Ticket Intake (**not started**)
-- Follow-up: FO-088 date-window flake remains watchlisted (passed 3/3 in FO-095A)
+- Follow-up: FO-088 date-window flake remains watchlisted
 - Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
+
+## Current Release
+
+- **Release:** AI Platform v1.0
+- **Milestone:** RM-001
+- **Status:** COMPLETE / READY WITH ACCEPTED LIMITATIONS
+- **Stable SHA:** `98c1661d60c8200ae85f717b13fe78bcda1dd716`
+- **Local tag:** `ai-platform-v1.0` (not pushed by RM-001)
+- **Docs:** `docs/releases/RM-001 - AI Platform MVP.md`, `docs/architecture/AI-Platform-v1.0.md`
 
 ## Completed Feature — Master Data Management
 
@@ -205,7 +214,8 @@
   FO-094 AI Monitoring & Production Operations COMPLETE AND MERGED via PR #60
   (`f5bf6ae…`); FO-094A complete. FO-095 AI Platform QA & Production Readiness
   COMPLETE AND MERGED via PR #61 (`7a61950…`); FO-095A complete.
-  AI Platform MVP (FO-084–FO-095) **COMPLETE**. FO-096 **not started**.
+  AI Platform MVP (FO-084–FO-095) **COMPLETE**. RM-001 AI Platform v1.0 release
+  milestone complete (`98c1661…`). FO-096 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.
@@ -244,4 +254,4 @@
 
 ## Repository Version
 
-- `0.1.0` synchronized `main` baseline — FO-095 AI Platform MVP checkpoint
+- `0.1.0` synchronized `main` baseline — AI Platform v1.0 (RM-001) at `98c1661…`
