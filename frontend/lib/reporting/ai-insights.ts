@@ -23,6 +23,7 @@ export const AI_INSIGHTS_DECISION_OPTIONS = [
 ] as const;
 
 export const AI_INSIGHTS_CATEGORY_OPTIONS = [
+  { value: "unclassified", label: "Unclassified" },
   { value: "plumbing", label: "Plumbing" },
   { value: "electrical", label: "Electrical" },
   { value: "hvac", label: "HVAC" },
@@ -34,6 +35,7 @@ export const AI_INSIGHTS_CATEGORY_OPTIONS = [
 ] as const;
 
 export const AI_INSIGHTS_PRIORITY_OPTIONS = [
+  { value: "pending_review", label: "Pending Review" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },
@@ -121,8 +123,13 @@ export function buildAIInsightsSummaryCards(data: AIRecommendationInsights) {
     },
     {
       key: "pending",
-      label: "Pending Review",
+      label: "AI Decision Pending",
       value: String(summary.pending_review_count),
+    },
+    {
+      key: "ai_ready_classification",
+      label: "AI Ready · Awaiting Classification",
+      value: String(summary.ai_ready_awaiting_classification_count ?? 0),
     },
     {
       key: "acceptance",

@@ -48,6 +48,9 @@ export interface ExecutiveAISummary {
   attention_urgency_label?: string | null;
   critical_attention_count: number;
   high_attention_count: number;
+  unclassified_ticket_recommendation_count?: number;
+  pending_classification_recommendation_count?: number;
+  ai_ready_awaiting_classification_count?: number;
 }
 
 export interface ExecutiveAIExecutiveSummary {

@@ -23,6 +23,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
+  pending_review: "Pending Review",
   low: "Low",
   medium: "Medium",
   high: "High",
@@ -31,12 +32,15 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
+  unclassified: "Unclassified",
   hvac: "HVAC",
   electrical: "Electrical",
   plumbing: "Plumbing",
+  civil: "Civil",
   general: "General",
   cleaning: "Cleaning",
   safety: "Safety",
+  security: "Security",
   other: "Other",
 };
 

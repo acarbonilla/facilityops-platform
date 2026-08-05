@@ -44,6 +44,9 @@ export interface AIInsightsSummary {
   category_agreement_sample_size: number;
   priority_agreement_sample_size: number;
   full_agreement_sample_size: number;
+  unclassified_ticket_recommendation_count?: number;
+  pending_classification_recommendation_count?: number;
+  ai_ready_awaiting_classification_count?: number;
 }
 
 export interface AIInsightsDecisionCount {
