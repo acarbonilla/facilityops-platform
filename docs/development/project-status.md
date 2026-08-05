@@ -14,11 +14,11 @@
 
 ## Current Module
 
-- AI Platform QA & Production Readiness — FO-095 (Draft PR)
+- AI Platform QA & Production Readiness — FO-095 Ready for Review (FO-095A acceptance PASS)
 
 ## Current Branch
 
-- `feature/fo-095-ai-platform-production-readiness` (base `main` @ `7a79097…`)
+- `feature/fo-095-ai-platform-production-readiness` @ `d338bcb…` (+ FO-095A finalization commit)
 
 ## Completed Modules
 
@@ -49,7 +49,7 @@
 - Executive AI Dashboard (FO-092)
 - AI Administration & Governance (FO-093) — COMPLETE AND MERGED
 - AI Monitoring & Production Operations (FO-094) — COMPLETE AND MERGED
-- AI Platform QA & Production Readiness (FO-095) — Draft PR (not merged)
+- AI Platform QA & Production Readiness (FO-095) — Ready for Review (FO-095A PASS)
 - Public Landing Page (FO-082A)
 
 ## Completed FO Tasks
@@ -122,16 +122,15 @@
 
 ## Current Task
 
-- FO-095 AI Platform QA & Production Readiness implemented on
-  `feature/fo-095-ai-platform-production-readiness` (Draft PR). Latest stable
-  merged baseline remains **FO-094** on `main` (`7a79097…`).
+- FO-095 AI Platform QA & Production Readiness — FO-095A final acceptance **PASS**;
+  PR #61 Ready for Review. Latest stable merged baseline remains
+  **FO-094** on `main` until merge. Readiness: **READY WITH ACCEPTED LIMITATIONS**.
 
 ## Next Milestone
 
-- FO-095 Draft PR review / merge (FO-095A)
-- FO-096 **not started**
-- Optional live Gemini smoke when credentials are available
-- Follow-up: FO-088 date-window flake remains watchlisted (passed in FO-095 run)
+- Merge PR #61 (merge commit) and establish FO-095 AI Platform MVP baseline
+- FO-096 — Intelligent Employee Ticket Intake (**not started**)
+- Follow-up: FO-088 date-window flake remains watchlisted (passed 3/3 in FO-095A)
 
 ## Completed Feature — Master Data Management
 
@@ -204,9 +203,10 @@
   COMPLETE AND MERGED via PR #59 (`9968e16…`); FO-093A complete.
   FO-094 AI Monitoring & Production Operations COMPLETE AND MERGED via PR #60
   (`f5bf6ae…`); FO-094A complete. FO-095 AI Platform QA & Production Readiness
-  implemented (Draft PR); FO-096 **not started**.
+  Ready for Review (FO-095A PASS; READY WITH ACCEPTED LIMITATIONS);
+  FO-096 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
-  flake on `main` (confirmed FO-093A); passed during FO-095 keepdb run; remain watchlisted.
+  flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.
 
 ## Last Independently Reviewed Commit

@@ -1,6 +1,6 @@
 # FO-095 — AI Platform QA & Production Readiness
 
-**Status:** Implemented; Draft PR  
+**Status:** Ready for Review (FO-095A acceptance PASS)  
 **Date:** 2026-08-05  
 **Base:** `main` @ `7a79097ff5fbf2e0c3c7fd5eea6c238c1b7dcc66`  
 **Branch:** `feature/fo-095-ai-platform-production-readiness`  
@@ -91,7 +91,7 @@ manage.py test
 | makemigrations --check | Clean |
 | Migration graph (`fm_tickets`) | Through `0006_fo093_ai_admin_governance` (no pending) |
 
-Accepted scope: focused AI platform suites above (not the entire FacilityOps backend suite).
+Accepted scope: focused AI platform suites above (not the entire FacilityOps backend suite). FO-095A re-confirmed **119 / 119** plus focused AI frontend helpers **48 / 48**.
 
 ## Frontend validation
 
@@ -143,14 +143,14 @@ No obvious production regressions observed in FO-084–094 suites.
 | Dependency status | No Prometheus/OTel/RAG/cost deps added |
 | Build status | Frontend production build Passed |
 | Security / permissions / tenant isolation | Validated via suites |
-| Release readiness | **Ready for FO-095A merge review** |
+| Release readiness | **READY WITH ACCEPTED LIMITATIONS** (FO-095A) |
 
 ## Known issues
 
 | Issue | Classification |
 | --- | --- |
-| FO-088 `test_decision_filter_and_date_filter` date-window flake (`AssertionError: 3 != 2`) historically pre-existing on main (FO-093A) | Non-blocking for FO-095; **passed** in this FO-095 PostgreSQL keepdb run; remain watchlisted |
-| Full interactive browser walkthrough | Deferred to FO-095A / optional manual QA |
+| FO-088 `test_decision_filter_and_date_filter` historically intermittent | Non-blocking; **passed 3/3** in FO-095A PostgreSQL keepdb; remain watchlisted |
+| Full interactive browser walkthrough | Deferred / N/A in agent env (accepted limitation) |
 | Full FacilityOps backend suite | Not run; AI platform scope accepted |
 
 ## Accepted limitations
