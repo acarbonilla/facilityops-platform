@@ -140,6 +140,12 @@ export default function AdminPage() {
               title="AI Administration"
             />
             <AdminCard
+              description="Monitor AI provider health, queue activity, runtime metrics, and informational operational alerts."
+              enabled={canManageAI}
+              href="/admin/ai/monitoring"
+              title="AI Monitoring"
+            />
+            <AdminCard
               description="General audit-log workflows remain planned for a later task. AI config audit is available under AI Administration."
               enabled={false}
               title="Audit Logs"
