@@ -1,11 +1,13 @@
 # FO-101A — Finalize Merge and Post-Merge Verification
 
-**Status:** In progress → COMPLETE AND MERGED (after PR #63 merge)  
+**Status:** COMPLETE AND MERGED  
 **Date:** 2026-08-05  
-**Branch:** `feature/intelligent-employee-intake` → cleaned up after merge  
 **Feature PR:** https://github.com/acarbonilla/facilityops-platform/pull/63  
+**Merge commit:** `c8a34468326d1f17b3803875ea3cb1904556a763`  
+**Final main SHA:** `c8a34468326d1f17b3803875ea3cb1904556a763`  
 **Starting main:** `0033655aeaee5c2e774d2162e551c7988f54f0f5`  
 **Starting feature HEAD:** `35aff3b867f4bab7b2c8fca55e88f872da527f60`  
+**Finalization commit:** `8900a13d8df4bcc7edb17272c4880aa4a225315d`  
 **Checkpoints:** FO-096 → FO-097 → FO-098 → FO-099 → FO-100 → FO-101 → FO-101A
 
 ## 1. Objective
@@ -16,75 +18,63 @@ Finalize Intelligent Employee Ticket Intake: reconcile with `main`, re-verify pr
 
 | Item | Result |
 | --- | --- |
-| `main` / `origin/main` | `0033655…` (unchanged since feature start) |
-| Feature HEAD | `35aff3b…` matches origin |
+| `main` / `origin/main` at start | `0033655…` |
+| Feature HEAD | `35aff3b…` then `8900a13…` |
 | Tracked tree | Clean |
 | Untracked | Local sqlite / `attachments/` preserved |
-| PR #63 | OPEN Draft; base `main`; head feature; MERGEABLE; GitGuardian SUCCESS |
-| Branch reconciliation | **No-op** — `main` did not advance; merge-base already `0033655…` |
+| PR #63 initial | OPEN Draft; MERGEABLE; GitGuardian SUCCESS |
+| Branch reconciliation | **No-op** — `main` did not advance |
 | Conflicts | None |
 
 ## 3. Architecture review
 
 Employee minimal intake → server ownership → attachments → async advisory AI → FM review → human classification → assignment/WO gates → notifications → reporting.
 
-All FO-096–101 architectural claims reconfirmed PASS. AI Platform v1.0 freeze intact. No duplicated reporting engines.
+All FO-096–101 architectural claims reconfirmed PASS. AI Platform v1.0 freeze intact.
 
 ## 4. Requester AI privacy re-verification
 
-| Check | Result |
-| --- | --- |
-| Server selects `RequesterSafeAITicketAnalysisSerializer` when `uses_employee_requester_scope` | PASS |
-| Employee list/detail omit recommendations, reasoning, confidence, severity, findings, result, provider/prompt | PASS (`test_fo101`) |
-| FM still receives full authorized payload | PASS |
-| Cross-tenant blocked | PASS |
-| Client cannot select internal serializer | PASS (server-side only) |
-
-No Critical/High privacy defects remaining.
+PASS — `RequesterSafeAITicketAnalysisSerializer` for employee-only scope; FM retains full payload; cross-tenant blocked; FO-101 tests green post-merge.
 
 ## 5. Migration `0007`
 
 | Check | Result |
 | --- | --- |
-| Exists in graph | PASS |
 | Applied to PostgreSQL | PASS |
-| Rollback `0007` → `0006` | PASS |
-| Reapply `0007` | PASS |
-| `showmigrations` applied | PASS |
+| Rollback → reapply | PASS |
+| `building_id` nullable | YES |
+| `unclassified` / `pending_review` | Valid |
+| Existing tickets readable | PASS (17 on local PG) |
 | `makemigrations --check` | Clean |
-| Choices / nullable building | PASS (migration + model) |
 
-## 6. Validation totals (pre-merge)
+## 6. Validation totals
+
+### Pre-merge
 
 | Suite | Result |
 | --- | --- |
-| Backend FO-096–101 + AI analytics/attention/similar/executive + reporting + AI analysis | **183 OK** |
+| Backend FO-096–101 + AI/reporting regression | **183 OK** |
 | Full backend suite | **Not run** (accepted limitation) |
-| Frontend `npm test` | **400 pass / 0 fail** |
-| ESLint | Pass |
+| Frontend | **400 pass** |
+| ESLint / tsc / build / Django check | Pass |
+
+### Post-merge (on `main` @ `c8a3446…`)
+
+| Suite | Result |
+| --- | --- |
+| Focused FO-096/098/099/100/101 backend smoke | Pass |
+| Focused FO-096–101 frontend | **27 pass** |
+| Full frontend | **400 pass** |
 | TypeScript | Pass |
-| Production build | Pass |
-| Django check | Pass |
+| Django check / makemigrations --check | Pass |
 
 ## 7. Final acceptance environment
 
-| Mode | Status |
-| --- | --- |
-| Interactive browser multi-role matrix | **Not run** |
-| API/service-level + automated suites | PASS |
-| Code-path / architecture review | PASS |
-| PostgreSQL migration verification | PASS |
+Automated suite-backed + API/service-level + architecture review + PostgreSQL migration verification. Interactive browser matrix **not run**.
 
-## 8. Defects
+## 8. Final readiness
 
-| Severity | Status |
-| --- | --- |
-| Critical / High | None new; FO-101 High privacy fix re-verified |
-| Medium / Low | Prior accepted limitations only |
-
-## 9. Final readiness
-
-**READY WITH ACCEPTED LIMITATIONS**
+**READY WITH ACCEPTED LIMITATIONS** (merged)
 
 Accepted limitations:
 
@@ -93,21 +83,22 @@ Accepted limitations:
 3. Historical FO-088 date-window flake watchlisted.
 4. Legacy employee `request_options` surface out of scope.
 
-## 10. Merge and post-merge
+## 9. Merge
 
-(Filled after merge)
+| Item | Result |
+| --- | --- |
+| Ready for Review | Yes |
+| Merge method | Merge commit (`gh pr merge 63 --merge`) |
+| Merge commit | `c8a34468326d1f17b3803875ea3cb1904556a763` |
+| PR state | MERGED |
+| Local/remote feature branch | Deleted after post-merge verification |
 
-- Ready for Review: yes
-- Merge method: merge commit (`gh pr merge 63 --merge`)
-- Merge commit SHA: `<MERGE_SHA>`
-- Final main SHA: `<FINAL_MAIN_SHA>`
-- Local/remote feature branch deleted: yes
-- Next feature started: **no**
-
-## 11. Stable baseline
+## 10. Stable baseline
 
 **Latest Stable Feature:** Intelligent Employee Ticket Intake  
 **Range:** FO-096 through FO-101A  
 **Status:** COMPLETE AND MERGED  
-**AI Platform v1.0:** FROZEN AND INTACT  
-**Suggested tag (not created):** `intelligent-intake-v1.0`
+**Final Main SHA:** `c8a34468326d1f17b3803875ea3cb1904556a763`  
+**AI Platform v1.0:** FROZEN AND INTACT (`98c1661…`)  
+**Suggested tag (not created):** `intelligent-intake-v1.0`  
+**Next feature started:** No

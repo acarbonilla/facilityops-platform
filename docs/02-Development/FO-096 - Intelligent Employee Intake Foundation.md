@@ -1,6 +1,6 @@
 # FO-096 — Intelligent Employee Intake Foundation
 
-**Status:** Complete on shared feature branch (unmerged)  
+**Status:** Complete; merged via FO-101A / PR #63  
 **Date:** 2026-08-05  
 **Branch:** `feature/intelligent-employee-intake`  
 **Base main:** `0033655aeaee5c2e774d2162e551c7988f54f0f5`  

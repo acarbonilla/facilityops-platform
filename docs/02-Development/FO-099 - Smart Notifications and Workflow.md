@@ -1,6 +1,6 @@
 # FO-099 — Smart Notifications and Workflow
 
-**Status:** Complete on shared feature branch (unmerged)  
+**Status:** Complete; merged via FO-101A / PR #63  
 **Date:** 2026-08-05  
 **Branch:** `feature/intelligent-employee-intake`  
 **Previous checkpoint:** FO-098 (`0e4dd49…`)  
