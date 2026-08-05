@@ -1,12 +1,12 @@
 # FO-101 — Intelligent Employee Intake QA and Production Readiness
 
-**Status:** Complete on shared feature branch (unmerged) — **READY WITH ACCEPTED LIMITATIONS**  
-**Date:** 2026-08-05  
-**Branch:** `feature/intelligent-employee-intake`  
-**Starting SHA:** `62dc8a79f8c4334b159005c50834cedb0572b45e`  
-**Stable main:** `0033655aeaee5c2e774d2162e551c7988f54f0f5`  
-**Previous checkpoints:** FO-096 → FO-097 → FO-098 → FO-099 → FO-100  
-**Next:** FO-101A — Feature finalization, merge, and post-merge verification  
+**Status:** Complete on shared feature branch (unmerged) — **READY WITH ACCEPTED LIMITATIONS**
+**Date:** 2026-08-05
+**Branch:** `feature/intelligent-employee-intake`
+**Starting SHA:** `62dc8a79f8c4334b159005c50834cedb0572b45e`
+**Stable main:** `0033655aeaee5c2e774d2162e551c7988f54f0f5`
+**Previous checkpoints:** FO-096 → FO-097 → FO-098 → FO-099 → FO-100
+**Next:** FO-101A — Feature finalization, merge, and post-merge verification
 **PR policy:** One feature-level **Draft** PR targeting `main`; do not merge during FO-101
 
 ## 1. Objective
