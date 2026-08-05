@@ -15,6 +15,14 @@ class TicketReportingSummarySerializer(serializers.Serializer):
     by_status = serializers.DictField(child=serializers.IntegerField())
     by_priority = serializers.DictField(child=serializers.IntegerField())
     by_category = serializers.DictField(child=serializers.IntegerField())
+    unclassified_count = serializers.IntegerField(required=False, default=0)
+    pending_classification_count = serializers.IntegerField(required=False, default=0)
+    missing_building_count = serializers.IntegerField(required=False, default=0)
+    classification_incomplete_count = serializers.IntegerField(
+        required=False, default=0
+    )
+    classified_count = serializers.IntegerField(required=False, default=0)
+    employee_intake_count = serializers.IntegerField(required=False, default=0)
     sla = ReportingSlaSummarySerializer()
 
 
@@ -103,6 +111,15 @@ class AIAnalyticsSummarySerializer(serializers.Serializer):
     category_agreement_sample_size = serializers.IntegerField()
     priority_agreement_sample_size = serializers.IntegerField()
     full_agreement_sample_size = serializers.IntegerField()
+    unclassified_ticket_recommendation_count = serializers.IntegerField(
+        required=False, default=0
+    )
+    pending_classification_recommendation_count = serializers.IntegerField(
+        required=False, default=0
+    )
+    ai_ready_awaiting_classification_count = serializers.IntegerField(
+        required=False, default=0
+    )
 
 
 class AIAnalyticsDecisionCountSerializer(serializers.Serializer):
@@ -552,6 +569,15 @@ class ExecutiveAISummarySerializer(serializers.Serializer):
     )
     critical_attention_count = serializers.IntegerField()
     high_attention_count = serializers.IntegerField()
+    unclassified_ticket_recommendation_count = serializers.IntegerField(
+        required=False, default=0
+    )
+    pending_classification_recommendation_count = serializers.IntegerField(
+        required=False, default=0
+    )
+    ai_ready_awaiting_classification_count = serializers.IntegerField(
+        required=False, default=0
+    )
 
 
 class ExecutiveAIExecutiveSummarySerializer(serializers.Serializer):

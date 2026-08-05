@@ -369,6 +369,10 @@ def build_ticket_summary(queryset, *, now):
         )
     }
 
+    from apps.fm_tickets.intake_reporting import annotate_ticket_intake_counts
+
+    intake = annotate_ticket_intake_counts(queryset)
+
     return {
         "total": status_payload["total"],
         "open": sla["open_count"],
@@ -376,6 +380,14 @@ def build_ticket_summary(queryset, *, now):
         "by_status": by_status,
         "by_priority": by_priority,
         "by_category": by_category,
+        "unclassified_count": intake["unclassified_count"],
+        "pending_classification_count": intake["pending_classification_count"],
+        "missing_building_count": intake["missing_building_count"],
+        "classification_incomplete_count": intake[
+            "classification_incomplete_count"
+        ],
+        "classified_count": intake["classified_count"],
+        "employee_intake_count": intake["employee_intake_count"],
         "sla": {
             "response_met": sla["response_met_count"],
             "response_missed": sla["response_missed_count"],
