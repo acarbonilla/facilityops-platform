@@ -1,10 +1,10 @@
 # FO-093A — Finalize, Merge & Post-Merge Verification
 
-**Status:** Complete  
-**Date:** 2026-08-05  
-**Phase:** Phase 12A — Application Development  
-**Stage:** Stage 3 — AI Platform  
-**Epic:** AI Administration & Governance  
+**Status:** Complete
+**Date:** 2026-08-05
+**Phase:** Phase 12A — Application Development
+**Stage:** Stage 3 — AI Platform
+**Epic:** AI Administration & Governance
 **Type:** Finalization, merge, verification, and baseline establishment
 
 ## Preflight
@@ -87,12 +87,13 @@ Checklist coverage via automated tests + code-path review: admin authorized, FM/
 | Merge commit | `9968e161707db3d8c0033866b29407698ca51462` |
 | Final `main` (merge tip) | `9968e161707db3d8c0033866b29407698ca51462` |
 | Finalization commit | `d293475a4492127eaf837189964814fc99f6fdc6` |
+| Baseline docs commit | `a0823ab1b65f388dab7786021fe892f9eaa63817` |
 
 ## Post-merge verification
 
 | Gate | Result |
 | --- | --- |
-| Local `main` == `origin/main` | Yes (`9968e16…` at merge tip; baseline docs follow) |
+| Local `main` == `origin/main` | Yes (baseline docs on `main` after merge) |
 | FO-093 ancestors on main | Yes |
 | Artifacts | `AIAdministrationService`, `/api/admin/ai/*`, `/admin/ai`, migration `0006` present |
 | Focused FO-093 backend | **8 / 8 passed** |
@@ -108,7 +109,7 @@ Checklist coverage via automated tests + code-path review: admin authorized, FM/
 ## Stable baseline
 
 - **Latest Stable Feature:** FO-093 — AI Administration & Governance
-- **Latest Stable Main SHA (merge tip):** `9968e161707db3d8c0033866b29407698ca51462`
+- **Latest Stable Main SHA:** `a0823ab1b65f388dab7786021fe892f9eaa63817` (after baseline docs; merge tip `9968e16…`)
 - **Next Planned:** FO-094 — AI Monitoring & Production Operations (**not started**)
 - Prompt registry remains metadata-only
 - API-key management remains excluded

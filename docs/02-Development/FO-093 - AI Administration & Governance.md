@@ -1,10 +1,10 @@
 # FO-093 — AI Administration & Governance
 
-**Status:** Complete; merged  
-**Date:** 2026-08-05  
-**Base:** `main` @ `9968e161707db3d8c0033866b29407698ca51462` (FO-093 merge)  
-**PR:** [#59](https://github.com/acarbonilla/facilityops-platform/pull/59) MERGED  
-**Phase:** Phase 12A — Application Development  
+**Status:** Complete; merged
+**Date:** 2026-08-05
+**Base:** `main` @ `a0823ab1b65f388dab7786021fe892f9eaa63817` (FO-093A baseline docs)
+**PR:** [#59](https://github.com/acarbonilla/facilityops-platform/pull/59) MERGED
+**Phase:** Phase 12A — Application Development
 **Epic:** AI Administration & Governance
 
 ## Objective
