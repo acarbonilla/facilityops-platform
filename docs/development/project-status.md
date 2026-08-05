@@ -14,13 +14,13 @@
 
 ## Current Module
 
-- Intelligent Employee Ticket Intake — FO-101 QA complete on shared feature branch
-- FO-096–FO-100 complete on the same branch; Draft feature PR #63 opened
+- Intelligent Employee Ticket Intake — FO-101A finalization in progress
+- FO-096–FO-101 complete on shared feature branch; PR #63 Ready for Review
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 
 ## Current Branch
 
-- `feature/intelligent-employee-intake` (FO-096–FO-101; unmerged; Draft feature PR)
+- `feature/intelligent-employee-intake` (FO-096–FO-101A; unmerged until PR #63 merges)
 - Synchronized `main` tip: `0033655…`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
@@ -129,16 +129,16 @@
 
 ## Current Task
 
-- FO-101 — Intelligent Employee Intake QA & Production Readiness **complete** on
-  `feature/intelligent-employee-intake` (unmerged). Audience-safe AI GET for
-  employee requesters; FO-096–100 regression; Draft feature PR #63. Readiness:
-  **READY WITH ACCEPTED LIMITATIONS**. FO-101A (merge) **not started**.
-- FO-096–FO-100 complete on the same branch.
+- FO-101A — Finalize Merge and Post-Merge Verification **in progress** on
+  `feature/intelligent-employee-intake`. Pre-merge: PostgreSQL `0007` applied
+  (rollback/reapply OK); backend 183 OK; frontend 400 OK; privacy re-verified;
+  readiness **READY WITH ACCEPTED LIMITATIONS**. PR #63 Ready for Review.
+- FO-096–FO-101 complete on the same branch.
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- FO-101A — Finalize, merge, and sign off Intelligent Employee Intake
+- Complete FO-101A merge of PR #63; establish Intelligent Employee Intake baseline
 - Follow-up: FO-088 date-window flake remains watchlisted
 - Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
