@@ -20,7 +20,7 @@
 
 ## Current Branch
 
-- `main` @ `c8a34468326d1f17b3803875ea3cb1904556a763`
+- `main` @ `7da3a8109f0ab8e4be20fde1c8e208ade1a7a25d`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -129,8 +129,8 @@
 ## Current Task
 
 - FO-101A — Finalize Merge and Post-Merge Verification **COMPLETE AND MERGED**.
-  PR #63 merge commit `c8a3446…`; post-merge verification passed; feature branch
-  cleaned up. Readiness: **READY WITH ACCEPTED LIMITATIONS**.
+  PR #63 merge commit `c8a3446…`; post-merge docs tip `7da3a81…`; verification
+  passed; feature branch cleaned up. Readiness: **READY WITH ACCEPTED LIMITATIONS**.
 - Latest stable feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
@@ -224,8 +224,8 @@
   AI Platform MVP (FO-084–FO-095) **COMPLETE**. RM-001 AI Platform v1.0 release
   milestone complete (`98c1661…`). UX-001/UX-001A **COMPLETE AND MERGED**
   (PR #62). FO-096–FO-101A Intelligent Employee Ticket Intake **COMPLETE AND
-  MERGED** via PR #63 (`c8a3446…`). Readiness: READY WITH ACCEPTED LIMITATIONS.
-  Next feature has **not** started.
+  MERGED** via PR #63 (merge `c8a3446…`; baseline tip `7da3a81…`). Readiness:
+  READY WITH ACCEPTED LIMITATIONS. Next feature has **not** started.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.
 - Browser-test automation remains deferred.
