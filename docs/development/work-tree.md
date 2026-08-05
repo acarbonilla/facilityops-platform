@@ -21,13 +21,13 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | FO-100 reporting alignment on feature branch | Shared `feature/intelligent-employee-intake`; FO-096–FO-100 complete unmerged; FO-101 **not started**; AI Platform v1.0 freeze `98c1661…` |
+| FM Ticketing | FO-101 QA complete on feature branch | Shared `feature/intelligent-employee-intake`; FO-096–FO-101 complete unmerged; Draft feature PR; FO-101A merge next; AI Platform v1.0 freeze `98c1661…` |
 | Public Landing | FO-082A COMPLETE AND MERGED | Premium `/` landing + Live Platform Preview on `main` via PR #51 (`3fe79e5…`) |
 | Attachments | Complete; merged | FO-079–FO-083 on `main`; reused by FO-084 create-flow staging |
 | Maintenance Work Order | Complete | One-to-one `source_ticket` linkage, same-tenant technician assignment via `assign_work_order()`, standalone Work Orders remain supported, and linked Work Order → Ticket status synchronization implemented |
 | FM Ticket ↔ Maintenance Integration | Complete | FO-061 through FO-062C implemented and approved; PR #36 merged to `main` using the normal merge-commit strategy (`e509b4f`); FO-062D post-merge reconciliation complete; FO-063 remains reserved/deferred |
-| Reporting and Operational Analytics | Complete + AI Platform MVP v1.0 | FO-064–FO-095 on main; RM-001 freeze; FO-100 intake reporting alignment on feature branch |
-| Intelligent Employee Intake | FO-100 complete (unmerged) | Branch `feature/intelligent-employee-intake`; FO-101 remaining; no standalone FO-100 PR |
+| Reporting and Operational Analytics | Complete + AI Platform MVP v1.0 | FO-064–FO-095 on main; RM-001 freeze; FO-100 intake reporting on feature branch (FO-101 validated) |
+| Intelligent Employee Intake | FO-101 complete (unmerged Draft PR) | Branch `feature/intelligent-employee-intake`; READY WITH ACCEPTED LIMITATIONS; FO-101A merge next |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |
