@@ -39,6 +39,7 @@ import type {
 } from "@/types/fm-tickets";
 
 const CATEGORY_OPTIONS: Array<{ value: FmTicketCategory; label: string }> = [
+  { value: "unclassified", label: "Unclassified" },
   { value: "electrical", label: "Electrical" },
   { value: "plumbing", label: "Plumbing" },
   { value: "hvac", label: "HVAC" },
@@ -50,6 +51,7 @@ const CATEGORY_OPTIONS: Array<{ value: FmTicketCategory; label: string }> = [
 ];
 
 const PRIORITY_OPTIONS: Array<{ value: FmTicketPriority; label: string }> = [
+  { value: "pending_review", label: "Pending Review" },
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
   { value: "high", label: "High" },

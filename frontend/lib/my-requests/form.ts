@@ -19,6 +19,7 @@ const STATUS_VALUES = new Set<string>([
 ]);
 
 const CATEGORY_VALUES = new Set<string>([
+  "unclassified",
   "electrical",
   "plumbing",
   "hvac",
@@ -77,50 +78,44 @@ export function hasActiveMyRequestFilters(values: MyRequestFilterValues): boolea
   return Boolean(values.status || values.category);
 }
 
+/** FO-096: Employee intake payload is title + optional description only. */
 export function buildMyRequestCreatePayload(
   values: MyRequestFormValues,
 ): MyRequestCreatePayload | null {
   const title = values.title.trim();
-  const description = values.description.trim();
-  const category = values.category;
-  const building = values.building.trim();
-
-  if (!title || !description || !category || !building) {
+  if (!title) {
     return null;
   }
 
-  if (!CATEGORY_VALUES.has(category)) {
-    return null;
-  }
-
-  const payload: MyRequestCreatePayload = {
+  return {
     title,
-    description,
-    category,
-    building,
+    description: values.description.trim(),
   };
+}
 
-  const floor = values.floor.trim();
-  const area = values.area.trim();
-  const asset = values.asset.trim();
-
-  if (floor) {
-    payload.floor = floor;
-  }
-  if (area) {
-    payload.area = area;
-  }
-  if (asset) {
-    payload.asset = asset;
-  }
-
-  return payload;
+export function shouldShowMyRequestDetailSoftWarning(
+  values: Pick<MyRequestFormValues, "description">,
+  stagedImageCount: number,
+): boolean {
+  return !values.description.trim() && stagedImageCount <= 0;
 }
 
 export function applyBuildingChange(
-  values: MyRequestFormValues,
+  values: MyRequestFormValues & {
+    building?: string;
+    floor?: string;
+    area?: string;
+    asset?: string;
+    category?: string;
+  },
   buildingId: string,
-): MyRequestFormValues {
+): MyRequestFormValues & {
+  building?: string;
+  floor?: string;
+  area?: string;
+  asset?: string;
+  category?: string;
+} {
   return {
     ...values,
     building: buildingId,
@@ -131,9 +126,21 @@ export function applyBuildingChange(
 }
 
 export function applyFloorChange(
-  values: MyRequestFormValues,
+  values: MyRequestFormValues & {
+    building?: string;
+    floor?: string;
+    area?: string;
+    asset?: string;
+    category?: string;
+  },
   floorId: string,
-): MyRequestFormValues {
+): MyRequestFormValues & {
+  building?: string;
+  floor?: string;
+  area?: string;
+  asset?: string;
+  category?: string;
+} {
   return {
     ...values,
     floor: floorId,
@@ -143,9 +150,21 @@ export function applyFloorChange(
 }
 
 export function applyAreaChange(
-  values: MyRequestFormValues,
+  values: MyRequestFormValues & {
+    building?: string;
+    floor?: string;
+    area?: string;
+    asset?: string;
+    category?: string;
+  },
   areaId: string,
-): MyRequestFormValues {
+): MyRequestFormValues & {
+  building?: string;
+  floor?: string;
+  area?: string;
+  asset?: string;
+  category?: string;
+} {
   return {
     ...values,
     area: areaId,
@@ -155,7 +174,7 @@ export function applyAreaChange(
 
 export function isAssetCompatibleWithSelection(
   asset: MyRequestAssetOption,
-  selection: Pick<MyRequestFormValues, "building" | "floor" | "area">,
+  selection: { building?: string; floor?: string; area?: string },
 ): boolean {
   if (!selection.building || asset.building_id !== selection.building) {
     return false;
@@ -174,7 +193,7 @@ export function isAssetCompatibleWithSelection(
 
 export function filterCompatibleAssets(
   assets: MyRequestAssetOption[],
-  selection: Pick<MyRequestFormValues, "building" | "floor" | "area">,
+  selection: { building?: string; floor?: string; area?: string },
 ): MyRequestAssetOption[] {
   if (!selection.building) {
     return [];
@@ -186,13 +205,18 @@ export function filterCompatibleAssets(
 }
 
 export function clearStaleLocationSelections(
-  values: MyRequestFormValues,
+  values: MyRequestFormValues & {
+    building?: string;
+    floor?: string;
+    area?: string;
+    asset?: string;
+  },
   options: {
     floors: Array<{ id: string; building_id: string }>;
     areas: Array<{ id: string; building_id: string; floor_id: string }>;
     assets: MyRequestAssetOption[];
   },
-): MyRequestFormValues {
+): typeof values {
   let next = { ...values };
 
   if (

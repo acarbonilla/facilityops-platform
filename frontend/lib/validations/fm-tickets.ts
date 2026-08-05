@@ -17,6 +17,7 @@ const FM_TICKET_STATUS_VALUES = [
 ] as const;
 
 const FM_TICKET_PRIORITY_VALUES = [
+  "pending_review",
   "low",
   "medium",
   "high",
@@ -24,6 +25,7 @@ const FM_TICKET_PRIORITY_VALUES = [
 ] as const;
 
 const FM_TICKET_CATEGORY_VALUES = [
+  "unclassified",
   "electrical",
   "plumbing",
   "hvac",

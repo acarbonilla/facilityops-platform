@@ -17,8 +17,8 @@ export interface MyRequestListItem {
   ticket_number: string;
   organization: string;
   organization_name: string;
-  building: string;
-  building_name: string;
+  building: string | null;
+  building_name: string | null;
   floor: string | null;
   floor_name: string | null;
   area: string | null;
@@ -46,22 +46,12 @@ export interface MyRequestDetail extends MyRequestListItem {
 
 export interface MyRequestCreatePayload {
   title: string;
-  description: string;
-  category: FmTicketCategory;
-  building: string;
-  floor?: string;
-  area?: string;
-  asset?: string;
+  description?: string;
 }
 
 export interface MyRequestFormValues {
   title: string;
   description: string;
-  category: FmTicketCategory | "";
-  building: string;
-  floor: string;
-  area: string;
-  asset: string;
 }
 
 export interface MyRequestOptionRef {

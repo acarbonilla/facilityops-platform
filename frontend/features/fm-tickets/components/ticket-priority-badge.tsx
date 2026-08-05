@@ -3,6 +3,7 @@ import type { FmTicketPriority } from "@/types/fm-tickets";
 import { formatTicketLabel } from "./ticket-shared";
 
 const PRIORITY_STYLES: Record<FmTicketPriority, string> = {
+  pending_review: "bg-violet-100 text-violet-800",
   low: "bg-slate-200 text-slate-700",
   medium: "bg-sky-100 text-sky-800",
   high: "bg-amber-100 text-amber-800",

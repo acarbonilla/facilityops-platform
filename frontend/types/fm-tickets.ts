@@ -8,9 +8,15 @@ export type FmTicketStatus =
   | "closed"
   | "cancelled";
 
-export type FmTicketPriority = "low" | "medium" | "high" | "urgent";
+export type FmTicketPriority =
+  | "pending_review"
+  | "low"
+  | "medium"
+  | "high"
+  | "urgent";
 
 export type FmTicketCategory =
+  | "unclassified"
   | "electrical"
   | "plumbing"
   | "hvac"
@@ -77,8 +83,8 @@ interface FmTicketBaseRecord {
   tenant_name: string;
   organization: string;
   organization_name: string;
-  building: string;
-  building_name: string;
+  building: string | null;
+  building_name: string | null;
   floor: string | null;
   floor_name: string | null;
   area: string | null;
