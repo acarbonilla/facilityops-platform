@@ -147,6 +147,7 @@ Database: Django test runner with existing keepdb alias (project `DATABASE_URL` 
 ## 12. Feature PR
 
 - Title: `FO-096–FO-101: Intelligent Employee Ticket Intake`
+- URL: https://github.com/acarbonilla/facilityops-platform/pull/63
 - Base: `main` / Head: `feature/intelligent-employee-intake`
 - State: **Draft** (not Ready for Review unless policy requires)
 - Merge: **deferred to FO-101A**

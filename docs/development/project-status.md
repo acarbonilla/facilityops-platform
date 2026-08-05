@@ -15,7 +15,7 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — FO-101 QA complete on shared feature branch
-- FO-096–FO-100 complete on the same branch; Draft feature PR opened
+- FO-096–FO-100 complete on the same branch; Draft feature PR #63 opened
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 
 ## Current Branch
@@ -131,7 +131,7 @@
 
 - FO-101 — Intelligent Employee Intake QA & Production Readiness **complete** on
   `feature/intelligent-employee-intake` (unmerged). Audience-safe AI GET for
-  employee requesters; FO-096–100 regression; Draft feature PR. Readiness:
+  employee requesters; FO-096–100 regression; Draft feature PR #63. Readiness:
   **READY WITH ACCEPTED LIMITATIONS**. FO-101A (merge) **not started**.
 - FO-096–FO-100 complete on the same branch.
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
