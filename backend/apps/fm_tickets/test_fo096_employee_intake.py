@@ -273,15 +273,16 @@ class Fo096EmployeeIntakeFoundationTests(APITestCase):
         self.assertEqual(ticket.building_id, self.building.id)
         self.assertEqual(ticket.requester_id, self.facility_manager.id)
 
-    def test_no_side_effect_notifications_or_work_orders_on_employee_create(self):
+    def test_no_work_order_on_employee_create_and_notifications_allowed(self):
+        """FO-099 intentionally notifies on create; WO must still not auto-create."""
         self._authenticate(self.employee)
-        before_n = Notification.objects.count()
         before_wo = MaintenanceWorkOrder.objects.count()
+        before_n = Notification.objects.count()
         response = self.client.post(
             reverse("fm-ticket-list"),
             {"title": "No side effects"},
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Notification.objects.count(), before_n)
         self.assertEqual(MaintenanceWorkOrder.objects.count(), before_wo)
+        self.assertGreater(Notification.objects.count(), before_n)

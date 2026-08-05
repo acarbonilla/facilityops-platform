@@ -905,3 +905,49 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
         # Prefer sanitized `result`; keep result_json for FO-084 compatibility but sanitized.
         data["result_json"] = data.get("result") or {}
         return data
+
+
+class RequesterSafeAITicketAnalysisSerializer(serializers.ModelSerializer):
+    """FO-101: audience-safe AI status for employee-only requesters.
+
+    Exposes lifecycle status for progress UI only. Omits recommendations,
+    confidence, reasoning, provider/model/prompt metadata, and result payloads.
+    """
+
+    ticket_id = serializers.UUIDField(source="ticket.id", read_only=True)
+    ticket_number = serializers.CharField(
+        source="ticket.ticket_number",
+        read_only=True,
+        allow_null=True,
+    )
+    attachment_ids = serializers.SerializerMethodField()
+    error_message = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AITicketAnalysis
+        fields = (
+            "id",
+            "ticket_id",
+            "ticket_number",
+            "status",
+            "queued_at",
+            "started_at",
+            "completed_at",
+            "input_image_count",
+            "attachment_ids",
+            "error_message",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_attachment_ids(self, obj):
+        return [
+            str(link.attachment_id)
+            for link in obj.analysis_attachments.all()
+        ]
+
+    def get_error_message(self, obj):
+        if obj.status != AITicketAnalysis.Status.FAILED:
+            return ""
+        return "Image analysis could not be completed. Facilities can still review your report."
