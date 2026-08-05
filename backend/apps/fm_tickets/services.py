@@ -12,6 +12,7 @@ from .models import (
     FmTicketHistory,
     FmTicketStatusHistory,
 )
+from .classification_readiness import assert_ticket_ready_for_operational_actions
 from .notification_service import (
     notify_fm_ticket_assigned,
     notify_fm_ticket_status_changed,
@@ -288,6 +289,7 @@ def change_ticket_status(
 
 @transaction.atomic
 def assign_ticket(*, ticket, assigned_to, assigned_by=None, note=""):
+    assert_ticket_ready_for_operational_actions(ticket=ticket)
     _validate_ticket_assignee(assigned_to=assigned_to, ticket=ticket)
 
     previous_assignee_id = ticket.assignee_id
