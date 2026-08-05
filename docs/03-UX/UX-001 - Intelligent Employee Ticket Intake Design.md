@@ -1,18 +1,16 @@
 # UX-001 — Intelligent Employee Ticket Intake Design
 
-**Status:** Final design — Ready for Review (UX-001A)
+**Status:** COMPLETE AND MERGED
 
 **Date:** 2026-08-05
 
 **Type:** UX / Workflow Design / Documentation only
 
-**Base:** `main` @ `60696d164c7f4449d201bd7bb99b8c772ad63187`
+**Base / merge:** `main` @ `a5041eedfd64c1d1fddf970b3feafc1e1c2ecd48` (PR #62 merge commit)
 
 **AI Platform freeze:** `98c1661…` (RM-001 / AI Platform v1.0) — **FROZEN AND UNCHANGED**
 
-**Branch:** `docs/ux-001-intelligent-employee-intake`
-
-**PR:** #62
+**PR:** #62 (MERGED)
 
 **Implementation:** FO-096 through FO-101 (**not started**)
 

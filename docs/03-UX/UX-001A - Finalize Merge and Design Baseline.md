@@ -1,14 +1,23 @@
 # UX-001A — Finalize, Merge & Design Baseline
 
-**Status:** Ready for Review / awaiting merge of PR #62  
-**Date:** 2026-08-05  
-**Type:** UX Documentation Finalization  
-**Branch:** `docs/ux-001-intelligent-employee-intake`  
-**PR:** #62 — UX-001: Intelligent Employee Ticket Intake Design  
-**Parent design:** [UX-001 - Intelligent Employee Ticket Intake Design.md](./UX-001%20-%20Intelligent%20Employee%20Ticket%20Intake%20Design.md)  
-**Starting main:** `60696d164c7f4449d201bd7bb99b8c772ad63187`  
-**Starting branch HEAD:** `f395fb74f3495b34828d9a7b913f720e9b3e2986`  
-**AI Platform v1.0 freeze:** `98c1661d60c8200ae85f717b13fe78bcda1dd716` — **FROZEN AND UNCHANGED**  
+**Status:** COMPLETE AND MERGED
+
+**Date:** 2026-08-05
+
+**Type:** UX Documentation Finalization
+
+**PR:** #62 — MERGED (`a5041eedfd64c1d1fddf970b3feafc1e1c2ecd48`)
+
+**Parent design:** [UX-001 - Intelligent Employee Ticket Intake Design.md](./UX-001%20-%20Intelligent%20Employee%20Ticket%20Intake%20Design.md)
+
+**Starting main:** `60696d164c7f4449d201bd7bb99b8c772ad63187`
+
+**Starting branch HEAD:** `f395fb74f3495b34828d9a7b913f720e9b3e2986`
+
+**Finalization commit:** `979153ea287a1f24bffb9982402b36aeafbd006a`
+
+**AI Platform v1.0 freeze:** `98c1661d60c8200ae85f717b13fe78bcda1dd716` — **FROZEN AND UNCHANGED**
+
 **FO-096:** **not started**
 
 ## 1. Purpose
@@ -128,12 +137,26 @@ No FO-096 implementation; no form/serializer/model/migration/AI/notification/rep
 
 ## 14. Post-merge record
 
-_(Filled after merge.)_
-
 | Item | Value |
 | --- | --- |
-| Merge commit | _pending_ |
-| Final main SHA | _pending_ |
-| PR #62 state | _pending_ |
-| Branch cleanup | _pending_ |
-| UX baseline status | Approved design baseline for FO-096–FO-101 (after merge) |
+| Merge method | Merge commit (`gh pr merge 62 --merge`) |
+| Merge commit | `a5041eedfd64c1d1fddf970b3feafc1e1c2ecd48` |
+| Final main SHA (merge tip) | `a5041eedfd64c1d1fddf970b3feafc1e1c2ecd48` |
+| PR #62 state | MERGED |
+| Branch cleanup | Local and remote `docs/ux-001-intelligent-employee-intake` deleted after verification |
+| UX baseline status | **COMPLETE AND MERGED** — approved design baseline for FO-096–FO-101 |
+| Production code | Unchanged |
+| FO-096 | **not started** |
+| AI Platform v1.0 | Frozen at `98c1661…` |
+
+## 15. Stable design baseline
+
+**Approved UX Baseline:** UX-001 — Intelligent Employee Ticket Intake Design
+
+**Status:** COMPLETE AND MERGED
+
+**Next Planned:** FO-096 — Intelligent Employee Intake Foundation (**not started**)
+
+**Implementation Range:** FO-096 through FO-101
+
+**AI Platform v1.0:** FROZEN AND UNCHANGED
