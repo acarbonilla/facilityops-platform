@@ -18,7 +18,7 @@
 
 ## Current Branch
 
-- `main` @ FO-095 merge `7a61950…` (FO-095A post-merge verification)
+- `main` @ FO-095A baseline `9a2ddb9…` (FO-095 COMPLETE AND MERGED; AI Platform MVP)
 
 ## Completed Modules
 

@@ -2,7 +2,7 @@
 
 **Status:** Complete; merged  
 **Date:** 2026-08-05  
-**Base:** `main` @ `7a61950a5e451c9a463eeb5ab238a944a9bfe88a` (FO-095 merge)  
+**Base:** `main` @ `9a2ddb9468d5db6ef27b8a0e871c18349cb0469d` (FO-095A baseline docs)  
 **PR:** [#61](https://github.com/acarbonilla/facilityops-platform/pull/61) MERGED  
 **Phase:** Phase 12A — Application Development  
 **Epic:** AI Platform QA & Production Readiness  

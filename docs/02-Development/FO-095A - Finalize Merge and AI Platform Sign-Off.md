@@ -58,7 +58,7 @@ Confirmed coherent pipeline FO-084 → FO-094. Human review mandatory. Admin/mon
 | Merge strategy | Merge commit |
 | Merge commit | `7a61950a5e451c9a463eeb5ab238a944a9bfe88a` |
 | Finalization commit | `7bfbae3d22bc632e6364f0636260b26b8cfe9279` |
-| Final `main` (merge tip) | `7a61950a5e451c9a463eeb5ab238a944a9bfe88a` |
+| Baseline docs commit | `9a2ddb9468d5db6ef27b8a0e871c18349cb0469d` |
 
 ## Final readiness
 
@@ -67,7 +67,7 @@ Confirmed coherent pipeline FO-084 → FO-094. Human review mandatory. Admin/mon
 ## Stable baseline
 
 - **Latest Stable Feature:** FO-095 — AI Platform QA & Production Readiness
-- **Latest Stable Main SHA (merge tip):** `7a61950a5e451c9a463eeb5ab238a944a9bfe88a`
+- **Latest Stable Main SHA:** `9a2ddb9468d5db6ef27b8a0e871c18349cb0469d` (after baseline docs; merge tip `7a61950…`)
 - **AI Platform MVP:** COMPLETE (FO-084 through FO-095)
 - **Next Planned:** FO-096 — Intelligent Employee Ticket Intake (**not started**)
 
