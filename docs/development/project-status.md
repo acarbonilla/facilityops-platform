@@ -14,12 +14,13 @@
 
 ## Current Module
 
-- UX-001 — Intelligent Employee Ticket Intake Design (Draft PR; design only)
+- UX-001A — Finalize, Merge & Design Baseline (Ready for Review on PR #62)
+- UX-001 — Intelligent Employee Ticket Intake Design (final design; awaiting merge)
 - AI Platform MVP — RM-001 COMPLETE (AI Platform v1.0 release baseline frozen)
 
 ## Current Branch
 
-- `docs/ux-001-intelligent-employee-intake` (design documentation)
+- `docs/ux-001-intelligent-employee-intake` (documentation finalization)
 - Synchronized `main` tip: `60696d1…` (RM-001 docs on main)
 - AI Platform v1.0 freeze: `98c1661…` (FO-095 MVP)
 
@@ -126,9 +127,11 @@
 
 ## Current Task
 
-- UX-001 — Intelligent Employee Ticket Intake Design (documentation only).
-  Design blueprint for simplified employee reporting; FO-096–FO-101 roadmap
-  defined. No production code changed. FO-096 **not started**.
+- UX-001A — Finalize, Merge & Design Baseline. Design acceptance:
+  **PASS WITH DOCUMENTATION CORRECTIONS**. PR #62 Ready for Review /
+  awaiting merge. No production code. FO-096 **not started**.
+- UX-001 — Intelligent Employee Ticket Intake Design finalized on branch
+  (naming caveats, soft-warn clarity, notification safeguards).
 - RM-001 AI Platform MVP Release Milestone complete. AI Platform v1.0 remains
   the frozen architectural baseline (`98c1661…`). FO-084 through FO-095 are
   frozen as the completed AI Platform MVP.
@@ -226,7 +229,7 @@
   (`f5bf6ae…`); FO-094A complete. FO-095 AI Platform QA & Production Readiness
   COMPLETE AND MERGED via PR #61 (`7a61950…`); FO-095A complete.
   AI Platform MVP (FO-084–FO-095) **COMPLETE**. RM-001 AI Platform v1.0 release
-  milestone complete (`98c1661…`). UX-001 design in progress (docs only).
+  milestone complete (`98c1661…`). UX-001/UX-001A Ready for Review (PR #62).
   FO-096 **not started**.
 - FO-088 `test_decision_filter_and_date_filter` is a pre-existing date-window
   flake on `main` (confirmed FO-093A); passed 3/3 during FO-095A; remain watchlisted.

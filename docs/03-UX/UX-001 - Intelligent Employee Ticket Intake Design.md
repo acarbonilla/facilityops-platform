@@ -1,11 +1,19 @@
 # UX-001 — Intelligent Employee Ticket Intake Design
 
-**Status:** Draft Design (Draft PR)  
-**Date:** 2026-08-05  
-**Type:** UX / Workflow Design / Documentation only  
-**Base:** `main` @ `60696d164c7f4449d201bd7bb99b8c772ad63187`  
-**AI Platform freeze:** `98c1661…` (RM-001 / AI Platform v1.0)  
-**Branch:** `docs/ux-001-intelligent-employee-intake`  
+**Status:** Final design — Ready for Review (UX-001A)
+
+**Date:** 2026-08-05
+
+**Type:** UX / Workflow Design / Documentation only
+
+**Base:** `main` @ `60696d164c7f4449d201bd7bb99b8c772ad63187`
+
+**AI Platform freeze:** `98c1661…` (RM-001 / AI Platform v1.0) — **FROZEN AND UNCHANGED**
+
+**Branch:** `docs/ux-001-intelligent-employee-intake`
+
+**PR:** #62
+
 **Implementation:** FO-096 through FO-101 (**not started**)
 
 ## 1. Purpose
@@ -26,7 +34,7 @@ This document does **not** change production code.
 | Attachments / AI | Create ticket → upload images → queue AI only if attachments exist | FO-084 staging + `ai_queue_service` (`allow_empty=False`) |
 | Human review | Accept / Modify / Ignore on internal ticket detail/edit | FO-087 `TicketAiAnalysisStatusPanel` |
 | Notifications | No create/AI notifications today; assign & status-change only | `notification_service.py` |
-| Model constraints | `category`/`priority`/`building` required (non-null); floor/area/asset nullable | `FmTicket` model |
+| Model constraints | `category`/`priority`/`building` required (non-null); `description` required (non-blank TextField); floor/area/asset nullable; category choices lack `unclassified`; priority choices lack `pending_review`; AI statuses are analysis-row statuses (`queued`/`processing`/…) with no `not_requested` enum | `FmTicket`, `AITicketAnalysis` |
 
 ## 3. Design principles
 
@@ -124,7 +132,7 @@ Rationale:
 - AI can enrich submissions with images but must not gate ticket creation.
 - Soft nudge UI: “Photos help Facilities investigate faster” without hard block.
 
-Consequences: FO-096 must allow create without attachments; AI remains `not_requested` / no analysis row when no images.
+Consequences: FO-096 must allow create without attachments. No valid request is rejected solely because no image exists. When no images are submitted, AI remains in the derived **`not_requested`** state (no analysis row) — see §9 naming caveat.
 
 ## 7. Description requirement decision
 
@@ -132,11 +140,12 @@ Consequences: FO-096 must allow create without attachments; AI remains `not_requ
 
 Validation rule:
 
-1. `title` required (trimmed, max length — retain existing title max, recommend 200).
-2. `description` optional.
-3. UX guidance: if no images are attached, encourage a short description (non-blocking warning, not hard error for MVP).
+1. `title` required (trimmed, max length — retain existing title max **200**, which already matches `FmTicket.title`).
+2. `description` optional for employees (FO-096 must allow blank description; today the model TextField is required).
+3. Soft warning (non-blocking) when **both** description and images are absent: encourage either a short description or a photo.
+4. Soft nudge when images are absent but description is present: photos help Facilities investigate faster (still non-blocking).
 
-Rationale: sounds/smells/timing issues need text; forcing both text and photos increases friction. A future FO may add “require description when zero images” as a configurable policy; MVP keeps soft warning only.
+Rationale: sounds/smells/timing issues need text; forcing both text and photos increases friction. A future FO may add a hard “require description when zero images” policy; MVP keeps soft warning only.
 
 ## 8. Submission workflow
 
@@ -177,17 +186,22 @@ flowchart TD
 
 ## 9. Initial ticket state
 
-| Field | Recommended initial value | Notes |
+| Field | Design intent | Naming status (verified against current code) |
 | --- | --- | --- |
-| category | `unclassified` (new choice) **or** temporary sentinel | Avoid silent `other` as if classified; FO-096 likely needs migration |
-| priority | `pending_review` (new choice) **or** omit from employee semantics | Avoid default `medium` without evidence |
-| building | `null` | Requires model/serializer change (today required) |
-| floor / area / asset | `null` | Already allowed |
-| assignee | `null` | Already |
-| status | Existing submitted/open (`open`) | Unchanged semantics |
-| AI status | `not_requested` (no row) or `queued` when images uploaded | Frontend-only labels map to analysis lifecycle |
+| category | Start unclassified — not a fake operational category | **Proposed persisted value** `unclassified` (or equivalent). **Does not exist today** (`Category` has electrical…other only; default `other`). Subject to model/serializer/migration discovery in FO-096. |
+| priority | Start pending FM review — not Medium | **Proposed persisted value** `pending_review` (or equivalent). **Does not exist today** as a ticket priority (`Priority` is low/medium/high/urgent; default `medium`). Distinct from AI analytics’ `pending_review_count` (FO-088/089 human-review backlog metric). Subject to FO-096 discovery. |
+| building | Unset until FM classifies location | **Proposed nullability**. Today `building` is required (`PROTECT`, non-null). FO-096 must decide null vs placeholder. |
+| floor / area / asset | Unset | **Existing** nullable FKs |
+| assignee | Unset | **Existing** nullable FK |
+| description | May be empty for employees | **Proposed blank allowance**. Today `description` is required TextField. |
+| status | Employee-complete intake opens the ticket | **Existing persisted value** `open` (`FmTicket.Status.OPEN`) |
+| AI — no images | No analysis requested | **Proposed derived / display label** `not_requested` (absence of `AITicketAnalysis` row). **Not** an existing `AITicketAnalysis.Status` enum value. |
+| AI — images uploaded & queued | Analysis waiting | **Existing persisted value** `queued` (`AITicketAnalysis.Status.QUEUED`) |
+| AI — in flight / done / failed | Existing lifecycle | **Existing** `processing`, completed, failed (and related) analysis statuses |
 
 **Do not** auto-assign Medium priority without supporting evidence.
+
+**FO-096 caveat:** exact stored strings, nullability, and serializer representation for unclassified / pending_review / not_requested are design intents. Implementers must discover current model constraints and introduce migrations only in FO-096 (or later), not in UX-001/UX-001A.
 
 ## 10. Facility Manager review design
 
@@ -214,10 +228,11 @@ Accept / Modify / Ignore (FO-087). No automatic acceptance. Accept/Modify still 
 ### Employee submission
 
 - Title required (trimmed)
-- Max title length: existing platform limit (document 200 unless code differs)
-- Description optional (soft warn if empty and no images)
+- Max title length: **200** (matches current model)
+- Description optional (soft warn when **both** description and images are absent)
 - Images optional; JPEG/PNG/WEBP; existing size/count limits
 - No client-supplied tenant/organization/requester/category/priority/location/assignee
+- No request rejected solely for missing images
 
 ### Facility Manager processing (stage-based)
 
@@ -271,6 +286,16 @@ Confirmed with FO-084–095:
 
 Rationale: urgent operational awareness must not wait on AI/provider delays. Second notification (or in-app badge) when AI completes avoids duplicate noise if coalesced carefully (FO-099 dedupe rules).
 
+### Safeguards (FO-099)
+
+| Risk | Control |
+| --- | --- |
+| Delayed operational awareness | Immediate create notification; never wait solely on AI |
+| Provider outage / AI failure | First notification still sent; ticket remains usable; no second AI-ready notify if analysis never completes |
+| Duplicate notifications | Dedupe / coalesce rules in FO-099 (create vs AI-ready are distinct event types) |
+| Inaccessible employee routing | Requester-facing notifications continue to use requester-safe `/my-requests/{id}` targets (FO-078D) |
+| Internal Maintenance links for Employees | Do not send Employees internal `/maintenance/...` links; preserve Employee-safe recipient filtering |
+
 ## 15. Reporting and analytics impact
 
 | Concept | Treatment |
@@ -285,14 +310,18 @@ FO-088–092 may need filters for unclassified and not_requested in FO-100.
 
 ## 16. Security and privacy
 
-- Requester/tenant/organization from authenticated session only.
-- No client-supplied ownership.
-- Generic cross-tenant 404.
-- Secure private attachment storage; requester_visible vs internal_only preserved.
-- No Maintenance/5S leakage to employees.
-- No raw Gemini / prompt text / API keys / env vars / stack traces.
-- Employees cannot access FM classification controls.
-- Audit history retained for decisions and config.
+All of the following are **server-authoritative** (not frontend-only):
+
+- Requester from authenticated session only.
+- Tenant derived server-side.
+- Organization derived server-side.
+- No client ownership override (reject spoofed tenant/organization/requester keys).
+- Generic cross-tenant 404 behavior.
+- Private attachment storage; requester_visible vs internal_only separation (FO-079–083).
+- No raw Gemini response, prompt text, API keys, or provider secrets exposed to clients.
+- No internal Maintenance or 5S information exposed to Employee Requesters.
+- Audit continuity for Human Review decisions and configuration.
+- Employees denied access to internal FM classification controls (`fm_tickets.update` review actions).
 
 ## 17. Accessibility
 
@@ -348,18 +377,28 @@ Ticket created (FO-12345)
 [ Retry failed photo ]
 ```
 
-### 5. AI processing (requester-safe)
+### 5. AI queued / processing (requester-safe)
 
 ```text
 Status: Open
-AI: Reviewing photos (optional helper text)
+AI: Photos received — review in progress
 ```
 
-### 6. AI failed (requester-safe)
+### 5b. AI completed (requester-safe)
+
+```text
+Status: Open
+AI: Facilities is reviewing your report
+(No raw AI findings exposed to Employee)
+```
+
+### 6. AI failed / not_requested (requester-safe)
 
 ```text
 Status: Open
 AI: Unavailable — Facilities can still review your report
+— or —
+AI: No photo analysis (report still submitted)
 ```
 
 ### 7. Facility Manager review
@@ -390,9 +429,9 @@ Single column; context chips; title; description; photo CTA; submit full-width.
 | attachment_partial_failure | Yes (ticket + subset attachments) | |
 | queueing_ai | Transient | |
 | submitted | Yes (`open`) | Employee-complete intake |
-| ai_queued / ai_processing / ai_completed / ai_failed | Yes via `AITicketAnalysis` | |
-| not_requested | Derived | No analysis row |
-| awaiting_fm_review | Derived | Unclassified / pending_review |
+| ai_queued / ai_processing / ai_completed / ai_failed | Yes via `AITicketAnalysis` | Map to existing analysis statuses where present |
+| not_requested | Derived / proposed display | No analysis row; not a current enum value |
+| awaiting_fm_review | Derived | Maps to proposed unclassified / pending_review until FO-096 persists them |
 | classified | Derived | Final category/priority set |
 | assigned | Yes | assignee set |
 
@@ -445,10 +484,10 @@ Single column; context chips; title; description; photo CTA; submit full-width.
 | --- | --- | --- | --- | --- |
 | D1 | Employee-visible: title, optional description, images | Minimize friction; employees report, not classify | Keep category/building on form | Requires backend null/unclassified support |
 | D2 | Images recommended, optional (B) | Not all concerns are visible | A required; C conditional types | AI coverage < 100%; no-image path required |
-| D3 | Description optional + soft warn if no images | Text-only issues common | Required description; hard require one of image/desc | Slightly more incomplete tickets |
+| D3 | Description optional + soft warn when both description and images absent | Text-only / non-visual issues common | Required description; hard require one of image/desc | Slightly more incomplete tickets; FO-096 must allow blank description |
 | D4 | Organization read-only visible | Trust + clarity | Hidden entirely | Minor UI chrome |
-| D5 | Initial category `unclassified` (new) | Avoid fake `other` classification | Keep default `other` | Migration + reporting filters |
-| D6 | Initial priority `pending_review` (new) | Avoid default Medium | Keep `medium` | Migration + FM gates |
+| D5 | Initial category proposed `unclassified` | Avoid fake `other` classification | Keep default `other` | FO-096 migration + reporting filters; value does not exist yet |
+| D6 | Initial priority proposed `pending_review` | Avoid default Medium | Keep `medium` | FO-096 migration + FM gates; not today’s Priority enum |
 | D7 | Notify immediately + AI-ready update (C) | Urgency > AI latency | A only; B only | Dedupe work in FO-099 |
 | D8 | AI failure → continue without AI | Ticket > AI | Block submit; force retry forever | FM manual classification |
 | D9 | FM requires category/priority/building before assign/WO | Operational safety | Require all fields at open | Stage-based validation |
