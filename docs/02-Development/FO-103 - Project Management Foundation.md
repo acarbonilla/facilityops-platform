@@ -4,9 +4,12 @@
 **Date:** 2026-08-06  
 **Branch:** `feature/project-management`  
 **Starting main SHA:** `c7ae7fc81bb58b2afffd33f185910329c04c1231`  
+**Branch HEAD (FO-103):** `356eae9fa995d0af91bcbaae22dbddc9467163a1`  
+**Commits:** `bb87f80` (backend), `c25d0ab` (docs), `356eae9` (frontend)  
+**Feature Draft PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (full epic; Draft; unmerged)  
 **UX baseline:** PM-UX-001 / PM-UX-001A (COMPLETE AND MERGED)  
 **Next:** FO-104 — Project Task & Assignment Management (**not started**)  
-**PR policy:** No standalone FO-103 PR; feature remains Draft/unmerged until FO-109A  
+**PR policy:** No standalone FO-103 PR; feature Draft PR optional and remains unmerged until FO-109A  
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics (external dependency)
 
 ## 1. Objective

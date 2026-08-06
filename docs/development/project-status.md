@@ -21,7 +21,7 @@
 
 ## Current Branch
 
-- Active: `feature/project-management` (FO-103 checkpoint; unmerged)
+- Active: `feature/project-management` @ `356eae9…` (FO-103 checkpoint; unmerged; Draft PR #67)
 - Baseline `main` @ `c7ae7fc81bb58b2afffd33f185910329c04c1231` (PM-UX-001A baseline)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
