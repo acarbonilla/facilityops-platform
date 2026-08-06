@@ -15,7 +15,7 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
-- FO-101B Live Gemini Evaluation Verification — diagnostic fix branch (Outcome B)
+- FO-101B Live Gemini Evaluation Verification — diagnostic fix branch (Outcome A)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 
 ## Current Branch
@@ -130,15 +130,17 @@
 ## Current Task
 
 - FO-101B — Live Gemini Evaluation Verification **complete on fix branch**
-  (Outcome B). Historical placeholder analysis diagnosed; Django resolves
-  Gemini; live smoke hit billing `429`; Redis/Celery unavailable for async.
+  (Outcome A). Live sync Gemini Vision completed on `FM-20260805-0001`
+  (`provider=gemini`, non-placeholder `FacilityRecommendationV1`); ticket
+  fields unchanged. Redis/Celery async path still unverified.
 - Latest stable feature remains Intelligent Employee Ticket Intake on `main`
   (FO-096–FO-101A / PR #63).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- Restore Gemini API credits and local Redis/Celery, then requeue a new analysis
+- Optional: start Redis + Celery and verify async `.delay()` path
+- Merge FO-101B Draft PR #64 when ready
 - Follow-up: FO-088 date-window flake remains watchlisted
 - Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 

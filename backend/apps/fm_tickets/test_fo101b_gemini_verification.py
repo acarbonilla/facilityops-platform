@@ -127,3 +127,66 @@ class Fo101bProviderMetadataOnFailureTests(TestCase):
         self.assertEqual(ticket.priority, FmTicket.Priority.PENDING_REVIEW)
         self.assertEqual(ticket.status, FmTicket.Status.OPEN)
         self.assertIsNone(ticket.assignee_id)
+
+
+class Fo101bGeminiServingSchemaTests(TestCase):
+    def test_simplify_preserves_finding_title_property(self):
+        from apps.fm_tickets.ai.schema_recommendation_v1 import (
+            SCHEMA_NAME,
+            SCHEMA_VERSION,
+            facility_recommendation_json_schema,
+        )
+
+        schema = facility_recommendation_json_schema()
+        finding = (schema.get("$defs") or {}).get("RecommendationFinding") or {}
+        props = finding.get("properties") or {}
+        self.assertIn("title", props)
+        self.assertIn("description", props)
+        self.assertIn("confidence", props)
+        self.assertEqual(
+            schema["properties"]["schema_name"],
+            {"type": "string", "enum": [SCHEMA_NAME]},
+        )
+        self.assertEqual(
+            schema["properties"]["schema_version"],
+            {"type": "string", "enum": [SCHEMA_VERSION]},
+        )
+
+    def test_normalize_percent_observation_confidence(self):
+        from apps.fm_tickets.ai.gemini_provider import (
+            _normalize_gemini_recommendation_payload,
+        )
+        from apps.fm_tickets.ai.schema_recommendation_v1 import SCHEMA_NAME
+
+        normalized = _normalize_gemini_recommendation_payload(
+            {
+                "schema_name": "facilities_image_analysis_v1.0",
+                "schema_version": "v1",
+                "image_results": [
+                    {
+                        "observations": [{"confidence": 95}],
+                        "visible_assets": [{"confidence": 80}],
+                        "visible_hazards": [{"confidence": 0.7}],
+                    }
+                ],
+                "cross_image_findings": [{"confidence": 90}],
+                "findings": [{"confidence": 95}],
+            }
+        )
+        self.assertEqual(normalized["schema_name"], SCHEMA_NAME)
+        self.assertEqual(normalized["schema_version"], "1.0")
+        self.assertEqual(
+            normalized["image_results"][0]["observations"][0]["confidence"],
+            0.95,
+        )
+        self.assertEqual(
+            normalized["image_results"][0]["visible_assets"][0]["confidence"],
+            0.8,
+        )
+        self.assertEqual(
+            normalized["image_results"][0]["visible_hazards"][0]["confidence"],
+            0.7,
+        )
+        self.assertEqual(normalized["cross_image_findings"][0]["confidence"], 0.9)
+        # FO-086 finding confidence stays 0–100.
+        self.assertEqual(normalized["findings"][0]["confidence"], 95)

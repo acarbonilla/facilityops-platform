@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
+from pydantic import ValidationError as PydanticValidationError
 
 from .errors import AIAnalysisError, AIErrorCode
 from .image_input import PreparedImage, build_minimal_ticket_context, prepare_analysis_images
@@ -28,6 +29,39 @@ from .schema_recommendation_v1 import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_gemini_recommendation_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Pin identity fields and reconcile confidence scales before Pydantic.
+
+    FO-086 recommendation fields use 0–100 integers; FO-085 nested observation
+    confidence is 0.0–1.0. Gemini often emits 0–100 everywhere once bounds are
+    stripped from response_json_schema.
+    """
+    out = {
+        **payload,
+        "schema_name": SCHEMA_NAME,
+        "schema_version": SCHEMA_VERSION,
+    }
+
+    def _to_unit_interval(value: Any) -> Any:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return value
+        if value > 1:
+            return round(float(value) / 100.0, 4)
+        return value
+
+    for image in out.get("image_results") or []:
+        if not isinstance(image, dict):
+            continue
+        for key in ("observations", "visible_assets", "visible_hazards"):
+            for item in image.get(key) or []:
+                if isinstance(item, dict) and "confidence" in item:
+                    item["confidence"] = _to_unit_interval(item["confidence"])
+    for finding in out.get("cross_image_findings") or []:
+        if isinstance(finding, dict) and "confidence" in finding:
+            finding["confidence"] = _to_unit_interval(finding["confidence"])
+    return out
 
 
 class GeminiVisionProvider:
@@ -85,7 +119,13 @@ class GeminiVisionProvider:
             prepared=prepared,
             correlation_id=correlation_id,
         )
-        validated = validate_facility_recommendation(analysis)
+        if not isinstance(analysis, dict):
+            raise AIAnalysisError(AIErrorCode.INVALID_PROVIDER_RESPONSE)
+        analysis = _normalize_gemini_recommendation_payload(analysis)
+        try:
+            validated = validate_facility_recommendation(analysis)
+        except PydanticValidationError as exc:
+            raise AIAnalysisError(AIErrorCode.SCHEMA_VALIDATION_FAILED) from exc
         by_id = {image.attachment_id: image for image in prepared}
         for image_result in validated.image_results:
             if image_result.attachment_id not in by_id:
@@ -232,8 +272,12 @@ def _normalize_gemini_exception(exc: Exception) -> AIAnalysisError:
     status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
     if status in {401, 403} or "api key" in text or "permission" in text or "unauth" in text:
         return AIAnalysisError(AIErrorCode.PROVIDER_AUTH_FAILED)
-    if status == 429 or "rate" in text or "quota" in text:
+    if status == 429 or "rate" in text or "quota" in text or "resource_exhausted" in text:
         return AIAnalysisError(AIErrorCode.PROVIDER_RATE_LIMITED, retryable=True)
+    if "too many states" in text or (
+        status == 400 and ("invalid_argument" in text or "schema" in text)
+    ):
+        return AIAnalysisError(AIErrorCode.INVALID_PROVIDER_RESPONSE)
     if status in {500, 502, 503, 504} or "unavailable" in text or "internal" in text:
         return AIAnalysisError(AIErrorCode.PROVIDER_UNAVAILABLE, retryable=True)
     if "timeout" in text or "timed out" in text or "deadline" in text:
