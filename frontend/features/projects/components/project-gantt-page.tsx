@@ -78,8 +78,11 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
     !permissionsLoading && canManageProjectDependencies(hasPermission);
 
   const data = ganttQuery.data;
-  const tasks = data?.tasks ?? [];
-  const dependencies = data?.dependencies ?? [];
+  const tasks = useMemo(() => data?.tasks ?? [], [data?.tasks]);
+  const dependencies = useMemo(
+    () => data?.dependencies ?? [],
+    [data?.dependencies],
+  );
   const summary = data?.summary;
 
   const taskCodeById = useMemo(() => {
