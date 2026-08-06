@@ -26,10 +26,13 @@ from .owner_access import (
     authorize_inspection_list,
     authorize_inspection_upload,
     authorize_owned_attachment_access,
+    authorize_project_list,
+    authorize_project_upload,
     authorize_work_order_list,
     authorize_work_order_upload,
     filter_queryset_for_fm_ticket,
     filter_queryset_for_inspection,
+    filter_queryset_for_project,
     filter_queryset_for_work_order,
     is_module_owned_type,
     normalize_owner_context,
@@ -128,6 +131,15 @@ def create_attachment(
         if inspection.tenant_id != tenant.id and not has_global_attachment_scope(actor):
             raise Http404
         tenant = inspection.tenant
+    elif normalized_type == AttachmentOwnerType.PROJECT:
+        project, resolved_visibility = authorize_project_upload(
+            actor=actor,
+            project_id=normalized_id,
+            requested_visibility=visibility,
+        )
+        if project.tenant_id != tenant.id and not has_global_attachment_scope(actor):
+            raise Http404
+        tenant = project.tenant
     elif visibility not in (None, "", AttachmentVisibility.INTERNAL_ONLY):
         # Unlinked uploads cannot opt into requester visibility.
         raise AttachmentValidationError("Invalid attachment visibility.")
@@ -307,6 +319,10 @@ def list_attachments(*, actor, owner_type=None, owner_id=None):
         return filter_queryset_for_inspection(
             queryset=queryset, inspection=inspection
         )
+
+    if normalized_type == AttachmentOwnerType.PROJECT:
+        project = authorize_project_list(actor=actor, project_id=normalized_id)
+        return filter_queryset_for_project(queryset=queryset, project=project)
 
     raise AttachmentValidationError("Invalid attachment owner context.")
 

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.fm_tickets",
     "apps.inspection",
     "apps.maintenance",
+    "apps.projects",
     "apps.master_data",
     "apps.notifications",
     "apps.reporting",

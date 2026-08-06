@@ -10,17 +10,23 @@ class AttachmentOwnerType:
     FM_TICKET = "fm_ticket"
     MAINTENANCE_WORK_ORDER = "maintenance_work_order"
     INSPECTION = "inspection"
+    PROJECT = "project"
 
     CHOICES = (
         (NONE, "Unlinked"),
         (FM_TICKET, "FM Ticket"),
         (MAINTENANCE_WORK_ORDER, "Maintenance Work Order"),
         (INSPECTION, "5S Inspection"),
+        (PROJECT, "Project"),
     )
 
-    SUPPORTED = frozenset({FM_TICKET, MAINTENANCE_WORK_ORDER, INSPECTION})
+    SUPPORTED = frozenset(
+        {FM_TICKET, MAINTENANCE_WORK_ORDER, INSPECTION, PROJECT}
+    )
     # Modules that never expose evidence to Employee Requesters.
-    INTERNAL_ONLY_OWNERS = frozenset({MAINTENANCE_WORK_ORDER, INSPECTION})
+    INTERNAL_ONLY_OWNERS = frozenset(
+        {MAINTENANCE_WORK_ORDER, INSPECTION, PROJECT}
+    )
 
 
 class AttachmentVisibility:
@@ -48,3 +54,6 @@ MAINTENANCE_IMMUTABLE_STATUSES = frozenset({"completed", "cancelled", "closed"})
 
 # Inspection statuses where ordinary evidence uploads/deletes are locked.
 INSPECTION_IMMUTABLE_STATUSES = frozenset({"completed", "verified", "cancelled"})
+
+# Project statuses where ordinary evidence uploads/deletes are locked.
+PROJECT_IMMUTABLE_STATUSES = frozenset({"completed", "cancelled"})
