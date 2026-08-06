@@ -5,7 +5,10 @@ import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
-import type { ProjectListParams } from "@/types/projects";
+import type {
+  ProjectListParams,
+  ProjectTaskListParams,
+} from "@/types/projects";
 import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
@@ -212,6 +215,14 @@ function normalizeProjectParams(
   return stripNilParams(params) as ProjectListParams | Record<string, never>;
 }
 
+function normalizeProjectTaskParams(
+  params?: ProjectTaskListParams,
+): ProjectTaskListParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectTaskListParams
+    | Record<string, never>;
+}
+
 export const projectsQueryKeys = {
   all: ["projects"] as const,
   list: (params?: ProjectListParams) =>
@@ -222,6 +233,22 @@ export const projectsQueryKeys = {
   detail: (id: string) => ["projects", "detail", id] as const,
   history: (id: string) => ["projects", "history", id] as const,
   members: (id: string) => ["projects", "members", id] as const,
+  taskSummary: (id: string) => ["projects", "task-summary", id] as const,
+  tasks: (projectId: string) => ["projects", projectId, "tasks"] as const,
+  taskList: (projectId: string, params?: ProjectTaskListParams) =>
+    [
+      "projects",
+      projectId,
+      "tasks",
+      "list",
+      normalizeProjectTaskParams(params),
+    ] as const,
+  taskDetail: (projectId: string, taskId: string) =>
+    ["projects", projectId, "tasks", "detail", taskId] as const,
+  taskChecklist: (projectId: string, taskId: string) =>
+    ["projects", projectId, "tasks", taskId, "checklist"] as const,
+  taskComments: (projectId: string, taskId: string) =>
+    ["projects", projectId, "tasks", taskId, "comments"] as const,
 };
 
 export const reportingQueryKeys = {

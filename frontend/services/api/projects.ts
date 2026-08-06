@@ -13,6 +13,19 @@ import type {
   ProjectMember,
   ProjectMemberCreatePayload,
   ProjectMetrics,
+  ProjectTaskAssignPayload,
+  ProjectTaskChecklistCreatePayload,
+  ProjectTaskChecklistItem,
+  ProjectTaskChecklistUpdatePayload,
+  ProjectTaskComment,
+  ProjectTaskCommentCreatePayload,
+  ProjectTaskCreatePayload,
+  ProjectTaskDetail,
+  ProjectTaskListItem,
+  ProjectTaskListParams,
+  ProjectTaskReorderPayload,
+  ProjectTaskSummary,
+  ProjectTaskUpdatePayload,
   ProjectUpdatePayload,
 } from "@/types/projects";
 
@@ -128,4 +141,189 @@ export async function getProjectFormOptions(): Promise<ProjectFormOptions> {
     supports_user_directory: true,
     user_directory_note: null,
   };
+}
+
+export function getProjectTaskSummary(
+  projectId: string,
+): Promise<ProjectTaskSummary> {
+  return apiClient<ProjectTaskSummary>(
+    API_ENDPOINTS.projects.taskSummary(projectId),
+    { method: "GET" },
+  );
+}
+
+export function getProjectTaskList(
+  projectId: string,
+  params?: ProjectTaskListParams,
+): Promise<PaginatedResponse<ProjectTaskListItem>> {
+  return apiClient<PaginatedResponse<ProjectTaskListItem>>(
+    API_ENDPOINTS.projects.tasks(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectTaskDetail(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskDetail(projectId, taskId),
+    { method: "GET" },
+  );
+}
+
+export function createProjectTask(
+  projectId: string,
+  payload: ProjectTaskCreatePayload,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.tasks(projectId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function updateProjectTask(
+  projectId: string,
+  taskId: string,
+  payload: ProjectTaskUpdatePayload,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskDetail(projectId, taskId),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectTask(
+  projectId: string,
+  taskId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.taskDetail(projectId, taskId),
+    { method: "DELETE" },
+  );
+}
+
+export function assignProjectTask(
+  projectId: string,
+  taskId: string,
+  payload: ProjectTaskAssignPayload,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskAssign(projectId, taskId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function reorderProjectTasks(
+  projectId: string,
+  payload: ProjectTaskReorderPayload,
+): Promise<ProjectTaskListItem[]> {
+  return apiClient<ProjectTaskListItem[]>(
+    API_ENDPOINTS.projects.taskReorder(projectId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function getProjectTaskChecklist(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskChecklistItem[]> {
+  return apiClient<ProjectTaskChecklistItem[]>(
+    API_ENDPOINTS.projects.taskChecklist(projectId, taskId),
+    { method: "GET" },
+  );
+}
+
+export function createProjectTaskChecklistItem(
+  projectId: string,
+  taskId: string,
+  payload: ProjectTaskChecklistCreatePayload,
+): Promise<ProjectTaskChecklistItem> {
+  return apiClient<ProjectTaskChecklistItem>(
+    API_ENDPOINTS.projects.taskChecklist(projectId, taskId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function updateProjectTaskChecklistItem(
+  projectId: string,
+  taskId: string,
+  itemId: string,
+  payload: ProjectTaskChecklistUpdatePayload,
+): Promise<ProjectTaskChecklistItem> {
+  return apiClient<ProjectTaskChecklistItem>(
+    API_ENDPOINTS.projects.taskChecklistItem(projectId, taskId, itemId),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectTaskChecklistItem(
+  projectId: string,
+  taskId: string,
+  itemId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.taskChecklistItem(projectId, taskId, itemId),
+    { method: "DELETE" },
+  );
+}
+
+export function getProjectTaskComments(
+  projectId: string,
+  taskId: string,
+  params?: { page?: number; page_size?: number },
+): Promise<PaginatedResponse<ProjectTaskComment>> {
+  return apiClient<PaginatedResponse<ProjectTaskComment>>(
+    API_ENDPOINTS.projects.taskComments(projectId, taskId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function createProjectTaskComment(
+  projectId: string,
+  taskId: string,
+  payload: ProjectTaskCommentCreatePayload,
+): Promise<ProjectTaskComment> {
+  return apiClient<ProjectTaskComment>(
+    API_ENDPOINTS.projects.taskComments(projectId, taskId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectTaskComment(
+  projectId: string,
+  taskId: string,
+  commentId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.taskComment(projectId, taskId, commentId),
+    { method: "DELETE" },
+  );
 }

@@ -138,6 +138,25 @@ export const API_ENDPOINTS = {
     member: (id: string, memberId: string) =>
       `/projects/${id}/members/${memberId}/`,
     history: (id: string) => `/projects/${id}/history/`,
+    taskSummary: (id: string) => `/projects/${id}/task-summary/`,
+    tasks: (projectId: string) => `/projects/${projectId}/tasks/`,
+    taskReorder: (projectId: string) =>
+      `/projects/${projectId}/tasks/reorder/`,
+    taskDetail: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/`,
+    taskAssign: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/assign/`,
+    taskChecklist: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/checklist/`,
+    taskChecklistItem: (
+      projectId: string,
+      taskId: string,
+      itemId: string,
+    ) => `/projects/${projectId}/tasks/${taskId}/checklist/${itemId}/`,
+    taskComments: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/comments/`,
+    taskComment: (projectId: string, taskId: string, commentId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/comments/${commentId}/`,
   },
   reporting: {
     overview: "/reporting/overview/",

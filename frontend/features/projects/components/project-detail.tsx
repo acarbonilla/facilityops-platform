@@ -22,8 +22,13 @@ import {
   formatProjectError,
   formatProjectLabel,
 } from "@/lib/projects/display";
+import { formatProjectTaskSummaryCounts } from "@/lib/projects/tasks-display";
 import { readProjectFormFlash } from "@/lib/projects/form";
-import type { ProjectHistory, ProjectMember } from "@/types/projects";
+import type {
+  ProjectHistory,
+  ProjectMember,
+  ProjectTaskSummary,
+} from "@/types/projects";
 
 import { ProjectAttachments } from "./project-attachments";
 import { ProjectPriorityBadge } from "./project-priority-badge";
@@ -74,6 +79,47 @@ function MetadataList({
         </div>
       ))}
     </dl>
+  );
+}
+
+function TaskSummarySection({
+  projectId,
+  summary,
+}: {
+  projectId: string;
+  summary?: ProjectTaskSummary | null;
+}) {
+  const counts = formatProjectTaskSummaryCounts(summary);
+
+  return (
+    <SectionCard
+      description="Live task counts from the project detail payload. Open the task list to manage assignments and progress."
+      title="Tasks"
+    >
+      <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {counts.map((item) => (
+          <div
+            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+            key={item.label}
+          >
+            <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              {item.label}
+            </dt>
+            <dd className="mt-2 text-2xl font-semibold text-slate-950">
+              {item.value.toLocaleString()}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <div className="pt-2">
+        <Link
+          className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          href={`/projects/${projectId}/tasks`}
+        >
+          View project tasks
+        </Link>
+      </div>
+    </SectionCard>
   );
 }
 
@@ -322,6 +368,11 @@ export function ProjectDetailScreen({ projectId }: { projectId: string }) {
       >
         <MembersSummary members={project.members ?? []} />
       </SectionCard>
+
+      <TaskSummarySection
+        projectId={project.id}
+        summary={project.task_summary}
+      />
 
       <ProjectAttachments
         projectId={project.id}
