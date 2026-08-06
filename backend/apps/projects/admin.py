@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import Project, ProjectHistory, ProjectMember
+from .models import (
+    Project,
+    ProjectHistory,
+    ProjectMember,
+    ProjectTask,
+    ProjectTaskChecklistItem,
+    ProjectTaskComment,
+)
 
 AUDIT_READONLY_FIELDS = (
     "created_at",
@@ -48,4 +55,38 @@ class ProjectMemberAdmin(admin.ModelAdmin):
 class ProjectHistoryAdmin(admin.ModelAdmin):
     list_display = ("project", "action", "actor", "created_at")
     search_fields = ("project__project_code", "action", "description")
+    readonly_fields = AUDIT_READONLY_FIELDS
+
+
+@admin.register(ProjectTask)
+class ProjectTaskAdmin(admin.ModelAdmin):
+    list_display = (
+        "task_code",
+        "name",
+        "project",
+        "status",
+        "priority",
+        "person_in_charge",
+        "progress_percentage",
+        "is_milestone",
+        "is_deleted",
+    )
+    search_fields = ("task_code", "name", "description", "project__project_code")
+    list_filter = ("status", "priority", "is_milestone", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS + ("task_code",)
+
+
+@admin.register(ProjectTaskChecklistItem)
+class ProjectTaskChecklistItemAdmin(admin.ModelAdmin):
+    list_display = ("text", "task", "is_completed", "sequence", "is_deleted")
+    search_fields = ("text", "task__task_code")
+    list_filter = ("is_completed", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS
+
+
+@admin.register(ProjectTaskComment)
+class ProjectTaskCommentAdmin(admin.ModelAdmin):
+    list_display = ("task", "author", "is_internal", "created_at", "is_deleted")
+    search_fields = ("body", "task__task_code", "author__email")
+    list_filter = ("is_internal", "is_deleted")
     readonly_fields = AUDIT_READONLY_FIELDS

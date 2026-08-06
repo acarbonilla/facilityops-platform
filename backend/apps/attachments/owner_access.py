@@ -16,7 +16,7 @@ from apps.inspection.models import Inspection
 from apps.inspection.tenant_scope import scope_queryset_to_user as scope_inspections_to_user
 from apps.maintenance.models import MaintenanceWorkOrder
 from apps.maintenance.tenant_scope import scope_work_orders_to_user
-from apps.projects.models import Project
+from apps.projects.models import Project, ProjectTask
 from apps.projects.tenant_scope import scope_projects_to_user
 
 from .exceptions import AttachmentPermissionError, AttachmentValidationError
@@ -25,6 +25,7 @@ from .ownership import (
     INSPECTION_IMMUTABLE_STATUSES,
     MAINTENANCE_IMMUTABLE_STATUSES,
     PROJECT_IMMUTABLE_STATUSES,
+    PROJECT_TASK_IMMUTABLE_STATUSES,
     AttachmentOwnerType,
     AttachmentVisibility,
 )
@@ -396,6 +397,83 @@ def filter_queryset_for_project(*, queryset, project):
 
 
 # ---------------------------------------------------------------------------
+# Project Task (FO-104)
+# ---------------------------------------------------------------------------
+
+
+def can_view_project_task_attachments(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.tasks.view",
+        "projects.view",
+        "projects.manage",
+        "projects.tasks.manage",
+    )
+
+
+def can_contribute_to_project_task(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.tasks.update",
+        "projects.manage",
+        "projects.tasks.manage",
+    )
+
+
+def project_task_is_immutable(task) -> bool:
+    if getattr(task, "is_deleted", False):
+        return True
+    return getattr(task, "status", None) in PROJECT_TASK_IMMUTABLE_STATUSES
+
+
+def resolve_project_task_for_actor(*, actor, task_id):
+    if actor_is_requester_audience(actor) or not can_view_project_task_attachments(
+        actor
+    ):
+        raise Http404
+    queryset = ProjectTask.objects.filter(is_deleted=False).select_related("project")
+    project_ids = scope_projects_to_user(
+        Project.objects.filter(is_deleted=False),
+        actor,
+    ).values_list("id", flat=True)
+    task = queryset.filter(pk=task_id, project_id__in=project_ids).first()
+    if task is None:
+        raise Http404
+    return task
+
+
+def authorize_project_task_list(*, actor, task_id):
+    return resolve_project_task_for_actor(actor=actor, task_id=task_id)
+
+
+def authorize_project_task_upload(*, actor, task_id, requested_visibility=None):
+    task = resolve_project_task_for_actor(actor=actor, task_id=task_id)
+    if project_task_is_immutable(task):
+        raise AttachmentPermissionError(
+            "Attachments cannot be uploaded while this task is completed or cancelled."
+        )
+    if not can_contribute_to_project_task(actor):
+        raise AttachmentPermissionError(
+            "You do not have permission to upload attachments for this task."
+        )
+    visibility = resolve_upload_visibility(
+        actor=actor,
+        requested_visibility=requested_visibility,
+        owner_type=AttachmentOwnerType.PROJECT_TASK,
+    )
+    return task, visibility
+
+
+def filter_queryset_for_project_task(*, queryset, task):
+    return queryset.filter(
+        owner_type=AttachmentOwnerType.PROJECT_TASK,
+        owner_id=task.id,
+        tenant_id=task.tenant_id,
+        visibility=AttachmentVisibility.INTERNAL_ONLY,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Shared owned-attachment access
 # ---------------------------------------------------------------------------
 
@@ -423,6 +501,10 @@ def authorize_owned_attachment_access(*, actor, attachment, action: str):
         )
     if owner_type == AttachmentOwnerType.PROJECT and owner_id is not None:
         return _authorize_project_attachment(
+            actor=actor, attachment=attachment, action=action, owner_id=owner_id
+        )
+    if owner_type == AttachmentOwnerType.PROJECT_TASK and owner_id is not None:
+        return _authorize_project_task_attachment(
             actor=actor, attachment=attachment, action=action, owner_id=owner_id
         )
     # Unsupported or incomplete owner context must never grant access.
@@ -541,6 +623,31 @@ def _authorize_project_attachment(*, actor, attachment, action, owner_id):
     raise Http404
 
 
+def _authorize_project_task_attachment(*, actor, attachment, action, owner_id):
+    try:
+        task = resolve_project_task_for_actor(actor=actor, task_id=owner_id)
+    except Http404:
+        raise Http404 from None
+
+    if attachment.tenant_id != task.tenant_id:
+        raise Http404
+    if attachment.visibility != AttachmentVisibility.INTERNAL_ONLY:
+        if actor_is_requester_audience(actor):
+            raise Http404
+
+    if action in {"view", "download"}:
+        return True
+
+    if action == "delete":
+        if project_task_is_immutable(task):
+            raise Http404
+        if not can_contribute_to_project_task(actor):
+            raise Http404
+        return True
+
+    raise Http404
+
+
 def compute_can_delete_for_attachment(*, actor, attachment) -> bool:
     """Advisory capability used by serializers; DELETE still revalidates."""
     from apps.attachments.tenant_scope import user_can_delete_attachments
@@ -606,6 +713,19 @@ def compute_can_delete_for_attachment(*, actor, attachment) -> bool:
             actor,
         ).filter(pk=owner_id).first()
         if project is None or project_is_immutable(project):
+            return False
+        return True
+
+    if owner_type == AttachmentOwnerType.PROJECT_TASK:
+        if not can_view_project_task_attachments(
+            actor
+        ) or not can_contribute_to_project_task(actor):
+            return False
+        try:
+            task = resolve_project_task_for_actor(actor=actor, task_id=owner_id)
+        except Http404:
+            return False
+        if project_task_is_immutable(task):
             return False
         return True
 

@@ -2,11 +2,25 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
-from .models import Project, ProjectHistory, ProjectMember
+from .models import (
+    Project,
+    ProjectHistory,
+    ProjectMember,
+    ProjectTask,
+    ProjectTaskChecklistItem,
+    ProjectTaskComment,
+)
 from .services import (
     add_project_member,
+    add_task_comment,
+    assign_task,
+    build_task_summary,
+    create_checklist_item,
     create_project,
+    create_task,
+    update_checklist_item,
     update_project,
+    update_task,
 )
 from .tenant_scope import has_global_project_scope
 
@@ -149,6 +163,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     )
     members = serializers.SerializerMethodField()
     recent_history = serializers.SerializerMethodField()
+    task_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -173,6 +188,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             "completion_percentage",
             "members",
             "recent_history",
+            "task_summary",
             "created_at",
             "updated_at",
         )
@@ -189,6 +205,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             :10
         ]
         return ProjectHistorySerializer(entries, many=True).data
+
+    def get_task_summary(self, obj):
+        return build_task_summary(obj)
 
 
 class ProjectCreateSerializer(ProjectValidationMixin, serializers.ModelSerializer):
@@ -300,3 +319,323 @@ class ProjectUpdateSerializer(ProjectValidationMixin, serializers.ModelSerialize
             data=validated_data,
             actor=self.context["request"].user,
         )
+
+
+# ---------------------------------------------------------------------------
+# FO-104 Task serializers
+# ---------------------------------------------------------------------------
+
+
+class ProjectTaskChecklistItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectTaskChecklistItem
+        fields = (
+            "id",
+            "task",
+            "text",
+            "is_completed",
+            "sequence",
+            "completed_by",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "task",
+            "completed_by",
+            "completed_at",
+            "created_at",
+            "updated_at",
+        )
+
+
+class ProjectTaskChecklistItemCreateSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=500)
+    sequence = serializers.IntegerField(required=False, min_value=0)
+    is_completed = serializers.BooleanField(required=False, default=False)
+
+    def create(self, validated_data):
+        return create_checklist_item(
+            task=self.context["task"],
+            actor=self.context["request"].user,
+            **validated_data,
+        )
+
+
+class ProjectTaskChecklistItemUpdateSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=500, required=False)
+    sequence = serializers.IntegerField(required=False, min_value=0)
+    is_completed = serializers.BooleanField(required=False)
+
+    def update(self, instance, validated_data):
+        return update_checklist_item(
+            item=instance,
+            data=validated_data,
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectTaskCommentSerializer(serializers.ModelSerializer):
+    author_email = serializers.EmailField(source="author.email", read_only=True)
+
+    class Meta:
+        model = ProjectTaskComment
+        fields = (
+            "id",
+            "task",
+            "author",
+            "author_email",
+            "body",
+            "is_internal",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "task",
+            "author",
+            "author_email",
+            "is_internal",
+            "created_at",
+            "updated_at",
+        )
+
+
+class ProjectTaskCommentCreateSerializer(serializers.Serializer):
+    body = serializers.CharField()
+    is_internal = serializers.BooleanField(required=False, default=True)
+
+    def create(self, validated_data):
+        return add_task_comment(
+            task=self.context["task"],
+            body=validated_data["body"],
+            is_internal=validated_data.get("is_internal", True),
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectTaskListSerializer(serializers.ModelSerializer):
+    person_in_charge_email = serializers.EmailField(
+        source="person_in_charge.email", read_only=True, default=None
+    )
+
+    class Meta:
+        model = ProjectTask
+        fields = (
+            "id",
+            "tenant",
+            "project",
+            "task_code",
+            "name",
+            "description",
+            "person_in_charge",
+            "person_in_charge_email",
+            "status",
+            "priority",
+            "planned_start",
+            "planned_end",
+            "actual_start",
+            "actual_end",
+            "progress_percentage",
+            "sequence",
+            "is_milestone",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class ProjectTaskDetailSerializer(serializers.ModelSerializer):
+    person_in_charge_email = serializers.EmailField(
+        source="person_in_charge.email", read_only=True, default=None
+    )
+    checklist_items = serializers.SerializerMethodField()
+    comments = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectTask
+        fields = (
+            "id",
+            "tenant",
+            "project",
+            "task_code",
+            "name",
+            "description",
+            "person_in_charge",
+            "person_in_charge_email",
+            "status",
+            "priority",
+            "planned_start",
+            "planned_end",
+            "actual_start",
+            "actual_end",
+            "progress_percentage",
+            "sequence",
+            "is_milestone",
+            "checklist_items",
+            "comments",
+            "comments_count",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_checklist_items(self, obj):
+        items = obj.checklist_items.filter(is_deleted=False).order_by(
+            "sequence", "created_at"
+        )
+        return ProjectTaskChecklistItemSerializer(items, many=True).data
+
+    def get_comments(self, obj):
+        comments = obj.comments.filter(is_deleted=False).select_related("author")
+        return ProjectTaskCommentSerializer(comments, many=True).data
+
+    def get_comments_count(self, obj):
+        return obj.comments.filter(is_deleted=False).count()
+
+
+class ProjectTaskValidationMixin:
+    def _run_task_clean(self, attrs, *, instance=None, project=None):
+        if instance is None:
+            task = ProjectTask(project=project, tenant=project.tenant)
+        else:
+            task = ProjectTask.objects.select_related("project").get(pk=instance.pk)
+
+        for field, value in attrs.items():
+            setattr(task, field, value)
+
+        try:
+            task.clean()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
+        attrs["progress_percentage"] = task.progress_percentage
+        attrs["status"] = task.status
+        if task.planned_end is not None:
+            attrs["planned_end"] = task.planned_end
+        if task.actual_end is not None:
+            attrs["actual_end"] = task.actual_end
+        return attrs
+
+
+class ProjectTaskCreateSerializer(
+    ProjectTaskValidationMixin, serializers.ModelSerializer
+):
+    class Meta:
+        model = ProjectTask
+        fields = (
+            "id",
+            "name",
+            "description",
+            "person_in_charge",
+            "status",
+            "priority",
+            "planned_start",
+            "planned_end",
+            "actual_start",
+            "actual_end",
+            "progress_percentage",
+            "sequence",
+            "is_milestone",
+        )
+        read_only_fields = ("id",)
+
+    def validate(self, attrs):
+        project = self.context["project"]
+        return self._run_task_clean(attrs, project=project)
+
+    def create(self, validated_data):
+        return create_task(
+            project=self.context["project"],
+            actor=self.context["request"].user,
+            data=validated_data,
+        )
+
+
+class ProjectTaskUpdateSerializer(
+    ProjectTaskValidationMixin, serializers.ModelSerializer
+):
+    class Meta:
+        model = ProjectTask
+        fields = (
+            "name",
+            "description",
+            "person_in_charge",
+            "status",
+            "priority",
+            "planned_start",
+            "planned_end",
+            "actual_start",
+            "actual_end",
+            "progress_percentage",
+            "sequence",
+            "is_milestone",
+        )
+
+    def validate(self, attrs):
+        merged = {}
+        for field in self.Meta.fields:
+            if field in attrs:
+                merged[field] = attrs[field]
+            else:
+                merged[field] = getattr(self.instance, field)
+        cleaned = self._run_task_clean(merged, instance=self.instance)
+        result = dict(attrs)
+        if "progress_percentage" in attrs or "status" in attrs:
+            result["progress_percentage"] = cleaned["progress_percentage"]
+            result["status"] = cleaned["status"]
+        if (
+            "planned_start" in attrs
+            or self.instance.is_milestone
+            or attrs.get("is_milestone")
+        ):
+            if "planned_end" in cleaned:
+                result["planned_end"] = cleaned["planned_end"]
+        return result
+
+    def update(self, instance, validated_data):
+        return update_task(
+            task=instance,
+            data=validated_data,
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectTaskAssignSerializer(serializers.Serializer):
+    person_in_charge = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        required=False,
+        allow_null=False,
+    )
+    person_in_charge_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        source="person_in_charge",
+        required=False,
+        allow_null=False,
+    )
+
+    def validate(self, attrs):
+        if "person_in_charge" not in attrs:
+            raise serializers.ValidationError(
+                {
+                    "person_in_charge": (
+                        "Provide person_in_charge or person_in_charge_id."
+                    )
+                }
+            )
+        return attrs
+
+    def save(self, **kwargs):
+        return assign_task(
+            task=self.context["task"],
+            person_in_charge=self.validated_data["person_in_charge"],
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectTaskReorderSerializer(serializers.Serializer):
+    task_ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        allow_empty=False,
+    )

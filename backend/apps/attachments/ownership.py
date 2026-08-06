@@ -11,6 +11,7 @@ class AttachmentOwnerType:
     MAINTENANCE_WORK_ORDER = "maintenance_work_order"
     INSPECTION = "inspection"
     PROJECT = "project"
+    PROJECT_TASK = "project_task"
 
     CHOICES = (
         (NONE, "Unlinked"),
@@ -18,14 +19,15 @@ class AttachmentOwnerType:
         (MAINTENANCE_WORK_ORDER, "Maintenance Work Order"),
         (INSPECTION, "5S Inspection"),
         (PROJECT, "Project"),
+        (PROJECT_TASK, "Project Task"),
     )
 
     SUPPORTED = frozenset(
-        {FM_TICKET, MAINTENANCE_WORK_ORDER, INSPECTION, PROJECT}
+        {FM_TICKET, MAINTENANCE_WORK_ORDER, INSPECTION, PROJECT, PROJECT_TASK}
     )
     # Modules that never expose evidence to Employee Requesters.
     INTERNAL_ONLY_OWNERS = frozenset(
-        {MAINTENANCE_WORK_ORDER, INSPECTION, PROJECT}
+        {MAINTENANCE_WORK_ORDER, INSPECTION, PROJECT, PROJECT_TASK}
     )
 
 
@@ -57,3 +59,6 @@ INSPECTION_IMMUTABLE_STATUSES = frozenset({"completed", "verified", "cancelled"}
 
 # Project statuses where ordinary evidence uploads/deletes are locked.
 PROJECT_IMMUTABLE_STATUSES = frozenset({"completed", "cancelled"})
+
+# Project task statuses where ordinary evidence uploads/deletes are locked.
+PROJECT_TASK_IMMUTABLE_STATUSES = frozenset({"completed", "cancelled"})

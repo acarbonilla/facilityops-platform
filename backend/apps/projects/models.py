@@ -263,3 +263,336 @@ class ProjectHistory(BaseModel):
 
     def __str__(self):
         return f"{self.project} {self.action}"
+
+
+class ProjectTask(BaseModel):
+    """FO-104 project task. Task codes never reuse soft-deleted sequences."""
+
+    class Status(models.TextChoices):
+        NOT_STARTED = "not_started", "Not Started"
+        IN_PROGRESS = "in_progress", "In Progress"
+        BLOCKED = "blocked", "Blocked"
+        ON_HOLD = "on_hold", "On Hold"
+        COMPLETED = "completed", "Completed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    class Priority(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_tasks",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="tasks",
+    )
+    task_code = models.CharField(max_length=48, blank=True, db_index=True)
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    person_in_charge = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_tasks_as_pic",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.NOT_STARTED,
+        db_index=True,
+    )
+    priority = models.CharField(
+        max_length=20,
+        choices=Priority.choices,
+        default=Priority.MEDIUM,
+        db_index=True,
+    )
+    planned_start = models.DateField(null=True, blank=True)
+    planned_end = models.DateField(null=True, blank=True)
+    actual_start = models.DateField(null=True, blank=True)
+    actual_end = models.DateField(null=True, blank=True)
+    progress_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
+    sequence = models.PositiveIntegerField(default=0)
+    is_milestone = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["sequence", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("project", "task_code"),
+                name="unique_task_code_per_project",
+            ),
+        ]
+
+    def __str__(self):
+        return self.task_code or self.name
+
+    def apply_progress_status_sync(self):
+        """Enforce FO-104 progress/status sync rules."""
+        progress = self.progress_percentage
+        if progress is None:
+            progress = Decimal("0.00")
+        else:
+            progress = Decimal(str(progress))
+
+        if progress < Decimal("0.00") or progress > Decimal("100.00"):
+            raise ValidationError(
+                {
+                    "progress_percentage": (
+                        "Progress must be a decimal between 0 and 100."
+                    )
+                }
+            )
+
+        if self.status == self.Status.COMPLETED:
+            self.progress_percentage = Decimal("100.00")
+        elif self.status == self.Status.NOT_STARTED:
+            self.progress_percentage = Decimal("0.00")
+        elif self.status == self.Status.CANCELLED:
+            # Preserve last progress; do not force 0 or 100.
+            self.progress_percentage = progress
+        elif self.status == self.Status.IN_PROGRESS:
+            if progress == Decimal("100.00"):
+                # Prefer coerce status to completed when progress hits 100.
+                self.status = self.Status.COMPLETED
+                self.progress_percentage = Decimal("100.00")
+            elif progress == Decimal("0.00"):
+                self.progress_percentage = Decimal("1.00")
+            else:
+                self.progress_percentage = progress
+        else:
+            # blocked / on_hold: preserve progress (0-100 OK)
+            self.progress_percentage = progress
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.project_id and self.tenant_id and self.project.tenant_id != self.tenant_id:
+            errors["tenant"] = "Task tenant must match the project tenant."
+
+        # Milestone: if only start provided, allow end=start (zero duration).
+        if (
+            self.is_milestone
+            and self.planned_start
+            and not self.planned_end
+        ):
+            self.planned_end = self.planned_start
+        if (
+            self.is_milestone
+            and self.actual_start
+            and not self.actual_end
+        ):
+            self.actual_end = self.actual_start
+
+        if (
+            self.planned_start
+            and self.planned_end
+            and self.planned_end < self.planned_start
+        ):
+            errors["planned_end"] = (
+                "Planned end must be on or after the planned start."
+            )
+
+        if (
+            self.actual_start
+            and self.actual_end
+            and self.actual_end < self.actual_start
+        ):
+            errors["actual_end"] = (
+                "Actual end must be on or after the actual start."
+            )
+
+        # Reject task planned dates outside project window when BOTH project
+        # planned dates are set; incomplete project schedule allows any range.
+        if self.project_id:
+            project = self.project
+            if project.planned_start_date and project.planned_end_date:
+                if self.planned_start and (
+                    self.planned_start < project.planned_start_date
+                    or self.planned_start > project.planned_end_date
+                ):
+                    errors["planned_start"] = (
+                        "Task planned start must fall within the project "
+                        "planned schedule."
+                    )
+                if self.planned_end and (
+                    self.planned_end < project.planned_start_date
+                    or self.planned_end > project.planned_end_date
+                ):
+                    errors["planned_end"] = (
+                        "Task planned end must fall within the project "
+                        "planned schedule."
+                    )
+
+        try:
+            self.apply_progress_status_sync()
+        except ValidationError as exc:
+            if hasattr(exc, "message_dict"):
+                errors.update(exc.message_dict)
+            else:
+                errors["progress_percentage"] = list(exc.messages)
+
+        # PIC optional at create; required before in_progress / completed.
+        if self.status in (self.Status.IN_PROGRESS, self.Status.COMPLETED):
+            if not self.person_in_charge_id:
+                errors["person_in_charge"] = (
+                    "Person in charge is required before moving a task to "
+                    f"{self.status}."
+                )
+            else:
+                pic_error = self._validate_person_in_charge()
+                if pic_error:
+                    errors["person_in_charge"] = pic_error
+        elif self.person_in_charge_id:
+            pic_error = self._validate_person_in_charge()
+            if pic_error:
+                errors["person_in_charge"] = pic_error
+
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_person_in_charge(self):
+        """PIC must be active ProjectMember or project_manager, same tenant."""
+        user = self.person_in_charge
+        if user.tenant_id != self.tenant_id:
+            return "Person in charge must belong to the project tenant."
+        if not user.is_active:
+            return "Person in charge must be an active user."
+
+        if self.project.project_manager_id == user.id:
+            return None
+
+        is_active_member = ProjectMember.objects.filter(
+            project_id=self.project_id,
+            user_id=user.id,
+            is_active=True,
+            is_deleted=False,
+        ).exists()
+        if not is_active_member:
+            return (
+                "Person in charge must be an active project member or the "
+                "project manager."
+            )
+        return None
+
+    def _generate_task_code(self):
+        # Include soft-deleted in sequence scan so codes are never reused.
+        project = Project.objects.select_for_update().get(pk=self.project_id)
+        prefix = f"{project.project_code}-T"
+        latest_code = (
+            ProjectTask.objects.filter(
+                project_id=self.project_id,
+                task_code__startswith=prefix,
+            )
+            .order_by("-task_code")
+            .values_list("task_code", flat=True)
+            .first()
+        )
+        if latest_code and latest_code.rsplit("-T", 1)[-1].isdigit():
+            last_sequence = int(latest_code.rsplit("-T", 1)[-1])
+        else:
+            last_sequence = 0
+        return f"{prefix}{last_sequence + 1:03d}"
+
+    def save(self, *args, **kwargs):
+        if not self.task_code:
+            self.task_code = self._generate_task_code()
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProjectTaskChecklistItem(BaseModel):
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_task_checklist_items",
+    )
+    task = models.ForeignKey(
+        ProjectTask,
+        on_delete=models.CASCADE,
+        related_name="checklist_items",
+    )
+    text = models.CharField(max_length=500)
+    is_completed = models.BooleanField(default=False)
+    sequence = models.PositiveIntegerField(default=0)
+    completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="completed_project_task_checklist_items",
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["sequence", "created_at"]
+
+    def __str__(self):
+        return self.text[:50]
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.task_id and self.tenant_id and self.task.tenant_id != self.tenant_id:
+            errors["tenant"] = "Checklist item tenant must match the task tenant."
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProjectTaskComment(BaseModel):
+    # is_internal default True — project comments are internal-only (FO-104).
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_task_comments",
+    )
+    task = models.ForeignKey(
+        ProjectTask,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_task_comments",
+    )
+    body = models.TextField()
+    is_internal = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment on {self.task_id}"
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.task_id and self.tenant_id and self.task.tenant_id != self.tenant_id:
+            errors["tenant"] = "Comment tenant must match the task tenant."
+        if not (self.body or "").strip():
+            errors["body"] = "Comment body is required."
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
