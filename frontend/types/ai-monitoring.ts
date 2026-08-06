@@ -21,6 +21,17 @@ export type AIMonitoringProvider = {
   feature_image_analysis: boolean;
 };
 
+export type AIMonitoringQueue = {
+  queued: number;
+  processing: number;
+  waiting_for_retry?: number;
+  completed: number;
+  failed: number;
+  retrying: number;
+  backlog: number;
+  depth: number;
+};
+
 export type AIMonitoringRuntime = {
   total_analyses: number;
   analyses_today: number;
@@ -34,16 +45,37 @@ export type AIMonitoringRuntime = {
   retrying_now: number;
   average_duration_ms: number | null;
   average_queue_wait_ms: number | null;
+  average_retry_count?: number;
+  last_successful_analysis_at?: string | null;
 };
 
-export type AIMonitoringQueue = {
-  queued: number;
-  processing: number;
-  completed: number;
-  failed: number;
-  retrying: number;
-  backlog: number;
-  depth: number;
+export type AIMonitoringDiagnostics = {
+  provider_status: string;
+  billing: { signal: string; recent_billing_failures: number };
+  quota: { signal: string; recent_quota_failures: number };
+  rate_limit: { signal: string; recent_rate_limit_failures: number };
+  authentication: {
+    signal: string;
+    recent_auth_failures: number;
+    api_key_configured: boolean;
+  };
+  last_error: {
+    http_status?: number | null;
+    provider_error_code?: string;
+    provider_message?: string;
+    retryable?: boolean;
+    request_timestamp?: string;
+    model?: string;
+    error_code?: string;
+    admin_message?: string;
+    analysis_id?: string;
+    status?: string;
+  } | null;
+  current_model: string;
+  retry_queue: { waiting_for_retry: number; retrying_now: number };
+  success_rate?: number;
+  average_retry_count?: number;
+  last_successful_analysis_at?: string | null;
 };
 
 export type AIMonitoringAlert = {
@@ -98,6 +130,7 @@ export type AIMonitoringOverview = {
   recent_activity: AIMonitoringActivity[];
   error_categories: Record<string, number>;
   thresholds_used: Record<string, number>;
+  diagnostics?: AIMonitoringDiagnostics;
   interpretation?: {
     note?: string;
     retrying_definition?: string;

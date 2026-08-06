@@ -273,3 +273,16 @@ export function decideFmTicketAiRecommendation(
     },
   );
 }
+
+export function retryFmTicketAiAnalysis(
+  ticketId: string,
+  analysisId: string,
+): Promise<FmTicketAiAnalysis> {
+  return apiClient<FmTicketAiAnalysis>(
+    API_ENDPOINTS.fmTickets.aiAnalysisRetry(ticketId, analysisId),
+    {
+      method: "POST",
+      body: {},
+    },
+  );
+}

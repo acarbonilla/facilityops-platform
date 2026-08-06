@@ -158,12 +158,17 @@ class AICeleryLifecycleTests(TestCase):
             ),
         ]
         with patch(
-            "apps.fm_tickets.ai_processing_service.get_ai_provider",
-            return_value=provider,
+            "apps.fm_tickets.ai_processing_service._schedule_delayed_retry"
         ):
-            with self.assertRaises(RetryableAIProcessing):
-                process_ticket_ai_analysis(str(analysis.id), attempt=1)
-            result = process_ticket_ai_analysis(str(analysis.id), attempt=2)
+            with patch(
+                "apps.fm_tickets.ai_processing_service.get_ai_provider",
+                return_value=provider,
+            ):
+                first = process_ticket_ai_analysis(str(analysis.id), attempt=1)
+                self.assertEqual(
+                    first["status"], AITicketAnalysis.Status.WAITING_FOR_RETRY
+                )
+                result = process_ticket_ai_analysis(str(analysis.id), attempt=2)
 
         analysis.refresh_from_db()
         self.assertTrue(result["ok"])
@@ -174,18 +179,19 @@ class AICeleryLifecycleTests(TestCase):
     def test_retry_exhaustion_marks_failed(self):
         analysis = self._queue()
         with patch(
-            "apps.fm_tickets.ai_processing_service.get_ai_provider",
-            side_effect=AIAnalysisError(AIErrorCode.PROVIDER_TIMEOUT, retryable=True),
+            "apps.fm_tickets.ai_processing_service._schedule_delayed_retry"
         ):
-            with self.assertRaises(RetryableAIProcessing):
+            with patch(
+                "apps.fm_tickets.ai_processing_service.get_ai_provider",
+                side_effect=AIAnalysisError(AIErrorCode.PROVIDER_TIMEOUT, retryable=True),
+            ):
                 process_ticket_ai_analysis(str(analysis.id), attempt=1)
-            with self.assertRaises(RetryableAIProcessing):
                 process_ticket_ai_analysis(str(analysis.id), attempt=2)
-            result = process_ticket_ai_analysis(str(analysis.id), attempt=3)
+                result = process_ticket_ai_analysis(str(analysis.id), attempt=3)
 
         analysis.refresh_from_db()
         self.assertFalse(result["ok"])
-        self.assertEqual(analysis.status, AITicketAnalysis.Status.FAILED)
+        self.assertEqual(analysis.status, AITicketAnalysis.Status.RETRY_FAILED)
         self.assertEqual(analysis.error_code, AIErrorCode.PROVIDER_TIMEOUT)
         self.assertFalse(analysis.retryable)
 
@@ -199,7 +205,7 @@ class AICeleryLifecycleTests(TestCase):
 
         analysis.refresh_from_db()
         self.assertFalse(result["ok"])
-        self.assertEqual(analysis.status, AITicketAnalysis.Status.FAILED)
+        self.assertEqual(analysis.status, AITicketAnalysis.Status.PERMANENTLY_FAILED)
         self.assertEqual(analysis.error_code, AIErrorCode.PROVIDER_AUTH_FAILED)
         self.assertNotEqual(analysis.status, AITicketAnalysis.Status.PROCESSING)
         self.assertNotIn("api key", analysis.error_message.lower())
@@ -227,7 +233,7 @@ class AICeleryLifecycleTests(TestCase):
 
         analysis.refresh_from_db()
         self.assertFalse(result["ok"])
-        self.assertEqual(analysis.status, AITicketAnalysis.Status.FAILED)
+        self.assertEqual(analysis.status, AITicketAnalysis.Status.PERMANENTLY_FAILED)
         self.assertEqual(analysis.error_code, AIErrorCode.SCHEMA_VALIDATION_FAILED)
         self.assertNotIn("Traceback", analysis.error_message)
         self.assertNotIn("api key", analysis.error_message.lower())

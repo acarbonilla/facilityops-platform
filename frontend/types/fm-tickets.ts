@@ -163,8 +163,12 @@ export interface FmTicketDetail extends FmTicketBaseRecord {
 export type FmTicketAiAnalysisStatus =
   | "queued"
   | "processing"
+  | "waiting_for_retry"
+  | "retrying"
   | "completed"
-  | "failed";
+  | "failed"
+  | "retry_failed"
+  | "permanently_failed";
 
 export interface FmTicketAiAnalysis {
   id: string;
@@ -179,6 +183,7 @@ export interface FmTicketAiAnalysis {
   queued_at: string;
   started_at: string | null;
   completed_at: string | null;
+  next_retry_at?: string | null;
   duration_ms: number | null;
   result?: Record<string, unknown>;
   result_json: Record<string, unknown>;
@@ -203,6 +208,8 @@ export interface FmTicketAiAnalysis {
   decision_user?: { id: string; email: string } | null;
   error_message: string;
   error_code?: string;
+  admin_diagnostic_message?: string;
+  provider_diagnostics?: Record<string, unknown>;
   retryable?: boolean;
   attempt_count?: number;
   input_image_count?: number | null;

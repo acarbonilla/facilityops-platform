@@ -174,7 +174,7 @@ class GeminiVisionProvider:
                 config=config,
             )
         except Exception as exc:
-            raise _normalize_gemini_exception(exc) from exc
+            raise _normalize_gemini_exception(exc, model=model) from exc
 
         finish_reason = ""
         try:
@@ -227,17 +227,7 @@ class GeminiVisionProvider:
         return payload
 
 
-def _normalize_gemini_exception(exc: Exception) -> AIAnalysisError:
-    text = str(exc).lower()
-    status = getattr(exc, "status_code", None) or getattr(exc, "code", None)
-    if status in {401, 403} or "api key" in text or "permission" in text or "unauth" in text:
-        return AIAnalysisError(AIErrorCode.PROVIDER_AUTH_FAILED)
-    if status == 429 or "rate" in text or "quota" in text:
-        return AIAnalysisError(AIErrorCode.PROVIDER_RATE_LIMITED, retryable=True)
-    if status in {500, 502, 503, 504} or "unavailable" in text or "internal" in text:
-        return AIAnalysisError(AIErrorCode.PROVIDER_UNAVAILABLE, retryable=True)
-    if "timeout" in text or "timed out" in text or "deadline" in text:
-        return AIAnalysisError(AIErrorCode.PROVIDER_TIMEOUT, retryable=True)
-    if "safety" in text or "blocked" in text:
-        return AIAnalysisError(AIErrorCode.SAFETY_BLOCKED)
-    return AIAnalysisError(AIErrorCode.PROVIDER_UNAVAILABLE, retryable=True)
+def _normalize_gemini_exception(exc: Exception, *, model: str = "") -> AIAnalysisError:
+    from .gemini_diagnostics import classify_gemini_exception
+
+    return classify_gemini_exception(exc, model=model)

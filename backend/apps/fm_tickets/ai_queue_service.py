@@ -102,10 +102,7 @@ def queue_ticket_image_analysis(
         AITicketAnalysis.objects.filter(
             ticket=ticket,
             is_deleted=False,
-            status__in=(
-                AITicketAnalysis.Status.QUEUED,
-                AITicketAnalysis.Status.PROCESSING,
-            ),
+            status__in=AITicketAnalysis.ACTIVE_STATUSES,
         )
         .order_by("-queued_at", "-created_at")
         .first()
@@ -193,3 +190,113 @@ def list_ticket_ai_analyses(*, actor, ticket_id):
         .prefetch_related("analysis_attachments")
         .order_by("-queued_at", "-created_at")
     )
+
+
+@transaction.atomic
+def retry_ticket_ai_analysis(*, actor, ticket_id, analysis_id) -> AITicketAnalysis:
+    """FO-102: manually re-enqueue a failed analysis without creating a duplicate row.
+
+    Preserves the same AITicketAnalysis id/audit trail. Refuses when another
+    analysis for the ticket is already active, or when this analysis is active.
+    """
+    ticket = _scoped_ticket_or_404(actor=actor, ticket_id=ticket_id)
+    analysis = (
+        AITicketAnalysis.objects.select_for_update()
+        .filter(
+            pk=analysis_id,
+            ticket=ticket,
+            tenant_id=ticket.tenant_id,
+            is_deleted=False,
+        )
+        .first()
+    )
+    if analysis is None:
+        raise Http404
+
+    if analysis.status in AITicketAnalysis.ACTIVE_STATUSES:
+        logger.info(
+            "AI analysis retry skipped — already active",
+            extra={
+                "analysis_id": str(analysis.id),
+                "status": analysis.status,
+            },
+        )
+        return analysis
+
+    if analysis.status == AITicketAnalysis.Status.COMPLETED:
+        raise AITicketAnalysisValidationError(
+            "Completed analyses cannot be retried; queue a new analysis instead."
+        )
+
+    if analysis.status not in AITicketAnalysis.TERMINAL_FAILURE_STATUSES:
+        raise AITicketAnalysisValidationError(
+            "Only failed analyses can be manually retried."
+        )
+
+    other_active = (
+        AITicketAnalysis.objects.filter(
+            ticket=ticket,
+            is_deleted=False,
+            status__in=AITicketAnalysis.ACTIVE_STATUSES,
+        )
+        .exclude(pk=analysis.pk)
+        .exists()
+    )
+    if other_active:
+        raise AITicketAnalysisValidationError(
+            "Another AI analysis is already queued or running for this ticket."
+        )
+
+    actor_id = str(actor.id) if actor is not None else None
+    prior_attempt = analysis.attempt_count or 0
+    analysis.status = AITicketAnalysis.Status.QUEUED
+    analysis.queued_at = timezone.now()
+    analysis.started_at = None
+    analysis.completed_at = None
+    analysis.next_retry_at = None
+    analysis.error_message = ""
+    analysis.error_code = ""
+    analysis.admin_diagnostic_message = ""
+    diagnostics = dict(analysis.provider_diagnostics or {})
+    diagnostics["manual_retry_requested_at"] = timezone.now().isoformat()
+    diagnostics["manual_retry_by"] = actor_id or ""
+    diagnostics["prior_attempt_count"] = prior_attempt
+    analysis.provider_diagnostics = diagnostics
+    analysis.retryable = False
+    analysis.updated_by = actor_id
+    analysis.save(
+        update_fields=[
+            "status",
+            "queued_at",
+            "started_at",
+            "completed_at",
+            "next_retry_at",
+            "error_message",
+            "error_code",
+            "admin_diagnostic_message",
+            "provider_diagnostics",
+            "retryable",
+            "updated_at",
+            "updated_by",
+        ]
+    )
+
+    from .tasks import process_fm_ticket_ai_analysis
+
+    async_result = process_fm_ticket_ai_analysis.delay(
+        str(analysis.id),
+        attempt=1,
+    )
+    analysis.celery_task_id = getattr(async_result, "id", "") or ""
+    analysis.save(update_fields=["celery_task_id", "updated_at", "updated_by"])
+
+    logger.info(
+        "Manually retried FM ticket AI analysis",
+        extra={
+            "analysis_id": str(analysis.id),
+            "ticket_id": str(ticket.id),
+            "celery_task_id": analysis.celery_task_id,
+            "prior_attempt_count": prior_attempt,
+        },
+    )
+    return analysis

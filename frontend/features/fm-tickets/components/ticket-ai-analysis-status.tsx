@@ -7,6 +7,7 @@ import { ChevronDown } from "lucide-react";
 import {
   decideFmTicketAiRecommendation,
   getFmTicketAiAnalyses,
+  retryFmTicketAiAnalysis,
 } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 import {
@@ -14,6 +15,7 @@ import {
   getAiAnalysisStatusTitle,
   getAiGeneratedDisclaimer,
   getRecommendationHumanReviewNotice,
+  isAiAnalysisInFlight,
   resolveAiAnalysisUiStatus,
   shouldShowAiAnalysisPanel,
   shouldShowRecommendations,
@@ -85,7 +87,7 @@ export function TicketAiAnalysisStatusPanel({
     refetchInterval: (query) => {
       const latest = query.state.data?.results?.[0];
       const status = resolveAiAnalysisUiStatus(latest?.status);
-      return status === "queued" || status === "processing" ? 5000 : false;
+      return isAiAnalysisInFlight(status) ? 5000 : false;
     },
   });
 
@@ -98,6 +100,16 @@ export function TicketAiAnalysisStatusPanel({
     return resolveAiAnalysisUiStatus(latest?.status);
   })();
   const recommendationPanelId = useId();
+
+  const retryMutation = useMutation({
+    mutationFn: () =>
+      retryFmTicketAiAnalysis(ticketId, String(latest?.id || "")),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: fmTicketsQueryKeys.aiAnalyses(ticketId),
+      });
+    },
+  });
   const liveRegionId = useId();
   const [recommendationsOpen, setRecommendationsOpen] = useState(false);
   const [modifyMode, setModifyMode] = useState(false);
@@ -594,10 +606,35 @@ export function TicketAiAnalysisStatusPanel({
         </div>
       ) : null}
 
-      {uiStatus === "failed" && latest?.error_message ? (
-        <p className="mt-3 text-sm text-slate-700" role="status">
-          {latest.error_message}
-        </p>
+      {uiStatus === "failed" && latest ? (
+        <div className="mt-3 space-y-2" role="status">
+          {latest.error_message ? (
+            <p className="text-sm text-slate-700">{latest.error_message}</p>
+          ) : null}
+          {audience === "internal" && latest.error_code ? (
+            <p className="text-xs text-slate-600">
+              Error code: {latest.error_code}
+              {latest.admin_diagnostic_message
+                ? ` — ${latest.admin_diagnostic_message}`
+                : ""}
+            </p>
+          ) : null}
+          {audience === "internal" && latest.id ? (
+            <button
+              type="button"
+              className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-900 hover:bg-slate-50 disabled:opacity-50"
+              disabled={retryMutation.isPending}
+              onClick={() => retryMutation.mutate()}
+            >
+              {retryMutation.isPending ? "Retrying…" : "Retry AI Analysis"}
+            </button>
+          ) : null}
+          {retryMutation.isError ? (
+            <p className="text-sm text-red-700">
+              Retry could not be queued. Check AI Monitoring for provider diagnostics.
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

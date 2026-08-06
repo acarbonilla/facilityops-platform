@@ -42,6 +42,7 @@ from .ai_queue_service import (
     get_ticket_ai_analysis,
     list_ticket_ai_analyses,
     queue_ticket_image_analysis,
+    retry_ticket_ai_analysis,
 )
 from .ai_recommendation_review import (
     AIRecommendationReviewValidationError,
@@ -593,6 +594,38 @@ class FmTicketViewSet(viewsets.ModelViewSet):
         except AIRecommendationReviewValidationError as exc:
             raise DRFValidationError({"detail": [str(exc)]}) from exc
 
+        return Response(
+            AITicketAnalysisSerializer(analysis).data,
+            status=status.HTTP_200_OK,
+        )
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path=r"ai-analyses/(?P<analysis_id>[^/.]+)/retry",
+    )
+    def ai_analysis_retry(self, request, pk=None, analysis_id=None):
+        """FO-102: manually retry a failed analysis (FM/admin operators only)."""
+        if uses_employee_requester_scope(request.user):
+            from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+
+            raise DRFPermissionDenied("Manual AI retry is not available to requesters.")
+        ticket = self.get_object()
+        from apps.fm_tickets.ai_administration_service import is_feature_enabled
+        from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
+
+        if not is_feature_enabled("image_analysis"):
+            raise DRFPermissionDenied(
+                "Image analysis is disabled by AI administration."
+            )
+        try:
+            analysis = retry_ticket_ai_analysis(
+                actor=request.user,
+                ticket_id=ticket.id,
+                analysis_id=analysis_id,
+            )
+        except AITicketAnalysisValidationError as exc:
+            raise DRFValidationError({"detail": [str(exc)]}) from exc
         return Response(
             AITicketAnalysisSerializer(analysis).data,
             status=status.HTTP_200_OK,
