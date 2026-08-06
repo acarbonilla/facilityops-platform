@@ -10,9 +10,11 @@ import {
 } from "@/services/api/fm-tickets";
 import { fmTicketsQueryKeys } from "@/services/api/query-keys";
 import {
+  formatAiAnalysisProviderLabel,
   getAiAnalysisStatusMessage,
   getAiAnalysisStatusTitle,
   getAiGeneratedDisclaimer,
+  getOperationalClassificationReminder,
   getRecommendationHumanReviewNotice,
   resolveAiAnalysisUiStatus,
   shouldShowAiAnalysisPanel,
@@ -206,7 +208,18 @@ export function TicketAiAnalysisStatusPanel({
           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-slate-500">
             AI-generated · requires human review
           </p>
+          {latest?.provider ? (
+            <p className="mt-1 text-xs text-slate-600">
+              Provider: {formatAiAnalysisProviderLabel(latest.provider)}
+              {latest.model_name ? ` · Model: ${latest.model_name}` : ""}
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-slate-600">{getAiGeneratedDisclaimer()}</p>
+          {uiStatus === "completed" ? (
+            <p className="mt-1 text-xs text-slate-600">
+              {getOperationalClassificationReminder()}
+            </p>
+          ) : null}
         </>
       ) : (
         <p className="mt-2 text-xs text-slate-600">

@@ -21,9 +21,9 @@
 | User Management | Complete | FO-045 through FO-049 backend, frontend, role assignment, directory/pickers, QA, and stabilization |
 | Organization Management | Complete | Admin structure views built on master-data services |
 | Asset Management | Complete | Asset read, detail, create, edit, and admin alias screens |
-| FM Ticketing | Complete + Intelligent Employee Intake on main | FO-096–FO-101A COMPLETE AND MERGED via PR #63 (`c8a3446…`); AI Platform v1.0 freeze `98c1661…` intact |
+| FM Ticketing | Complete + Intelligent Employee Intake on main | FO-096–FO-101A COMPLETE AND MERGED via PR #63; FO-101B Gemini verification on `fix/fo-101b-live-gemini-verification` (Outcome B) |
 | Reporting and Operational Analytics | Complete + AI Platform MVP v1.0 | FO-064–FO-095 on main; RM-001 freeze; FO-100 intake reporting merged via PR #63 |
-| Intelligent Employee Intake | COMPLETE AND MERGED | FO-096–FO-101A via PR #63; baseline `c8a3446…`; next feature not started |
+| Intelligent Employee Intake | COMPLETE AND MERGED | FO-096–FO-101A via PR #63; baseline `8cb1895…`; FO-101B diagnostic open |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |

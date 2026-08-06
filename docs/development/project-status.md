@@ -15,12 +15,13 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
+- FO-101B Live Gemini Evaluation Verification — diagnostic fix branch (Outcome B)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
-- Next feature has **not** started
 
 ## Current Branch
 
-- `main` @ `7da3a8109f0ab8e4be20fde1c8e208ade1a7a25d`
+- `main` @ `8cb18950f05aa8dada3b1896b9705228b7c89c3c`
+- Active diagnostic: `fix/fo-101b-live-gemini-verification`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -128,15 +129,16 @@
 
 ## Current Task
 
-- FO-101A — Finalize Merge and Post-Merge Verification **COMPLETE AND MERGED**.
-  PR #63 merge commit `c8a3446…`; post-merge docs tip `7da3a81…`; verification
-  passed; feature branch cleaned up. Readiness: **READY WITH ACCEPTED LIMITATIONS**.
-- Latest stable feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
+- FO-101B — Live Gemini Evaluation Verification **complete on fix branch**
+  (Outcome B). Historical placeholder analysis diagnosed; Django resolves
+  Gemini; live smoke hit billing `429`; Redis/Celery unavailable for async.
+- Latest stable feature remains Intelligent Employee Ticket Intake on `main`
+  (FO-096–FO-101A / PR #63).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- Next product feature has **not** started
+- Restore Gemini API credits and local Redis/Celery, then requeue a new analysis
 - Follow-up: FO-088 date-window flake remains watchlisted
 - Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 

@@ -105,6 +105,25 @@ def process_ticket_ai_analysis(analysis_id: str, *, attempt: int = 1) -> dict:
 
     try:
         provider = get_ai_provider()
+        provider_name = getattr(provider, "PROVIDER_NAME", "") or "unknown"
+        # Stamp selected provider before network I/O so failures remain attributable
+        # (FO-101B: avoid leaving default "placeholder" after a Gemini rate-limit/fail).
+        selected_model = getattr(provider, "MODEL_NAME", "") or analysis.model_name
+        if provider_name in {"gemini", "gemini_vision"}:
+            from apps.fm_tickets.ai_administration_service import get_runtime_setting
+
+            selected_model = (
+                get_runtime_setting("FACILITYOPS_GEMINI_MODEL", selected_model)
+                or selected_model
+            )
+        AITicketAnalysis.objects.filter(pk=analysis.pk, is_deleted=False).update(
+            provider=provider_name,
+            model_name=selected_model or analysis.model_name,
+            updated_at=timezone.now(),
+        )
+        analysis.provider = provider_name
+        analysis.model_name = selected_model or analysis.model_name
+
         result = provider.analyze(
             ticket=analysis.ticket,
             attachments=attachments,

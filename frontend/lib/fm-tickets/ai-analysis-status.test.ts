@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  formatAiAnalysisProviderLabel,
   getAiAnalysisStatusMessage,
   getAiAnalysisStatusTitle,
   getAiGeneratedDisclaimer,
+  getOperationalClassificationReminder,
   getRecommendationHumanReviewNotice,
   resolveAiAnalysisUiStatus,
   shouldShowAiAnalysisPanel,
@@ -47,6 +49,9 @@ test("requester audience uses safe copy", () => {
 test("disclaimer and visibility helpers", () => {
   assert.match(getAiGeneratedDisclaimer(), /Human review/i);
   assert.match(getRecommendationHumanReviewNotice(), /Facilities Team/);
+  assert.match(getOperationalClassificationReminder(), /does not set final category/i);
+  assert.equal(formatAiAnalysisProviderLabel("placeholder"), "Placeholder (no live vision)");
+  assert.equal(formatAiAnalysisProviderLabel("gemini"), "Gemini Vision");
   assert.equal(shouldShowAiAnalysisPanel("none"), false);
   assert.equal(shouldShowAiAnalysisPanel("queued"), true);
   assert.equal(
