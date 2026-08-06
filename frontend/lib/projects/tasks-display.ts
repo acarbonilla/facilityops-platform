@@ -74,7 +74,8 @@ export function isTaskRelatedHistoryAction(action: string): boolean {
     normalized.includes("task") ||
     normalized.includes("checklist") ||
     normalized.includes("comment") ||
-    normalized.includes("assign")
+    normalized.includes("assign") ||
+    normalized.includes("dependency")
   );
 }
 

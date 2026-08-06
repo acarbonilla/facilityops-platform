@@ -7,6 +7,7 @@ import type {
   ProjectCreatePayload,
   ProjectDetail,
   ProjectFormOptions,
+  ProjectGanttResponse,
   ProjectHistory,
   ProjectListItem,
   ProjectListParams,
@@ -20,6 +21,9 @@ import type {
   ProjectTaskComment,
   ProjectTaskCommentCreatePayload,
   ProjectTaskCreatePayload,
+  ProjectTaskDependency,
+  ProjectTaskDependencyCreatePayload,
+  ProjectTaskDependencyReadiness,
   ProjectTaskDetail,
   ProjectTaskListItem,
   ProjectTaskListParams,
@@ -325,5 +329,89 @@ export function deleteProjectTaskComment(
   return apiClient<void>(
     API_ENDPOINTS.projects.taskComment(projectId, taskId, commentId),
     { method: "DELETE" },
+  );
+}
+
+export function getProjectGantt(
+  projectId: string,
+): Promise<ProjectGanttResponse> {
+  return apiClient<ProjectGanttResponse>(
+    API_ENDPOINTS.projects.gantt(projectId),
+    { method: "GET" },
+  );
+}
+
+export function getProjectDependencies(
+  projectId: string,
+  params?: { page?: number; page_size?: number },
+): Promise<PaginatedResponse<ProjectTaskDependency> | ProjectTaskDependency[]> {
+  return apiClient<
+    PaginatedResponse<ProjectTaskDependency> | ProjectTaskDependency[]
+  >(API_ENDPOINTS.projects.dependencies(projectId), {
+    method: "GET",
+    query: params,
+  });
+}
+
+export function getProjectDependency(
+  projectId: string,
+  dependencyId: string,
+): Promise<ProjectTaskDependency> {
+  return apiClient<ProjectTaskDependency>(
+    API_ENDPOINTS.projects.dependency(projectId, dependencyId),
+    { method: "GET" },
+  );
+}
+
+export function createProjectDependency(
+  projectId: string,
+  payload: ProjectTaskDependencyCreatePayload,
+): Promise<ProjectTaskDependency> {
+  return apiClient<ProjectTaskDependency>(
+    API_ENDPOINTS.projects.dependencies(projectId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectDependency(
+  projectId: string,
+  dependencyId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.dependency(projectId, dependencyId),
+    { method: "DELETE" },
+  );
+}
+
+export function getProjectTaskPredecessors(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDependency[]> {
+  return apiClient<ProjectTaskDependency[]>(
+    API_ENDPOINTS.projects.taskPredecessors(projectId, taskId),
+    { method: "GET" },
+  );
+}
+
+export function getProjectTaskSuccessors(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDependency[]> {
+  return apiClient<ProjectTaskDependency[]>(
+    API_ENDPOINTS.projects.taskSuccessors(projectId, taskId),
+    { method: "GET" },
+  );
+}
+
+export function getProjectTaskDependencyReadiness(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDependencyReadiness> {
+  return apiClient<ProjectTaskDependencyReadiness>(
+    API_ENDPOINTS.projects.taskDependencyReadiness(projectId, taskId),
+    { method: "GET" },
   );
 }

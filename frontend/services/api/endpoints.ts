@@ -157,6 +157,17 @@ export const API_ENDPOINTS = {
       `/projects/${projectId}/tasks/${taskId}/comments/`,
     taskComment: (projectId: string, taskId: string, commentId: string) =>
       `/projects/${projectId}/tasks/${taskId}/comments/${commentId}/`,
+    gantt: (projectId: string) => `/projects/${projectId}/gantt/`,
+    dependencies: (projectId: string) =>
+      `/projects/${projectId}/dependencies/`,
+    dependency: (projectId: string, dependencyId: string) =>
+      `/projects/${projectId}/dependencies/${dependencyId}/`,
+    taskPredecessors: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/predecessors/`,
+    taskSuccessors: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/successors/`,
+    taskDependencyReadiness: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/dependency-readiness/`,
   },
   reporting: {
     overview: "/reporting/overview/",

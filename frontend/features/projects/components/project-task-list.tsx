@@ -21,6 +21,7 @@ import {
   formatPersonLabel,
   formatProjectDate,
 } from "@/lib/projects/display";
+import { formatDelayLabel } from "@/lib/projects/gantt";
 import {
   canCreateProjectTask,
   formatProjectTaskError,
@@ -75,6 +76,31 @@ const MILESTONE_OPTIONS: SelectOption[] = [
   { value: "true", label: "Milestones only" },
   { value: "false", label: "Non-milestones" },
 ];
+const TRI_STATE_OPTIONS: SelectOption[] = [
+  { value: "true", label: "Yes" },
+  { value: "false", label: "No" },
+];
+
+function TaskFlags({ task }: { task: ProjectTaskListItem }) {
+  const flags: string[] = [];
+  if (task.is_milestone) flags.push("Milestone");
+  if (task.is_delayed) flags.push("Delayed");
+  if (task.is_dependency_ready === false) flags.push("Dep. blocked");
+  if (!task.planned_start || !task.planned_end) flags.push("Unscheduled");
+  if (flags.length === 0) return null;
+  return (
+    <p className="mt-1 flex flex-wrap gap-1">
+      {flags.map((flag) => (
+        <span
+          className="rounded border border-slate-300 bg-slate-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700"
+          key={flag}
+        >
+          {flag}
+        </span>
+      ))}
+    </p>
+  );
+}
 
 function TaskMobileCard({
   projectId,
@@ -93,6 +119,7 @@ function TaskMobileCard({
           <h3 className="mt-1 text-base font-semibold text-slate-950">
             {task.name}
           </h3>
+          <TaskFlags task={task} />
         </div>
         <ProjectTaskStatusBadge status={task.status} />
       </div>
@@ -127,6 +154,19 @@ function TaskMobileCard({
             {formatPersonLabel(task.person_in_charge_email)}
           </dd>
         </div>
+        {task.is_delayed ? (
+          <div className="col-span-2">
+            <dt className="text-xs uppercase tracking-wide text-slate-500">
+              Schedule
+            </dt>
+            <dd className="mt-1 text-slate-800">
+              {formatDelayLabel({
+                isDelayed: true,
+                delayDays: task.delay_days,
+              })}
+            </dd>
+          </div>
+        ) : null}
       </dl>
       <div className="mt-4">
         <Link
@@ -170,11 +210,7 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
       cell: (task) => (
         <div className="min-w-0 whitespace-normal">
           <p className="font-medium text-slate-900">{task.name}</p>
-          {task.is_milestone ? (
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Milestone
-            </p>
-          ) : null}
+          <TaskFlags task={task} />
         </div>
       ),
       className: "min-w-56 whitespace-normal",
@@ -221,7 +257,7 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        description={`Tasks for ${projectName}. Assign PIC, track status, and manage checklists without Gantt or dependency views.`}
+        description={`Tasks for ${projectName}. Filter delayed, dependency-blocked, unscheduled, and milestone items. Open Gantt for schedule dependencies.`}
         eyebrow="Project tasks"
         title="Tasks"
       >
@@ -231,6 +267,12 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
             href={`/projects/${projectId}`}
           >
             Back to project
+          </Link>
+          <Link
+            className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href={`/projects/${projectId}/gantt`}
+          >
+            Gantt
           </Link>
           {canCreate ? (
             <Link
@@ -304,6 +346,51 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
             options={MILESTONE_OPTIONS}
             placeholder="All tasks"
             value={filters.isMilestone}
+          />
+          <SelectField
+            id="task-delayed"
+            label="Delayed"
+            onChange={(event) => {
+              setPage(1);
+              setFilters((current) => ({
+                ...current,
+                delayed: event.target
+                  .value as ProjectTaskListFilters["delayed"],
+              }));
+            }}
+            options={TRI_STATE_OPTIONS}
+            placeholder="Any"
+            value={filters.delayed}
+          />
+          <SelectField
+            id="task-dependency-blocked"
+            label="Dependency blocked"
+            onChange={(event) => {
+              setPage(1);
+              setFilters((current) => ({
+                ...current,
+                dependencyBlocked: event.target
+                  .value as ProjectTaskListFilters["dependencyBlocked"],
+              }));
+            }}
+            options={TRI_STATE_OPTIONS}
+            placeholder="Any"
+            value={filters.dependencyBlocked}
+          />
+          <SelectField
+            id="task-unscheduled"
+            label="Unscheduled"
+            onChange={(event) => {
+              setPage(1);
+              setFilters((current) => ({
+                ...current,
+                unscheduled: event.target
+                  .value as ProjectTaskListFilters["unscheduled"],
+              }));
+            }}
+            options={TRI_STATE_OPTIONS}
+            placeholder="Any"
+            value={filters.unscheduled}
           />
           <SelectField
             id="task-sort"

@@ -195,6 +195,9 @@ export interface ProjectTaskListParams
   actual_end_to?: string;
   progress_min?: string | number;
   progress_max?: string | number;
+  delayed?: boolean;
+  dependency_blocked?: boolean;
+  unscheduled?: boolean;
   ordering?: string;
 }
 
@@ -204,6 +207,9 @@ export interface ProjectTaskListFilters {
   priority: ProjectTaskPriority | "";
   personInCharge: string;
   isMilestone: "" | "true" | "false";
+  delayed: "" | "true" | "false";
+  dependencyBlocked: "" | "true" | "false";
+  unscheduled: "" | "true" | "false";
   plannedStartFrom: string;
   plannedStartTo: string;
   plannedEndFrom: string;
@@ -214,7 +220,18 @@ export interface ProjectTaskListFilters {
   pageSize: number;
 }
 
-export interface ProjectTaskListItem {
+/** FO-105 derived readiness + delay fields on task list/detail. */
+export interface ProjectTaskDerivedFields {
+  is_dependency_ready: boolean;
+  blocking_predecessor_count: number;
+  predecessor_count: number;
+  successor_count: number;
+  is_delayed: boolean;
+  is_completed_late: boolean;
+  delay_days: number;
+}
+
+export interface ProjectTaskListItem extends ProjectTaskDerivedFields {
   id: string;
   tenant: string;
   project: string;
@@ -320,4 +337,105 @@ export interface ProjectTaskChecklistUpdatePayload {
 export interface ProjectTaskCommentCreatePayload {
   body: string;
   is_internal?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// FO-105 Gantt & task dependencies
+// ---------------------------------------------------------------------------
+
+export type ProjectDependencyType = "finish_to_start";
+
+export interface ProjectTaskBlockingPredecessor {
+  id: string;
+  task_code: string;
+  name: string;
+  status: ProjectTaskStatus;
+  planned_end: string | null;
+}
+
+export interface ProjectTaskDependencyReadiness {
+  is_dependency_ready: boolean;
+  blocking_predecessor_count: number;
+  blocking_predecessors: ProjectTaskBlockingPredecessor[];
+  predecessor_count: number;
+  successor_count: number;
+}
+
+export interface ProjectTaskDependency {
+  id: string;
+  tenant: string;
+  project: string;
+  predecessor_task: string;
+  predecessor_task_code: string;
+  successor_task: string;
+  successor_task_code: string;
+  dependency_type: ProjectDependencyType;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskDependencyCreatePayload {
+  predecessor_task: string;
+  successor_task: string;
+  dependency_type?: ProjectDependencyType;
+}
+
+export interface ProjectGanttProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  planned_start_date: string | null;
+  planned_end_date: string | null;
+  organization: string;
+  tenant: string;
+}
+
+export interface ProjectGanttTask extends ProjectTaskDerivedFields {
+  id: string;
+  tenant: string;
+  project: string;
+  task_code: string;
+  name: string;
+  description: string;
+  person_in_charge: string | null;
+  person_in_charge_email: string | null;
+  status: ProjectTaskStatus;
+  priority: ProjectTaskPriority;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  progress_percentage: string | number;
+  sequence: number;
+  is_milestone: boolean;
+  predecessor_ids: string[];
+  successor_ids: string[];
+  is_scheduled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectGanttDependency {
+  id: string;
+  predecessor_task_id: string;
+  successor_task_id: string;
+  dependency_type: ProjectDependencyType;
+}
+
+export interface ProjectGanttSummary {
+  total_tasks: number;
+  scheduled_tasks: number;
+  unscheduled_tasks: number;
+  milestones: number;
+  delayed_tasks: number;
+  dependency_blocked_tasks: number;
+}
+
+export interface ProjectGanttResponse {
+  project: ProjectGanttProjectSummary;
+  tasks: ProjectGanttTask[];
+  dependencies: ProjectGanttDependency[];
+  summary: ProjectGanttSummary;
 }

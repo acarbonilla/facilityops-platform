@@ -6,23 +6,30 @@ import { useMemo } from "react";
 import {
   assignProjectTask,
   createProject,
+  createProjectDependency,
   createProjectTask,
   createProjectTaskChecklistItem,
   createProjectTaskComment,
   deleteProject,
+  deleteProjectDependency,
   deleteProjectTask,
   deleteProjectTaskChecklistItem,
   deleteProjectTaskComment,
+  getProjectDependencies,
   getProjectDetail,
   getProjectFormOptions,
+  getProjectGantt,
   getProjectHistory,
   getProjectList,
   getProjectMembers,
   getProjectMetrics,
   getProjectTaskChecklist,
   getProjectTaskComments,
+  getProjectTaskDependencyReadiness,
   getProjectTaskDetail,
   getProjectTaskList,
+  getProjectTaskPredecessors,
+  getProjectTaskSuccessors,
   getProjectTaskSummary,
   reorderProjectTasks,
   updateProject,
@@ -48,6 +55,7 @@ import type {
   ProjectTaskChecklistUpdatePayload,
   ProjectTaskCommentCreatePayload,
   ProjectTaskCreatePayload,
+  ProjectTaskDependencyCreatePayload,
   ProjectTaskDetail,
   ProjectTaskFormValues,
   ProjectTaskListParams,
@@ -176,6 +184,12 @@ async function invalidateProjectTasks(
   await queryClient.invalidateQueries({
     queryKey: projectsQueryKeys.history(projectId),
   });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.gantt(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.dependencies(projectId),
+  });
   if (taskId) {
     await queryClient.invalidateQueries({
       queryKey: projectsQueryKeys.taskDetail(projectId, taskId),
@@ -186,7 +200,34 @@ async function invalidateProjectTasks(
     await queryClient.invalidateQueries({
       queryKey: projectsQueryKeys.taskComments(projectId, taskId),
     });
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.taskPredecessors(projectId, taskId),
+    });
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.taskSuccessors(projectId, taskId),
+    });
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.taskDependencyReadiness(projectId, taskId),
+    });
   }
+}
+
+async function invalidateProjectDependencies(
+  queryClient: ReturnType<typeof useQueryClient>,
+  projectId: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.gantt(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.dependencies(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.tasks(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.history(projectId),
+  });
 }
 
 export function useProjectTaskSummary(projectId: string) {
@@ -380,5 +421,80 @@ export function useDeleteProjectTaskComment(
     onSuccess: async () => {
       await invalidateProjectTasks(queryClient, projectId, taskId);
     },
+  });
+}
+
+export function useProjectGantt(projectId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.gantt(projectId),
+    queryFn: () => getProjectGantt(projectId),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectDependencies(projectId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.dependencies(projectId),
+    queryFn: async () => {
+      const response = await getProjectDependencies(projectId, {
+        page_size: 200,
+      });
+      return Array.isArray(response) ? response : response.results;
+    },
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useCreateProjectDependency(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectTaskDependencyCreatePayload) =>
+      createProjectDependency(projectId, payload),
+    onSuccess: async () => {
+      await invalidateProjectDependencies(queryClient, projectId);
+    },
+  });
+}
+
+export function useDeleteProjectDependency(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dependencyId: string) =>
+      deleteProjectDependency(projectId, dependencyId),
+    onSuccess: async () => {
+      await invalidateProjectDependencies(queryClient, projectId);
+    },
+  });
+}
+
+export function useProjectTaskPredecessors(
+  projectId: string,
+  taskId: string,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.taskPredecessors(projectId, taskId),
+    queryFn: () => getProjectTaskPredecessors(projectId, taskId),
+    enabled: Boolean(projectId) && Boolean(taskId),
+  });
+}
+
+export function useProjectTaskSuccessors(projectId: string, taskId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.taskSuccessors(projectId, taskId),
+    queryFn: () => getProjectTaskSuccessors(projectId, taskId),
+    enabled: Boolean(projectId) && Boolean(taskId),
+  });
+}
+
+export function useProjectTaskDependencyReadiness(
+  projectId: string,
+  taskId: string,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.taskDependencyReadiness(projectId, taskId),
+    queryFn: () => getProjectTaskDependencyReadiness(projectId, taskId),
+    enabled: Boolean(projectId) && Boolean(taskId),
   });
 }

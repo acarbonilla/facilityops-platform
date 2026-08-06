@@ -249,6 +249,21 @@ export const projectsQueryKeys = {
     ["projects", projectId, "tasks", taskId, "checklist"] as const,
   taskComments: (projectId: string, taskId: string) =>
     ["projects", projectId, "tasks", taskId, "comments"] as const,
+  gantt: (projectId: string) => ["projects", projectId, "gantt"] as const,
+  dependencies: (projectId: string) =>
+    ["projects", projectId, "dependencies"] as const,
+  taskPredecessors: (projectId: string, taskId: string) =>
+    ["projects", projectId, "tasks", taskId, "predecessors"] as const,
+  taskSuccessors: (projectId: string, taskId: string) =>
+    ["projects", projectId, "tasks", taskId, "successors"] as const,
+  taskDependencyReadiness: (projectId: string, taskId: string) =>
+    [
+      "projects",
+      projectId,
+      "tasks",
+      taskId,
+      "dependency-readiness",
+    ] as const,
 };
 
 export const reportingQueryKeys = {

@@ -111,12 +111,18 @@ function TaskSummarySection({
           </div>
         ))}
       </dl>
-      <div className="pt-2">
+      <div className="pt-2 flex flex-wrap gap-3">
         <Link
           className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
           href={`/projects/${projectId}/tasks`}
         >
           View project tasks
+        </Link>
+        <Link
+          className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          href={`/projects/${projectId}/gantt`}
+        >
+          Open Gantt
         </Link>
       </div>
     </SectionCard>

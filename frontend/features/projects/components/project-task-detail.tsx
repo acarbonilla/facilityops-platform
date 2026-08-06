@@ -14,7 +14,10 @@ import {
   useProjectDetail,
   useProjectHistory,
   useProjectMembers,
+  useProjectTaskDependencyReadiness,
   useProjectTaskDetail,
+  useProjectTaskPredecessors,
+  useProjectTaskSuccessors,
 } from "@/hooks/use-projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
@@ -23,6 +26,8 @@ import {
   formatProjectDateTime,
   formatProjectLabel,
 } from "@/lib/projects/display";
+import { formatDependencyReadinessMessage } from "@/lib/projects/dependencies";
+import { formatDelayLabel } from "@/lib/projects/gantt";
 import {
   canAssignProjectTask,
   canCommentOnProjectTask,
@@ -36,6 +41,7 @@ import { readProjectTaskFormFlash } from "@/lib/projects/tasks-form";
 import type {
   ProjectHistory,
   ProjectMember,
+  ProjectTaskDependency,
 } from "@/types/projects";
 
 import { ProjectTaskAttachments } from "./project-task-attachments";
@@ -154,6 +160,60 @@ function buildPicOptions(
   return options;
 }
 
+function DependencyLinkList({
+  title,
+  items,
+  loading,
+  emptyMessage,
+  mode,
+  projectId,
+}: {
+  title: string;
+  items: ProjectTaskDependency[];
+  loading: boolean;
+  emptyMessage: string;
+  mode: "predecessor" | "successor";
+  projectId: string;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+      {loading ? (
+        <div
+          className="mt-3 h-12 animate-pulse rounded border border-slate-200 bg-slate-100"
+          role="status"
+        />
+      ) : items.length === 0 ? (
+        <p className="mt-2 text-sm text-slate-600">{emptyMessage}</p>
+      ) : (
+        <ul className="mt-2 space-y-2 text-sm text-slate-800">
+          {items.map((dep) => {
+            const code =
+              mode === "predecessor"
+                ? dep.predecessor_task_code
+                : dep.successor_task_code;
+            const id =
+              mode === "predecessor"
+                ? dep.predecessor_task
+                : dep.successor_task;
+            return (
+              <li key={dep.id}>
+                <Link
+                  className="font-medium text-blue-800 hover:underline"
+                  href={`/projects/${projectId}/tasks/${id}`}
+                >
+                  {code}
+                </Link>{" "}
+                <span className="text-slate-500">(FS)</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ProjectTaskDetailScreen({
   projectId,
   taskId,
@@ -167,6 +227,9 @@ export function ProjectTaskDetailScreen({
   const detailQuery = useProjectTaskDetail(projectId, taskId);
   const membersQuery = useProjectMembers(projectId);
   const historyQuery = useProjectHistory(projectId);
+  const predecessorsQuery = useProjectTaskPredecessors(projectId, taskId);
+  const successorsQuery = useProjectTaskSuccessors(projectId, taskId);
+  const readinessQuery = useProjectTaskDependencyReadiness(projectId, taskId);
   const assignMutation = useAssignProjectTask(projectId, taskId);
   const deleteMutation = useDeleteProjectTask(projectId);
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
@@ -331,6 +394,19 @@ export function ProjectTaskDetailScreen({
               Milestone
             </span>
           ) : null}
+          {task.is_delayed ? (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-900">
+              {formatDelayLabel({
+                isDelayed: true,
+                delayDays: task.delay_days,
+              })}
+            </span>
+          ) : null}
+          {!task.is_dependency_ready ? (
+            <span className="rounded-full border border-rose-300 bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-900">
+              Dependency blocked
+            </span>
+          ) : null}
         </div>
         <p className="mt-4 whitespace-pre-wrap text-sm text-slate-700">
           {task.description?.trim() || "No description provided."}
@@ -433,6 +509,64 @@ export function ProjectTaskDetailScreen({
             }
           />
         ) : null}
+      </SectionCard>
+
+      <SectionCard
+        description="Finish-to-start predecessors must be completed before this task can move into active statuses."
+        title="Dependencies & readiness"
+      >
+        <div className="flex flex-wrap gap-3">
+          <Link
+            className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href={`/projects/${projectId}/gantt`}
+          >
+            Open project Gantt
+          </Link>
+        </div>
+        <p className="text-sm text-slate-700">
+          {formatDependencyReadinessMessage(
+            readinessQuery.data ?? {
+              is_dependency_ready: task.is_dependency_ready,
+              blocking_predecessor_count: task.blocking_predecessor_count,
+              blocking_predecessors: [],
+              predecessor_count: task.predecessor_count,
+              successor_count: task.successor_count,
+            },
+          )}
+        </p>
+        {readinessQuery.data?.blocking_predecessors?.length ? (
+          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+            {readinessQuery.data.blocking_predecessors.map((pred) => (
+              <li key={pred.id}>
+                <Link
+                  className="font-medium text-blue-800 hover:underline"
+                  href={`/projects/${projectId}/tasks/${pred.id}`}
+                >
+                  {pred.task_code}
+                </Link>{" "}
+                — {pred.name} ({formatProjectLabel(pred.status)})
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="grid gap-4 md:grid-cols-2">
+          <DependencyLinkList
+            emptyMessage="No predecessors."
+            items={predecessorsQuery.data ?? []}
+            loading={predecessorsQuery.isPending}
+            mode="predecessor"
+            projectId={projectId}
+            title="Predecessors"
+          />
+          <DependencyLinkList
+            emptyMessage="No successors."
+            items={successorsQuery.data ?? []}
+            loading={successorsQuery.isPending}
+            mode="successor"
+            projectId={projectId}
+            title="Successors"
+          />
+        </div>
       </SectionCard>
 
       <ProjectTaskChecklist

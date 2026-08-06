@@ -78,3 +78,19 @@ test("serializeProjectTaskListParams maps false milestone filter", () => {
 
   assert.equal(params.is_milestone, false);
 });
+
+test("serializeProjectTaskListParams maps FO-105 schedule filters", () => {
+  const params = serializeProjectTaskListParams(
+    {
+      ...DEFAULT_PROJECT_TASK_LIST_FILTERS,
+      delayed: "true",
+      dependencyBlocked: "false",
+      unscheduled: "true",
+    },
+    1,
+  );
+
+  assert.equal(params.delayed, true);
+  assert.equal(params.dependency_blocked, false);
+  assert.equal(params.unscheduled, true);
+});
