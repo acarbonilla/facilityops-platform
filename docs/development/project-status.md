@@ -15,13 +15,14 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
-- Project Management — **PM-UX-001 / PM-UX-001A UX baseline** (docs merged; FO-103 not started)
+- Project Management — **FO-103 foundation COMPLETE** on shared `feature/project-management` (unmerged; FO-104 not started)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
+- FO-102 Gemini billing/quota diagnostics — **DEFERRED**
 
 ## Current Branch
 
-- `main` @ `1ea2b9bd882bbb9911c38dd824d2973579982627` (PM-UX-001A post-merge docs sync)
-- Next implementation branch (not created yet): `feature/project-management`
+- Active: `feature/project-management` (FO-103 checkpoint; unmerged)
+- Baseline `main` @ `c7ae7fc81bb58b2afffd33f185910329c04c1231` (PM-UX-001A baseline)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -129,17 +130,19 @@
 
 ## Current Task
 
-- PM-UX-001A — Finalize, Merge & Post-Merge Verification **COMPLETE AND MERGED**.
-  Approved Project Management UX baseline on `main`. FO-103 **not started**.
-- Latest stable product feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
+- FO-103 — Project Management Foundation **COMPLETE** on `feature/project-management` (unmerged).
+  See `docs/02-Development/FO-103 - Project Management Foundation.md`.
+- PM-UX-001 / PM-UX-001A UX baseline remains COMPLETE AND MERGED on `main`.
+- Latest stable merged product feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
+- FO-102 remains **DEFERRED**.
 
 ## Next Milestone
 
-- FO-103 Project Management Foundation on shared branch `feature/project-management`
-  (create at FO-103 start; FO-103–FO-109 on that branch; FO-109A sole merge to `main`)
+- FO-104 — Project Task & Assignment Management on shared `feature/project-management`
+  (FO-103–FO-109 on that branch; FO-109A sole merge to `main`)
 - Follow-up: FO-088 date-window flake remains watchlisted
-- Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
+- Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release
 
