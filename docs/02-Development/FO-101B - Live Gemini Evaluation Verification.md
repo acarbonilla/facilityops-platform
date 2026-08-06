@@ -1,8 +1,9 @@
 # FO-101B — Live Gemini Evaluation Verification
 
-**Status:** Complete on diagnostic branch (Draft PR) — **Outcome B**  
+**Status:** Complete on diagnostic branch (Draft PR #64) — **Outcome B**  
 **Date:** 2026-08-06  
 **Branch:** `fix/fo-101b-live-gemini-verification`  
+**Draft PR:** https://github.com/acarbonilla/facilityops-platform/pull/64  
 **Base main:** `8cb18950f05aa8dada3b1896b9705228b7c89c3c`  
 **Affected ticket:** `FM-20260805-0001`
 
