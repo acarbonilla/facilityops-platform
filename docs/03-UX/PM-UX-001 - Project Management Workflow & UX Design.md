@@ -1,13 +1,14 @@
 # PM-UX-001 — Project Management Workflow & UX Design
 
-**Status:** Complete on documentation branch (Draft PR #66)
+**Status:** COMPLETE AND MERGED (approved UX baseline via PM-UX-001A)
 **Date:** 2026-08-06
 **Type:** UX / Workflow Design / Documentation only
-**Branch:** `docs/pm-ux-001-project-management`
-**Base main:** `8cb18950f05aa8dada3b1896b9705228b7c89c3c`
-**Draft PR:** https://github.com/acarbonilla/facilityops-platform/pull/66
+**Branch:** `docs/pm-ux-001-project-management` (deleted after merge)
+**Base main (pre-merge):** `8cb18950f05aa8dada3b1896b9705228b7c89c3c`
+**PR:** https://github.com/acarbonilla/facilityops-platform/pull/66
 **AI Platform freeze:** `98c1661…` (RM-001 / AI Platform v1.0) — **FROZEN AND UNCHANGED**
 **Implementation roadmap:** FO-103 through FO-109A (**not started**)
+**Shared implementation branch (FO-103–FO-109):** `feature/project-management`
 
 This document does **not** change production code, databases, APIs, or frontend.
 
@@ -639,6 +640,7 @@ flowchart TB
 | D8 | Delayed is first-class state | Visibility for leadership | Risk of overuse vs On Hold |
 | D9 | Employee excluded by default | Intake path remains My Requests | Extra grant needed for rare member employees |
 | D10 | Gantt edit PM+ only | Prevent schedule thrash | Members rely on task forms |
+| D11 | Single shared implementation branch `feature/project-management` for FO-103–FO-109; only FO-109A merges to `main` | Reduces branch sprawl; one integration line | Longer-lived feature branch requires discipline |
 
 ### Deferred items
 
@@ -657,9 +659,15 @@ flowchart TB
 | **FO-107** | Progress & Accomplishment Tracking | % rollup, accomplishment on complete |
 | **FO-108** | FacilityOps Module Integration | Ticket/WO/Inspection links, reporting hooks, notifications |
 | **FO-109** | Project Management QA & Production Readiness | Tests, a11y, security, performance |
-| **FO-109A** | Finalize, Merge & Post-Merge Verification | PR readiness, merge, baseline |
+| **FO-109A** | Finalize, Merge & Post-Merge Verification | Single merge of `feature/project-management` into `main` |
 
-Implementation must not start FO-104+ until FO-103 foundation lands unless explicitly stacked on an approved feature branch.
+**Branching strategy (official after PM-UX-001A):**
+
+- All FO-103 through FO-109 work lands on **`feature/project-management`**.
+- Do **not** create per-task implementation branches (`feature/fo-103-…`, etc.).
+- **FO-109A** is the only task that merges the complete Project Management feature into `main`.
+
+Intelligent Employee Intake (FO-096–FO-101A) remains complete and separate; Project Management must not rewrite intake, AI Platform, ticket, WO, or inspection core workflows.
 
 ---
 
@@ -673,10 +681,10 @@ PM-UX-001 is accepted when:
 4. Detail layout, Gantt, timeline, issues, notes, and progress rules are implementable without redesign.
 5. Linked-module and notification behaviors are defined.
 6. Reporting, mobile, accessibility, and security expectations are stated.
-7. Decision log and FO-103–FO-109A roadmap are complete.
+7. Decision log and FO-103–FO-109A roadmap are complete (including shared feature-branch strategy).
 8. Document is docs-only: **no** production code, migrations, APIs, or frontend changes in this task.
 9. Trackers (`project-status`, `progress-map`, `work-tree`) updated.
-10. Draft PR opened; **not** merged in this task.
+10. Documentation merged to `main` via PM-UX-001A and established as the approved UX baseline.
 
 ---
 
@@ -695,4 +703,5 @@ PM-UX-001 is accepted when:
 | --- | --- |
 | Authoring task | PM-UX-001 |
 | Follow-on design finalization | Optional PM-UX-001A (if needed) |
-| Implementation start | FO-103 |
+| Implementation start | FO-103 on `feature/project-management` |
+| Finalization | [PM-UX-001A - Finalize, Merge & Post-Merge Verification.md](./PM-UX-001A%20-%20Finalize%2C%20Merge%20%26%20Post-Merge%20Verification.md) |
