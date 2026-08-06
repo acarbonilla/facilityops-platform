@@ -4,6 +4,8 @@
 **Date:** 2026-08-06  
 **Branch:** `feature/project-management`  
 **Starting branch SHA:** `2942f655f42b46614ec66fe70b6f8d84ad1538ae`  
+**Branch HEAD (FO-105):** `049cbc2ddc2b585439e79d7b99a8a8a46340fcf4`  
+**Commits:** `5327631` (backend), `eca3a8e` (frontend), `3066d9a` (docs), `049cbc2` (eslint memo fix)  
 **Prior checkpoints:** FO-103 Foundation; FO-104 Task & Assignment  
 **Next:** FO-106 — Timeline, Notes & Issues (**not started**)  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged until FO-109A)  
