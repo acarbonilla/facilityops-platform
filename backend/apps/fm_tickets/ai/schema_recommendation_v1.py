@@ -111,6 +111,61 @@ def validate_facility_recommendation(payload: dict) -> FacilityRecommendationV1:
     return FacilityRecommendationV1.model_validate(payload)
 
 
+def _simplify_json_schema_for_gemini(node):
+    """Reduce combinatorial constraint states for Gemini response_json_schema.
+
+    Gemini rejects schemas that compile into too many FSM states (nested
+    maxItems/minLength/numeric bounds). Keep structure + enums; strip tight
+    value matchers. Full Pydantic validation still runs on the response.
+
+    Do not drop keys inside ``properties`` / ``$defs`` maps — those keys are
+    field names (e.g. ``title``, ``description``), not JSON Schema metadata.
+    """
+    if isinstance(node, list):
+        return [_simplify_json_schema_for_gemini(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+
+    drop_keys = {
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "multipleOf",
+        "pattern",
+        "minItems",
+        "maxItems",
+        "minProperties",
+        "maxProperties",
+        "uniqueItems",
+        "default",
+        "examples",
+        "description",
+        "title",
+    }
+    property_map_keys = {"properties", "$defs", "definitions", "patternProperties"}
+    simplified = {}
+    for key, value in node.items():
+        if key in drop_keys:
+            continue
+        if key in property_map_keys and isinstance(value, dict):
+            # Preserve field/def names; only simplify each nested schema value.
+            simplified[key] = {
+                field_name: _simplify_json_schema_for_gemini(field_schema)
+                for field_name, field_schema in value.items()
+            }
+            continue
+        simplified[key] = _simplify_json_schema_for_gemini(value)
+    return simplified
+
+
 def facility_recommendation_json_schema() -> dict:
-    """JSON schema for Gemini response_json_schema."""
-    return FacilityRecommendationV1.model_json_schema()
+    """JSON schema for Gemini response_json_schema (Gemini-serving simplified)."""
+    schema = _simplify_json_schema_for_gemini(FacilityRecommendationV1.model_json_schema())
+    # Gemini sometimes ignores ``const``; enum is more reliably enforced.
+    properties = schema.setdefault("properties", {})
+    properties["schema_name"] = {"type": "string", "enum": [SCHEMA_NAME]}
+    properties["schema_version"] = {"type": "string", "enum": [SCHEMA_VERSION]}
+    return schema

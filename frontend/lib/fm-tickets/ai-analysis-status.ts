@@ -104,6 +104,29 @@ export function getAiAnalysisStatusMessage(
   }
 }
 
+export function formatAiAnalysisProviderLabel(
+  provider?: string | null,
+): string {
+  const normalized = (provider || "").trim().toLowerCase();
+  if (normalized === "gemini" || normalized === "gemini_vision") {
+    return "Gemini Vision";
+  }
+  if (normalized === "placeholder") {
+    return "Placeholder (no live vision)";
+  }
+  if (!normalized) {
+    return "Unknown provider";
+  }
+  return provider || "Unknown provider";
+}
+
+export function getOperationalClassificationReminder(): string {
+  return (
+    "AI completion does not set final category or priority. "
+    + "Tickets remain Unclassified / Pending Review until a Facility Manager classifies them."
+  );
+}
+
 export function getAiGeneratedDisclaimer(): string {
   return "AI-generated observations. Human review is required before any operational decision.";
 }
