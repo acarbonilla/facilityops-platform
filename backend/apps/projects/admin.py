@@ -7,6 +7,7 @@ from .models import (
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
+    ProjectTaskDependency,
 )
 
 AUDIT_READONLY_FIELDS = (
@@ -89,4 +90,22 @@ class ProjectTaskCommentAdmin(admin.ModelAdmin):
     list_display = ("task", "author", "is_internal", "created_at", "is_deleted")
     search_fields = ("body", "task__task_code", "author__email")
     list_filter = ("is_internal", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS
+
+
+@admin.register(ProjectTaskDependency)
+class ProjectTaskDependencyAdmin(admin.ModelAdmin):
+    list_display = (
+        "project",
+        "predecessor_task",
+        "successor_task",
+        "dependency_type",
+        "is_deleted",
+    )
+    search_fields = (
+        "project__project_code",
+        "predecessor_task__task_code",
+        "successor_task__task_code",
+    )
+    list_filter = ("dependency_type", "is_deleted")
     readonly_fields = AUDIT_READONLY_FIELDS

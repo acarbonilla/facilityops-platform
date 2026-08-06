@@ -9,6 +9,7 @@ from .models import (
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
+    ProjectTaskDependency,
 )
 from .services import (
     add_project_member,
@@ -415,7 +416,67 @@ class ProjectTaskCommentCreateSerializer(serializers.Serializer):
         )
 
 
-class ProjectTaskListSerializer(serializers.ModelSerializer):
+class ProjectTaskDerivedFieldsMixin:
+    """FO-105 readiness + delay fields; prefer batch maps from context."""
+
+    derived_fields = (
+        "is_dependency_ready",
+        "blocking_predecessor_count",
+        "predecessor_count",
+        "successor_count",
+        "is_delayed",
+        "is_completed_late",
+        "delay_days",
+    )
+
+    def _empty_readiness(self):
+        return {
+            "is_dependency_ready": True,
+            "blocking_predecessor_count": 0,
+            "blocking_predecessors": [],
+            "predecessor_count": 0,
+            "successor_count": 0,
+        }
+
+    def _resolve_readiness(self, obj):
+        readiness_map = self.context.get("dependency_readiness")
+        if readiness_map is not None:
+            return readiness_map.get(str(obj.id)) or self._empty_readiness()
+        from .dependency_service import get_dependency_readiness
+
+        return get_dependency_readiness(obj)
+
+    def _resolve_delay(self, obj):
+        delay_map = self.context.get("delay_flags")
+        if delay_map is not None:
+            return delay_map.get(str(obj.id)) or {
+                "is_delayed": False,
+                "is_completed_late": False,
+                "delay_days": 0,
+            }
+        from .dependency_service import compute_delay_flags
+
+        return compute_delay_flags(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        readiness = self._resolve_readiness(instance)
+        delay = self._resolve_delay(instance)
+        data["is_dependency_ready"] = readiness["is_dependency_ready"]
+        data["blocking_predecessor_count"] = readiness[
+            "blocking_predecessor_count"
+        ]
+        data["predecessor_count"] = readiness["predecessor_count"]
+        data["successor_count"] = readiness["successor_count"]
+        data["is_delayed"] = delay["is_delayed"]
+        data["is_completed_late"] = delay["is_completed_late"]
+        data["delay_days"] = delay["delay_days"]
+        return data
+
+
+class ProjectTaskListSerializer(
+    ProjectTaskDerivedFieldsMixin, serializers.ModelSerializer
+):
     person_in_charge_email = serializers.EmailField(
         source="person_in_charge.email", read_only=True, default=None
     )
@@ -446,7 +507,9 @@ class ProjectTaskListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
-class ProjectTaskDetailSerializer(serializers.ModelSerializer):
+class ProjectTaskDetailSerializer(
+    ProjectTaskDerivedFieldsMixin, serializers.ModelSerializer
+):
     person_in_charge_email = serializers.EmailField(
         source="person_in_charge.email", read_only=True, default=None
     )
@@ -494,6 +557,81 @@ class ProjectTaskDetailSerializer(serializers.ModelSerializer):
 
     def get_comments_count(self, obj):
         return obj.comments.filter(is_deleted=False).count()
+
+
+class ProjectTaskDependencySerializer(serializers.ModelSerializer):
+    predecessor_task_code = serializers.CharField(
+        source="predecessor_task.task_code", read_only=True
+    )
+    successor_task_code = serializers.CharField(
+        source="successor_task.task_code", read_only=True
+    )
+
+    class Meta:
+        model = ProjectTaskDependency
+        fields = (
+            "id",
+            "tenant",
+            "project",
+            "predecessor_task",
+            "predecessor_task_code",
+            "successor_task",
+            "successor_task_code",
+            "dependency_type",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+
+class ProjectTaskDependencyCreateSerializer(serializers.Serializer):
+    predecessor_task = serializers.UUIDField()
+    successor_task = serializers.UUIDField()
+    dependency_type = serializers.ChoiceField(
+        choices=ProjectTaskDependency.DependencyType.choices,
+        default=ProjectTaskDependency.DependencyType.FINISH_TO_START,
+        required=False,
+    )
+
+    def validate(self, attrs):
+        project = self.context["project"]
+        try:
+            predecessor = ProjectTask.objects.get(
+                pk=attrs["predecessor_task"],
+                project=project,
+                is_deleted=False,
+            )
+        except ProjectTask.DoesNotExist as exc:
+            raise serializers.ValidationError(
+                {"predecessor_task": "Predecessor task not found on this project."}
+            ) from exc
+        try:
+            successor = ProjectTask.objects.get(
+                pk=attrs["successor_task"],
+                project=project,
+                is_deleted=False,
+            )
+        except ProjectTask.DoesNotExist as exc:
+            raise serializers.ValidationError(
+                {"successor_task": "Successor task not found on this project."}
+            ) from exc
+        attrs["predecessor_task"] = predecessor
+        attrs["successor_task"] = successor
+        return attrs
+
+    def create(self, validated_data):
+        from .dependency_service import create_dependency
+
+        return create_dependency(
+            project=self.context["project"],
+            predecessor_task=validated_data["predecessor_task"],
+            successor_task=validated_data["successor_task"],
+            dependency_type=validated_data.get(
+                "dependency_type",
+                ProjectTaskDependency.DependencyType.FINISH_TO_START,
+            ),
+            actor=self.context["request"].user,
+        )
 
 
 class ProjectTaskValidationMixin:

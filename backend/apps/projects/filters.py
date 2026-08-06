@@ -114,6 +114,66 @@ def apply_task_progress_filters(queryset, params):
     return queryset
 
 
+def _truthy_param(value):
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    if normalized in ("true", "1", "yes"):
+        return True
+    if normalized in ("false", "0", "no"):
+        return False
+    return None
+
+
+def apply_task_fo105_filters(queryset, params):
+    """FO-105 list filters: dependency_blocked, delayed, unscheduled."""
+    from django.db.models import Exists, OuterRef
+    from django.utils import timezone
+
+    from .models import ProjectTask, ProjectTaskDependency
+
+    dependency_blocked = _truthy_param(params.get("dependency_blocked"))
+    if dependency_blocked is not None:
+        blocking = ProjectTaskDependency.objects.filter(
+            successor_task_id=OuterRef("pk"),
+            is_deleted=False,
+            predecessor_task__is_deleted=False,
+            project__is_deleted=False,
+        ).exclude(predecessor_task__status=ProjectTask.Status.COMPLETED)
+        if dependency_blocked:
+            queryset = queryset.filter(Exists(blocking))
+        else:
+            queryset = queryset.exclude(Exists(blocking))
+
+    delayed = _truthy_param(params.get("delayed"))
+    if delayed is not None:
+        today = timezone.localdate()
+        delayed_q = (
+            ~Q(
+                status__in=(
+                    ProjectTask.Status.COMPLETED,
+                    ProjectTask.Status.CANCELLED,
+                )
+            )
+            & Q(planned_end__lt=today)
+            & Q(actual_end__isnull=True)
+        )
+        if delayed:
+            queryset = queryset.filter(delayed_q)
+        else:
+            queryset = queryset.exclude(delayed_q)
+
+    unscheduled = _truthy_param(params.get("unscheduled"))
+    if unscheduled is not None:
+        scheduled_q = Q(planned_start__isnull=False) & Q(planned_end__isnull=False)
+        if unscheduled:
+            queryset = queryset.exclude(scheduled_q)
+        else:
+            queryset = queryset.filter(scheduled_q)
+
+    return queryset
+
+
 def apply_task_ordering(queryset, ordering):
     ordering_map = {
         "sequence": "sequence",
@@ -153,6 +213,7 @@ __all__ = (
     "apply_project_search",
     "apply_query_param_filters",
     "apply_task_date_filters",
+    "apply_task_fo105_filters",
     "apply_task_ordering",
     "apply_task_progress_filters",
     "apply_task_search",

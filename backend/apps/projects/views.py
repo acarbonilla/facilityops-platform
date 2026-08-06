@@ -13,6 +13,7 @@ from .filters import (
     apply_project_search,
     apply_query_param_filters,
     apply_task_date_filters,
+    apply_task_fo105_filters,
     apply_task_ordering,
     apply_task_progress_filters,
     apply_task_search,
@@ -23,6 +24,7 @@ from .models import (
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
+    ProjectTaskDependency,
 )
 from .permissions import HasProjectPermission
 from .serializers import (
@@ -39,6 +41,8 @@ from .serializers import (
     ProjectTaskCommentCreateSerializer,
     ProjectTaskCommentSerializer,
     ProjectTaskCreateSerializer,
+    ProjectTaskDependencyCreateSerializer,
+    ProjectTaskDependencySerializer,
     ProjectTaskDetailSerializer,
     ProjectTaskListSerializer,
     ProjectTaskReorderSerializer,
@@ -109,6 +113,12 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         if self.action in ("list", "retrieve", "history", "metrics", "task_summary"):
             self.required_permissions_any = ("projects.view", "projects.manage")
+        elif self.action == "gantt":
+            self.required_permissions_any = (
+                "projects.gantt.view",
+                "projects.view",
+                "projects.manage",
+            )
         elif self.action == "create":
             self.required_permissions_any = ("projects.create", "projects.manage")
         elif self.action in ("partial_update", "update"):
@@ -186,6 +196,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def task_summary(self, request, pk=None):
         project = self.get_object()
         return Response(build_task_summary(project), status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["get"], url_path="gantt")
+    def gantt(self, request, pk=None):
+        from .dependency_service import build_gantt_payload
+
+        project = self.get_object()
+        return Response(
+            build_gantt_payload(project),
+            status=status.HTTP_200_OK,
+        )
 
     @action(detail=True, methods=["get"], url_path="history")
     def history(self, request, pk=None):
@@ -282,6 +302,7 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
         )
         queryset = apply_task_date_filters(queryset, self.request.query_params)
         queryset = apply_task_progress_filters(queryset, self.request.query_params)
+        queryset = apply_task_fo105_filters(queryset, self.request.query_params)
         queryset = apply_task_ordering(
             queryset,
             self.request.query_params.get("ordering"),
@@ -294,13 +315,33 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
         manage = "projects.manage"
         tasks_manage = "projects.tasks.manage"
 
-        if self.action in ("list", "retrieve"):
-            self.required_permissions_any = (
-                "projects.tasks.view",
-                "projects.view",
-                manage,
-                tasks_manage,
-            )
+        if self.action in (
+            "list",
+            "retrieve",
+            "predecessors",
+            "successors",
+            "dependency_readiness",
+        ):
+            if self.action in (
+                "predecessors",
+                "successors",
+                "dependency_readiness",
+            ):
+                self.required_permissions_any = (
+                    "projects.dependencies.view",
+                    "projects.gantt.view",
+                    "projects.tasks.view",
+                    "projects.view",
+                    manage,
+                    tasks_manage,
+                )
+            else:
+                self.required_permissions_any = (
+                    "projects.tasks.view",
+                    "projects.view",
+                    manage,
+                    tasks_manage,
+                )
         elif self.action == "create":
             self.required_permissions_any = (
                 "projects.tasks.create",
@@ -370,6 +411,35 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             )
         return super().get_permissions()
 
+    def _task_serializer_context(self, tasks):
+        from .dependency_service import (
+            batch_dependency_readiness,
+            compute_delay_flags,
+        )
+
+        task_list = list(tasks)
+        context = self.get_serializer_context()
+        context["dependency_readiness"] = batch_dependency_readiness(task_list)
+        context["delay_flags"] = {
+            str(task.id): compute_delay_flags(task) for task in task_list
+        }
+        return context
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        tasks = page if page is not None else list(queryset)
+        context = self._task_serializer_context(tasks)
+        serializer = ProjectTaskListSerializer(tasks, many=True, context=context)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        task = self.get_object()
+        context = self._task_serializer_context([task])
+        return Response(ProjectTaskDetailSerializer(task, context=context).data)
+
     def get_serializer_class(self):
         if self.action == "list":
             return ProjectTaskListSerializer
@@ -405,10 +475,9 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             task = serializer.save()
         except DjangoValidationError as exc:
             _raise_validation(exc)
+        context = self._task_serializer_context([task])
         return Response(
-            ProjectTaskDetailSerializer(
-                task, context=self.get_serializer_context()
-            ).data,
+            ProjectTaskDetailSerializer(task, context=context).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -420,11 +489,8 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             task = serializer.save()
         except DjangoValidationError as exc:
             _raise_validation(exc)
-        return Response(
-            ProjectTaskDetailSerializer(
-                task, context=self.get_serializer_context()
-            ).data
-        )
+        context = self._task_serializer_context([task])
+        return Response(ProjectTaskDetailSerializer(task, context=context).data)
 
     def perform_destroy(self, instance):
         try:
@@ -443,11 +509,8 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             task = serializer.save()
         except DjangoValidationError as exc:
             _raise_validation(exc)
-        return Response(
-            ProjectTaskDetailSerializer(
-                task, context=self.get_serializer_context()
-            ).data
-        )
+        context = self._task_serializer_context([task])
+        return Response(ProjectTaskDetailSerializer(task, context=context).data)
 
     def reorder(self, request, project_id=None):
         serializer = ProjectTaskReorderSerializer(data=request.data)
@@ -460,10 +523,43 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             )
         except DjangoValidationError as exc:
             _raise_validation(exc)
+        context = self._task_serializer_context(tasks)
         return Response(
-            ProjectTaskListSerializer(tasks, many=True).data,
+            ProjectTaskListSerializer(tasks, many=True, context=context).data,
             status=status.HTTP_200_OK,
         )
+
+    def predecessors(self, request, project_id=None, pk=None):
+        from .dependency_service import _active_dependency_qs
+
+        task = self.get_object()
+        deps = (
+            _active_dependency_qs(project_id=self.project.id)
+            .filter(successor_task_id=task.id)
+            .select_related("predecessor_task", "successor_task")
+        )
+        return Response(
+            ProjectTaskDependencySerializer(deps, many=True).data
+        )
+
+    def successors(self, request, project_id=None, pk=None):
+        from .dependency_service import _active_dependency_qs
+
+        task = self.get_object()
+        deps = (
+            _active_dependency_qs(project_id=self.project.id)
+            .filter(predecessor_task_id=task.id)
+            .select_related("predecessor_task", "successor_task")
+        )
+        return Response(
+            ProjectTaskDependencySerializer(deps, many=True).data
+        )
+
+    def dependency_readiness(self, request, project_id=None, pk=None):
+        from .dependency_service import get_dependency_readiness
+
+        task = self.get_object()
+        return Response(get_dependency_readiness(task))
 
     def checklist(self, request, project_id=None, pk=None):
         task = self.get_object()
@@ -549,4 +645,101 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             is_deleted=False,
         )
         soft_delete_task_comment(comment=comment, actor=request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectDependencyViewSet(viewsets.ViewSet):
+    """Nested FO-105 dependencies under /projects/{project_id}/dependencies/."""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    pagination_class = StandardResultsSetPagination
+    http_method_names = ["get", "post", "delete", "head", "options"]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = None
+        manage = "projects.manage"
+        tasks_manage = "projects.tasks.manage"
+
+        if self.action in ("list", "retrieve"):
+            self.required_permissions_any = (
+                "projects.dependencies.view",
+                "projects.gantt.view",
+                "projects.view",
+                manage,
+            )
+        elif self.action in ("create", "destroy"):
+            self.required_permissions_any = (
+                "projects.dependencies.manage",
+                manage,
+                tasks_manage,
+            )
+        return super().get_permissions()
+
+    def get_queryset(self):
+        from .dependency_service import _active_dependency_qs
+
+        return (
+            _active_dependency_qs(project_id=self.project.id)
+            .select_related("predecessor_task", "successor_task", "project", "tenant")
+            .order_by("created_at")
+        )
+
+    def list(self, request, project_id=None):
+        queryset = self.get_queryset()
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        if page is not None:
+            serializer = ProjectTaskDependencySerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        return Response(
+            ProjectTaskDependencySerializer(queryset, many=True).data
+        )
+
+    def create(self, request, project_id=None):
+        serializer = ProjectTaskDependencyCreateSerializer(
+            data=request.data,
+            context={"request": request, "project": self.project},
+        )
+        serializer.is_valid(raise_exception=True)
+        try:
+            dependency = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(
+            ProjectTaskDependencySerializer(dependency).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def retrieve(self, request, project_id=None, pk=None):
+        dependency = get_object_or_404(self.get_queryset(), pk=pk)
+        return Response(ProjectTaskDependencySerializer(dependency).data)
+
+    def destroy(self, request, project_id=None, pk=None):
+        from .dependency_service import soft_delete_dependency
+
+        dependency = get_object_or_404(
+            ProjectTaskDependency.objects.filter(
+                project=self.project,
+                is_deleted=False,
+                project__is_deleted=False,
+            ),
+            pk=pk,
+        )
+        try:
+            soft_delete_dependency(dependency=dependency, actor=request.user)
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
         return Response(status=status.HTTP_204_NO_CONTENT)

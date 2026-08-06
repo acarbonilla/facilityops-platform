@@ -596,3 +596,149 @@ class ProjectTaskComment(BaseModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class ProjectTaskDependency(BaseModel):
+    """FO-105 finish-to-start task dependency.
+
+    Cycle detection walks the predecessor→successor adjacency in O(V+E),
+    excluding soft-deleted dependencies and soft-deleted tasks.
+    """
+
+    class DependencyType(models.TextChoices):
+        FINISH_TO_START = "finish_to_start", "Finish to Start"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_task_dependencies",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="task_dependencies",
+    )
+    predecessor_task = models.ForeignKey(
+        ProjectTask,
+        on_delete=models.CASCADE,
+        related_name="successor_dependencies",
+    )
+    successor_task = models.ForeignKey(
+        ProjectTask,
+        on_delete=models.CASCADE,
+        related_name="predecessor_dependencies",
+    )
+    dependency_type = models.CharField(
+        max_length=32,
+        choices=DependencyType.choices,
+        default=DependencyType.FINISH_TO_START,
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("predecessor_task", "successor_task"),
+                condition=Q(is_deleted=False),
+                name="unique_active_project_task_dependency",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["predecessor_task"], name="proj_dep_pred_idx"),
+            models.Index(fields=["successor_task"], name="proj_dep_succ_idx"),
+            models.Index(fields=["project"], name="proj_dep_project_idx"),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.predecessor_task_id} -> {self.successor_task_id} "
+            f"({self.dependency_type})"
+        )
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.dependency_type != self.DependencyType.FINISH_TO_START:
+            errors["dependency_type"] = (
+                "Only finish_to_start dependencies are supported."
+            )
+
+        if self.project_id and self.tenant_id and self.project.tenant_id != self.tenant_id:
+            errors["tenant"] = "Dependency tenant must match the project tenant."
+
+        if self.project_id and getattr(self.project, "is_deleted", False):
+            errors["project"] = "Cannot create dependencies on a deleted project."
+
+        pred = self.predecessor_task if self.predecessor_task_id else None
+        succ = self.successor_task if self.successor_task_id else None
+
+        if pred and succ and pred.id == succ.id:
+            errors["successor_task"] = "A task cannot depend on itself."
+
+        if pred:
+            if pred.is_deleted:
+                errors["predecessor_task"] = "Predecessor task is deleted."
+            elif self.project_id and pred.project_id != self.project_id:
+                errors["predecessor_task"] = (
+                    "Predecessor must belong to the same project."
+                )
+            elif self.tenant_id and pred.tenant_id != self.tenant_id:
+                errors["predecessor_task"] = (
+                    "Predecessor must belong to the same tenant."
+                )
+
+        if succ:
+            if succ.is_deleted:
+                errors["successor_task"] = "Successor task is deleted."
+            elif self.project_id and succ.project_id != self.project_id:
+                errors["successor_task"] = (
+                    "Successor must belong to the same project."
+                )
+            elif self.tenant_id and succ.tenant_id != self.tenant_id:
+                errors["successor_task"] = (
+                    "Successor must belong to the same tenant."
+                )
+
+        if (
+            not errors
+            and not self.is_deleted
+            and self.project_id
+            and self.predecessor_task_id
+            and self.successor_task_id
+        ):
+            # Local import avoids circular import with dependency_service.
+            from .dependency_service import would_create_cycle
+
+            if would_create_cycle(
+                self.project_id,
+                self.predecessor_task_id,
+                self.successor_task_id,
+                exclude_dependency_id=self.pk,
+            ):
+                errors["successor_task"] = (
+                    "Adding this dependency would create a cycle."
+                )
+
+        if (
+            not self.is_deleted
+            and self.predecessor_task_id
+            and self.successor_task_id
+            and ProjectTaskDependency.objects.filter(
+                predecessor_task_id=self.predecessor_task_id,
+                successor_task_id=self.successor_task_id,
+                is_deleted=False,
+            )
+            .exclude(pk=self.pk)
+            .exists()
+        ):
+            errors["successor_task"] = (
+                "This dependency already exists between these tasks."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

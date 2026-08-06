@@ -340,7 +340,10 @@ def update_task(*, task, data, actor=None):
     Update a project task fields with FO-104 validation via model.clean.
 
     Assignment notifications are deferred (FO-104 boundary).
+    FO-105: status→in_progress/completed is gated on FS dependency readiness.
     """
+    from .dependency_service import assert_task_dependency_ready_for_status
+
     project = task.project
     _ensure_project_access(actor=actor, project=project)
 
@@ -360,6 +363,14 @@ def update_task(*, task, data, actor=None):
 
     if not changes:
         return task
+
+    # Apply progress/status sync before dependency gate so coerced completed
+    # (e.g. in_progress + 100%) is also checked.
+    task.apply_progress_status_sync()
+    if task.status != previous_status:
+        assert_task_dependency_ready_for_status(
+            task, target_status=task.status
+        )
 
     actor_id = str(actor.id) if actor else None
     task.updated_by = actor_id
@@ -454,12 +465,19 @@ def assign_task(*, task, person_in_charge, actor=None):
 
 @transaction.atomic
 def soft_delete_task(*, task, actor):
-    """Allow soft-delete of any non-already-deleted task (including completed)."""
+    """Allow soft-delete of any non-already-deleted task (including completed).
+
+    FO-105: block when active dependencies exist as predecessor or successor.
+    """
+    from .dependency_service import assert_task_has_no_active_dependencies
+
     project = task.project
     _ensure_project_access(actor=actor, project=project)
 
     if task.is_deleted:
         raise ValidationError({"task": "Task is already deleted."})
+
+    assert_task_has_no_active_dependencies(task)
 
     actor_id = str(actor.id) if actor else None
     task.is_deleted = True
