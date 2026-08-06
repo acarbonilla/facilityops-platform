@@ -15,12 +15,13 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
+- Project Management — PM-UX-001 UX blueprint on `docs/pm-ux-001-project-management`
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
-- Next feature has **not** started
 
 ## Current Branch
 
-- `main` @ `7da3a8109f0ab8e4be20fde1c8e208ade1a7a25d`
+- `docs/pm-ux-001-project-management` (PM-UX-001 docs-only)
+- `main` @ `8cb18950f05aa8dada3b1896b9705228b7c89c3c`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -128,15 +129,14 @@
 
 ## Current Task
 
-- FO-101A — Finalize Merge and Post-Merge Verification **COMPLETE AND MERGED**.
-  PR #63 merge commit `c8a3446…`; post-merge docs tip `7da3a81…`; verification
-  passed; feature branch cleaned up. Readiness: **READY WITH ACCEPTED LIMITATIONS**.
+- PM-UX-001 — Project Management Workflow & UX Design **complete on docs branch**.
+  Docs-only blueprint for FO-103–FO-109A; no production code.
 - Latest stable feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 
 ## Next Milestone
 
-- Next product feature has **not** started
+- FO-103 Project Management Foundation (**not started** until PM-UX-001 accepted/merged)
 - Follow-up: FO-088 date-window flake remains watchlisted
 - Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
