@@ -1,8 +1,9 @@
 # FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics
 
-**Status:** Complete on feature branch (Draft PR)  
+**Status:** Complete on feature branch (Draft PR #65)  
 **Date:** 2026-08-06  
 **Branch:** `feature/ai-platform-reliability`  
+**Draft PR:** https://github.com/acarbonilla/facilityops-platform/pull/65  
 **Phase:** Phase 12A — Application Development  
 **Module:** AI Platform Reliability  
 
