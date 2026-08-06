@@ -431,8 +431,24 @@ class AITicketAnalysis(BaseModel):
     class Status(models.TextChoices):
         QUEUED = "queued", "Queued"
         PROCESSING = "processing", "Processing"
+        WAITING_FOR_RETRY = "waiting_for_retry", "Waiting for Retry"
+        RETRYING = "retrying", "Retrying"
         COMPLETED = "completed", "Completed"
         FAILED = "failed", "Failed"
+        RETRY_FAILED = "retry_failed", "Retry Failed"
+        PERMANENTLY_FAILED = "permanently_failed", "Permanently Failed"
+
+    ACTIVE_STATUSES = (
+        Status.QUEUED,
+        Status.PROCESSING,
+        Status.WAITING_FOR_RETRY,
+        Status.RETRYING,
+    )
+    TERMINAL_FAILURE_STATUSES = (
+        Status.FAILED,
+        Status.RETRY_FAILED,
+        Status.PERMANENTLY_FAILED,
+    )
 
     class Decision(models.TextChoices):
         ACCEPTED = "accepted", "Accepted"
@@ -450,7 +466,7 @@ class AITicketAnalysis(BaseModel):
         related_name="ai_analyses",
     )
     status = models.CharField(
-        max_length=20,
+        max_length=32,
         choices=Status.choices,
         default=Status.QUEUED,
         db_index=True,
@@ -458,6 +474,7 @@ class AITicketAnalysis(BaseModel):
     queued_at = models.DateTimeField(default=timezone.now, db_index=True)
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    next_retry_at = models.DateTimeField(null=True, blank=True, db_index=True)
     duration_ms = models.PositiveIntegerField(null=True, blank=True)
     model_name = models.CharField(max_length=100, blank=True, default="placeholder")
     model_version = models.CharField(max_length=50, blank=True, default="v0")
@@ -467,6 +484,8 @@ class AITicketAnalysis(BaseModel):
     result_json = models.JSONField(default=dict, blank=True)
     error_message = models.TextField(blank=True)
     error_code = models.CharField(max_length=64, blank=True, db_index=True)
+    admin_diagnostic_message = models.TextField(blank=True)
+    provider_diagnostics = models.JSONField(default=dict, blank=True)
     retryable = models.BooleanField(default=False)
     attempt_count = models.PositiveSmallIntegerField(default=0)
     input_image_count = models.PositiveSmallIntegerField(null=True, blank=True)

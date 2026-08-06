@@ -280,11 +280,15 @@ export function AIMonitoringScreen() {
 
         <SectionCard
           title="Queue"
-          description="Queued, processing, completed, failed, and derived retrying counts."
+          description="Queued, processing, waiting for retry, failed, and retrying counts."
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Metric label="Queued" value={data.queue.queued} />
             <Metric label="Processing" value={data.queue.processing} />
+            <Metric
+              label="Waiting for retry"
+              value={data.queue.waiting_for_retry ?? 0}
+            />
             <Metric label="Completed" value={data.queue.completed} />
             <Metric label="Failed" value={data.queue.failed} />
             <Metric label="Retrying" value={data.queue.retrying} />
@@ -293,6 +297,91 @@ export function AIMonitoringScreen() {
           <p className="text-xs text-slate-500">
             {data.interpretation?.retrying_definition}
           </p>
+        </SectionCard>
+
+        <SectionCard
+          title="Provider diagnostics"
+          description="FO-102 billing, quota, rate-limit, and auth signals (sanitized)."
+        >
+          {data.diagnostics ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <Metric
+                  label="Provider status"
+                  value={data.diagnostics.provider_status}
+                />
+                <Metric
+                  label="Current model"
+                  value={data.diagnostics.current_model || "—"}
+                />
+                <Metric
+                  label="Success rate"
+                  value={formatMonitoringRate(
+                    data.diagnostics.success_rate ?? data.runtime.success_rate,
+                  )}
+                />
+                <Metric
+                  label="Billing signal"
+                  value={data.diagnostics.billing.signal}
+                />
+                <Metric
+                  label="Quota signal"
+                  value={data.diagnostics.quota.signal}
+                />
+                <Metric
+                  label="Rate limit signal"
+                  value={data.diagnostics.rate_limit.signal}
+                />
+                <Metric
+                  label="Auth signal"
+                  value={data.diagnostics.authentication.signal}
+                />
+                <Metric
+                  label="Retry queue"
+                  value={data.diagnostics.retry_queue.waiting_for_retry}
+                />
+                <Metric
+                  label="Avg retry count"
+                  value={
+                    data.diagnostics.average_retry_count ??
+                    data.runtime.average_retry_count ??
+                    0
+                  }
+                />
+              </div>
+              {data.diagnostics.last_error ? (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800">
+                  <p className="font-medium">Last error</p>
+                  <p className="mt-1">
+                    {data.diagnostics.last_error.error_code || "unknown"}
+                    {data.diagnostics.last_error.http_status
+                      ? ` (HTTP ${data.diagnostics.last_error.http_status})`
+                      : ""}
+                  </p>
+                  {data.diagnostics.last_error.admin_message ? (
+                    <p className="mt-1 text-slate-700">
+                      {data.diagnostics.last_error.admin_message}
+                    </p>
+                  ) : null}
+                  {data.diagnostics.last_error.provider_message ? (
+                    <p className="mt-1 text-xs text-slate-600">
+                      {data.diagnostics.last_error.provider_message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <EmptyState
+                  title="No recent provider errors"
+                  message="No terminal AI failures with diagnostics are available yet."
+                />
+              )}
+            </div>
+          ) : (
+            <EmptyState
+              title="Diagnostics unavailable"
+              message="Provider diagnostics will appear after FO-102 monitoring is deployed."
+            />
+          )}
         </SectionCard>
 
         <SectionCard

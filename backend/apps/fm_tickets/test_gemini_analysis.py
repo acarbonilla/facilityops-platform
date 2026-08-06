@@ -248,13 +248,13 @@ class GeminiVisionFoundationTests(TestCase):
     def test_normalize_timeout_and_rate_limit(self):
         self.assertEqual(
             _normalize_gemini_exception(TimeoutError("deadline exceeded")).code,
-            AIErrorCode.PROVIDER_TIMEOUT,
+            AIErrorCode.NETWORK_TIMEOUT,
         )
         rate = _normalize_gemini_exception(Exception("rate limit exceeded"))
-        self.assertEqual(rate.code, AIErrorCode.PROVIDER_RATE_LIMITED)
+        self.assertEqual(rate.code, AIErrorCode.RATE_LIMIT_RPM)
         self.assertTrue(rate.retryable)
 
-    def test_processing_retryable_raises_for_celery(self):
+    def test_processing_retryable_schedules_waiting_for_retry(self):
         with patch(
             "apps.fm_tickets.tasks.process_fm_ticket_ai_analysis.delay"
         ) as delay_mock:
@@ -268,15 +268,19 @@ class GeminiVisionFoundationTests(TestCase):
             )
 
         with patch(
-            "apps.fm_tickets.ai_processing_service.get_ai_provider",
-            side_effect=AIAnalysisError(AIErrorCode.PROVIDER_TIMEOUT, retryable=True),
-        ):
-            with self.assertRaises(RetryableAIProcessing):
-                process_ticket_ai_analysis(str(analysis.id), attempt=1)
+            "apps.fm_tickets.ai_processing_service._schedule_delayed_retry"
+        ) as schedule_mock:
+            with patch(
+                "apps.fm_tickets.ai_processing_service.get_ai_provider",
+                side_effect=AIAnalysisError(AIErrorCode.PROVIDER_TIMEOUT, retryable=True),
+            ):
+                result = process_ticket_ai_analysis(str(analysis.id), attempt=1)
 
         analysis.refresh_from_db()
-        self.assertEqual(analysis.status, AITicketAnalysis.Status.PROCESSING)
+        self.assertEqual(result["status"], AITicketAnalysis.Status.WAITING_FOR_RETRY)
+        self.assertEqual(analysis.status, AITicketAnalysis.Status.WAITING_FOR_RETRY)
         self.assertEqual(analysis.error_code, AIErrorCode.PROVIDER_TIMEOUT)
+        schedule_mock.assert_called_once()
 
     def test_processing_permanent_failure_marks_failed(self):
         with patch(
@@ -299,7 +303,7 @@ class GeminiVisionFoundationTests(TestCase):
 
         analysis.refresh_from_db()
         self.assertFalse(result["ok"])
-        self.assertEqual(analysis.status, AITicketAnalysis.Status.FAILED)
+        self.assertEqual(analysis.status, AITicketAnalysis.Status.PERMANENTLY_FAILED)
         self.assertEqual(analysis.error_code, AIErrorCode.PROVIDER_AUTH_FAILED)
         self.assertNotIn("api key", analysis.error_message.lower())
 

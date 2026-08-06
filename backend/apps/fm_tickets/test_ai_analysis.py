@@ -191,7 +191,11 @@ class FmTicketAIAnalysisFoundationTests(APITestCase):
                 attachment_ids=[attachment.id],
             )
 
-        result = process_ticket_ai_analysis(str(analysis.id))
+        with override_settings(
+            FACILITYOPS_AI_PROVIDER="placeholder",
+            FACILITYOPS_GEMINI_ENABLED=False,
+        ):
+            result = process_ticket_ai_analysis(str(analysis.id))
         analysis.refresh_from_db()
 
         self.assertTrue(result["ok"])
@@ -230,7 +234,7 @@ class FmTicketAIAnalysisFoundationTests(APITestCase):
 
         analysis.refresh_from_db()
         self.assertFalse(result["ok"])
-        self.assertEqual(analysis.status, AITicketAnalysis.Status.FAILED)
+        self.assertEqual(analysis.status, AITicketAnalysis.Status.PERMANENTLY_FAILED)
         self.assertEqual(analysis.error_code, "ANALYSIS_INTERNAL_ERROR")
         self.assertIn("internal error", analysis.error_message.lower())
         self.assertNotIn("provider down", analysis.error_message.lower())

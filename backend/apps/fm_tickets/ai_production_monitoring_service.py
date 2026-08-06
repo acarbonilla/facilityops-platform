@@ -27,14 +27,26 @@ ERROR_CATEGORY_PROVIDER_UNAVAILABLE = "provider_unavailable"
 ERROR_CATEGORY_VALIDATION = "validation_failure"
 ERROR_CATEGORY_RETRY_EXHAUSTED = "retry_exhausted"
 ERROR_CATEGORY_CONFIGURATION = "configuration_error"
+ERROR_CATEGORY_BILLING = "billing"
+ERROR_CATEGORY_QUOTA = "quota"
+ERROR_CATEGORY_RATE_LIMIT = "rate_limit"
+ERROR_CATEGORY_AUTH = "authentication"
 ERROR_CATEGORY_OTHER = "other"
 
 ERROR_CODE_CATEGORIES = {
     AIErrorCode.PROVIDER_TIMEOUT: ERROR_CATEGORY_TIMEOUT,
+    AIErrorCode.NETWORK_TIMEOUT: ERROR_CATEGORY_TIMEOUT,
     AIErrorCode.PROVIDER_UNAVAILABLE: ERROR_CATEGORY_PROVIDER_UNAVAILABLE,
-    AIErrorCode.PROVIDER_RATE_LIMITED: ERROR_CATEGORY_PROVIDER_UNAVAILABLE,
+    AIErrorCode.PROVIDER_RATE_LIMITED: ERROR_CATEGORY_RATE_LIMIT,
+    AIErrorCode.RATE_LIMIT_RPM: ERROR_CATEGORY_RATE_LIMIT,
+    AIErrorCode.RATE_LIMIT_RPD: ERROR_CATEGORY_RATE_LIMIT,
+    AIErrorCode.QUOTA_EXHAUSTED: ERROR_CATEGORY_QUOTA,
+    AIErrorCode.BILLING_DISABLED: ERROR_CATEGORY_BILLING,
     AIErrorCode.PROVIDER_NOT_CONFIGURED: ERROR_CATEGORY_CONFIGURATION,
-    AIErrorCode.PROVIDER_AUTH_FAILED: ERROR_CATEGORY_CONFIGURATION,
+    AIErrorCode.PROVIDER_AUTH_FAILED: ERROR_CATEGORY_AUTH,
+    AIErrorCode.INVALID_API_KEY: ERROR_CATEGORY_AUTH,
+    AIErrorCode.PERMISSION_DENIED: ERROR_CATEGORY_AUTH,
+    AIErrorCode.MODEL_NOT_FOUND: ERROR_CATEGORY_CONFIGURATION,
     AIErrorCode.NO_VALID_IMAGES: ERROR_CATEGORY_VALIDATION,
     AIErrorCode.UNSUPPORTED_IMAGE_TYPE: ERROR_CATEGORY_VALIDATION,
     AIErrorCode.IMAGE_LIMIT_EXCEEDED: ERROR_CATEGORY_VALIDATION,
@@ -44,6 +56,7 @@ ERROR_CODE_CATEGORIES = {
     AIErrorCode.SAFETY_BLOCKED: ERROR_CATEGORY_VALIDATION,
     AIErrorCode.STORAGE_READ_FAILED: ERROR_CATEGORY_OTHER,
     AIErrorCode.ANALYSIS_INTERNAL_ERROR: ERROR_CATEGORY_OTHER,
+    AIErrorCode.UNKNOWN_PROVIDER_ERROR: ERROR_CATEGORY_OTHER,
 }
 
 HEALTH_HEALTHY = "healthy"
@@ -95,12 +108,21 @@ def _analysis_queryset(user):
 
 
 def _retrying_filter() -> Q:
-    """Derived retrying state — DB has no dedicated retrying status."""
+    """FO-102: waiting_for_retry / retrying, plus legacy processing+retryable."""
     return Q(
+        status__in=(
+            AITicketAnalysis.Status.WAITING_FOR_RETRY,
+            AITicketAnalysis.Status.RETRYING,
+        )
+    ) | Q(
         status=AITicketAnalysis.Status.PROCESSING,
         retryable=True,
         attempt_count__gte=1,
     )
+
+
+def _terminal_failure_filter() -> Q:
+    return Q(status__in=AITicketAnalysis.TERMINAL_FAILURE_STATUSES)
 
 
 def _monitoring_thresholds() -> dict[str, float | int]:
@@ -162,14 +184,15 @@ class AIProductionMonitoringService:
             "recent_activity": self._recent_activity(qs),
             "error_categories": self._error_category_counts(qs),
             "thresholds_used": _monitoring_thresholds(),
+            "diagnostics": self._fo102_diagnostics(user, provider, qs),
             "interpretation": {
                 "note": (
-                    "FO-094 monitoring is informational only. It never runs analysis, "
+                    "FO-094/FO-102 monitoring is informational only. It never runs analysis, "
                     "modifies tickets, remediates failures, or exposes secrets."
                 ),
                 "retrying_definition": (
-                    "retrying = status processing AND retryable=true "
-                    "(no dedicated retrying status in the database)."
+                    "waiting_for_retry / retrying statuses, or legacy "
+                    "processing+retryable=true."
                 ),
             },
             "generated_at": timezone.localtime().isoformat(),
@@ -249,19 +272,24 @@ class AIProductionMonitoringService:
             processing=Count(
                 "id", filter=Q(status=AITicketAnalysis.Status.PROCESSING)
             ),
+            waiting_for_retry=Count(
+                "id", filter=Q(status=AITicketAnalysis.Status.WAITING_FOR_RETRY)
+            ),
             completed=Count(
                 "id", filter=Q(status=AITicketAnalysis.Status.COMPLETED)
             ),
-            failed=Count("id", filter=Q(status=AITicketAnalysis.Status.FAILED)),
+            failed=Count("id", filter=_terminal_failure_filter()),
             retrying=Count("id", filter=_retrying_filter()),
         )
         queued = aggregates["queued"] or 0
         processing = aggregates["processing"] or 0
+        waiting = aggregates["waiting_for_retry"] or 0
         retrying = aggregates["retrying"] or 0
-        backlog = queued + processing
+        backlog = queued + processing + waiting
         return {
             "queued": queued,
             "processing": processing,
+            "waiting_for_retry": waiting,
             "completed": aggregates["completed"] or 0,
             "failed": aggregates["failed"] or 0,
             "retrying": retrying,
@@ -278,14 +306,24 @@ class AIProductionMonitoringService:
         total = qs.count()
         today = qs.filter(queued_at__gte=start_of_day).count()
         completed = qs.filter(status=AITicketAnalysis.Status.COMPLETED).count()
-        failed = qs.filter(status=AITicketAnalysis.Status.FAILED).count()
+        failed = qs.filter(_terminal_failure_filter()).count()
         finished = completed + failed
         timeouts = qs.filter(
-            status=AITicketAnalysis.Status.FAILED,
-            error_code=AIErrorCode.PROVIDER_TIMEOUT,
+            _terminal_failure_filter(),
+            error_code__in=(
+                AIErrorCode.PROVIDER_TIMEOUT,
+                AIErrorCode.NETWORK_TIMEOUT,
+            ),
         ).count()
         retries = qs.filter(attempt_count__gte=2).count()
         retrying_now = qs.filter(_retrying_filter()).count()
+        avg_attempts = qs.aggregate(avg=Avg("attempt_count"))["avg"]
+        last_success = (
+            qs.filter(status=AITicketAnalysis.Status.COMPLETED)
+            .order_by("-completed_at")
+            .values_list("completed_at", flat=True)
+            .first()
+        )
 
         avg_duration = qs.filter(
             status=AITicketAnalysis.Status.COMPLETED,
@@ -319,6 +357,12 @@ class AIProductionMonitoringService:
             "retrying_now": retrying_now,
             "average_duration_ms": int(avg_duration) if avg_duration is not None else None,
             "average_queue_wait_ms": avg_wait_ms,
+            "average_retry_count": (
+                round(float(avg_attempts), 2) if avg_attempts is not None else 0.0
+            ),
+            "last_successful_analysis_at": (
+                last_success.isoformat() if last_success else None
+            ),
         }
 
     def _error_category_counts(self, qs) -> dict[str, int]:
@@ -328,25 +372,35 @@ class AIProductionMonitoringService:
             ERROR_CATEGORY_VALIDATION: 0,
             ERROR_CATEGORY_RETRY_EXHAUSTED: 0,
             ERROR_CATEGORY_CONFIGURATION: 0,
+            ERROR_CATEGORY_BILLING: 0,
+            ERROR_CATEGORY_QUOTA: 0,
+            ERROR_CATEGORY_RATE_LIMIT: 0,
+            ERROR_CATEGORY_AUTH: 0,
             ERROR_CATEGORY_OTHER: 0,
         }
-        failed = qs.filter(status=AITicketAnalysis.Status.FAILED).values_list(
-            "error_code", "attempt_count", "retryable"
+        failed = qs.filter(_terminal_failure_filter()).values_list(
+            "error_code", "attempt_count", "retryable", "status"
         )
-        max_attempts = int(get_runtime_setting("FACILITYOPS_AI_MAX_ATTEMPTS", 3))
-        for error_code, attempt_count, retryable in failed:
+        max_attempts = int(get_runtime_setting("FACILITYOPS_AI_MAX_ATTEMPTS", 5))
+        for error_code, attempt_count, retryable, status_value in failed:
             category = classify_error_code(error_code)
-            if (
-                not retryable
-                and attempt_count
-                and int(attempt_count) >= max_attempts
-                and category
-                in {
-                    ERROR_CATEGORY_TIMEOUT,
-                    ERROR_CATEGORY_PROVIDER_UNAVAILABLE,
-                    ERROR_CATEGORY_OTHER,
-                }
-            ):
+            exhausted = (
+                status_value == AITicketAnalysis.Status.RETRY_FAILED
+                or (
+                    not retryable
+                    and attempt_count
+                    and int(attempt_count) >= max_attempts
+                    and category
+                    in {
+                        ERROR_CATEGORY_TIMEOUT,
+                        ERROR_CATEGORY_PROVIDER_UNAVAILABLE,
+                        ERROR_CATEGORY_QUOTA,
+                        ERROR_CATEGORY_RATE_LIMIT,
+                        ERROR_CATEGORY_OTHER,
+                    }
+                )
+            )
+            if exhausted:
                 counts[ERROR_CATEGORY_RETRY_EXHAUSTED] += 1
             else:
                 counts[category] += 1
@@ -358,27 +412,36 @@ class AIProductionMonitoringService:
         activity = []
         for row in rows:
             derived_status = row.status
-            if (
+            if row.status == AITicketAnalysis.Status.WAITING_FOR_RETRY:
+                derived_status = "waiting_for_retry"
+            elif row.status == AITicketAnalysis.Status.RETRYING:
+                derived_status = "retrying"
+            elif (
                 row.status == AITicketAnalysis.Status.PROCESSING
                 and row.retryable
                 and row.attempt_count >= 1
             ):
                 derived_status = "retrying"
+            terminal = row.status in AITicketAnalysis.TERMINAL_FAILURE_STATUSES
             activity.append(
                 {
                     "id": str(row.id),
                     "status": derived_status,
                     "status_label": derived_status.replace("_", " ").title(),
                     "error_category": (
-                        classify_error_code(row.error_code)
-                        if row.status == AITicketAnalysis.Status.FAILED
-                        else None
+                        classify_error_code(row.error_code) if terminal else None
                     ),
+                    "error_code": row.error_code or None if terminal else None,
                     "attempt_count": row.attempt_count,
                     "duration_ms": row.duration_ms,
                     "queued_at": row.queued_at.isoformat() if row.queued_at else None,
                     "completed_at": (
                         row.completed_at.isoformat() if row.completed_at else None
+                    ),
+                    "next_retry_at": (
+                        row.next_retry_at.isoformat()
+                        if getattr(row, "next_retry_at", None)
+                        else None
                     ),
                     "provider": row.provider or "",
                     "model_name": row.model_name or "",
@@ -386,6 +449,93 @@ class AIProductionMonitoringService:
             )
         return activity
 
+    def _fo102_diagnostics(self, user, provider: dict[str, Any], qs) -> dict[str, Any]:
+        """FO-102 admin diagnostics panel (sanitized; no secrets/prompts/images)."""
+        last_error = (
+            qs.filter(_terminal_failure_filter())
+            .exclude(error_code="")
+            .order_by("-completed_at", "-updated_at")
+            .first()
+        )
+        last_diag = {}
+        if last_error is not None:
+            raw = last_error.provider_diagnostics or {}
+            if isinstance(raw, dict):
+                last_diag = {
+                    "http_status": raw.get("http_status"),
+                    "provider_error_code": raw.get("provider_error_code") or "",
+                    "provider_message": (raw.get("provider_message") or "")[:400],
+                    "retryable": bool(raw.get("retryable")),
+                    "request_timestamp": raw.get("request_timestamp") or "",
+                    "model": raw.get("model") or last_error.model_name or "",
+                    "error_code": last_error.error_code,
+                    "admin_message": (
+                        last_error.admin_diagnostic_message
+                        or raw.get("admin_message")
+                        or ""
+                    ),
+                    "analysis_id": str(last_error.id),
+                    "status": last_error.status,
+                }
+        billing_hits = qs.filter(
+            _terminal_failure_filter(),
+            error_code=AIErrorCode.BILLING_DISABLED,
+        ).count()
+        quota_hits = qs.filter(
+            _terminal_failure_filter(),
+            error_code=AIErrorCode.QUOTA_EXHAUSTED,
+        ).count()
+        rate_hits = qs.filter(
+            _terminal_failure_filter(),
+            error_code__in=(
+                AIErrorCode.RATE_LIMIT_RPM,
+                AIErrorCode.RATE_LIMIT_RPD,
+                AIErrorCode.PROVIDER_RATE_LIMITED,
+            ),
+        ).count()
+        auth_hits = qs.filter(
+            _terminal_failure_filter(),
+            error_code__in=(
+                AIErrorCode.INVALID_API_KEY,
+                AIErrorCode.PERMISSION_DENIED,
+                AIErrorCode.PROVIDER_AUTH_FAILED,
+            ),
+        ).count()
+        waiting = qs.filter(
+            status=AITicketAnalysis.Status.WAITING_FOR_RETRY
+        ).count()
+        runtime = self._runtime_metrics(user)
+        return {
+            "provider_status": (
+                "available" if provider.get("provider_available") else "unavailable"
+            ),
+            "billing": {
+                "signal": "billing_disabled_errors" if billing_hits else "no_recent_billing_errors",
+                "recent_billing_failures": billing_hits,
+            },
+            "quota": {
+                "signal": "quota_exhausted_errors" if quota_hits else "no_recent_quota_errors",
+                "recent_quota_failures": quota_hits,
+            },
+            "rate_limit": {
+                "signal": "rate_limit_errors" if rate_hits else "no_recent_rate_limit_errors",
+                "recent_rate_limit_failures": rate_hits,
+            },
+            "authentication": {
+                "signal": "auth_errors" if auth_hits else "ok",
+                "recent_auth_failures": auth_hits,
+                "api_key_configured": bool(provider.get("api_key_configured")),
+            },
+            "last_error": last_diag or None,
+            "current_model": provider.get("model") or "",
+            "retry_queue": {
+                "waiting_for_retry": waiting,
+                "retrying_now": runtime.get("retrying_now") or 0,
+            },
+            "success_rate": runtime.get("success_rate"),
+            "average_retry_count": runtime.get("average_retry_count"),
+            "last_successful_analysis_at": runtime.get("last_successful_analysis_at"),
+        }
     def _aggregate_health(
         self,
         provider: dict[str, Any],

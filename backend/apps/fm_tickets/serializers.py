@@ -781,6 +781,9 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
     provider = serializers.CharField(read_only=True)
     error_code = serializers.CharField(read_only=True)
     retryable = serializers.BooleanField(read_only=True)
+    admin_diagnostic_message = serializers.CharField(read_only=True)
+    provider_diagnostics = serializers.SerializerMethodField()
+    next_retry_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
     class Meta:
         model = AITicketAnalysis
@@ -797,6 +800,7 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             "queued_at",
             "started_at",
             "completed_at",
+            "next_retry_at",
             "duration_ms",
             "result",
             "result_json",
@@ -817,6 +821,8 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             "decision_user",
             "error_message",
             "error_code",
+            "admin_diagnostic_message",
+            "provider_diagnostics",
             "retryable",
             "attempt_count",
             "input_image_count",
@@ -831,6 +837,25 @@ class AITicketAnalysisSerializer(serializers.ModelSerializer):
             str(link.attachment_id)
             for link in obj.analysis_attachments.all()
         ]
+
+    def get_provider_diagnostics(self, obj):
+        payload = obj.provider_diagnostics or {}
+        if not isinstance(payload, dict):
+            return {}
+        # Never leak unexpected keys that might hold secrets.
+        allowed = {
+            "http_status",
+            "provider_error_code",
+            "provider_message",
+            "retryable",
+            "request_timestamp",
+            "model",
+            "error_code",
+            "admin_message",
+            "manual_retry_requested_at",
+            "prior_attempt_count",
+        }
+        return {key: payload[key] for key in allowed if key in payload}
 
     def get_result(self, obj):
         payload = obj.result_json or {}
@@ -948,6 +973,6 @@ class RequesterSafeAITicketAnalysisSerializer(serializers.ModelSerializer):
         ]
 
     def get_error_message(self, obj):
-        if obj.status != AITicketAnalysis.Status.FAILED:
+        if obj.status not in AITicketAnalysis.TERMINAL_FAILURE_STATUSES:
             return ""
         return "Image analysis could not be completed. Facilities can still review your report."

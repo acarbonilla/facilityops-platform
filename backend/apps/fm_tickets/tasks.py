@@ -1,7 +1,7 @@
 from celery import shared_task
 from django.conf import settings
 
-from .ai_processing_service import RetryableAIProcessing, process_ticket_ai_analysis
+from .ai_processing_service import process_ticket_ai_analysis
 from .auto_closure import process_automatic_ticket_closures
 
 
@@ -22,13 +22,10 @@ def process_automatic_ticket_closures_task():
 @shared_task(
     bind=True,
     name="fm_tickets.process_fm_ticket_ai_analysis",
-    autoretry_for=(RetryableAIProcessing,),
-    retry_backoff=True,
-    retry_backoff_max=300,
-    retry_jitter=True,
-    max_retries=2,
 )
-def process_fm_ticket_ai_analysis(self, analysis_id: str):
-    """FO-084/085 background worker: queued → processing → completed/failed."""
-    attempt = (getattr(self.request, "retries", 0) or 0) + 1
-    return process_ticket_ai_analysis(analysis_id, attempt=attempt)
+def process_fm_ticket_ai_analysis(self, analysis_id: str, attempt: int = 1):
+    """FO-084/085/102 background worker with explicit delayed retry scheduling."""
+    # Prefer explicit attempt from FO-102 delayed schedule; fall back to Celery retries.
+    if attempt is None or int(attempt) < 1:
+        attempt = (getattr(self.request, "retries", 0) or 0) + 1
+    return process_ticket_ai_analysis(analysis_id, attempt=int(attempt))
