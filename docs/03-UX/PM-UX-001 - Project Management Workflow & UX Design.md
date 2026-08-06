@@ -1,11 +1,12 @@
 # PM-UX-001 — Project Management Workflow & UX Design
 
-**Status:** Complete on documentation branch (Draft PR)  
-**Date:** 2026-08-06  
-**Type:** UX / Workflow Design / Documentation only  
-**Branch:** `docs/pm-ux-001-project-management`  
-**Base main:** `8cb18950f05aa8dada3b1896b9705228b7c89c3c`  
-**AI Platform freeze:** `98c1661…` (RM-001 / AI Platform v1.0) — **FROZEN AND UNCHANGED**  
+**Status:** Complete on documentation branch (Draft PR #66)
+**Date:** 2026-08-06
+**Type:** UX / Workflow Design / Documentation only
+**Branch:** `docs/pm-ux-001-project-management`
+**Base main:** `8cb18950f05aa8dada3b1896b9705228b7c89c3c`
+**Draft PR:** https://github.com/acarbonilla/facilityops-platform/pull/66
+**AI Platform freeze:** `98c1661…` (RM-001 / AI Platform v1.0) — **FROZEN AND UNCHANGED**
 **Implementation roadmap:** FO-103 through FO-109A (**not started**)
 
 This document does **not** change production code, databases, APIs, or frontend.
