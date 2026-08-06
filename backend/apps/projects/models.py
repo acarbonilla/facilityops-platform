@@ -742,3 +742,227 @@ class ProjectTaskDependency(BaseModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class ProjectNote(BaseModel):
+    """FO-106 project note (collaboration)."""
+
+    class Category(models.TextChoices):
+        GENERAL = "general", "General"
+        MEETING = "meeting", "Meeting"
+        DECISION = "decision", "Decision"
+        SAFETY = "safety", "Safety"
+        MATERIAL = "material", "Material"
+        CONTRACTOR = "contractor", "Contractor"
+        CLIENT = "client", "Client"
+        OTHER = "other", "Other"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_notes",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="notes",
+    )
+    title = models.CharField(max_length=200)
+    note = models.TextField()
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_notes",
+    )
+    category = models.CharField(
+        max_length=32,
+        choices=Category.choices,
+        default=Category.GENERAL,
+        db_index=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.project_id and self.tenant_id and self.project.tenant_id != self.tenant_id:
+            errors["tenant"] = "Note tenant must match the project tenant."
+        if not (self.note or "").strip():
+            errors["note"] = "Note body is required."
+        if not (self.title or "").strip():
+            errors["title"] = "Title is required."
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProjectIssue(BaseModel):
+    """FO-106 project issue tracker. No auto-create of FM tickets/notifications."""
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        INVESTIGATING = "investigating", "Investigating"
+        BLOCKED = "blocked", "Blocked"
+        RESOLVED = "resolved", "Resolved"
+        CLOSED = "closed", "Closed"
+        CANCELLED = "cancelled", "Cancelled"
+
+    RESOLVED_STATUSES = frozenset({Status.RESOLVED, Status.CLOSED})
+    REOPEN_STATUSES = frozenset({Status.OPEN, Status.INVESTIGATING, Status.BLOCKED})
+    IMMUTABLE_ATTACHMENT_STATUSES = frozenset(
+        {Status.RESOLVED, Status.CLOSED, Status.CANCELLED}
+    )
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_issues",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="issues",
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    severity = models.CharField(
+        max_length=20,
+        choices=Severity.choices,
+        default=Severity.MEDIUM,
+        db_index=True,
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.OPEN,
+        db_index=True,
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="owned_project_issues",
+    )
+    due_date = models.DateField(null=True, blank=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+    def apply_resolved_at(self, *, previous_status=None):
+        """Set/clear resolved_at based on status transitions."""
+        if self.status in self.RESOLVED_STATUSES:
+            if previous_status not in self.RESOLVED_STATUSES or self.resolved_at is None:
+                self.resolved_at = timezone.now()
+        elif self.status in self.REOPEN_STATUSES:
+            self.resolved_at = None
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.project_id and self.tenant_id and self.project.tenant_id != self.tenant_id:
+            errors["tenant"] = "Issue tenant must match the project tenant."
+
+        if not (self.title or "").strip():
+            errors["title"] = "Title is required."
+
+        if self.owner_id:
+            owner_error = self._validate_owner()
+            if owner_error:
+                errors["owner"] = owner_error
+
+        if errors:
+            raise ValidationError(errors)
+
+    def _validate_owner(self):
+        """Owner must be same tenant; prefer active project member when set."""
+        user = self.owner
+        if user.tenant_id != self.tenant_id:
+            return "Issue owner must belong to the project tenant."
+        if not user.is_active:
+            return "Issue owner must be an active user."
+
+        if self.project.project_manager_id == user.id:
+            return None
+
+        is_active_member = ProjectMember.objects.filter(
+            project_id=self.project_id,
+            user_id=user.id,
+            is_active=True,
+            is_deleted=False,
+        ).exists()
+        if not is_active_member:
+            return (
+                "Issue owner must be an active project member or the "
+                "project manager."
+            )
+        return None
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+
+class ProjectIssueComment(BaseModel):
+    """FO-106 issue comment — mirrors ProjectTaskComment."""
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_issue_comments",
+    )
+    issue = models.ForeignKey(
+        ProjectIssue,
+        on_delete=models.CASCADE,
+        related_name="comments",
+    )
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_issue_comments",
+    )
+    body = models.TextField()
+    is_internal = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"Comment on issue {self.issue_id}"
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if self.issue_id and self.tenant_id and self.issue.tenant_id != self.tenant_id:
+            errors["tenant"] = "Comment tenant must match the issue tenant."
+        if not (self.body or "").strip():
+            errors["body"] = "Comment body is required."
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

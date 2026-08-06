@@ -3,7 +3,10 @@ from django.contrib import admin
 from .models import (
     Project,
     ProjectHistory,
+    ProjectIssue,
+    ProjectIssueComment,
     ProjectMember,
+    ProjectNote,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
@@ -108,4 +111,42 @@ class ProjectTaskDependencyAdmin(admin.ModelAdmin):
         "successor_task__task_code",
     )
     list_filter = ("dependency_type", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS
+
+
+@admin.register(ProjectNote)
+class ProjectNoteAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "project",
+        "category",
+        "author",
+        "is_deleted",
+    )
+    search_fields = ("title", "note", "project__project_code", "author__email")
+    list_filter = ("category", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS
+
+
+@admin.register(ProjectIssue)
+class ProjectIssueAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "project",
+        "status",
+        "severity",
+        "owner",
+        "due_date",
+        "is_deleted",
+    )
+    search_fields = ("title", "description", "project__project_code", "owner__email")
+    list_filter = ("status", "severity", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS + ("resolved_at",)
+
+
+@admin.register(ProjectIssueComment)
+class ProjectIssueCommentAdmin(admin.ModelAdmin):
+    list_display = ("issue", "author", "is_internal", "created_at", "is_deleted")
+    search_fields = ("body", "issue__title", "author__email")
+    list_filter = ("is_internal", "is_deleted")
     readonly_fields = AUDIT_READONLY_FIELDS

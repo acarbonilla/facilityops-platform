@@ -1,7 +1,14 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import ProjectDependencyViewSet, ProjectTaskViewSet, ProjectViewSet
+from .views import (
+    ProjectDependencyViewSet,
+    ProjectIssueViewSet,
+    ProjectNoteViewSet,
+    ProjectTaskViewSet,
+    ProjectTimelineViewSet,
+    ProjectViewSet,
+)
 
 router = DefaultRouter()
 router.register(r"", ProjectViewSet, basename="project")
@@ -31,7 +38,56 @@ dependency_detail = ProjectDependencyViewSet.as_view(
     {"get": "retrieve", "delete": "destroy"}
 )
 
+timeline_list = ProjectTimelineViewSet.as_view({"get": "list"})
+
+note_list = ProjectNoteViewSet.as_view({"get": "list", "post": "create"})
+note_detail = ProjectNoteViewSet.as_view(
+    {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+)
+
+issue_list = ProjectIssueViewSet.as_view({"get": "list", "post": "create"})
+issue_detail = ProjectIssueViewSet.as_view(
+    {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+)
+issue_comments = ProjectIssueViewSet.as_view({"get": "comments", "post": "comments"})
+issue_comment_detail = ProjectIssueViewSet.as_view({"delete": "destroy_comment"})
+
 urlpatterns = [
+    path(
+        "<uuid:project_id>/timeline/",
+        timeline_list,
+        name="project-timeline-list",
+    ),
+    path(
+        "<uuid:project_id>/notes/",
+        note_list,
+        name="project-note-list",
+    ),
+    path(
+        "<uuid:project_id>/notes/<uuid:pk>/",
+        note_detail,
+        name="project-note-detail",
+    ),
+    path(
+        "<uuid:project_id>/issues/",
+        issue_list,
+        name="project-issue-list",
+    ),
+    path(
+        "<uuid:project_id>/issues/<uuid:pk>/",
+        issue_detail,
+        name="project-issue-detail",
+    ),
+    path(
+        "<uuid:project_id>/issues/<uuid:pk>/comments/",
+        issue_comments,
+        name="project-issue-comments",
+    ),
+    path(
+        "<uuid:project_id>/issues/<uuid:pk>/comments/<uuid:comment_id>/",
+        issue_comment_detail,
+        name="project-issue-comment-detail",
+    ),
     path(
         "<uuid:project_id>/dependencies/",
         dependency_list,

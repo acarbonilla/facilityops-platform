@@ -8,6 +8,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .filters import (
+    apply_issue_date_filters,
+    apply_issue_ordering,
+    apply_issue_search,
+    apply_note_ordering,
+    apply_note_search,
     apply_project_date_filters,
     apply_project_ordering,
     apply_project_search,
@@ -20,7 +25,10 @@ from .filters import (
 )
 from .models import (
     Project,
+    ProjectIssue,
+    ProjectIssueComment,
     ProjectMember,
+    ProjectNote,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
@@ -31,9 +39,18 @@ from .serializers import (
     ProjectCreateSerializer,
     ProjectDetailSerializer,
     ProjectHistorySerializer,
+    ProjectIssueCommentCreateSerializer,
+    ProjectIssueCommentSerializer,
+    ProjectIssueCreateSerializer,
+    ProjectIssueDetailSerializer,
+    ProjectIssueSerializer,
+    ProjectIssueUpdateSerializer,
     ProjectListSerializer,
     ProjectMemberCreateSerializer,
     ProjectMemberSerializer,
+    ProjectNoteCreateSerializer,
+    ProjectNoteSerializer,
+    ProjectNoteUpdateSerializer,
     ProjectTaskAssignSerializer,
     ProjectTaskChecklistItemCreateSerializer,
     ProjectTaskChecklistItemSerializer,
@@ -47,6 +64,7 @@ from .serializers import (
     ProjectTaskListSerializer,
     ProjectTaskReorderSerializer,
     ProjectTaskUpdateSerializer,
+    ProjectTimelineEntrySerializer,
     ProjectUpdateSerializer,
 )
 from .services import (
@@ -54,11 +72,15 @@ from .services import (
     remove_project_member,
     reorder_tasks,
     soft_delete_checklist_item,
+    soft_delete_issue,
+    soft_delete_issue_comment,
+    soft_delete_note,
     soft_delete_project,
     soft_delete_task,
     soft_delete_task_comment,
 )
 from .tenant_scope import scope_projects_to_user
+from .timeline_service import build_timeline_queryset, history_entry_to_timeline_dto
 
 
 def _raise_validation(exc):
@@ -742,4 +764,309 @@ class ProjectDependencyViewSet(viewsets.ViewSet):
             soft_delete_dependency(dependency=dependency, actor=request.user)
         except DjangoValidationError as exc:
             _raise_validation(exc)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectTimelineViewSet(viewsets.ViewSet):
+    """FO-106 timeline stream under /projects/{project_id}/timeline/."""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    pagination_class = StandardResultsSetPagination
+    http_method_names = ["get", "head", "options"]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = (
+            "projects.timeline.view",
+            "projects.view",
+            "projects.manage",
+        )
+        return super().get_permissions()
+
+    def list(self, request, project_id=None):
+        queryset = build_timeline_queryset(
+            project=self.project,
+            params=request.query_params,
+        )
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        entries = page if page is not None else list(queryset)
+        payload = [history_entry_to_timeline_dto(entry) for entry in entries]
+        serializer = ProjectTimelineEntrySerializer(payload, many=True)
+        if page is not None:
+            return paginator.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+
+class ProjectNoteViewSet(viewsets.ModelViewSet):
+    """Nested FO-106 notes under /projects/{project_id}/notes/."""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    pagination_class = StandardResultsSetPagination
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    filter_fields = ("category", "author")
+    lookup_field = "pk"
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_queryset(self):
+        queryset = ProjectNote.objects.filter(
+            project=self.project,
+            is_deleted=False,
+        ).select_related("author", "project", "tenant")
+        queryset = apply_query_param_filters(
+            queryset,
+            self.request.query_params,
+            self.filter_fields,
+        )
+        queryset = apply_note_search(
+            queryset,
+            self.request.query_params.get("search"),
+        )
+        queryset = apply_note_ordering(
+            queryset,
+            self.request.query_params.get("ordering"),
+        )
+        return queryset
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = None
+        manage = "projects.manage"
+        notes_manage = "projects.notes.manage"
+
+        if self.action in ("list", "retrieve"):
+            self.required_permissions_any = (
+                "projects.notes.view",
+                "projects.view",
+                manage,
+                notes_manage,
+            )
+        elif self.action in ("create", "partial_update", "update", "destroy"):
+            self.required_permissions_any = (
+                notes_manage,
+                manage,
+            )
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ProjectNoteCreateSerializer
+        if self.action in ("partial_update", "update"):
+            return ProjectNoteUpdateSerializer
+        return ProjectNoteSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["project"] = getattr(self, "project", None)
+        return context
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            note = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(
+            ProjectNoteSerializer(note).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        note = self.get_object()
+        serializer = self.get_serializer(note, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        try:
+            note = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(ProjectNoteSerializer(note).data)
+
+    def perform_destroy(self, instance):
+        soft_delete_note(note=instance, actor=self.request.user)
+
+
+class ProjectIssueViewSet(viewsets.ModelViewSet):
+    """Nested FO-106 issues under /projects/{project_id}/issues/."""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    pagination_class = StandardResultsSetPagination
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    filter_fields = ("status", "severity", "owner")
+    lookup_field = "pk"
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_queryset(self):
+        queryset = ProjectIssue.objects.filter(
+            project=self.project,
+            is_deleted=False,
+        ).select_related("owner", "project", "tenant")
+        queryset = apply_query_param_filters(
+            queryset,
+            self.request.query_params,
+            self.filter_fields,
+        )
+        queryset = apply_issue_search(
+            queryset,
+            self.request.query_params.get("search"),
+        )
+        queryset = apply_issue_date_filters(queryset, self.request.query_params)
+        queryset = apply_issue_ordering(
+            queryset,
+            self.request.query_params.get("ordering"),
+        )
+        return queryset
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = None
+        manage = "projects.manage"
+        issues_manage = "projects.issues.manage"
+
+        if self.action in ("list", "retrieve"):
+            self.required_permissions_any = (
+                "projects.issues.view",
+                "projects.view",
+                manage,
+                issues_manage,
+            )
+        elif self.action in ("create", "partial_update", "update", "destroy"):
+            self.required_permissions_any = (
+                issues_manage,
+                manage,
+            )
+        elif self.action == "comments":
+            if self.request.method == "GET":
+                self.required_permissions_any = (
+                    "projects.issues.view",
+                    "projects.view",
+                    manage,
+                    issues_manage,
+                )
+            else:
+                self.required_permissions_any = (
+                    "projects.issues.comment",
+                    issues_manage,
+                    manage,
+                )
+        elif self.action == "destroy_comment":
+            self.required_permissions_any = (
+                "projects.issues.comment",
+                issues_manage,
+                manage,
+            )
+        return super().get_permissions()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ProjectIssueSerializer
+        if self.action == "create":
+            return ProjectIssueCreateSerializer
+        if self.action in ("partial_update", "update"):
+            return ProjectIssueUpdateSerializer
+        if self.action == "comments" and self.request.method == "POST":
+            return ProjectIssueCommentCreateSerializer
+        if self.action in ("comments", "destroy_comment"):
+            return ProjectIssueCommentSerializer
+        return ProjectIssueDetailSerializer
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["project"] = getattr(self, "project", None)
+        return context
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            issue = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(
+            ProjectIssueDetailSerializer(issue).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        issue = self.get_object()
+        serializer = self.get_serializer(issue, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        try:
+            issue = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(ProjectIssueDetailSerializer(issue).data)
+
+    def perform_destroy(self, instance):
+        soft_delete_issue(issue=instance, actor=self.request.user)
+
+    def comments(self, request, project_id=None, pk=None):
+        issue = self.get_object()
+        if request.method == "GET":
+            queryset = issue.comments.filter(is_deleted=False).select_related("author")
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = ProjectIssueCommentSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            return Response(
+                ProjectIssueCommentSerializer(queryset, many=True).data
+            )
+
+        serializer = ProjectIssueCommentCreateSerializer(
+            data=request.data,
+            context={**self.get_serializer_context(), "issue": issue},
+        )
+        serializer.is_valid(raise_exception=True)
+        try:
+            comment = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(
+            ProjectIssueCommentSerializer(comment).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def destroy_comment(self, request, project_id=None, pk=None, comment_id=None):
+        issue = self.get_object()
+        comment = get_object_or_404(
+            ProjectIssueComment,
+            pk=comment_id,
+            issue=issue,
+            is_deleted=False,
+        )
+        soft_delete_issue_comment(comment=comment, actor=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)

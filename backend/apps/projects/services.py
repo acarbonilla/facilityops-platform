@@ -5,7 +5,10 @@ from django.utils import timezone
 from .models import (
     Project,
     ProjectHistory,
+    ProjectIssue,
+    ProjectIssueComment,
     ProjectMember,
+    ProjectNote,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
@@ -726,6 +729,285 @@ def soft_delete_task_comment(*, comment, actor):
         actor=actor,
         metadata=_task_history_metadata(
             task,
+            comment_id=str(comment.id),
+        ),
+    )
+    return comment
+
+# ---------------------------------------------------------------------------
+# FO-106 Notes & Issues
+# ---------------------------------------------------------------------------
+
+
+def _note_history_metadata(note, **extra):
+    payload = {
+        "note_id": str(note.id),
+        "title": note.title,
+        "category": note.category,
+    }
+    payload.update(extra)
+    return payload
+
+
+def _issue_history_metadata(issue, **extra):
+    payload = {
+        "issue_id": str(issue.id),
+        "title": issue.title,
+        "status": issue.status,
+        "severity": issue.severity,
+    }
+    payload.update(extra)
+    return payload
+
+
+@transaction.atomic
+def create_note(*, project, actor, data):
+    _ensure_project_access(actor=actor, project=project)
+    actor_id = str(actor.id) if actor else None
+    note = ProjectNote(
+        tenant=project.tenant,
+        project=project,
+        author=actor,
+        created_by=actor_id,
+        updated_by=actor_id,
+        **data,
+    )
+    note.save()
+    record_history(
+        project=project,
+        action="note_created",
+        description=f"Note '{note.title}' created.",
+        actor=actor,
+        metadata=_note_history_metadata(note),
+    )
+    return note
+
+
+@transaction.atomic
+def update_note(*, note, data, actor=None):
+    project = note.project
+    _ensure_project_access(actor=actor, project=project)
+
+    changes = {}
+    for field, value in data.items():
+        previous_value = getattr(note, field)
+        if previous_value != value:
+            changes[field] = {
+                "from": str(previous_value) if previous_value is not None else None,
+                "to": str(value) if value is not None else None,
+            }
+            setattr(note, field, value)
+
+    if not changes:
+        return note
+
+    actor_id = str(actor.id) if actor else None
+    note.updated_by = actor_id
+    note.save()
+
+    record_history(
+        project=project,
+        action="note_updated",
+        description=f"Note '{note.title}' updated.",
+        actor=actor,
+        metadata=_note_history_metadata(note, changes=changes),
+    )
+    return note
+
+
+@transaction.atomic
+def soft_delete_note(*, note, actor):
+    project = note.project
+    _ensure_project_access(actor=actor, project=project)
+    actor_id = str(actor.id) if actor else None
+
+    note.is_deleted = True
+    note.deleted_at = timezone.now()
+    note.deleted_by = actor_id
+    note.updated_by = actor_id
+    note.save(
+        update_fields=(
+            "is_deleted",
+            "deleted_at",
+            "deleted_by",
+            "updated_by",
+            "updated_at",
+        )
+    )
+    record_history(
+        project=project,
+        action="note_deleted",
+        description=f"Note '{note.title}' soft-deleted.",
+        actor=actor,
+        metadata=_note_history_metadata(note),
+    )
+    return note
+
+
+@transaction.atomic
+def create_issue(*, project, actor, data):
+    """Create a project issue. Does not create FM tickets or notifications."""
+    _ensure_project_access(actor=actor, project=project)
+    actor_id = str(actor.id) if actor else None
+
+    issue = ProjectIssue(
+        tenant=project.tenant,
+        project=project,
+        created_by=actor_id,
+        updated_by=actor_id,
+        **data,
+    )
+    issue.apply_resolved_at(previous_status=None)
+    issue.save()
+
+    record_history(
+        project=project,
+        action="issue_created",
+        description=f"Issue '{issue.title}' created.",
+        actor=actor,
+        metadata=_issue_history_metadata(issue),
+    )
+    return issue
+
+
+@transaction.atomic
+def update_issue(*, issue, data, actor=None):
+    """Update issue fields. No FM ticket / notification side-effects."""
+    project = issue.project
+    _ensure_project_access(actor=actor, project=project)
+
+    previous_status = issue.status
+    changes = {}
+    for field, value in data.items():
+        previous_value = getattr(issue, field)
+        if previous_value != value:
+            changes[field] = {
+                "from": str(previous_value) if previous_value is not None else None,
+                "to": str(value) if value is not None else None,
+            }
+            setattr(issue, field, value)
+
+    if not changes:
+        return issue
+
+    issue.apply_resolved_at(previous_status=previous_status)
+
+    actor_id = str(actor.id) if actor else None
+    issue.updated_by = actor_id
+    issue.save()
+
+    record_history(
+        project=project,
+        action="issue_updated",
+        description=f"Issue '{issue.title}' updated.",
+        actor=actor,
+        metadata=_issue_history_metadata(issue, changes=changes),
+    )
+
+    if "status" in changes and issue.status != previous_status:
+        record_history(
+            project=project,
+            action="issue_status_changed",
+            description=(
+                f"Issue '{issue.title}' status changed from "
+                f"{previous_status} to {issue.status}."
+            ),
+            actor=actor,
+            metadata=_issue_history_metadata(
+                issue,
+                from_status=previous_status,
+                to_status=issue.status,
+            ),
+        )
+    return issue
+
+
+@transaction.atomic
+def soft_delete_issue(*, issue, actor):
+    project = issue.project
+    _ensure_project_access(actor=actor, project=project)
+    actor_id = str(actor.id) if actor else None
+
+    issue.is_deleted = True
+    issue.deleted_at = timezone.now()
+    issue.deleted_by = actor_id
+    issue.updated_by = actor_id
+    issue.save(
+        update_fields=(
+            "is_deleted",
+            "deleted_at",
+            "deleted_by",
+            "updated_by",
+            "updated_at",
+        )
+    )
+    record_history(
+        project=project,
+        action="issue_deleted",
+        description=f"Issue '{issue.title}' soft-deleted.",
+        actor=actor,
+        metadata=_issue_history_metadata(issue),
+    )
+    return issue
+
+
+@transaction.atomic
+def add_issue_comment(*, issue, body, actor, is_internal=True):
+    project = issue.project
+    _ensure_project_access(actor=actor, project=project)
+    actor_id = str(actor.id) if actor else None
+
+    comment = ProjectIssueComment(
+        tenant=issue.tenant,
+        issue=issue,
+        author=actor,
+        body=body,
+        is_internal=True if is_internal is None else bool(is_internal),
+        created_by=actor_id,
+        updated_by=actor_id,
+    )
+    comment.save()
+
+    record_history(
+        project=project,
+        action="issue_comment_added",
+        description=f"Comment added to issue '{issue.title}'.",
+        actor=actor,
+        metadata=_issue_history_metadata(
+            issue,
+            comment_id=str(comment.id),
+        ),
+    )
+    return comment
+
+
+@transaction.atomic
+def soft_delete_issue_comment(*, comment, actor):
+    issue = comment.issue
+    project = issue.project
+    _ensure_project_access(actor=actor, project=project)
+    actor_id = str(actor.id) if actor else None
+
+    comment.is_deleted = True
+    comment.deleted_at = timezone.now()
+    comment.deleted_by = actor_id
+    comment.updated_by = actor_id
+    comment.save(
+        update_fields=(
+            "is_deleted",
+            "deleted_at",
+            "deleted_by",
+            "updated_by",
+            "updated_at",
+        )
+    )
+    record_history(
+        project=project,
+        action="issue_comment_deleted",
+        description=f"Comment removed from issue '{issue.title}'.",
+        actor=actor,
+        metadata=_issue_history_metadata(
+            issue,
             comment_id=str(comment.id),
         ),
     )

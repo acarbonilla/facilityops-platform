@@ -207,7 +207,103 @@ def apply_task_ordering(queryset, ordering):
     return queryset.order_by(resolved, "sequence", "created_at")
 
 
+# ---------------------------------------------------------------------------
+# FO-106 Notes & Issues filters
+# ---------------------------------------------------------------------------
+
+
+def apply_note_search(queryset, search_term):
+    if not search_term:
+        return queryset
+    normalized = search_term.strip()
+    if not normalized:
+        return queryset
+    return queryset.filter(
+        Q(title__icontains=normalized)
+        | Q(note__icontains=normalized)
+        | Q(author__email__icontains=normalized)
+        | Q(author__first_name__icontains=normalized)
+        | Q(author__last_name__icontains=normalized)
+    )
+
+
+def apply_note_ordering(queryset, ordering):
+    ordering_map = {
+        "title": "title",
+        "-title": "-title",
+        "category": "category",
+        "-category": "-category",
+        "created": "created_at",
+        "-created": "-created_at",
+        "created_at": "created_at",
+        "-created_at": "-created_at",
+        "updated": "updated_at",
+        "-updated": "-updated_at",
+        "updated_at": "updated_at",
+        "-updated_at": "-updated_at",
+    }
+    resolved = ordering_map.get(ordering)
+    if not resolved:
+        return queryset.order_by("-created_at")
+    return queryset.order_by(resolved, "-created_at")
+
+
+def apply_issue_search(queryset, search_term):
+    if not search_term:
+        return queryset
+    normalized = search_term.strip()
+    if not normalized:
+        return queryset
+    return queryset.filter(
+        Q(title__icontains=normalized)
+        | Q(description__icontains=normalized)
+        | Q(owner__email__icontains=normalized)
+        | Q(owner__first_name__icontains=normalized)
+        | Q(owner__last_name__icontains=normalized)
+    )
+
+
+def apply_issue_date_filters(queryset, params):
+    due_from = parse_date(params.get("due_date_from") or "")
+    due_to = parse_date(params.get("due_date_to") or "")
+    if due_from:
+        queryset = queryset.filter(due_date__gte=due_from)
+    if due_to:
+        queryset = queryset.filter(due_date__lte=due_to)
+    return queryset
+
+
+def apply_issue_ordering(queryset, ordering):
+    ordering_map = {
+        "title": "title",
+        "-title": "-title",
+        "status": "status",
+        "-status": "-status",
+        "severity": "severity",
+        "-severity": "-severity",
+        "due_date": "due_date",
+        "-due_date": "-due_date",
+        "created": "created_at",
+        "-created": "-created_at",
+        "created_at": "created_at",
+        "-created_at": "-created_at",
+        "updated": "updated_at",
+        "-updated": "-updated_at",
+        "updated_at": "updated_at",
+        "-updated_at": "-updated_at",
+    }
+    resolved = ordering_map.get(ordering)
+    if not resolved:
+        return queryset.order_by("-created_at")
+    return queryset.order_by(resolved, "-created_at")
+
+
 __all__ = (
+    "apply_issue_date_filters",
+    "apply_issue_ordering",
+    "apply_issue_search",
+    "apply_note_ordering",
+    "apply_note_search",
     "apply_project_date_filters",
     "apply_project_ordering",
     "apply_project_search",

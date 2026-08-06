@@ -26,7 +26,11 @@ from .owner_access import (
     authorize_inspection_list,
     authorize_inspection_upload,
     authorize_owned_attachment_access,
+    authorize_project_issue_list,
+    authorize_project_issue_upload,
     authorize_project_list,
+    authorize_project_note_list,
+    authorize_project_note_upload,
     authorize_project_task_list,
     authorize_project_task_upload,
     authorize_project_upload,
@@ -35,6 +39,8 @@ from .owner_access import (
     filter_queryset_for_fm_ticket,
     filter_queryset_for_inspection,
     filter_queryset_for_project,
+    filter_queryset_for_project_issue,
+    filter_queryset_for_project_note,
     filter_queryset_for_project_task,
     filter_queryset_for_work_order,
     is_module_owned_type,
@@ -152,6 +158,24 @@ def create_attachment(
         if task.tenant_id != tenant.id and not has_global_attachment_scope(actor):
             raise Http404
         tenant = task.tenant
+    elif normalized_type == AttachmentOwnerType.PROJECT_NOTE:
+        note, resolved_visibility = authorize_project_note_upload(
+            actor=actor,
+            note_id=normalized_id,
+            requested_visibility=visibility,
+        )
+        if note.tenant_id != tenant.id and not has_global_attachment_scope(actor):
+            raise Http404
+        tenant = note.tenant
+    elif normalized_type == AttachmentOwnerType.PROJECT_ISSUE:
+        issue, resolved_visibility = authorize_project_issue_upload(
+            actor=actor,
+            issue_id=normalized_id,
+            requested_visibility=visibility,
+        )
+        if issue.tenant_id != tenant.id and not has_global_attachment_scope(actor):
+            raise Http404
+        tenant = issue.tenant
     elif visibility not in (None, "", AttachmentVisibility.INTERNAL_ONLY):
         # Unlinked uploads cannot opt into requester visibility.
         raise AttachmentValidationError("Invalid attachment visibility.")
@@ -339,6 +363,14 @@ def list_attachments(*, actor, owner_type=None, owner_id=None):
     if normalized_type == AttachmentOwnerType.PROJECT_TASK:
         task = authorize_project_task_list(actor=actor, task_id=normalized_id)
         return filter_queryset_for_project_task(queryset=queryset, task=task)
+
+    if normalized_type == AttachmentOwnerType.PROJECT_NOTE:
+        note = authorize_project_note_list(actor=actor, note_id=normalized_id)
+        return filter_queryset_for_project_note(queryset=queryset, note=note)
+
+    if normalized_type == AttachmentOwnerType.PROJECT_ISSUE:
+        issue = authorize_project_issue_list(actor=actor, issue_id=normalized_id)
+        return filter_queryset_for_project_issue(queryset=queryset, issue=issue)
 
     raise AttachmentValidationError("Invalid attachment owner context.")
 

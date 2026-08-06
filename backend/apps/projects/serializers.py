@@ -5,21 +5,29 @@ from rest_framework import serializers
 from .models import (
     Project,
     ProjectHistory,
+    ProjectIssue,
+    ProjectIssueComment,
     ProjectMember,
+    ProjectNote,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
     ProjectTaskDependency,
 )
 from .services import (
+    add_issue_comment,
     add_project_member,
     add_task_comment,
     assign_task,
     build_task_summary,
     create_checklist_item,
+    create_issue,
+    create_note,
     create_project,
     create_task,
     update_checklist_item,
+    update_issue,
+    update_note,
     update_project,
     update_task,
 )
@@ -777,3 +785,234 @@ class ProjectTaskReorderSerializer(serializers.Serializer):
         child=serializers.UUIDField(),
         allow_empty=False,
     )
+
+
+# ---------------------------------------------------------------------------
+# FO-106 Notes, Issues, Timeline
+# ---------------------------------------------------------------------------
+
+
+class ProjectNoteSerializer(serializers.ModelSerializer):
+    author_email = serializers.EmailField(source="author.email", read_only=True)
+    author_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectNote
+        fields = (
+            "id",
+            "tenant",
+            "project",
+            "title",
+            "note",
+            "author",
+            "author_email",
+            "author_name",
+            "category",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_author_name(self, obj):
+        author = obj.author
+        if author is None:
+            return None
+        full_name = f"{author.first_name} {author.last_name}".strip()
+        return full_name or author.email
+
+
+class ProjectNoteCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectNote
+        fields = ("id", "title", "note", "category")
+        read_only_fields = ("id",)
+
+    def create(self, validated_data):
+        return create_note(
+            project=self.context["project"],
+            actor=self.context["request"].user,
+            data=validated_data,
+        )
+
+
+class ProjectNoteUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectNote
+        fields = ("title", "note", "category")
+
+    def update(self, instance, validated_data):
+        return update_note(
+            note=instance,
+            data=validated_data,
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectIssueCommentSerializer(serializers.ModelSerializer):
+    author_email = serializers.EmailField(source="author.email", read_only=True)
+
+    class Meta:
+        model = ProjectIssueComment
+        fields = (
+            "id",
+            "issue",
+            "author",
+            "author_email",
+            "body",
+            "is_internal",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "issue",
+            "author",
+            "author_email",
+            "is_internal",
+            "created_at",
+            "updated_at",
+        )
+
+
+class ProjectIssueCommentCreateSerializer(serializers.Serializer):
+    body = serializers.CharField()
+    is_internal = serializers.BooleanField(required=False, default=True)
+
+    def create(self, validated_data):
+        return add_issue_comment(
+            issue=self.context["issue"],
+            body=validated_data["body"],
+            is_internal=validated_data.get("is_internal", True),
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectIssueSerializer(serializers.ModelSerializer):
+    owner_email = serializers.EmailField(
+        source="owner.email", read_only=True, default=None
+    )
+    comments_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProjectIssue
+        fields = (
+            "id",
+            "tenant",
+            "project",
+            "title",
+            "description",
+            "severity",
+            "status",
+            "owner",
+            "owner_email",
+            "due_date",
+            "resolved_at",
+            "comments_count",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = fields
+
+    def get_comments_count(self, obj):
+        return obj.comments.filter(is_deleted=False).count()
+
+
+class ProjectIssueDetailSerializer(ProjectIssueSerializer):
+    comments = serializers.SerializerMethodField()
+
+    class Meta(ProjectIssueSerializer.Meta):
+        fields = ProjectIssueSerializer.Meta.fields + ("comments",)
+
+    def get_comments(self, obj):
+        comments = obj.comments.filter(is_deleted=False).select_related("author")
+        return ProjectIssueCommentSerializer(comments, many=True).data
+
+
+class ProjectIssueValidationMixin:
+    def _run_issue_clean(self, attrs, *, instance=None, project=None):
+        if instance is None:
+            issue = ProjectIssue(project=project, tenant=project.tenant)
+        else:
+            issue = ProjectIssue.objects.select_related("project").get(pk=instance.pk)
+
+        for field, value in attrs.items():
+            setattr(issue, field, value)
+
+        try:
+            issue.clean()
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message_dict) from exc
+        return attrs
+
+
+class ProjectIssueCreateSerializer(
+    ProjectIssueValidationMixin, serializers.ModelSerializer
+):
+    class Meta:
+        model = ProjectIssue
+        fields = (
+            "id",
+            "title",
+            "description",
+            "severity",
+            "status",
+            "owner",
+            "due_date",
+        )
+        read_only_fields = ("id",)
+
+    def validate(self, attrs):
+        project = self.context["project"]
+        return self._run_issue_clean(attrs, project=project)
+
+    def create(self, validated_data):
+        return create_issue(
+            project=self.context["project"],
+            actor=self.context["request"].user,
+            data=validated_data,
+        )
+
+
+class ProjectIssueUpdateSerializer(
+    ProjectIssueValidationMixin, serializers.ModelSerializer
+):
+    class Meta:
+        model = ProjectIssue
+        fields = (
+            "title",
+            "description",
+            "severity",
+            "status",
+            "owner",
+            "due_date",
+        )
+
+    def validate(self, attrs):
+        merged = {}
+        for field in self.Meta.fields:
+            if field in attrs:
+                merged[field] = attrs[field]
+            else:
+                merged[field] = getattr(self.instance, field)
+        self._run_issue_clean(merged, instance=self.instance)
+        return attrs
+
+    def update(self, instance, validated_data):
+        return update_issue(
+            issue=instance,
+            data=validated_data,
+            actor=self.context["request"].user,
+        )
+
+
+class ProjectTimelineEntrySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    timestamp = serializers.DateTimeField()
+    actor = serializers.DictField(allow_null=True)
+    event_type = serializers.CharField()
+    category = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()
+    related_object = serializers.DictField(allow_null=True)
+    icon = serializers.CharField()
+    metadata = serializers.DictField()
