@@ -5,6 +5,7 @@ import type { FmTicketListParams } from "@/types/fm-tickets";
 import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
+import type { ProjectListParams } from "@/types/projects";
 import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
 import type { AIOperationalInsightsParams } from "@/types/ai-operational-insights";
@@ -203,6 +204,24 @@ export const inspectionQueryKeys = {
   correctiveActions: (id: string) =>
     ["inspection", "corrective-actions", id] as const,
   aiAnalysis: (id: string) => ["inspection", "ai-analysis", id] as const,
+};
+
+function normalizeProjectParams(
+  params?: ProjectListParams,
+): ProjectListParams | Record<string, never> {
+  return stripNilParams(params) as ProjectListParams | Record<string, never>;
+}
+
+export const projectsQueryKeys = {
+  all: ["projects"] as const,
+  list: (params?: ProjectListParams) =>
+    ["projects", "list", normalizeProjectParams(params)] as const,
+  metrics: (params?: ProjectListParams) =>
+    ["projects", "metrics", normalizeProjectParams(params)] as const,
+  formOptions: () => ["projects", "form-options"] as const,
+  detail: (id: string) => ["projects", "detail", id] as const,
+  history: (id: string) => ["projects", "history", id] as const,
+  members: (id: string) => ["projects", "members", id] as const,
 };
 
 export const reportingQueryKeys = {

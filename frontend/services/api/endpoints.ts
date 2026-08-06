@@ -130,6 +130,15 @@ export const API_ENDPOINTS = {
     cancel: (id: string) => `/inspection/inspections/${id}/cancel/`,
     reopen: (id: string) => `/inspection/inspections/${id}/reopen/`,
   },
+  projects: {
+    list: "/projects/",
+    detail: (id: string) => `/projects/${id}/`,
+    metrics: "/projects/metrics/",
+    members: (id: string) => `/projects/${id}/members/`,
+    member: (id: string, memberId: string) =>
+      `/projects/${id}/members/${memberId}/`,
+    history: (id: string) => `/projects/${id}/history/`,
+  },
   reporting: {
     overview: "/reporting/overview/",
     filterOptions: "/reporting/filter-options/",
