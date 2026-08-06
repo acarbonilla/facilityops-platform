@@ -6,8 +6,11 @@ import type { InspectionListParams } from "@/types/inspection";
 import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
 import type {
+  ProjectIssueListParams,
   ProjectListParams,
+  ProjectNoteListParams,
   ProjectTaskListParams,
+  ProjectTimelineListParams,
 } from "@/types/projects";
 import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
@@ -223,6 +226,30 @@ function normalizeProjectTaskParams(
     | Record<string, never>;
 }
 
+function normalizeProjectNoteParams(
+  params?: ProjectNoteListParams,
+): ProjectNoteListParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectNoteListParams
+    | Record<string, never>;
+}
+
+function normalizeProjectIssueParams(
+  params?: ProjectIssueListParams,
+): ProjectIssueListParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectIssueListParams
+    | Record<string, never>;
+}
+
+function normalizeProjectTimelineParams(
+  params?: ProjectTimelineListParams,
+): ProjectTimelineListParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectTimelineListParams
+    | Record<string, never>;
+}
+
 export const projectsQueryKeys = {
   all: ["projects"] as const,
   list: (params?: ProjectListParams) =>
@@ -264,6 +291,40 @@ export const projectsQueryKeys = {
       taskId,
       "dependency-readiness",
     ] as const,
+  timeline: (projectId: string) =>
+    ["projects", projectId, "timeline"] as const,
+  timelineList: (projectId: string, params?: ProjectTimelineListParams) =>
+    [
+      "projects",
+      projectId,
+      "timeline",
+      "list",
+      normalizeProjectTimelineParams(params),
+    ] as const,
+  notes: (projectId: string) => ["projects", projectId, "notes"] as const,
+  noteList: (projectId: string, params?: ProjectNoteListParams) =>
+    [
+      "projects",
+      projectId,
+      "notes",
+      "list",
+      normalizeProjectNoteParams(params),
+    ] as const,
+  noteDetail: (projectId: string, noteId: string) =>
+    ["projects", projectId, "notes", "detail", noteId] as const,
+  issues: (projectId: string) => ["projects", projectId, "issues"] as const,
+  issueList: (projectId: string, params?: ProjectIssueListParams) =>
+    [
+      "projects",
+      projectId,
+      "issues",
+      "list",
+      normalizeProjectIssueParams(params),
+    ] as const,
+  issueDetail: (projectId: string, issueId: string) =>
+    ["projects", projectId, "issues", "detail", issueId] as const,
+  issueComments: (projectId: string, issueId: string) =>
+    ["projects", projectId, "issues", issueId, "comments"] as const,
 };
 
 export const reportingQueryKeys = {

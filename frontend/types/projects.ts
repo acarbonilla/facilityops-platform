@@ -439,3 +439,217 @@ export interface ProjectGanttResponse {
   dependencies: ProjectGanttDependency[];
   summary: ProjectGanttSummary;
 }
+
+// ---------------------------------------------------------------------------
+// FO-106 Timeline, Notes & Issues
+// ---------------------------------------------------------------------------
+
+export type ProjectNoteCategory =
+  | "general"
+  | "meeting"
+  | "decision"
+  | "safety"
+  | "material"
+  | "contractor"
+  | "client"
+  | "other";
+
+export type ProjectIssueSeverity = "low" | "medium" | "high" | "critical";
+
+export type ProjectIssueStatus =
+  | "open"
+  | "investigating"
+  | "blocked"
+  | "resolved"
+  | "closed"
+  | "cancelled";
+
+export type ProjectTimelineEventCategory =
+  | "project"
+  | "task"
+  | "issue"
+  | "note"
+  | "attachment"
+  | "comment"
+  | "status"
+  | "assignment"
+  | "dependency"
+  | "checklist";
+
+export interface ProjectNoteListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  category?: ProjectNoteCategory;
+  author?: string;
+  ordering?: string;
+}
+
+export interface ProjectNoteListFilters {
+  search: string;
+  category: ProjectNoteCategory | "";
+  author: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectNote {
+  id: string;
+  tenant: string;
+  project: string;
+  title: string;
+  note: string;
+  author: string | null;
+  author_email: string | null;
+  author_name: string | null;
+  category: ProjectNoteCategory;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectNoteFormValues {
+  title: string;
+  note: string;
+  category: ProjectNoteCategory;
+}
+
+export interface ProjectNoteCreatePayload {
+  title: string;
+  note: string;
+  category?: ProjectNoteCategory;
+}
+
+export type ProjectNoteUpdatePayload = ProjectNoteCreatePayload;
+
+export interface ProjectIssueListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: ProjectIssueStatus;
+  severity?: ProjectIssueSeverity;
+  owner?: string;
+  due_date_from?: string;
+  due_date_to?: string;
+  ordering?: string;
+}
+
+export interface ProjectIssueListFilters {
+  search: string;
+  status: ProjectIssueStatus | "";
+  severity: ProjectIssueSeverity | "";
+  owner: string;
+  dueDateFrom: string;
+  dueDateTo: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectIssueComment {
+  id: string;
+  issue: string;
+  author: string;
+  author_email: string;
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectIssueListItem {
+  id: string;
+  tenant: string;
+  project: string;
+  title: string;
+  description: string;
+  severity: ProjectIssueSeverity;
+  status: ProjectIssueStatus;
+  owner: string | null;
+  owner_email: string | null;
+  due_date: string | null;
+  resolved_at: string | null;
+  comments_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectIssueDetail extends ProjectIssueListItem {
+  comments: ProjectIssueComment[];
+}
+
+export interface ProjectIssueFormValues {
+  title: string;
+  description: string;
+  severity: ProjectIssueSeverity;
+  status: ProjectIssueStatus;
+  owner: string;
+  due_date: string;
+}
+
+export interface ProjectIssueCreatePayload {
+  title: string;
+  description?: string;
+  severity?: ProjectIssueSeverity;
+  status?: ProjectIssueStatus;
+  owner?: string | null;
+  due_date?: string | null;
+}
+
+export type ProjectIssueUpdatePayload = ProjectIssueCreatePayload;
+
+export interface ProjectIssueCommentCreatePayload {
+  body: string;
+  is_internal?: boolean;
+}
+
+export interface ProjectTimelineListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  category?: ProjectTimelineEventCategory;
+  event_category?: ProjectTimelineEventCategory;
+  event_type?: string;
+  action?: string;
+  actor?: string;
+  date_from?: string;
+  date_to?: string;
+  ordering?: string;
+}
+
+export interface ProjectTimelineListFilters {
+  search: string;
+  category: ProjectTimelineEventCategory | "";
+  eventType: string;
+  actor: string;
+  dateFrom: string;
+  dateTo: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectTimelineActor {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface ProjectTimelineRelatedObject {
+  type: string;
+  id: string;
+  code: string | null;
+}
+
+export interface ProjectTimelineEntry {
+  id: string;
+  timestamp: string;
+  actor: ProjectTimelineActor | null;
+  event_type: string;
+  category: ProjectTimelineEventCategory | string;
+  title: string;
+  description: string;
+  related_object: ProjectTimelineRelatedObject | null;
+  icon: string;
+  metadata: Record<string, unknown>;
+}

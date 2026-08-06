@@ -7,11 +7,17 @@ import {
   assignProjectTask,
   createProject,
   createProjectDependency,
+  createProjectIssue,
+  createProjectIssueComment,
+  createProjectNote,
   createProjectTask,
   createProjectTaskChecklistItem,
   createProjectTaskComment,
   deleteProject,
   deleteProjectDependency,
+  deleteProjectIssue,
+  deleteProjectIssueComment,
+  deleteProjectNote,
   deleteProjectTask,
   deleteProjectTaskChecklistItem,
   deleteProjectTaskComment,
@@ -20,9 +26,14 @@ import {
   getProjectFormOptions,
   getProjectGantt,
   getProjectHistory,
+  getProjectIssueComments,
+  getProjectIssueDetail,
+  getProjectIssueList,
   getProjectList,
   getProjectMembers,
   getProjectMetrics,
+  getProjectNoteDetail,
+  getProjectNoteList,
   getProjectTaskChecklist,
   getProjectTaskComments,
   getProjectTaskDependencyReadiness,
@@ -31,8 +42,11 @@ import {
   getProjectTaskPredecessors,
   getProjectTaskSuccessors,
   getProjectTaskSummary,
+  getProjectTimeline,
   reorderProjectTasks,
   updateProject,
+  updateProjectIssue,
+  updateProjectNote,
   updateProjectTask,
   updateProjectTaskChecklistItem,
 } from "@/services/api/projects";
@@ -42,6 +56,14 @@ import {
   mapProjectDetailToFormValues,
 } from "@/lib/projects/form";
 import {
+  buildProjectIssueFormDefaults,
+  mapProjectIssueDetailToFormValues,
+} from "@/lib/projects/issues-form";
+import {
+  buildProjectNoteFormDefaults,
+  mapProjectNoteDetailToFormValues,
+} from "@/lib/projects/notes-form";
+import {
   buildProjectTaskFormDefaults,
   mapProjectTaskDetailToFormValues,
 } from "@/lib/projects/tasks-form";
@@ -49,7 +71,17 @@ import type {
   ProjectCreatePayload,
   ProjectDetail,
   ProjectFormValues,
+  ProjectIssueCommentCreatePayload,
+  ProjectIssueCreatePayload,
+  ProjectIssueDetail,
+  ProjectIssueFormValues,
+  ProjectIssueListParams,
+  ProjectIssueUpdatePayload,
   ProjectListParams,
+  ProjectNote,
+  ProjectNoteCreatePayload,
+  ProjectNoteListParams,
+  ProjectNoteUpdatePayload,
   ProjectTaskAssignPayload,
   ProjectTaskChecklistCreatePayload,
   ProjectTaskChecklistUpdatePayload,
@@ -61,6 +93,7 @@ import type {
   ProjectTaskListParams,
   ProjectTaskReorderPayload,
   ProjectTaskUpdatePayload,
+  ProjectTimelineListParams,
   ProjectUpdatePayload,
 } from "@/types/projects";
 
@@ -496,5 +529,228 @@ export function useProjectTaskDependencyReadiness(
     queryKey: projectsQueryKeys.taskDependencyReadiness(projectId, taskId),
     queryFn: () => getProjectTaskDependencyReadiness(projectId, taskId),
     enabled: Boolean(projectId) && Boolean(taskId),
+  });
+}
+
+async function invalidateProjectNotes(
+  queryClient: ReturnType<typeof useQueryClient>,
+  projectId: string,
+  noteId?: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.notes(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.timeline(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.history(projectId),
+  });
+  if (noteId) {
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.noteDetail(projectId, noteId),
+    });
+  }
+}
+
+async function invalidateProjectIssues(
+  queryClient: ReturnType<typeof useQueryClient>,
+  projectId: string,
+  issueId?: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.issues(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.timeline(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.history(projectId),
+  });
+  if (issueId) {
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.issueDetail(projectId, issueId),
+    });
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.issueComments(projectId, issueId),
+    });
+  }
+}
+
+export function useProjectTimeline(
+  projectId: string,
+  params?: ProjectTimelineListParams,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.timelineList(projectId, params),
+    queryFn: () => getProjectTimeline(projectId, params),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectNoteList(
+  projectId: string,
+  params?: ProjectNoteListParams,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.noteList(projectId, params),
+    queryFn: () => getProjectNoteList(projectId, params),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectNoteDetail(projectId: string, noteId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.noteDetail(projectId, noteId),
+    queryFn: () => getProjectNoteDetail(projectId, noteId),
+    enabled: Boolean(projectId) && Boolean(noteId),
+  });
+}
+
+export function useProjectNoteFormDefaults(detail?: ProjectNote | null) {
+  return useMemo(() => {
+    if (detail) {
+      return mapProjectNoteDetailToFormValues(detail);
+    }
+    return buildProjectNoteFormDefaults();
+  }, [detail]);
+}
+
+export function useCreateProjectNote(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectNoteCreatePayload) =>
+      createProjectNote(projectId, payload),
+    onSuccess: async () => {
+      await invalidateProjectNotes(queryClient, projectId);
+    },
+  });
+}
+
+export function useUpdateProjectNote(projectId: string, noteId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectNoteUpdatePayload) =>
+      updateProjectNote(projectId, noteId, payload),
+    onSuccess: async () => {
+      await invalidateProjectNotes(queryClient, projectId, noteId);
+    },
+  });
+}
+
+export function useDeleteProjectNote(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (noteId: string) => deleteProjectNote(projectId, noteId),
+    onSuccess: async (_data, noteId) => {
+      await invalidateProjectNotes(queryClient, projectId, noteId);
+    },
+  });
+}
+
+export function useProjectIssueList(
+  projectId: string,
+  params?: ProjectIssueListParams,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.issueList(projectId, params),
+    queryFn: () => getProjectIssueList(projectId, params),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectIssueDetail(projectId: string, issueId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.issueDetail(projectId, issueId),
+    queryFn: () => getProjectIssueDetail(projectId, issueId),
+    enabled: Boolean(projectId) && Boolean(issueId),
+  });
+}
+
+export function useProjectIssueFormDefaults(
+  detail?: ProjectIssueDetail | null,
+): ProjectIssueFormValues {
+  return useMemo(() => {
+    if (detail) {
+      return mapProjectIssueDetailToFormValues(detail);
+    }
+    return buildProjectIssueFormDefaults();
+  }, [detail]);
+}
+
+export function useCreateProjectIssue(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectIssueCreatePayload) =>
+      createProjectIssue(projectId, payload),
+    onSuccess: async () => {
+      await invalidateProjectIssues(queryClient, projectId);
+    },
+  });
+}
+
+export function useUpdateProjectIssue(projectId: string, issueId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectIssueUpdatePayload) =>
+      updateProjectIssue(projectId, issueId, payload),
+    onSuccess: async () => {
+      await invalidateProjectIssues(queryClient, projectId, issueId);
+    },
+  });
+}
+
+export function useDeleteProjectIssue(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (issueId: string) => deleteProjectIssue(projectId, issueId),
+    onSuccess: async (_data, issueId) => {
+      await invalidateProjectIssues(queryClient, projectId, issueId);
+    },
+  });
+}
+
+export function useProjectIssueComments(projectId: string, issueId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.issueComments(projectId, issueId),
+    queryFn: () =>
+      getProjectIssueComments(projectId, issueId, { page_size: 100 }),
+    enabled: Boolean(projectId) && Boolean(issueId),
+  });
+}
+
+export function useCreateProjectIssueComment(
+  projectId: string,
+  issueId: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectIssueCommentCreatePayload) =>
+      createProjectIssueComment(projectId, issueId, payload),
+    onSuccess: async () => {
+      await invalidateProjectIssues(queryClient, projectId, issueId);
+    },
+  });
+}
+
+export function useDeleteProjectIssueComment(
+  projectId: string,
+  issueId: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (commentId: string) =>
+      deleteProjectIssueComment(projectId, issueId, commentId),
+    onSuccess: async () => {
+      await invalidateProjectIssues(queryClient, projectId, issueId);
+    },
   });
 }

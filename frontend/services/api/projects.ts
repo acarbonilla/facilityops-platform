@@ -9,11 +9,22 @@ import type {
   ProjectFormOptions,
   ProjectGanttResponse,
   ProjectHistory,
+  ProjectIssueComment,
+  ProjectIssueCommentCreatePayload,
+  ProjectIssueCreatePayload,
+  ProjectIssueDetail,
+  ProjectIssueListItem,
+  ProjectIssueListParams,
+  ProjectIssueUpdatePayload,
   ProjectListItem,
   ProjectListParams,
   ProjectMember,
   ProjectMemberCreatePayload,
   ProjectMetrics,
+  ProjectNote,
+  ProjectNoteCreatePayload,
+  ProjectNoteListParams,
+  ProjectNoteUpdatePayload,
   ProjectTaskAssignPayload,
   ProjectTaskChecklistCreatePayload,
   ProjectTaskChecklistItem,
@@ -30,6 +41,8 @@ import type {
   ProjectTaskReorderPayload,
   ProjectTaskSummary,
   ProjectTaskUpdatePayload,
+  ProjectTimelineEntry,
+  ProjectTimelineListParams,
   ProjectUpdatePayload,
 } from "@/types/projects";
 
@@ -413,5 +426,174 @@ export function getProjectTaskDependencyReadiness(
   return apiClient<ProjectTaskDependencyReadiness>(
     API_ENDPOINTS.projects.taskDependencyReadiness(projectId, taskId),
     { method: "GET" },
+  );
+}
+
+export function getProjectTimeline(
+  projectId: string,
+  params?: ProjectTimelineListParams,
+): Promise<PaginatedResponse<ProjectTimelineEntry>> {
+  return apiClient<PaginatedResponse<ProjectTimelineEntry>>(
+    API_ENDPOINTS.projects.timeline(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectNoteList(
+  projectId: string,
+  params?: ProjectNoteListParams,
+): Promise<PaginatedResponse<ProjectNote>> {
+  return apiClient<PaginatedResponse<ProjectNote>>(
+    API_ENDPOINTS.projects.notes(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectNoteDetail(
+  projectId: string,
+  noteId: string,
+): Promise<ProjectNote> {
+  return apiClient<ProjectNote>(
+    API_ENDPOINTS.projects.noteDetail(projectId, noteId),
+    { method: "GET" },
+  );
+}
+
+export function createProjectNote(
+  projectId: string,
+  payload: ProjectNoteCreatePayload,
+): Promise<ProjectNote> {
+  return apiClient<ProjectNote>(API_ENDPOINTS.projects.notes(projectId), {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function updateProjectNote(
+  projectId: string,
+  noteId: string,
+  payload: ProjectNoteUpdatePayload,
+): Promise<ProjectNote> {
+  return apiClient<ProjectNote>(
+    API_ENDPOINTS.projects.noteDetail(projectId, noteId),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectNote(
+  projectId: string,
+  noteId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.noteDetail(projectId, noteId),
+    { method: "DELETE" },
+  );
+}
+
+export function getProjectIssueList(
+  projectId: string,
+  params?: ProjectIssueListParams,
+): Promise<PaginatedResponse<ProjectIssueListItem>> {
+  return apiClient<PaginatedResponse<ProjectIssueListItem>>(
+    API_ENDPOINTS.projects.issues(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectIssueDetail(
+  projectId: string,
+  issueId: string,
+): Promise<ProjectIssueDetail> {
+  return apiClient<ProjectIssueDetail>(
+    API_ENDPOINTS.projects.issueDetail(projectId, issueId),
+    { method: "GET" },
+  );
+}
+
+export function createProjectIssue(
+  projectId: string,
+  payload: ProjectIssueCreatePayload,
+): Promise<ProjectIssueDetail> {
+  return apiClient<ProjectIssueDetail>(
+    API_ENDPOINTS.projects.issues(projectId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function updateProjectIssue(
+  projectId: string,
+  issueId: string,
+  payload: ProjectIssueUpdatePayload,
+): Promise<ProjectIssueDetail> {
+  return apiClient<ProjectIssueDetail>(
+    API_ENDPOINTS.projects.issueDetail(projectId, issueId),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectIssue(
+  projectId: string,
+  issueId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.issueDetail(projectId, issueId),
+    { method: "DELETE" },
+  );
+}
+
+export function getProjectIssueComments(
+  projectId: string,
+  issueId: string,
+  params?: { page?: number; page_size?: number },
+): Promise<PaginatedResponse<ProjectIssueComment>> {
+  return apiClient<PaginatedResponse<ProjectIssueComment>>(
+    API_ENDPOINTS.projects.issueComments(projectId, issueId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function createProjectIssueComment(
+  projectId: string,
+  issueId: string,
+  payload: ProjectIssueCommentCreatePayload,
+): Promise<ProjectIssueComment> {
+  return apiClient<ProjectIssueComment>(
+    API_ENDPOINTS.projects.issueComments(projectId, issueId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectIssueComment(
+  projectId: string,
+  issueId: string,
+  commentId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.issueComment(projectId, issueId, commentId),
+    { method: "DELETE" },
   );
 }

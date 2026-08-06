@@ -3,14 +3,24 @@ import test from "node:test";
 
 import {
   buildProjectAttachmentOwnerContext,
+  buildProjectIssueAttachmentOwnerContext,
+  buildProjectNoteAttachmentOwnerContext,
   buildProjectTaskAttachmentOwnerContext,
   canUploadProjectAttachment,
+  canUploadProjectIssueAttachment,
+  canUploadProjectNoteAttachment,
   canUploadProjectTaskAttachment,
   getProjectAttachmentSectionGuidance,
+  getProjectIssueAttachmentSectionGuidance,
+  getProjectNoteAttachmentSectionGuidance,
   getProjectTaskAttachmentSectionGuidance,
   isProjectAttachmentImmutable,
+  isProjectIssueAttachmentImmutable,
+  isProjectNoteAttachmentImmutable,
   isProjectTaskAttachmentImmutable,
   PROJECT_ATTACHMENT_OWNER_TYPE,
+  PROJECT_ISSUE_ATTACHMENT_OWNER_TYPE,
+  PROJECT_NOTE_ATTACHMENT_OWNER_TYPE,
   PROJECT_TASK_ATTACHMENT_OWNER_TYPE,
 } from "./attachments";
 
@@ -111,4 +121,80 @@ test("project task attachment guidance distinguishes task scope", () => {
   assert.match(guidance, /task/i);
   assert.match(guidance, /separate/i);
   assert.match(guidance, /project-level/i);
+});
+
+test("project note owner context uses project_note type", () => {
+  const context = buildProjectNoteAttachmentOwnerContext("note-1");
+  assert.equal(context.owner_type, PROJECT_NOTE_ATTACHMENT_OWNER_TYPE);
+  assert.equal(context.owner_type, "project_note");
+  assert.equal(context.owner_id, "note-1");
+});
+
+test("project issue owner context uses project_issue type", () => {
+  const context = buildProjectIssueAttachmentOwnerContext("issue-1");
+  assert.equal(context.owner_type, PROJECT_ISSUE_ATTACHMENT_OWNER_TYPE);
+  assert.equal(context.owner_type, "project_issue");
+  assert.equal(context.owner_id, "issue-1");
+});
+
+test("project note attachments are never status-immutable", () => {
+  assert.equal(isProjectNoteAttachmentImmutable(), false);
+});
+
+test("project issue immutable statuses block uploads", () => {
+  assert.equal(isProjectIssueAttachmentImmutable("resolved"), true);
+  assert.equal(isProjectIssueAttachmentImmutable("closed"), true);
+  assert.equal(isProjectIssueAttachmentImmutable("cancelled"), true);
+  assert.equal(isProjectIssueAttachmentImmutable("open"), false);
+  assert.equal(isProjectIssueAttachmentImmutable("investigating"), false);
+});
+
+test("project note upload requires note manage permission", () => {
+  assert.equal(
+    canUploadProjectNoteAttachment({
+      hasAttachmentUpload: true,
+      hasNoteManage: true,
+    }),
+    true,
+  );
+  assert.equal(
+    canUploadProjectNoteAttachment({
+      hasAttachmentUpload: true,
+      hasNoteManage: false,
+    }),
+    false,
+  );
+});
+
+test("project issue upload requires issue manage and mutable status", () => {
+  assert.equal(
+    canUploadProjectIssueAttachment({
+      hasAttachmentUpload: true,
+      hasIssueManage: true,
+      issueStatus: "open",
+    }),
+    true,
+  );
+  assert.equal(
+    canUploadProjectIssueAttachment({
+      hasAttachmentUpload: true,
+      hasIssueManage: false,
+      issueStatus: "open",
+    }),
+    false,
+  );
+  assert.equal(
+    canUploadProjectIssueAttachment({
+      hasAttachmentUpload: true,
+      hasIssueManage: true,
+      issueStatus: "resolved",
+    }),
+    false,
+  );
+});
+
+test("project note and issue attachment guidance documents scope", () => {
+  assert.match(getProjectNoteAttachmentSectionGuidance(), /note/i);
+  assert.match(getProjectIssueAttachmentSectionGuidance(), /issue/i);
+  assert.match(getProjectIssueAttachmentSectionGuidance(), /resolved/i);
 });
