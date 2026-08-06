@@ -3,11 +3,13 @@
 **Status:** COMPLETE AND MERGED
 **Date:** 2026-08-06
 **Type:** UX Documentation Finalization
-**PR:** #66
+**PR:** #66 — MERGED (`9eb113d3c5ef0df2fe85440ec8895e91da3f85d6`)
 **Parent design:** [PM-UX-001 - Project Management Workflow & UX Design.md](./PM-UX-001%20-%20Project%20Management%20Workflow%20%26%20UX%20Design.md)
 **Starting main:** `8cb18950f05aa8dada3b1896b9705228b7c89c3c`
 **Starting branch HEAD:** `871479fd18d371545eb3a301cc154913399334ab`
 **Finalization commit:** `d3bc001449ba8cdc01f9a7a8c8c53b9bfdea199d`
+**Merge commit:** `9eb113d3c5ef0df2fe85440ec8895e91da3f85d6`
+**Final main tip (post-merge docs sync may advance):** see repository `main`
 **AI Platform v1.0 freeze:** `98c1661d60c8200ae85f717b13fe78bcda1dd716` — **FROZEN AND UNCHANGED**
 **FO-103:** **not started**
 
@@ -105,14 +107,14 @@ Filled during execution:
 
 | Step | Result |
 | --- | --- |
-| Finalization commit | _(see post-merge)_ |
+| Finalization commit | `d3bc001449ba8cdc01f9a7a8c8c53b9bfdea199d` (plus whitespace fix `d30693e…`) |
 | PR Ready for Review | Yes |
 | Mergeability | MERGEABLE |
 | Merge method | Merge commit |
-| Merge commit SHA | _(see post-merge)_ |
-| Final main SHA | _(see post-merge)_ |
-| Local branch deleted | Yes |
-| Remote branch deleted | Yes |
+| Merge commit SHA | `9eb113d3c5ef0df2fe85440ec8895e91da3f85d6` |
+| Final main SHA | `9eb113d3c5ef0df2fe85440ec8895e91da3f85d6` (pre post-merge SHA sync commit) |
+| Local branch deleted | Yes (removed with merge / not present locally) |
+| Remote branch deleted | Yes (`--delete-branch`) |
 
 ## 11. Post-merge verification checklist
 

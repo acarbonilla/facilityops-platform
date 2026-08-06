@@ -20,7 +20,7 @@
 
 ## Current Branch
 
-- `main` @ PM-UX-001A merge tip (see PM-UX-001A doc)
+- `main` @ `9eb113d3c5ef0df2fe85440ec8895e91da3f85d6` (PM-UX-001 / PM-UX-001A merge)
 - Next implementation branch (not created yet): `feature/project-management`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
