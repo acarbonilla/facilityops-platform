@@ -9,6 +9,7 @@ import type {
   ProjectIssueListParams,
   ProjectListParams,
   ProjectNoteListParams,
+  ProjectProgressHistoryParams,
   ProjectTaskListParams,
   ProjectTimelineListParams,
 } from "@/types/projects";
@@ -250,6 +251,14 @@ function normalizeProjectTimelineParams(
     | Record<string, never>;
 }
 
+function normalizeProjectProgressHistoryParams(
+  params?: ProjectProgressHistoryParams,
+): ProjectProgressHistoryParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectProgressHistoryParams
+    | Record<string, never>;
+}
+
 export const projectsQueryKeys = {
   all: ["projects"] as const,
   list: (params?: ProjectListParams) =>
@@ -300,6 +309,18 @@ export const projectsQueryKeys = {
       "timeline",
       "list",
       normalizeProjectTimelineParams(params),
+    ] as const,
+  progress: (projectId: string) =>
+    ["projects", projectId, "progress"] as const,
+  progressHistory: (
+    projectId: string,
+    params?: ProjectProgressHistoryParams,
+  ) =>
+    [
+      "projects",
+      projectId,
+      "progress-history",
+      normalizeProjectProgressHistoryParams(params),
     ] as const,
   notes: (projectId: string) => ["projects", projectId, "notes"] as const,
   noteList: (projectId: string, params?: ProjectNoteListParams) =>

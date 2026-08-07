@@ -34,6 +34,8 @@ import {
   getProjectMetrics,
   getProjectNoteDetail,
   getProjectNoteList,
+  getProjectProgress,
+  getProjectProgressHistory,
   getProjectTaskChecklist,
   getProjectTaskComments,
   getProjectTaskDependencyReadiness,
@@ -43,6 +45,7 @@ import {
   getProjectTaskSuccessors,
   getProjectTaskSummary,
   getProjectTimeline,
+  recalculateProjectProgress,
   reorderProjectTasks,
   updateProject,
   updateProjectIssue,
@@ -82,6 +85,7 @@ import type {
   ProjectNoteCreatePayload,
   ProjectNoteListParams,
   ProjectNoteUpdatePayload,
+  ProjectProgressHistoryParams,
   ProjectTaskAssignPayload,
   ProjectTaskChecklistCreatePayload,
   ProjectTaskChecklistUpdatePayload,
@@ -222,6 +226,12 @@ async function invalidateProjectTasks(
   });
   await queryClient.invalidateQueries({
     queryKey: projectsQueryKeys.dependencies(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.progress(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: ["projects", projectId, "progress-history"],
   });
   if (taskId) {
     await queryClient.invalidateQueries({
@@ -585,6 +595,51 @@ export function useProjectTimeline(
     queryKey: projectsQueryKeys.timelineList(projectId, params),
     queryFn: () => getProjectTimeline(projectId, params),
     enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectProgress(projectId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.progress(projectId),
+    queryFn: () => getProjectProgress(projectId),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectProgressHistory(
+  projectId: string,
+  params?: ProjectProgressHistoryParams,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.progressHistory(projectId, params),
+    queryFn: () => getProjectProgressHistory(projectId, params),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useRecalculateProjectProgress(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => recalculateProjectProgress(projectId),
+    onSuccess: async (summary) => {
+      queryClient.setQueryData(
+        projectsQueryKeys.progress(projectId),
+        summary,
+      );
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.progress(projectId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["projects", projectId, "progress-history"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.detail(projectId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.list(),
+      });
+    },
   });
 }
 

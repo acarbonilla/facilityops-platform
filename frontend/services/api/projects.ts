@@ -25,6 +25,9 @@ import type {
   ProjectNoteCreatePayload,
   ProjectNoteListParams,
   ProjectNoteUpdatePayload,
+  ProjectProgressHistoryParams,
+  ProjectProgressSnapshot,
+  ProjectProgressSummary,
   ProjectTaskAssignPayload,
   ProjectTaskChecklistCreatePayload,
   ProjectTaskChecklistItem,
@@ -439,6 +442,37 @@ export function getProjectTimeline(
       method: "GET",
       query: params,
     },
+  );
+}
+
+export function getProjectProgress(
+  projectId: string,
+): Promise<ProjectProgressSummary> {
+  return apiClient<ProjectProgressSummary>(
+    API_ENDPOINTS.projects.progress(projectId),
+    { method: "GET" },
+  );
+}
+
+export function getProjectProgressHistory(
+  projectId: string,
+  params?: ProjectProgressHistoryParams,
+): Promise<PaginatedResponse<ProjectProgressSnapshot>> {
+  return apiClient<PaginatedResponse<ProjectProgressSnapshot>>(
+    API_ENDPOINTS.projects.progressHistory(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function recalculateProjectProgress(
+  projectId: string,
+): Promise<ProjectProgressSummary> {
+  return apiClient<ProjectProgressSummary>(
+    API_ENDPOINTS.projects.recalculateProgress(projectId),
+    { method: "POST", body: {} },
   );
 }
 

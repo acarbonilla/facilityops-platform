@@ -653,3 +653,90 @@ export interface ProjectTimelineEntry {
   icon: string;
   metadata: Record<string, unknown>;
 }
+
+// ---------------------------------------------------------------------------
+// FO-107 Progress & Accomplishment
+// ---------------------------------------------------------------------------
+
+export type ProjectProgressTrend = "increased" | "decreased" | "unchanged";
+
+export type ProjectProgressSnapshotSource =
+  | "task_created"
+  | "task_progress_changed"
+  | "task_status_changed"
+  | "task_cancelled"
+  | "task_deleted"
+  | "task_restored"
+  | "manual_recalculation"
+  | "migration_rebuild";
+
+export interface ProjectProgressActor {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface ProjectProgressTaskSummary {
+  id: string;
+  task_code: string;
+  name: string;
+  status: ProjectTaskStatus;
+  is_milestone: boolean;
+  planned_end: string | null;
+  progress_percentage: string;
+}
+
+export interface ProjectProgressSnapshot {
+  id: string;
+  completion_percentage: string;
+  included_task_count: number;
+  completed_task_count: number;
+  blocked_task_count: number;
+  delayed_task_count: number;
+  recorded_at: string;
+  source: ProjectProgressSnapshotSource | string;
+  triggered_by: ProjectProgressActor | null;
+  related_task: ProjectProgressTaskSummary | null;
+}
+
+export interface ProjectProgressSummary {
+  project_id: string;
+  project_completion_percentage: string;
+  schedule_elapsed_percentage: string | null;
+  included_task_count: number;
+  excluded_task_count: number;
+  total_task_count: number;
+  not_started_count: number;
+  in_progress_count: number;
+  blocked_count: number;
+  on_hold_count: number;
+  completed_count: number;
+  cancelled_count: number;
+  milestone_total: number;
+  milestone_completed: number;
+  delayed_task_count: number;
+  completed_late_count: number;
+  dependency_blocked_count: number;
+  unscheduled_task_count: number;
+  status_blocked_count: number;
+  open_issue_count: number;
+  overdue_issue_count: number;
+  resolved_issue_count: number;
+  high_critical_open_issue_count: number;
+  blocked_issue_count: number;
+  next_milestone: ProjectProgressTaskSummary | null;
+  upcoming_due_tasks: ProjectProgressTaskSummary[];
+  last_progress_update_at: string | null;
+  latest_snapshot: ProjectProgressSnapshot | null;
+  trend: ProjectProgressTrend | string;
+}
+
+export interface ProjectProgressHistoryParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  source?: string;
+  date_from?: string;
+  date_to?: string;
+  ordering?: string;
+}

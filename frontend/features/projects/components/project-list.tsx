@@ -22,7 +22,6 @@ import { usePermissions } from "@/hooks/use-permissions";
 import {
   canCreateProject,
   formatPersonLabel,
-  formatProjectCompletion,
   formatProjectDate,
   formatProjectError,
   getProjectListLayoutClasses,
@@ -32,6 +31,11 @@ import {
   DEFAULT_PROJECT_LIST_FILTERS,
   serializeProjectListParams,
 } from "@/lib/projects/filters";
+import {
+  clampProgressPercent,
+  formatProgressPercent,
+  parseProgressPercent,
+} from "@/lib/projects/progress";
 import { getBuildings, getOrganizations } from "@/services/api/master-data";
 import { masterDataQueryKeys } from "@/services/api/query-keys";
 import type {
@@ -78,6 +82,38 @@ const SORT_OPTIONS: SelectOption[] = [
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+function ListProgressCell({
+  value,
+  projectName,
+}: {
+  value: string | number | null | undefined;
+  projectName: string;
+}) {
+  const parsed = parseProgressPercent(value) ?? 0;
+  const clamped = clampProgressPercent(parsed);
+  const text = formatProgressPercent(clamped);
+
+  return (
+    <div className="flex min-w-[7.5rem] items-center gap-2">
+      <div
+        aria-label={`${projectName} completion ${text}`}
+        aria-valuemax={100}
+        aria-valuemin={0}
+        aria-valuenow={Math.round(clamped)}
+        aria-valuetext={text}
+        className="h-2 w-16 overflow-hidden rounded-full bg-slate-200"
+        role="progressbar"
+      >
+        <div
+          className="h-full rounded-full bg-slate-700"
+          style={{ width: `${clamped}%` }}
+        />
+      </div>
+      <span className="text-sm font-medium text-slate-900">{text}</span>
+    </div>
+  );
+}
 
 function MetricCard({
   label,
@@ -158,8 +194,11 @@ function ProjectMobileCard({ project }: { project: ProjectListItem }) {
           <dt className="text-xs uppercase tracking-wide text-slate-500">
             Completion
           </dt>
-          <dd className="mt-1 font-medium text-slate-900">
-            {formatProjectCompletion(project.completion_percentage)}
+          <dd className="mt-1">
+            <ListProgressCell
+              projectName={project.name}
+              value={project.completion_percentage}
+            />
           </dd>
         </div>
         <div>
@@ -261,8 +300,13 @@ export function ProjectListScreen() {
     },
     {
       header: "Completion",
-      cell: (item) => formatProjectCompletion(item.completion_percentage),
-      className: "min-w-28",
+      cell: (item) => (
+        <ListProgressCell
+          projectName={item.name}
+          value={item.completion_percentage}
+        />
+      ),
+      className: "min-w-40",
     },
     {
       header: "Planned end",

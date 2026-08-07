@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/common/page-header";
 import {
   useDeleteProject,
   useProjectDetail,
+  useProjectProgress,
 } from "@/hooks/use-projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
@@ -22,11 +23,19 @@ import {
   formatProjectError,
   formatProjectLabel,
 } from "@/lib/projects/display";
-import { formatProjectTaskSummaryCounts } from "@/lib/projects/tasks-display";
 import { readProjectFormFlash } from "@/lib/projects/form";
+import {
+  clampProgressPercent,
+  formatProgressPercent,
+  formatProgressTrendLabel,
+  formatScheduleElapsedLabel,
+  parseProgressPercent,
+} from "@/lib/projects/progress";
+import { formatProjectTaskSummaryCounts } from "@/lib/projects/tasks-display";
 import type {
   ProjectHistory,
   ProjectMember,
+  ProjectProgressSummary,
   ProjectTaskSummary,
 } from "@/types/projects";
 
@@ -126,6 +135,12 @@ function TaskSummarySection({
         </Link>
         <Link
           className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          href={`/projects/${projectId}/progress`}
+        >
+          Progress
+        </Link>
+        <Link
+          className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           href={`/projects/${projectId}/timeline`}
         >
           Timeline
@@ -141,6 +156,154 @@ function TaskSummarySection({
           href={`/projects/${projectId}/issues`}
         >
           Issues
+        </Link>
+      </div>
+    </SectionCard>
+  );
+}
+
+function ProgressSummarySection({
+  projectId,
+  summary,
+  isLoading,
+  isError,
+  error,
+  onRetry,
+}: {
+  projectId: string;
+  summary?: ProjectProgressSummary | null;
+  isLoading: boolean;
+  isError: boolean;
+  error: unknown;
+  onRetry: () => void;
+}) {
+  if (isLoading) {
+    return (
+      <SectionCard
+        description="Live accomplishment from the progress summary endpoint."
+        title="Progress"
+      >
+        <div
+          aria-label="Loading progress summary"
+          className="h-28 animate-pulse rounded-lg border border-slate-200 bg-slate-100"
+          role="status"
+        />
+      </SectionCard>
+    );
+  }
+
+  if (isError || !summary) {
+    return (
+      <SectionCard
+        description="Live accomplishment from the progress summary endpoint."
+        title="Progress"
+      >
+        <ErrorState
+          title="Unable to load progress summary"
+          message={formatProjectError(
+            error,
+            "Project progress summary could not be loaded.",
+          )}
+          action={
+            <button
+              className="rounded-md bg-red-700 px-3 py-2 text-sm font-medium text-white hover:bg-red-800"
+              onClick={onRetry}
+              type="button"
+            >
+              Retry
+            </button>
+          }
+        />
+      </SectionCard>
+    );
+  }
+
+  const percent = parseProgressPercent(summary.project_completion_percentage) ?? 0;
+  const clamped = clampProgressPercent(percent);
+  const percentText = formatProgressPercent(clamped);
+
+  return (
+    <SectionCard
+      description="Accomplishment average, delays, open issues, and next milestone. Open the full dashboard for history."
+      title="Progress"
+    >
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-slate-800">
+            Accomplishment
+          </span>
+          <span className="text-sm font-semibold text-slate-950">
+            {percentText}
+          </span>
+        </div>
+        <div
+          aria-label={`Accomplishment: ${percentText}`}
+          aria-valuemax={100}
+          aria-valuemin={0}
+          aria-valuenow={Math.round(clamped)}
+          aria-valuetext={percentText}
+          className="h-3 w-full overflow-hidden rounded-full bg-slate-200"
+          role="progressbar"
+        >
+          <div
+            className="h-full rounded-full bg-slate-700"
+            style={{ width: `${clamped}%` }}
+          />
+        </div>
+      </div>
+      <dl className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Trend
+          </dt>
+          <dd className="mt-2 text-sm font-medium text-slate-900">
+            {formatProgressTrendLabel(summary.trend)}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Delayed tasks
+          </dt>
+          <dd className="mt-2 text-2xl font-semibold text-slate-950">
+            {summary.delayed_task_count.toLocaleString()}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Open issues
+          </dt>
+          <dd className="mt-2 text-2xl font-semibold text-slate-950">
+            {summary.open_issue_count.toLocaleString()}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Schedule
+          </dt>
+          <dd className="mt-2 text-sm font-medium text-slate-900">
+            {formatScheduleElapsedLabel(summary.schedule_elapsed_percentage)}
+          </dd>
+        </div>
+      </dl>
+      {summary.next_milestone ? (
+        <p className="mt-4 text-sm text-slate-700">
+          Next milestone:{" "}
+          <Link
+            className="font-medium text-blue-700 hover:text-blue-800"
+            href={`/projects/${projectId}/tasks/${summary.next_milestone.id}`}
+          >
+            {summary.next_milestone.task_code} — {summary.next_milestone.name}
+          </Link>
+        </p>
+      ) : (
+        <p className="mt-4 text-sm text-slate-600">No upcoming milestone.</p>
+      )}
+      <div className="pt-3">
+        <Link
+          className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+          href={`/projects/${projectId}/progress`}
+        >
+          Open progress dashboard
         </Link>
       </div>
     </SectionCard>
@@ -220,6 +383,7 @@ export function ProjectDetailScreen({ projectId }: { projectId: string }) {
   const router = useRouter();
   const { hasPermission, permissionsLoading } = usePermissions();
   const detailQuery = useProjectDetail(projectId);
+  const progressQuery = useProjectProgress(projectId);
   const deleteMutation = useDeleteProject();
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -396,6 +560,15 @@ export function ProjectDetailScreen({ projectId }: { projectId: string }) {
       <TaskSummarySection
         projectId={project.id}
         summary={project.task_summary}
+      />
+
+      <ProgressSummarySection
+        error={progressQuery.error}
+        isError={progressQuery.isError}
+        isLoading={progressQuery.isPending}
+        onRetry={() => void progressQuery.refetch()}
+        projectId={project.id}
+        summary={progressQuery.data}
       />
 
       <ProjectAttachments

@@ -12,6 +12,7 @@ import {
   useDeleteProjectDependency,
   useProjectDependencies,
   useProjectGantt,
+  useProjectProgress,
 } from "@/hooks/use-projects";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
@@ -27,6 +28,11 @@ import {
   type GanttDateRange,
   type GanttZoomScale,
 } from "@/lib/projects/gantt";
+import {
+  clampProgressPercent,
+  formatProgressPercent,
+  parseProgressPercent,
+} from "@/lib/projects/progress";
 import { formatProjectTaskError } from "@/lib/projects/tasks-display";
 
 import {
@@ -63,6 +69,7 @@ function buildInitialRange(
 export function ProjectGanttPage({ projectId }: { projectId: string }) {
   const { hasPermission, permissionsLoading } = usePermissions();
   const ganttQuery = useProjectGantt(projectId);
+  const progressQuery = useProjectProgress(projectId);
   const depsQuery = useProjectDependencies(projectId);
   const createDep = useCreateProjectDependency(projectId);
   const deleteDep = useDeleteProjectDependency(projectId);
@@ -150,6 +157,18 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
   }
 
   const project = data.project;
+  const accomplishmentPercent =
+    parseProgressPercent(
+      progressQuery.data?.project_completion_percentage,
+    ) ?? null;
+  const accomplishmentClamped =
+    accomplishmentPercent === null
+      ? null
+      : clampProgressPercent(accomplishmentPercent);
+  const accomplishmentText =
+    accomplishmentClamped === null
+      ? null
+      : formatProgressPercent(accomplishmentClamped);
 
   return (
     <div className="max-w-full space-y-6 overflow-x-hidden">
@@ -171,11 +190,17 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
           >
             Tasks
           </Link>
+          <Link
+            className="inline-flex items-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href={`/projects/${projectId}/progress`}
+          >
+            Progress
+          </Link>
         </div>
       </PageHeader>
 
       {summary ? (
-        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+        <dl className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           {[
             { label: "Total tasks", value: summary.total_tasks },
             { label: "Scheduled", value: summary.scheduled_tasks },
@@ -199,6 +224,32 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
               </dd>
             </div>
           ))}
+          <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <dt className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              Accomplishment
+            </dt>
+            <dd className="mt-2 text-2xl font-semibold text-slate-950">
+              {progressQuery.isPending
+                ? "…"
+                : (accomplishmentText ?? "—")}
+            </dd>
+            {accomplishmentClamped !== null ? (
+              <div
+                aria-label={`Accomplishment: ${accomplishmentText}`}
+                aria-valuemax={100}
+                aria-valuemin={0}
+                aria-valuenow={Math.round(accomplishmentClamped)}
+                aria-valuetext={accomplishmentText ?? undefined}
+                className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-200"
+                role="progressbar"
+              >
+                <div
+                  className="h-full rounded-full bg-slate-700"
+                  style={{ width: `${accomplishmentClamped}%` }}
+                />
+              </div>
+            ) : null}
+          </div>
         </dl>
       ) : null}
 

@@ -169,6 +169,11 @@ export const API_ENDPOINTS = {
     taskDependencyReadiness: (projectId: string, taskId: string) =>
       `/projects/${projectId}/tasks/${taskId}/dependency-readiness/`,
     timeline: (projectId: string) => `/projects/${projectId}/timeline/`,
+    progress: (projectId: string) => `/projects/${projectId}/progress/`,
+    progressHistory: (projectId: string) =>
+      `/projects/${projectId}/progress-history/`,
+    recalculateProgress: (projectId: string) =>
+      `/projects/${projectId}/recalculate-progress/`,
     notes: (projectId: string) => `/projects/${projectId}/notes/`,
     noteDetail: (projectId: string, noteId: string) =>
       `/projects/${projectId}/notes/${noteId}/`,
