@@ -335,14 +335,32 @@ class ProjectFoundationTests(APITestCase):
         self.assertNotIn(project_id, ids)
 
     def test_14b_completed_cannot_delete(self):
-        created = self._create_project(name="Completed Block")
+        created = self._create_project(
+            name="Completed Block",
+            project_manager=str(self.pm_user.id),
+        )
         project_id = created.data["id"]
         self._auth(self.fm_a)
-        self.client.patch(
+        # FO-107: completing requires calculated accomplishment of 100%.
+        project = Project.objects.get(pk=project_id)
+        from apps.projects.models import ProjectTask
+        from apps.projects.services import create_task
+
+        create_task(
+            project=project,
+            actor=self.fm_a,
+            data={
+                "name": "Done for complete gate",
+                "person_in_charge": self.pm_user,
+                "status": ProjectTask.Status.COMPLETED,
+            },
+        )
+        completed = self.client.patch(
             reverse("project-detail", args=[project_id]),
             {"status": Project.Status.COMPLETED},
             format="json",
         )
+        self.assertEqual(completed.status_code, status.HTTP_200_OK, completed.data)
         delete = self.client.delete(reverse("project-detail", args=[project_id]))
         self.assertEqual(delete.status_code, status.HTTP_400_BAD_REQUEST)
 

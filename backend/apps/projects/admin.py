@@ -7,6 +7,7 @@ from .models import (
     ProjectIssueComment,
     ProjectMember,
     ProjectNote,
+    ProjectProgressSnapshot,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
@@ -150,3 +151,18 @@ class ProjectIssueCommentAdmin(admin.ModelAdmin):
     search_fields = ("body", "issue__title", "author__email")
     list_filter = ("is_internal", "is_deleted")
     readonly_fields = AUDIT_READONLY_FIELDS
+
+
+@admin.register(ProjectProgressSnapshot)
+class ProjectProgressSnapshotAdmin(admin.ModelAdmin):
+    list_display = (
+        "project",
+        "completion_percentage",
+        "source",
+        "recorded_at",
+        "triggered_by",
+        "is_deleted",
+    )
+    search_fields = ("project__project_code", "source")
+    list_filter = ("source", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS + ("recorded_at",)

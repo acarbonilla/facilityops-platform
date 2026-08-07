@@ -29,6 +29,7 @@ from .models import (
     ProjectIssueComment,
     ProjectMember,
     ProjectNote,
+    ProjectProgressSnapshot,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
@@ -51,6 +52,7 @@ from .serializers import (
     ProjectNoteCreateSerializer,
     ProjectNoteSerializer,
     ProjectNoteUpdateSerializer,
+    ProjectProgressSnapshotSerializer,
     ProjectTaskAssignSerializer,
     ProjectTaskChecklistItemCreateSerializer,
     ProjectTaskChecklistItemSerializer,
@@ -135,6 +137,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
         if self.action in ("list", "retrieve", "history", "metrics", "task_summary"):
             self.required_permissions_any = ("projects.view", "projects.manage")
+        elif self.action in ("progress", "progress_history"):
+            self.required_permissions_any = (
+                "projects.progress.view",
+                "projects.view",
+                "projects.manage",
+            )
+        elif self.action == "recalculate_progress":
+            self.required_permissions_any = (
+                "projects.progress.recalculate",
+                "projects.manage",
+            )
         elif self.action == "gantt":
             self.required_permissions_any = (
                 "projects.gantt.view",
@@ -226,6 +239,60 @@ class ProjectViewSet(viewsets.ModelViewSet):
         project = self.get_object()
         return Response(
             build_gantt_payload(project),
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["get"], url_path="progress")
+    def progress(self, request, pk=None):
+        from .progress_service import build_progress_summary
+
+        project = self.get_object()
+        return Response(
+            build_progress_summary(project, actor=request.user),
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["get"], url_path="progress-history")
+    def progress_history(self, request, pk=None):
+        from .progress_service import (
+            build_progress_history_queryset,
+            serialize_progress_snapshot,
+        )
+
+        project = self.get_object()
+        queryset = build_progress_history_queryset(
+            project=project,
+            params=request.query_params,
+        )
+        page = self.paginate_queryset(queryset)
+        entries = page if page is not None else list(queryset)
+        payload = [serialize_progress_snapshot(item) for item in entries]
+        serializer = ProjectProgressSnapshotSerializer(payload, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="recalculate-progress")
+    def recalculate_progress(self, request, pk=None):
+        from .progress_service import (
+            build_progress_summary,
+            recalculate_project_progress,
+        )
+
+        project = self.get_object()
+        # No body percentage accepted — ignore any client payload.
+        try:
+            recalculate_project_progress(
+                project,
+                actor=request.user,
+                source=ProjectProgressSnapshot.Source.MANUAL_RECALCULATION,
+                related_task=None,
+            )
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        project.refresh_from_db()
+        return Response(
+            build_progress_summary(project, actor=request.user),
             status=status.HTTP_200_OK,
         )
 

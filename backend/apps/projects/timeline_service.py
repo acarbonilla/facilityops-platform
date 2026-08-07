@@ -47,6 +47,16 @@ _ACTION_MAP = {
     # Attachment actions if ever written to ProjectHistory
     "attachment_uploaded": ("attachment", "attachment", "Attachment uploaded"),
     "attachment_deleted": ("attachment", "attachment", "Attachment deleted"),
+    "project_accomplishment_changed": (
+        "project",
+        "progress",
+        "Project accomplishment changed",
+    ),
+    "project_progress_recalculated": (
+        "project",
+        "progress",
+        "Project progress recalculated",
+    ),
 }
 
 VALID_EVENT_CATEGORIES = frozenset(
@@ -113,7 +123,15 @@ def _related_object(action, metadata):
             "id": metadata.get("attachment_id"),
             "code": None,
         }
-    if action in ("created", "updated", "deleted", "member_added", "member_removed"):
+    if action in (
+        "created",
+        "updated",
+        "deleted",
+        "member_added",
+        "member_removed",
+        "project_accomplishment_changed",
+        "project_progress_recalculated",
+    ):
         return {
             "type": "project",
             "id": metadata.get("project_id"),

@@ -9,6 +9,7 @@ from .models import (
     ProjectIssueComment,
     ProjectMember,
     ProjectNote,
+    ProjectProgressSnapshot,
     ProjectTask,
     ProjectTaskChecklistItem,
     ProjectTaskComment,
@@ -319,6 +320,18 @@ class ProjectUpdateSerializer(ProjectValidationMixin, serializers.ModelSerialize
             else:
                 merged[field] = getattr(self.instance, field)
         merged["tenant"] = self.instance.tenant
+
+        # FO-107: validate completed gate against freshly calculated accomplishment.
+        if (
+            attrs.get("status") == Project.Status.COMPLETED
+            and self.instance.status != Project.Status.COMPLETED
+        ):
+            from .progress_service import calculate_accomplishment
+
+            merged["completion_percentage"] = calculate_accomplishment(self.instance)
+        else:
+            merged["completion_percentage"] = self.instance.completion_percentage
+
         self._run_model_clean(merged)
         return attrs
 
@@ -1016,3 +1029,21 @@ class ProjectTimelineEntrySerializer(serializers.Serializer):
     related_object = serializers.DictField(allow_null=True)
     icon = serializers.CharField()
     metadata = serializers.DictField()
+
+
+# ---------------------------------------------------------------------------
+# FO-107 Progress serializers
+# ---------------------------------------------------------------------------
+
+
+class ProjectProgressSnapshotSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    completion_percentage = serializers.CharField()
+    included_task_count = serializers.IntegerField()
+    completed_task_count = serializers.IntegerField()
+    blocked_task_count = serializers.IntegerField()
+    delayed_task_count = serializers.IntegerField()
+    recorded_at = serializers.DateTimeField()
+    source = serializers.CharField()
+    triggered_by = serializers.DictField(allow_null=True)
+    related_task = serializers.DictField(allow_null=True)

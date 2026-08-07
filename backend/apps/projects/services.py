@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -116,6 +118,30 @@ def update_project(*, project, data, actor=None):
     if actor and not user_can_access_tenant(actor, project.tenant_id):
         raise PermissionDenied("You cannot update projects for another tenant.")
 
+    becoming_completed = (
+        "status" in data
+        and data["status"] == Project.Status.COMPLETED
+        and project.status != Project.Status.COMPLETED
+    )
+    if becoming_completed:
+        # FO-107: ensure accomplishment is current before allowing completed.
+        from .progress_service import calculate_accomplishment
+
+        fresh_pct = calculate_accomplishment(project)
+        if Decimal(str(project.completion_percentage)) != fresh_pct:
+            project.completion_percentage = fresh_pct
+        if fresh_pct < Decimal("100.00"):
+            raise ValidationError(
+                {
+                    "status": (
+                        "Project cannot be marked completed until "
+                        "accomplishment reaches 100%."
+                    )
+                }
+            )
+        if data.get("actual_end_date") is None and project.actual_end_date is None:
+            data = {**data, "actual_end_date": timezone.localdate()}
+
     changes = {}
     for field, value in data.items():
         previous_value = getattr(project, field)
@@ -127,6 +153,17 @@ def update_project(*, project, data, actor=None):
             setattr(project, field, value)
 
     if not changes:
+        # Still persist refreshed completion_percentage when gating completed.
+        if becoming_completed:
+            actor_id = str(actor.id) if actor else None
+            project.updated_by = actor_id
+            project.save(
+                update_fields=[
+                    "completion_percentage",
+                    "updated_by",
+                    "updated_at",
+                ]
+            )
         return project
 
     actor_id = str(actor.id) if actor else None
@@ -334,6 +371,16 @@ def create_task(*, project, actor, data):
                 person_in_charge_id=str(task.person_in_charge_id),
             ),
         )
+
+    from .models import ProjectProgressSnapshot
+    from .progress_service import recalculate_project_progress
+
+    recalculate_project_progress(
+        project,
+        actor=actor,
+        source=ProjectProgressSnapshot.Source.TASK_CREATED,
+        related_task=task,
+    )
     return task
 
 
@@ -443,6 +490,28 @@ def update_task(*, task, data, actor=None):
             ),
         )
 
+    status_changed = task.status != previous_status
+    progress_changed = task.progress_percentage != previous_progress
+    from .progress_service import (
+        recalculate_project_progress,
+        resolve_recalculation_source,
+    )
+
+    source = resolve_recalculation_source(
+        previous_status=previous_status,
+        new_status=task.status,
+        progress_changed=progress_changed,
+        status_changed=status_changed,
+        deleted=False,
+    )
+    if source:
+        recalculate_project_progress(
+            project,
+            actor=actor,
+            source=source,
+            related_task=task,
+        )
+
     return task
 
 
@@ -502,6 +571,16 @@ def soft_delete_task(*, task, actor):
         description=f"Task {task.task_code} soft-deleted.",
         actor=actor,
         metadata=_task_history_metadata(task),
+    )
+
+    from .models import ProjectProgressSnapshot
+    from .progress_service import recalculate_project_progress
+
+    recalculate_project_progress(
+        project,
+        actor=actor,
+        source=ProjectProgressSnapshot.Source.TASK_DELETED,
+        related_task=task,
     )
     return task
 

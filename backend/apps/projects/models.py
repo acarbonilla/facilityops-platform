@@ -130,6 +130,20 @@ class Project(BaseModel):
                 "Actual end date must be on or after the actual start date."
             )
 
+        # FO-107: completing a project requires 100% accomplishment.
+        # Do not auto-complete when percentage hits 100 — human authority.
+        if self.status == self.Status.COMPLETED:
+            pct = (
+                Decimal("0.00")
+                if self.completion_percentage is None
+                else Decimal(str(self.completion_percentage))
+            )
+            if pct < Decimal("100.00"):
+                errors["status"] = (
+                    "Project cannot be marked completed until "
+                    "accomplishment reaches 100%."
+                )
+
         if errors:
             raise ValidationError(errors)
 
@@ -922,6 +936,64 @@ class ProjectIssue(BaseModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class ProjectProgressSnapshot(BaseModel):
+    """FO-107 append-only project accomplishment snapshot."""
+
+    class Source(models.TextChoices):
+        TASK_CREATED = "task_created", "Task Created"
+        TASK_PROGRESS_CHANGED = "task_progress_changed", "Task Progress Changed"
+        TASK_STATUS_CHANGED = "task_status_changed", "Task Status Changed"
+        TASK_CANCELLED = "task_cancelled", "Task Cancelled"
+        TASK_DELETED = "task_deleted", "Task Deleted"
+        TASK_RESTORED = "task_restored", "Task Restored"
+        MANUAL_RECALCULATION = "manual_recalculation", "Manual Recalculation"
+        MIGRATION_REBUILD = "migration_rebuild", "Migration Rebuild"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_progress_snapshots",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="progress_snapshots",
+    )
+    completion_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    included_task_count = models.IntegerField(default=0)
+    completed_task_count = models.IntegerField(default=0)
+    blocked_task_count = models.IntegerField(default=0)
+    delayed_task_count = models.IntegerField(default=0)
+    recorded_at = models.DateTimeField(default=timezone.now, db_index=True)
+    source = models.CharField(max_length=32, choices=Source.choices, db_index=True)
+    triggered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="project_progress_snapshots_triggered",
+    )
+    related_task = models.ForeignKey(
+        ProjectTask,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="progress_snapshots",
+    )
+
+    class Meta:
+        ordering = ["-recorded_at"]
+        indexes = [
+            models.Index(
+                fields=["project", "recorded_at"],
+                name="proj_prog_snap_proj_rec_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.project_id} @ {self.completion_percentage}% ({self.source})"
 
 
 class ProjectIssueComment(BaseModel):
