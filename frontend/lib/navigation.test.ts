@@ -30,6 +30,9 @@ test("APP_NAVIGATION registers Projects after Maintenance with projects.view", (
   const projectsIndex = APP_NAVIGATION.findIndex(
     (item) => item.href === "/projects",
   );
+  const myWorkIndex = APP_NAVIGATION.findIndex(
+    (item) => item.href === "/my-work",
+  );
 
   assert.ok(maintenanceIndex >= 0, "Maintenance nav item missing");
   assert.ok(projectsIndex >= 0, "Projects nav item missing");
@@ -37,12 +40,17 @@ test("APP_NAVIGATION registers Projects after Maintenance with projects.view", (
     projectsIndex === maintenanceIndex + 1,
     "Projects must appear immediately after Maintenance",
   );
+  assert.ok(myWorkIndex === projectsIndex + 1, "My Work must follow Projects");
 
   const projects = APP_NAVIGATION[projectsIndex] as NavigationItem;
   assert.equal(projects.label, "Projects");
   assert.deepEqual(projects.requiredPermissions, ["projects.view"]);
   assert.equal(projects.matchStrategy, "prefix");
   assert.equal(projects.authenticatedOnly, true);
+
+  const myWork = APP_NAVIGATION[myWorkIndex] as NavigationItem;
+  assert.equal(myWork.label, "My Work");
+  assert.equal(myWork.matchStrategy, "prefix");
 });
 
 test("facility manager with projects.view sees Projects in sidebar filter", () => {
@@ -61,6 +69,7 @@ test("facility manager with projects.view sees Projects in sidebar filter", () =
 
   assert.ok(visible.some((item) => item.href === "/projects"));
   assert.ok(visible.some((item) => item.href === "/maintenance"));
+  assert.ok(visible.some((item) => item.href === "/my-work"));
   assert.equal(
     visible.some((item) => item.href === "/my-requests"),
     false,
@@ -80,10 +89,14 @@ test("Projects hidden without projects.view even when other modules are visible"
     visible.some((item) => item.href === "/projects"),
     false,
   );
+  assert.equal(
+    visible.some((item) => item.href === "/my-work"),
+    false,
+  );
   assert.ok(visible.some((item) => item.href === "/maintenance"));
 });
 
-test("employee requester mode never surfaces Projects", () => {
+test("employee requester mode never surfaces Projects or My Work", () => {
   const visible = filterNavigationForEmployeeRequester(
     APP_NAVIGATION,
     authOptions({
@@ -94,6 +107,10 @@ test("employee requester mode never surfaces Projects", () => {
 
   assert.equal(
     visible.some((item) => item.href === "/projects"),
+    false,
+  );
+  assert.equal(
+    visible.some((item) => item.href === "/my-work"),
     false,
   );
   assert.ok(visible.some((item) => item.href === "/my-requests"));
