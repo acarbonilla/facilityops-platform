@@ -134,6 +134,8 @@ export const API_ENDPOINTS = {
     list: "/projects/",
     detail: (id: string) => `/projects/${id}/`,
     metrics: "/projects/metrics/",
+    myWork: "/projects/my-work/",
+    myWorkTasks: "/projects/my-work/tasks/",
     members: (id: string) => `/projects/${id}/members/`,
     member: (id: string, memberId: string) =>
       `/projects/${id}/members/${memberId}/`,

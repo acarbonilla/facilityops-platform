@@ -17,6 +17,7 @@ const HIDDEN_FOR_EMPLOYEE_REQUESTER = new Set([
   "/fm-tickets",
   "/maintenance",
   "/projects",
+  "/my-work",
   "/inspection/inspections",
   "/reporting",
   "/master-data",

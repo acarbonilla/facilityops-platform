@@ -18,7 +18,6 @@ import {
   getAvailableTechnicianActions,
 } from "@/lib/projects/execution";
 import { formatProjectTaskError } from "@/lib/projects/tasks-display";
-import { canReportProjectIssue } from "@/lib/projects/workspace";
 import type { ProjectTaskDetail } from "@/types/projects";
 
 type Props = {

@@ -14,6 +14,7 @@ import type {
   ProjectProgressHistoryParams,
   ProjectTaskListParams,
   ProjectTimelineListParams,
+  MyWorkListParams,
 } from "@/types/projects";
 import type { AIAttentionCenterParams } from "@/types/ai-attention-center";
 import type { AIInsightsParams } from "@/types/ai-insights";
@@ -283,6 +284,10 @@ export const projectsQueryKeys = {
     ["projects", "list", normalizeProjectParams(params)] as const,
   metrics: (params?: ProjectListParams) =>
     ["projects", "metrics", normalizeProjectParams(params)] as const,
+  myWork: (params?: Record<string, string | number | boolean | undefined>) =>
+    ["projects", "my-work", stripNilParams(params)] as const,
+  myWorkTasks: (params?: MyWorkListParams) =>
+    ["projects", "my-work", "tasks", stripNilParams(params)] as const,
   formOptions: () => ["projects", "form-options"] as const,
   detail: (id: string) => ["projects", "detail", id] as const,
   history: (id: string) => ["projects", "history", id] as const,

@@ -871,3 +871,117 @@ export interface ProjectOperationalLinkUpdatePayload {
   notes?: string;
   project_task?: string | null;
 }
+
+/** FO-112 Technician My Work dashboard */
+export type MyWorkBlockReason =
+  | "status_blocked"
+  | "waiting_predecessor"
+  | "paused"
+  | null;
+
+export interface MyWorkAssignedTask {
+  id: string;
+  task_code: string;
+  name: string;
+  status: ProjectTaskStatus;
+  priority: ProjectPriority;
+  progress_percentage: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  is_delayed: boolean;
+  delay_days: number;
+  is_dependency_ready: boolean;
+  blocking_predecessor_count: number;
+  block_reason: MyWorkBlockReason;
+  checklist_total: number;
+  checklist_completed: number;
+  checklist_completion_label: string;
+}
+
+export interface MyWorkProjectCard {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  accomplishment_percentage: string;
+  planned_end_date: string | null;
+  project_manager_id: string | null;
+  project_manager_email: string | null;
+  my_task_count: number;
+  my_completed_task_count: number;
+  my_overdue_task_count: number;
+}
+
+export interface MyWorkSummary {
+  my_projects: number;
+  my_assigned_tasks: number;
+  in_progress: number;
+  overdue: number;
+  due_today: number;
+  due_this_week: number;
+  blocked_or_paused: number;
+  status_blocked: number;
+  paused: number;
+  dependency_blocked: number;
+  completed_recently: number;
+  unscheduled: number;
+  upcoming: number;
+}
+
+export interface MyWorkWorkload {
+  assigned: number;
+  in_progress: number;
+  overdue: number;
+  blocked: number;
+  paused: number;
+  completed: number;
+}
+
+export interface MyWorkBlockerIssue {
+  id: string;
+  title: string;
+  status: string;
+  severity: string;
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  created_at: string;
+}
+
+export interface MyWorkDashboard {
+  as_of: string;
+  week_end: string;
+  summary: MyWorkSummary;
+  workload: MyWorkWorkload;
+  projects: MyWorkProjectCard[];
+  assigned_tasks: MyWorkAssignedTask[];
+  today: MyWorkAssignedTask[];
+  due_today: MyWorkAssignedTask[];
+  due_this_week: MyWorkAssignedTask[];
+  overdue: MyWorkAssignedTask[];
+  blocked: MyWorkAssignedTask[];
+  upcoming: MyWorkAssignedTask[];
+  unscheduled: MyWorkAssignedTask[];
+  recently_completed: MyWorkAssignedTask[];
+  blockers: MyWorkBlockerIssue[];
+  workspace_scoped: boolean;
+}
+
+export interface MyWorkListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  project?: string;
+  status?: ProjectTaskStatus;
+  priority?: ProjectPriority;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+  include_completed?: boolean;
+}
+

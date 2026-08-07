@@ -38,6 +38,8 @@ import {
   getProjectList,
   getProjectMembers,
   getProjectMetrics,
+  getMyWorkDashboard,
+  getMyWorkTaskList,
   getProjectNoteDetail,
   getProjectNoteList,
   getProjectProgress,
@@ -94,6 +96,7 @@ import type {
   ProjectIssueUpdatePayload,
   ProjectLinkOptionParams,
   ProjectListParams,
+  MyWorkListParams,
   ProjectNote,
   ProjectNoteCreatePayload,
   ProjectNoteListParams,
@@ -138,6 +141,24 @@ export function useProjectMetrics(params?: ProjectListParams) {
   return useQuery({
     queryKey: projectsQueryKeys.metrics(params),
     queryFn: () => getProjectMetrics(params),
+  });
+}
+
+export function useMyWorkDashboard(params?: {
+  project?: string;
+  status?: string;
+  priority?: string;
+}) {
+  return useQuery({
+    queryKey: projectsQueryKeys.myWork(params),
+    queryFn: () => getMyWorkDashboard(params),
+  });
+}
+
+export function useMyWorkTaskList(params?: MyWorkListParams) {
+  return useQuery({
+    queryKey: projectsQueryKeys.myWorkTasks(params),
+    queryFn: () => getMyWorkTaskList(params),
   });
 }
 
@@ -248,6 +269,9 @@ async function invalidateProjectTasks(
   });
   await queryClient.invalidateQueries({
     queryKey: ["projects", projectId, "progress-history"],
+  });
+  await queryClient.invalidateQueries({
+    queryKey: ["projects", "my-work"],
   });
   if (taskId) {
     await queryClient.invalidateQueries({

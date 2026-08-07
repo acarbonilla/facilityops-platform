@@ -23,6 +23,9 @@ import type {
   ProjectMember,
   ProjectMemberCreatePayload,
   ProjectMetrics,
+  MyWorkDashboard,
+  MyWorkAssignedTask,
+  MyWorkListParams,
   ProjectNote,
   ProjectNoteCreatePayload,
   ProjectNoteListParams,
@@ -80,6 +83,29 @@ export function getProjectMetrics(
     method: "GET",
     query: params,
   });
+}
+
+export function getMyWorkDashboard(params?: {
+  project?: string;
+  status?: string;
+  priority?: string;
+}): Promise<MyWorkDashboard> {
+  return apiClient<MyWorkDashboard>(API_ENDPOINTS.projects.myWork, {
+    method: "GET",
+    query: params,
+  });
+}
+
+export function getMyWorkTaskList(
+  params?: MyWorkListParams,
+): Promise<PaginatedResponse<MyWorkAssignedTask>> {
+  return apiClient<PaginatedResponse<MyWorkAssignedTask>>(
+    API_ENDPOINTS.projects.myWorkTasks,
+    {
+      method: "GET",
+      query: params,
+    },
+  );
 }
 
 export function createProject(
