@@ -7,7 +7,8 @@
 **Branch HEAD (FO-108):** `6fc44446b956d3c736368178260901aa8f55c4e6`  
 **Commits:** `9d6471c` (backend), `b90d533` (frontend), `6fc4444` (docs)  
 **Prior checkpoints:** FO-103–FO-107  
-**Next:** FO-109 — Project Management QA & Production Readiness (**not started**)  
+**Next:** FO-109A — Finalize, Merge & Post-Merge Verification (**not started**)  
+**FO-109:** Complete — see `docs/02-Development/FO-109 - Project Management QA and Production Readiness.md`  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged until FO-109A)  
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics
 
@@ -77,4 +78,4 @@ Automated API + frontend unit + code-path review. Interactive browser not claime
 
 ## 14. Checkpoint status
 
-FO-108 complete on `feature/project-management`, unmerged. FO-109 not started. FO-102 deferred.
+FO-108 complete on `feature/project-management`, unmerged. FO-109 QA complete (READY WITH ACCEPTED LIMITATIONS). FO-109A next. FO-102 deferred.

@@ -9,6 +9,7 @@
 **Prior checkpoints:** FO-103 Foundation; FO-104 Task & Assignment  
 **Next:** FO-106 — Timeline, Notes & Issues (**not started**)  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged until FO-109A)  
+**FO-109:** Integrated QA complete (includes start-then-link dependency gate hardening); FO-109A next  
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics
 
 ## 1. Objective
