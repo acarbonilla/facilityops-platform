@@ -187,6 +187,11 @@ export const API_ENDPOINTS = {
       issueId: string,
       commentId: string,
     ) => `/projects/${projectId}/issues/${issueId}/comments/${commentId}/`,
+    links: (projectId: string) => `/projects/${projectId}/links/`,
+    linkDetail: (projectId: string, linkId: string) =>
+      `/projects/${projectId}/links/${linkId}/`,
+    linkOptions: (projectId: string) =>
+      `/projects/${projectId}/link-options/`,
   },
   reporting: {
     overview: "/reporting/overview/",

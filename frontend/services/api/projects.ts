@@ -16,6 +16,8 @@ import type {
   ProjectIssueListItem,
   ProjectIssueListParams,
   ProjectIssueUpdatePayload,
+  ProjectLinkOption,
+  ProjectLinkOptionParams,
   ProjectListItem,
   ProjectListParams,
   ProjectMember,
@@ -25,6 +27,10 @@ import type {
   ProjectNoteCreatePayload,
   ProjectNoteListParams,
   ProjectNoteUpdatePayload,
+  ProjectOperationalLink,
+  ProjectOperationalLinkCreatePayload,
+  ProjectOperationalLinkListParams,
+  ProjectOperationalLinkUpdatePayload,
   ProjectProgressHistoryParams,
   ProjectProgressSnapshot,
   ProjectProgressSummary,
@@ -629,5 +635,78 @@ export function deleteProjectIssueComment(
   return apiClient<void>(
     API_ENDPOINTS.projects.issueComment(projectId, issueId, commentId),
     { method: "DELETE" },
+  );
+}
+
+export function getProjectLinkList(
+  projectId: string,
+  params?: ProjectOperationalLinkListParams,
+): Promise<PaginatedResponse<ProjectOperationalLink>> {
+  return apiClient<PaginatedResponse<ProjectOperationalLink>>(
+    API_ENDPOINTS.projects.links(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectLinkDetail(
+  projectId: string,
+  linkId: string,
+): Promise<ProjectOperationalLink> {
+  return apiClient<ProjectOperationalLink>(
+    API_ENDPOINTS.projects.linkDetail(projectId, linkId),
+    { method: "GET" },
+  );
+}
+
+export function createProjectLink(
+  projectId: string,
+  payload: ProjectOperationalLinkCreatePayload,
+): Promise<ProjectOperationalLink> {
+  return apiClient<ProjectOperationalLink>(
+    API_ENDPOINTS.projects.links(projectId),
+    {
+      method: "POST",
+      body: payload,
+    },
+  );
+}
+
+export function updateProjectLink(
+  projectId: string,
+  linkId: string,
+  payload: ProjectOperationalLinkUpdatePayload,
+): Promise<ProjectOperationalLink> {
+  return apiClient<ProjectOperationalLink>(
+    API_ENDPOINTS.projects.linkDetail(projectId, linkId),
+    {
+      method: "PATCH",
+      body: payload,
+    },
+  );
+}
+
+export function deleteProjectLink(
+  projectId: string,
+  linkId: string,
+): Promise<void> {
+  return apiClient<void>(
+    API_ENDPOINTS.projects.linkDetail(projectId, linkId),
+    { method: "DELETE" },
+  );
+}
+
+export function getProjectLinkOptions(
+  projectId: string,
+  params: ProjectLinkOptionParams,
+): Promise<PaginatedResponse<ProjectLinkOption>> {
+  return apiClient<PaginatedResponse<ProjectLinkOption>>(
+    API_ENDPOINTS.projects.linkOptions(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
   );
 }

@@ -13,6 +13,7 @@ import {
   useDeleteProjectTask,
   useProjectDetail,
   useProjectHistory,
+  useProjectLinkList,
   useProjectMembers,
   useProjectTaskDependencyReadiness,
   useProjectTaskDetail,
@@ -29,6 +30,14 @@ import {
 import { formatDependencyReadinessMessage } from "@/lib/projects/dependencies";
 import { formatDelayLabel } from "@/lib/projects/gantt";
 import {
+  filterLinksForProjectTask,
+  formatProjectLinkAccessibilityLabel,
+  formatProjectLinkRelationshipLabel,
+  formatProjectLinkTargetLabel,
+  formatProjectLinkTypeLabel,
+  getProjectLinkTargetHref,
+} from "@/lib/projects/links";
+import {
   canAssignProjectTask,
   canCommentOnProjectTask,
   canDeleteProjectTask,
@@ -41,6 +50,7 @@ import { readProjectTaskFormFlash } from "@/lib/projects/tasks-form";
 import type {
   ProjectHistory,
   ProjectMember,
+  ProjectOperationalLink,
   ProjectTaskDependency,
 } from "@/types/projects";
 
@@ -230,6 +240,7 @@ export function ProjectTaskDetailScreen({
   const predecessorsQuery = useProjectTaskPredecessors(projectId, taskId);
   const successorsQuery = useProjectTaskSuccessors(projectId, taskId);
   const readinessQuery = useProjectTaskDependencyReadiness(projectId, taskId);
+  const linksQuery = useProjectLinkList(projectId, { page_size: 100 });
   const assignMutation = useAssignProjectTask(projectId, taskId);
   const deleteMutation = useDeleteProjectTask(projectId);
   const [flashMessage, setFlashMessage] = useState<string | null>(null);
@@ -268,6 +279,12 @@ export function ProjectTaskDetailScreen({
     });
     return filtered.slice(0, 20);
   }, [historyQuery.data?.results, taskId]);
+
+  const taskLinks = useMemo(
+    () =>
+      filterLinksForProjectTask(linksQuery.data?.results ?? [], taskId),
+    [linksQuery.data?.results, taskId],
+  );
 
   if (detailQuery.isPending) {
     return (
@@ -567,6 +584,80 @@ export function ProjectTaskDetailScreen({
             title="Successors"
           />
         </div>
+      </SectionCard>
+
+      <SectionCard
+        description="Operational records linked specifically to this task."
+        title="Linked records"
+      >
+        <div className="flex flex-wrap gap-3">
+          <Link
+            className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            href={`/projects/${projectId}/links`}
+          >
+            Manage linked records
+          </Link>
+        </div>
+        {linksQuery.isPending ? (
+          <div
+            aria-label="Loading linked records"
+            className="h-16 animate-pulse rounded-lg border border-slate-200 bg-slate-100"
+            role="status"
+          />
+        ) : null}
+        {!linksQuery.isPending && taskLinks.length === 0 ? (
+          <EmptyState
+            message="No operational links reference this task yet."
+            title="No linked records for this task"
+          />
+        ) : null}
+        {taskLinks.length > 0 ? (
+          <ul className="space-y-3">
+            {taskLinks.map((link: ProjectOperationalLink) => {
+              const href = getProjectLinkTargetHref(link);
+              const accessLabel = formatProjectLinkAccessibilityLabel(
+                link.target_accessible,
+              );
+              return (
+                <li
+                  className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                  key={link.id}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {formatProjectLinkTypeLabel(link.link_type)} ·{" "}
+                        {formatProjectLinkRelationshipLabel(link.relationship)}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-950">
+                        {href ? (
+                          <Link
+                            className="text-blue-800 hover:underline"
+                            href={href}
+                          >
+                            {formatProjectLinkTargetLabel(link)}
+                          </Link>
+                        ) : (
+                          formatProjectLinkTargetLabel(link)
+                        )}
+                      </p>
+                    </div>
+                    <span
+                      aria-label={`Access: ${accessLabel}`}
+                      className={
+                        link.target_accessible
+                          ? "rounded-full border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700"
+                          : "rounded-full border border-amber-400 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-900"
+                      }
+                    >
+                      {accessLabel}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
       </SectionCard>
 
       <ProjectTaskChecklist

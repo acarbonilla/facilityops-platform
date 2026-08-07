@@ -27,6 +27,7 @@ import type {
   MaintenanceMaterial,
   MaintenanceTask,
 } from "@/types/maintenance";
+import { LinkedProjectsSection } from "@/features/projects/components/linked-projects-section";
 
 import { MaintenanceHistoryTimeline } from "./maintenance-history-timeline";
 import { MaintenanceAssignmentCard } from "./maintenance-assignment-card";
@@ -501,6 +502,8 @@ export function MaintenanceDetailScreen({ id }: { id: string }) {
       </SectionCard>
 
       <MaintenanceEscalationCard workOrder={workOrder} />
+
+      <LinkedProjectsSection linkedProjects={workOrder.linked_projects} />
     </div>
   );
 }

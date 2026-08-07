@@ -740,3 +740,111 @@ export interface ProjectProgressHistoryParams
   date_to?: string;
   ordering?: string;
 }
+
+// ---------------------------------------------------------------------------
+// FO-108 Operational Links
+// ---------------------------------------------------------------------------
+
+export type ProjectOperationalLinkType =
+  | "fm_ticket"
+  | "maintenance_work_order"
+  | "inspection";
+
+export type ProjectOperationalLinkRelationship =
+  | "related"
+  | "source"
+  | "execution"
+  | "corrective_action"
+  | "evidence"
+  | "follow_up";
+
+export interface ProjectOperationalLink {
+  id: string;
+  project_id: string;
+  link_type: ProjectOperationalLinkType;
+  relationship: ProjectOperationalLinkRelationship;
+  notes: string;
+  project_task_id: string | null;
+  created_at: string;
+  updated_at: string;
+  target_accessible: boolean;
+  target_id?: string;
+  target_number?: string | null;
+  target_title?: string;
+  target_status?: string;
+  fm_ticket_id?: string | null;
+  maintenance_work_order_id?: string | null;
+  inspection_id?: string | null;
+}
+
+export interface ProjectLinkedProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  link_id: string;
+  relationship: ProjectOperationalLinkRelationship | string;
+  link_type: ProjectOperationalLinkType | string;
+}
+
+export interface ProjectLinkOption {
+  id: string;
+  number: string | null;
+  title: string;
+  status: string;
+  type: ProjectOperationalLinkType;
+}
+
+export interface ProjectOperationalLinkListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+}
+
+export type ProjectLinkAccessibilityFilter = "" | "accessible" | "restricted";
+
+export interface ProjectOperationalLinkListFilters {
+  search: string;
+  linkType: ProjectOperationalLinkType | "";
+  relationship: ProjectOperationalLinkRelationship | "";
+  accessibility: ProjectLinkAccessibilityFilter;
+  pageSize: number;
+}
+
+export interface ProjectLinkOptionParams
+  extends Record<string, string | number | boolean | undefined> {
+  type: ProjectOperationalLinkType;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ProjectOperationalLinkFormValues {
+  link_type: ProjectOperationalLinkType | "";
+  target_id: string;
+  relationship: ProjectOperationalLinkRelationship;
+  notes: string;
+  project_task: string;
+}
+
+export interface ProjectOperationalLinkEditFormValues {
+  relationship: ProjectOperationalLinkRelationship;
+  notes: string;
+  project_task: string;
+}
+
+export interface ProjectOperationalLinkCreatePayload {
+  link_type: ProjectOperationalLinkType;
+  fm_ticket?: string;
+  maintenance_work_order?: string;
+  inspection?: string;
+  relationship?: ProjectOperationalLinkRelationship;
+  notes?: string;
+  project_task?: string | null;
+}
+
+export interface ProjectOperationalLinkUpdatePayload {
+  relationship?: ProjectOperationalLinkRelationship;
+  notes?: string;
+  project_task?: string | null;
+}

@@ -7,8 +7,10 @@ import type { MaintenanceListParams } from "@/types/maintenance";
 import type { NotificationListParams } from "@/types/notifications";
 import type {
   ProjectIssueListParams,
+  ProjectLinkOptionParams,
   ProjectListParams,
   ProjectNoteListParams,
+  ProjectOperationalLinkListParams,
   ProjectProgressHistoryParams,
   ProjectTaskListParams,
   ProjectTimelineListParams,
@@ -259,6 +261,22 @@ function normalizeProjectProgressHistoryParams(
     | Record<string, never>;
 }
 
+function normalizeProjectLinkParams(
+  params?: ProjectOperationalLinkListParams,
+): ProjectOperationalLinkListParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectOperationalLinkListParams
+    | Record<string, never>;
+}
+
+function normalizeProjectLinkOptionParams(
+  params?: ProjectLinkOptionParams,
+): ProjectLinkOptionParams | Record<string, never> {
+  return stripNilParams(params) as
+    | ProjectLinkOptionParams
+    | Record<string, never>;
+}
+
 export const projectsQueryKeys = {
   all: ["projects"] as const,
   list: (params?: ProjectListParams) =>
@@ -346,6 +364,24 @@ export const projectsQueryKeys = {
     ["projects", projectId, "issues", "detail", issueId] as const,
   issueComments: (projectId: string, issueId: string) =>
     ["projects", projectId, "issues", issueId, "comments"] as const,
+  links: (projectId: string) => ["projects", projectId, "links"] as const,
+  linkList: (projectId: string, params?: ProjectOperationalLinkListParams) =>
+    [
+      "projects",
+      projectId,
+      "links",
+      "list",
+      normalizeProjectLinkParams(params),
+    ] as const,
+  linkDetail: (projectId: string, linkId: string) =>
+    ["projects", projectId, "links", "detail", linkId] as const,
+  linkOptions: (projectId: string, params?: ProjectLinkOptionParams) =>
+    [
+      "projects",
+      projectId,
+      "link-options",
+      normalizeProjectLinkOptionParams(params),
+    ] as const,
 };
 
 export const reportingQueryKeys = {

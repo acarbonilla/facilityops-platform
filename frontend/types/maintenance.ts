@@ -357,6 +357,16 @@ export interface MaintenanceHistory {
   created_at: string;
 }
 
+export interface MaintenanceLinkedProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: string;
+  link_id: string;
+  relationship: string;
+  link_type: string;
+}
+
 export interface MaintenanceWorkOrderDetail
   extends MaintenanceWorkOrderListItem {
   description: string;
@@ -377,6 +387,7 @@ export interface MaintenanceWorkOrderDetail
   attachments: MaintenanceAttachment[];
   ai_summary: MaintenanceAiSummary | null;
   supervisor_approval: MaintenanceSupervisorApproval | null;
+  linked_projects?: MaintenanceLinkedProjectSummary[];
 }
 
 export interface MaintenanceTimelineEvent {

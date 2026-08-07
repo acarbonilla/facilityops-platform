@@ -147,6 +147,16 @@ export interface GeneratedWorkOrderSummary {
   source_ticket_id: string;
 }
 
+export interface FmTicketLinkedProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: string;
+  link_id: string;
+  relationship: string;
+  link_type: string;
+}
+
 export interface FmTicketDetail extends FmTicketBaseRecord {
   department: string | null;
   department_name: string | null;
@@ -154,6 +164,7 @@ export interface FmTicketDetail extends FmTicketBaseRecord {
   sla: FmTicketSla;
   escalation_history: FmTicketEscalation[];
   linked_work_order: LinkedMaintenanceWorkOrderSummary | null;
+  linked_projects?: FmTicketLinkedProjectSummary[];
   resolved_at: string | null;
   closed_at: string | null;
   created_at: string;

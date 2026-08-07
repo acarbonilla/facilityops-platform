@@ -9,6 +9,7 @@ import {
   createProjectDependency,
   createProjectIssue,
   createProjectIssueComment,
+  createProjectLink,
   createProjectNote,
   createProjectTask,
   createProjectTaskChecklistItem,
@@ -17,6 +18,7 @@ import {
   deleteProjectDependency,
   deleteProjectIssue,
   deleteProjectIssueComment,
+  deleteProjectLink,
   deleteProjectNote,
   deleteProjectTask,
   deleteProjectTaskChecklistItem,
@@ -29,6 +31,9 @@ import {
   getProjectIssueComments,
   getProjectIssueDetail,
   getProjectIssueList,
+  getProjectLinkDetail,
+  getProjectLinkList,
+  getProjectLinkOptions,
   getProjectList,
   getProjectMembers,
   getProjectMetrics,
@@ -49,6 +54,7 @@ import {
   reorderProjectTasks,
   updateProject,
   updateProjectIssue,
+  updateProjectLink,
   updateProjectNote,
   updateProjectTask,
   updateProjectTaskChecklistItem,
@@ -80,11 +86,15 @@ import type {
   ProjectIssueFormValues,
   ProjectIssueListParams,
   ProjectIssueUpdatePayload,
+  ProjectLinkOptionParams,
   ProjectListParams,
   ProjectNote,
   ProjectNoteCreatePayload,
   ProjectNoteListParams,
   ProjectNoteUpdatePayload,
+  ProjectOperationalLinkCreatePayload,
+  ProjectOperationalLinkListParams,
+  ProjectOperationalLinkUpdatePayload,
   ProjectProgressHistoryParams,
   ProjectTaskAssignPayload,
   ProjectTaskChecklistCreatePayload,
@@ -806,6 +816,106 @@ export function useDeleteProjectIssueComment(
       deleteProjectIssueComment(projectId, issueId, commentId),
     onSuccess: async () => {
       await invalidateProjectIssues(queryClient, projectId, issueId);
+    },
+  });
+}
+
+async function invalidateProjectLinks(
+  queryClient: ReturnType<typeof useQueryClient>,
+  projectId: string,
+  linkId?: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.links(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.timeline(projectId),
+  });
+  await queryClient.invalidateQueries({
+    queryKey: projectsQueryKeys.history(projectId),
+  });
+  if (linkId) {
+    await queryClient.invalidateQueries({
+      queryKey: projectsQueryKeys.linkDetail(projectId, linkId),
+    });
+  }
+}
+
+export function useProjectLinkList(
+  projectId: string,
+  params?: ProjectOperationalLinkListParams,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.linkList(projectId, params),
+    queryFn: () => getProjectLinkList(projectId, params),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useProjectLinkDetail(projectId: string, linkId: string) {
+  return useQuery({
+    queryKey: projectsQueryKeys.linkDetail(projectId, linkId),
+    queryFn: () => getProjectLinkDetail(projectId, linkId),
+    enabled: Boolean(projectId) && Boolean(linkId),
+  });
+}
+
+export function useProjectLinkOptions(
+  projectId: string,
+  params: ProjectLinkOptionParams | null,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.linkOptions(
+      projectId,
+      params ?? undefined,
+    ),
+    queryFn: () => getProjectLinkOptions(projectId, params!),
+    enabled: Boolean(projectId) && Boolean(params?.type),
+  });
+}
+
+export function useCreateProjectLink(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: ProjectOperationalLinkCreatePayload) =>
+      createProjectLink(projectId, payload),
+    onSuccess: async () => {
+      await invalidateProjectLinks(queryClient, projectId);
+      await queryClient.invalidateQueries({
+        queryKey: ["projects", projectId, "link-options"],
+      });
+    },
+  });
+}
+
+export function useUpdateProjectLink(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      linkId,
+      payload,
+    }: {
+      linkId: string;
+      payload: ProjectOperationalLinkUpdatePayload;
+    }) => updateProjectLink(projectId, linkId, payload),
+    onSuccess: async (_data, variables) => {
+      await invalidateProjectLinks(queryClient, projectId, variables.linkId);
+    },
+  });
+}
+
+export function useDeleteProjectLink(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (linkId: string) => deleteProjectLink(projectId, linkId),
+    onSuccess: async (_data, linkId) => {
+      await invalidateProjectLinks(queryClient, projectId, linkId);
+      await queryClient.invalidateQueries({
+        queryKey: ["projects", projectId, "link-options"],
+      });
     },
   });
 }
