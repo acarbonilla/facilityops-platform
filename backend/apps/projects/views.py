@@ -484,6 +484,24 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
                 manage,
                 tasks_manage,
             )
+        elif self.action in (
+            "start",
+            "pause",
+            "resume",
+            "complete",
+            "update_progress",
+        ):
+            self.required_permissions_any = (
+                "projects.tasks.update",
+                manage,
+                tasks_manage,
+            )
+        elif self.action == "report_blocker":
+            self.required_permissions_any = (
+                "projects.issues.report",
+                "projects.issues.manage",
+                manage,
+            )
         elif self.action == "reorder":
             self.required_permissions_any = (
                 "projects.tasks.update",
@@ -614,6 +632,77 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             _raise_validation(exc)
         context = self._task_serializer_context([task])
         return Response(ProjectTaskDetailSerializer(task, context=context).data)
+
+    def _execute_task_action(self, request, handler, **handler_kwargs):
+        from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
+
+        from .execution_service import report_task_blocker
+
+        task = self.get_object()
+        try:
+            result = handler(task=task, actor=request.user, **handler_kwargs)
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        except DjangoPermissionDenied as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        if handler is report_task_blocker:
+            return Response(
+                ProjectIssueDetailSerializer(result).data,
+                status=status.HTTP_201_CREATED,
+            )
+        context = self._task_serializer_context([result])
+        return Response(ProjectTaskDetailSerializer(result, context=context).data)
+
+    def start(self, request, project_id=None, pk=None):
+        from .execution_service import start_task
+
+        return self._execute_task_action(request, start_task)
+
+    def pause(self, request, project_id=None, pk=None):
+        from .execution_service import pause_task
+
+        return self._execute_task_action(request, pause_task)
+
+    def resume(self, request, project_id=None, pk=None):
+        from .execution_service import resume_task
+
+        return self._execute_task_action(request, resume_task)
+
+    def complete(self, request, project_id=None, pk=None):
+        from .execution_service import complete_task
+
+        return self._execute_task_action(
+            request,
+            complete_task,
+            actual_end=request.data.get("actual_end"),
+        )
+
+    def update_progress(self, request, project_id=None, pk=None):
+        from .execution_service import update_task_progress
+
+        if "progress_percentage" not in request.data:
+            raise ValidationError(
+                {"progress_percentage": "This field is required."}
+            )
+        return self._execute_task_action(
+            request,
+            update_task_progress,
+            progress_percentage=request.data.get("progress_percentage"),
+        )
+
+    def report_blocker(self, request, project_id=None, pk=None):
+        from .execution_service import report_task_blocker
+
+        title = (request.data.get("title") or "").strip()
+        if not title:
+            raise ValidationError({"title": "This field is required."})
+        return self._execute_task_action(
+            request,
+            report_task_blocker,
+            title=title,
+            description=request.data.get("description") or "",
+            severity=request.data.get("severity"),
+        )
 
     def reorder(self, request, project_id=None):
         serializer = ProjectTaskReorderSerializer(data=request.data)
@@ -880,6 +969,7 @@ class ProjectTimelineViewSet(viewsets.ViewSet):
         queryset = build_timeline_queryset(
             project=self.project,
             params=request.query_params,
+            audience=request.user,
         )
         paginator = StandardResultsSetPagination()
         page = paginator.paginate_queryset(queryset, request, view=self)
@@ -1046,10 +1136,18 @@ class ProjectIssueViewSet(viewsets.ModelViewSet):
                 issues_manage,
             )
         elif self.action in ("create", "partial_update", "update", "destroy"):
-            self.required_permissions_any = (
-                issues_manage,
-                manage,
-            )
+            if self.action == "create":
+                self.required_permissions_any = (
+                    "projects.issues.report",
+                    issues_manage,
+                    manage,
+                )
+            else:
+                self.required_permissions_any = (
+                    issues_manage,
+                    manage,
+                    "projects.issues.report",
+                )
         elif self.action == "comments":
             if self.request.method == "GET":
                 self.required_permissions_any = (

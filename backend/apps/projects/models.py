@@ -478,7 +478,7 @@ class ProjectTask(BaseModel):
             raise ValidationError(errors)
 
     def _validate_person_in_charge(self):
-        """PIC must be active ProjectMember or project_manager, same tenant."""
+        """PIC: PM, active member, or Technician (FO-110 implicit access)."""
         user = self.person_in_charge
         if user.tenant_id != self.tenant_id:
             return "Person in charge must belong to the project tenant."
@@ -494,12 +494,19 @@ class ProjectTask(BaseModel):
             is_active=True,
             is_deleted=False,
         ).exists()
-        if not is_active_member:
-            return (
-                "Person in charge must be an active project member or the "
-                "project manager."
-            )
-        return None
+        if is_active_member:
+            return None
+
+        # FO-110: Technicians may be assigned without ProjectMember governance.
+        from apps.access_control.services import get_user_roles
+
+        if get_user_roles(user).filter(code="technician").exists():
+            return None
+
+        return (
+            "Person in charge must be an active project member, the "
+            "project manager, or a Technician."
+        )
 
     def _generate_task_code(self):
         # Include soft-deleted in sequence scan so codes are never reused.

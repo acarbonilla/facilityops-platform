@@ -134,6 +134,7 @@ class ProjectListSerializer(serializers.ModelSerializer):
     project_manager_email = serializers.EmailField(
         source="project_manager.email", read_only=True, default=None
     )
+    my_workspace = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -156,10 +157,29 @@ class ProjectListSerializer(serializers.ModelSerializer):
             "actual_start_date",
             "actual_end_date",
             "completion_percentage",
+            "my_workspace",
             "created_at",
             "updated_at",
         )
         read_only_fields = fields
+
+    def get_my_workspace(self, obj):
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        if actor is None or not getattr(actor, "is_authenticated", False):
+            return None
+        from .services import build_task_summary
+        from .workspace_access import user_uses_project_workspace_scope
+
+        if not user_uses_project_workspace_scope(actor):
+            return None
+        summary = build_task_summary(obj, actor=actor)
+        return {
+            "my_assigned": summary.get("my_assigned", 0),
+            "my_completed": summary.get("my_completed", 0),
+            "my_overdue": summary.get("my_overdue", 0),
+            "next_assigned_task": summary.get("next_assigned_task"),
+        }
 
 
 class ProjectDetailSerializer(serializers.ModelSerializer):
@@ -218,7 +238,9 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         return ProjectHistorySerializer(entries, many=True).data
 
     def get_task_summary(self, obj):
-        return build_task_summary(obj)
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        return build_task_summary(obj, actor=actor)
 
 
 class ProjectCreateSerializer(ProjectValidationMixin, serializers.ModelSerializer):

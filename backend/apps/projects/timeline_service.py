@@ -188,11 +188,12 @@ def _parse_datetime_bound(raw):
     return None
 
 
-def build_timeline_queryset(*, project, params=None):
+def build_timeline_queryset(*, project, params=None, audience=None):
     """Return ProjectHistory queryset filtered for the timeline stream.
 
     Newest-first by default. Filters: category/event_category, event_type,
     search, actor, date_from/date_to, ordering.
+    FO-110: Technician audience hides administrative event types.
     """
     params = params or {}
     queryset = (
@@ -200,6 +201,17 @@ def build_timeline_queryset(*, project, params=None):
         .select_related("actor")
         .order_by("-created_at")
     )
+
+    if audience is not None:
+        from .workspace_access import (
+            TECHNICIAN_TIMELINE_HIDDEN_ACTIONS,
+            user_uses_project_workspace_scope,
+        )
+
+        if user_uses_project_workspace_scope(audience):
+            queryset = queryset.exclude(
+                action__in=TECHNICIAN_TIMELINE_HIDDEN_ACTIONS
+            )
 
     category = (
         params.get("event_category")

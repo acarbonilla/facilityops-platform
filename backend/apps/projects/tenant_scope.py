@@ -21,4 +21,9 @@ def scope_projects_to_user(queryset, user):
     tenant_id = getattr(user, "tenant_id", None)
     if not tenant_id:
         return queryset.none()
-    return queryset.filter(tenant_id=tenant_id)
+    queryset = queryset.filter(tenant_id=tenant_id)
+
+    # FO-110: Technicians see only member / assigned-task Projects.
+    from .workspace_access import apply_project_workspace_scope
+
+    return apply_project_workspace_scope(queryset, user)

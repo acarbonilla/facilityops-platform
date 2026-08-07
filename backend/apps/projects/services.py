@@ -303,12 +303,36 @@ def _ensure_project_access(*, actor, project):
         raise PermissionDenied("You cannot access projects for another tenant.")
     if project.is_deleted:
         raise ValidationError({"project": "Project not found."})
+    if actor:
+        from .workspace_access import can_access_project_workspace
+
+        if not can_access_project_workspace(actor, project):
+            raise PermissionDenied(
+                "You do not have access to this project workspace."
+            )
 
 
-def build_task_summary(project):
+def _ensure_assigned_task_mutation(*, actor, task):
+    """FO-110: Technicians mutate only tasks assigned to them."""
+    if not actor:
+        return
+    from .workspace_access import (
+        can_edit_assigned_project_task,
+        user_uses_project_workspace_scope,
+    )
+
+    if user_uses_project_workspace_scope(actor) and not can_edit_assigned_project_task(
+        actor, task
+    ):
+        raise PermissionDenied(
+            "Technicians may only modify tasks assigned to them."
+        )
+
+
+def build_task_summary(project, *, actor=None):
     """Counts by status for FO-104 project detail integration."""
     qs = project.tasks.filter(is_deleted=False)
-    return {
+    summary = {
         "total": qs.count(),
         "not_started": qs.filter(status=ProjectTask.Status.NOT_STARTED).count(),
         "in_progress": qs.filter(status=ProjectTask.Status.IN_PROGRESS).count(),
@@ -317,6 +341,56 @@ def build_task_summary(project):
         "completed": qs.filter(status=ProjectTask.Status.COMPLETED).count(),
         "cancelled": qs.filter(status=ProjectTask.Status.CANCELLED).count(),
     }
+    if actor is not None:
+        from django.utils import timezone
+
+        from .workspace_access import user_uses_project_workspace_scope
+
+        mine = qs.filter(person_in_charge_id=actor.id)
+        today = timezone.localdate()
+        summary["my_assigned"] = mine.exclude(
+            status=ProjectTask.Status.CANCELLED
+        ).count()
+        summary["my_completed"] = mine.filter(
+            status=ProjectTask.Status.COMPLETED
+        ).count()
+        summary["my_overdue"] = (
+            mine.exclude(
+                status__in=(
+                    ProjectTask.Status.COMPLETED,
+                    ProjectTask.Status.CANCELLED,
+                )
+            )
+            .filter(planned_end__lt=today)
+            .count()
+        )
+        next_task = (
+            mine.exclude(
+                status__in=(
+                    ProjectTask.Status.COMPLETED,
+                    ProjectTask.Status.CANCELLED,
+                )
+            )
+            .order_by("planned_end", "sequence", "created_at")
+            .first()
+        )
+        summary["next_assigned_task"] = (
+            {
+                "id": str(next_task.id),
+                "task_code": next_task.task_code,
+                "name": next_task.name,
+                "status": next_task.status,
+                "planned_end": (
+                    next_task.planned_end.isoformat()
+                    if next_task.planned_end
+                    else None
+                ),
+            }
+            if next_task
+            else None
+        )
+        summary["workspace_scoped"] = user_uses_project_workspace_scope(actor)
+    return summary
 
 
 @transaction.atomic
@@ -391,11 +465,33 @@ def update_task(*, task, data, actor=None):
 
     Assignment notifications are deferred (FO-104 boundary).
     FO-105: status→in_progress/completed is gated on FS dependency readiness.
+    FO-110: Technicians may update only assigned-task safe fields.
     """
     from .dependency_service import assert_task_dependency_ready_for_status
+    from .workspace_access import (
+        ASSIGNED_TASK_EDITABLE_FIELDS,
+        can_edit_assigned_project_task,
+        user_uses_project_workspace_scope,
+    )
 
     project = task.project
     _ensure_project_access(actor=actor, project=project)
+
+    if actor and user_uses_project_workspace_scope(actor):
+        if not can_edit_assigned_project_task(actor, task):
+            raise PermissionDenied(
+                "Technicians may only update tasks assigned to them."
+            )
+        disallowed = set(data.keys()) - ASSIGNED_TASK_EDITABLE_FIELDS
+        if disallowed:
+            raise ValidationError(
+                {
+                    field: (
+                        "Technicians cannot modify this field on assigned tasks."
+                    )
+                    for field in sorted(disallowed)
+                }
+            )
 
     previous_status = task.status
     previous_progress = task.progress_percentage
@@ -636,6 +732,7 @@ def reorder_tasks(*, project, task_ids, actor=None):
 def create_checklist_item(*, task, text, actor=None, sequence=None, is_completed=False):
     project = task.project
     _ensure_project_access(actor=actor, project=project)
+    _ensure_assigned_task_mutation(actor=actor, task=task)
     actor_id = str(actor.id) if actor else None
 
     if sequence is None:
@@ -680,6 +777,7 @@ def update_checklist_item(*, item, data, actor=None):
     task = item.task
     project = task.project
     _ensure_project_access(actor=actor, project=project)
+    _ensure_assigned_task_mutation(actor=actor, task=task)
     actor_id = str(actor.id) if actor else None
 
     if "text" in data:
@@ -726,6 +824,7 @@ def soft_delete_checklist_item(*, item, actor):
     task = item.task
     project = task.project
     _ensure_project_access(actor=actor, project=project)
+    _ensure_assigned_task_mutation(actor=actor, task=task)
     actor_id = str(actor.id) if actor else None
 
     item.is_deleted = True
@@ -758,6 +857,7 @@ def soft_delete_checklist_item(*, item, actor):
 def add_task_comment(*, task, body, actor, is_internal=True):
     project = task.project
     _ensure_project_access(actor=actor, project=project)
+    _ensure_assigned_task_mutation(actor=actor, task=task)
     actor_id = str(actor.id) if actor else None
 
     comment = ProjectTaskComment(
@@ -870,6 +970,11 @@ def update_note(*, note, data, actor=None):
     project = note.project
     _ensure_project_access(actor=actor, project=project)
 
+    from .workspace_access import user_uses_project_workspace_scope
+
+    if actor and user_uses_project_workspace_scope(actor):
+        raise PermissionDenied("Technicians cannot edit project notes.")
+
     changes = {}
     for field, value in data.items():
         previous_value = getattr(note, field)
@@ -901,6 +1006,12 @@ def update_note(*, note, data, actor=None):
 def soft_delete_note(*, note, actor):
     project = note.project
     _ensure_project_access(actor=actor, project=project)
+
+    from .workspace_access import user_uses_project_workspace_scope
+
+    if actor and user_uses_project_workspace_scope(actor):
+        raise PermissionDenied("Technicians cannot delete project notes.")
+
     actor_id = str(actor.id) if actor else None
 
     note.is_deleted = True
@@ -958,6 +1069,24 @@ def update_issue(*, issue, data, actor=None):
     project = issue.project
     _ensure_project_access(actor=actor, project=project)
 
+    from .workspace_access import user_uses_project_workspace_scope
+
+    if actor and user_uses_project_workspace_scope(actor):
+        # Technicians may only patch issues they reported (safe fields).
+        if str(issue.created_by) != str(actor.id):
+            raise PermissionDenied(
+                "Technicians may only update issues they reported."
+            )
+        allowed = {"title", "description", "severity"}
+        disallowed = set(data.keys()) - allowed
+        if disallowed:
+            raise ValidationError(
+                {
+                    field: "Technicians cannot modify this issue field."
+                    for field in sorted(disallowed)
+                }
+            )
+
     previous_status = issue.status
     changes = {}
     for field, value in data.items():
@@ -1008,6 +1137,11 @@ def update_issue(*, issue, data, actor=None):
 def soft_delete_issue(*, issue, actor):
     project = issue.project
     _ensure_project_access(actor=actor, project=project)
+
+    from .workspace_access import user_uses_project_workspace_scope
+
+    if actor and user_uses_project_workspace_scope(actor):
+        raise PermissionDenied("Technicians cannot delete project issues.")
     actor_id = str(actor.id) if actor else None
 
     issue.is_deleted = True

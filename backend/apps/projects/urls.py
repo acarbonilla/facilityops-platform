@@ -21,6 +21,12 @@ task_detail = ProjectTaskViewSet.as_view(
 )
 task_assign = ProjectTaskViewSet.as_view({"post": "assign"})
 task_reorder = ProjectTaskViewSet.as_view({"post": "reorder"})
+task_start = ProjectTaskViewSet.as_view({"post": "start"})
+task_pause = ProjectTaskViewSet.as_view({"post": "pause"})
+task_resume = ProjectTaskViewSet.as_view({"post": "resume"})
+task_complete = ProjectTaskViewSet.as_view({"post": "complete"})
+task_progress = ProjectTaskViewSet.as_view({"post": "update_progress"})
+task_report_blocker = ProjectTaskViewSet.as_view({"post": "report_blocker"})
 task_checklist = ProjectTaskViewSet.as_view({"get": "checklist", "post": "checklist"})
 task_checklist_item = ProjectTaskViewSet.as_view(
     {"patch": "checklist_item", "delete": "checklist_item"}
@@ -140,6 +146,36 @@ urlpatterns = [
         "<uuid:project_id>/tasks/<uuid:pk>/assign/",
         task_assign,
         name="project-task-assign",
+    ),
+    path(
+        "<uuid:project_id>/tasks/<uuid:pk>/start/",
+        task_start,
+        name="project-task-start",
+    ),
+    path(
+        "<uuid:project_id>/tasks/<uuid:pk>/pause/",
+        task_pause,
+        name="project-task-pause",
+    ),
+    path(
+        "<uuid:project_id>/tasks/<uuid:pk>/resume/",
+        task_resume,
+        name="project-task-resume",
+    ),
+    path(
+        "<uuid:project_id>/tasks/<uuid:pk>/complete/",
+        task_complete,
+        name="project-task-complete",
+    ),
+    path(
+        "<uuid:project_id>/tasks/<uuid:pk>/progress/",
+        task_progress,
+        name="project-task-progress",
+    ),
+    path(
+        "<uuid:project_id>/tasks/<uuid:pk>/report-blocker/",
+        task_report_blocker,
+        name="project-task-report-blocker",
     ),
     path(
         "<uuid:project_id>/tasks/<uuid:pk>/checklist/",
