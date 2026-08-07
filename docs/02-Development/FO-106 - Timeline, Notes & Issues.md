@@ -9,6 +9,10 @@
 **Prior checkpoints:** FO-103, FO-104, FO-105  
 **Next:** FO-107 — Progress & Accomplishment Tracking (**not started**)  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged until FO-109A)  
+
+## FO-113 status
+
+Validated under FO-113 integrated QA. Decision: READY WITH ACCEPTED LIMITATIONS. Draft PR #67 remains unmerged pending FO-113A.
 **FO-109:** Integrated QA complete — see FO-109 checkpoint doc; FO-109A next  
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics
 

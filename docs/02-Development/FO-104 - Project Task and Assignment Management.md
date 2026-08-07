@@ -9,6 +9,10 @@
 **Prior checkpoint:** FO-103 — Project Management Foundation  
 **Next:** FO-105 — Gantt Chart & Task Dependencies (**not started**)  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (remains Draft; unmerged until FO-109A)  
+
+## FO-113 status
+
+Validated under FO-113 integrated QA. Decision: READY WITH ACCEPTED LIMITATIONS. Draft PR #67 remains unmerged pending FO-113A.
 **FO-109:** Integrated QA complete — see FO-109 checkpoint doc; FO-109A next  
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics
 

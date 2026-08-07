@@ -5,8 +5,12 @@
 **Branch:** `feature/project-management`  
 **Prior:** FO-110 Technician Project Workspace  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged)  
-**Next:** FO-112 — Technician Dashboard & Assigned Work  
+**Next:** FO-112 — Technician Dashboard & Assigned Work (**COMPLETE**; FO-113 QA complete; FO-113A next)  
 **Deferred:** FO-102; push/email notifications for Project tasks (timeline history only)
+
+## FO-113 status
+
+Validated under FO-113 integrated QA. Decision: READY WITH ACCEPTED LIMITATIONS.
 
 ## Lifecycle
 

@@ -10,6 +10,10 @@
 **Next:** FO-109A — Finalize, Merge & Post-Merge Verification (**not started**)  
 **FO-109:** Complete — see `docs/02-Development/FO-109 - Project Management QA and Production Readiness.md`  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged until FO-109A)  
+
+## FO-113 status
+
+Validated under FO-113 integrated QA. Decision: READY WITH ACCEPTED LIMITATIONS. Draft PR #67 remains unmerged pending FO-113A.
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics
 
 ## 1. Objective

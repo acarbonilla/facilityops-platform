@@ -9,10 +9,15 @@
 **Feature Draft PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (full epic; Draft; unmerged)  
 **UX baseline:** PM-UX-001 / PM-UX-001A (COMPLETE AND MERGED)  
 **Next (historical):** FO-104 — Project Task & Assignment Management  
-**Epic status:** FO-103–FO-109 complete on shared branch; FO-109A is sole merge  
-**PR policy:** No standalone FO-103 PR; Draft PR #67 remains unmerged until FO-109A  
+**Epic status:** FO-103–FO-113 complete on shared branch; FO-113A is sole merge  
+**PR policy:** No standalone FO-103 PR; Draft PR #67 remains unmerged until FO-113A  
 **Deferred:** FO-102 — Gemini Billing, Quota & Rate Limit Diagnostics (external dependency)  
-**FO-109:** See `docs/02-Development/FO-109 - Project Management QA and Production Readiness.md`
+**FO-109:** See `docs/02-Development/FO-109 - Project Management QA and Production Readiness.md`  
+**FO-113:** See `docs/02-Development/FO-113 - Project Management QA and Production Readiness.md` (READY WITH ACCEPTED LIMITATIONS)
+
+## FO-113 status
+
+Validated under FO-113 integrated QA. Decision: READY WITH ACCEPTED LIMITATIONS. Draft PR #67 remains unmerged pending FO-113A.
 
 ## 1. Objective
 

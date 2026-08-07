@@ -24,7 +24,7 @@
 | FM Ticketing | Complete + Intelligent Employee Intake on main | FO-096–FO-101A COMPLETE AND MERGED via PR #63 (`c8a3446…`); AI Platform v1.0 freeze `98c1661…` intact |
 | Reporting and Operational Analytics | Complete + AI Platform MVP v1.0 | FO-064–FO-095 on main; RM-001 freeze; FO-100 intake reporting merged via PR #63 |
 | Intelligent Employee Intake | COMPLETE AND MERGED | FO-096–FO-101A via PR #63; baseline `c8a3446…` |
-| Project Management | FO-112 COMPLETE on feature branch (unmerged) | FO-103–FO-112 on `feature/project-management`; FO-113 next; FO-113A merge path; Draft PR #67; FO-102 deferred |
+| Project Management | FO-113 COMPLETE (READY WITH ACCEPTED LIMITATIONS; unmerged) | FO-103–FO-113 on `feature/project-management`; FO-113A next; Draft PR #67; FO-102 deferred |
 | 5S Inspection | Complete | FO-038 through FO-044: backend foundation, RBAC alignment, protected read screens, create/edit forms, lifecycle workflow, findings/corrective-action management, stored AI-analysis review, QA and stabilization |
 | Shared Services | Complete | Shared backend helpers and frontend utilities |
 | API Client | Complete | Shared frontend API client, endpoints, query keys, contracts |

@@ -5,8 +5,12 @@
 **Branch:** `feature/project-management`  
 **Prior:** FO-110 Workspace · FO-111 Task Execution  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (Draft; unmerged)  
-**Next:** FO-113 — Project Management QA & Production Readiness  
+**Next:** FO-113 — Project Management QA & Production Readiness (**COMPLETE** — see FO-113 doc; FO-113A next)  
 **Deferred:** FO-102; nav badge polling; WebSocket/SSE; productivity scoring
+
+## FO-113 status
+
+Validated under FO-113 integrated QA. Decision: READY WITH ACCEPTED LIMITATIONS. Draft PR #67 remains unmerged.
 
 ## Route decision
 

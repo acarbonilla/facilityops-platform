@@ -15,13 +15,13 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
-- Project Management — **FO-112 Technician Dashboard COMPLETE** on shared `feature/project-management` (unmerged; FO-110–FO-112; FO-113 next)
+- Project Management — **FO-113 QA COMPLETE (READY WITH ACCEPTED LIMITATIONS)** on shared `feature/project-management` (unmerged; FO-113A next)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
 
 ## Current Branch
 
-- Active: `feature/project-management` (FO-112 checkpoint; unmerged; Draft PR #67)
+- Active: `feature/project-management` (FO-113 checkpoint; unmerged; Draft PR #67)
 - Baseline `main` @ `c7ae7fc81bb58b2afffd33f185910329c04c1231` (PM-UX-001A baseline)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
@@ -130,13 +130,12 @@
 
 ## Current Task
 
-- FO-112 — Technician Dashboard & Assigned Work **COMPLETE** on `feature/project-management` (unmerged).
+- FO-113 — Project Management QA & Production Readiness **COMPLETE** on `feature/project-management` (unmerged).
+  Decision: **READY WITH ACCEPTED LIMITATIONS**.
+  See `docs/02-Development/FO-113 - Project Management QA and Production Readiness.md`.
+- FO-112 — Technician Dashboard & Assigned Work **COMPLETE** on the same branch.
   See `docs/02-Development/FO-112 - Technician Dashboard and Assigned Work.md`.
-- FO-111 — Technician Task Execution Experience **COMPLETE** on the same branch.
-  See `docs/02-Development/FO-111 - Technician Task Execution Experience.md`.
-- FO-110 — Technician Project Workspace **COMPLETE** on the same branch.
-  See `docs/02-Development/FO-110 - Technician Project Workspace.md`.
-- FO-109 / FO-109-NAV-001 remain complete; merge path is now FO-113 → FO-113A.
+- FO-111 / FO-110 / FO-109 / FO-109-NAV-001 remain complete; merge path is FO-113A.
 - FO-103–FO-108 remain complete on the same branch.
 - PM-UX-001 / PM-UX-001A UX baseline remains COMPLETE AND MERGED on `main`.
 - Latest stable merged product feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
@@ -145,8 +144,7 @@
 
 ## Next Milestone
 
-- FO-113 — Project Management QA & Production Readiness on shared `feature/project-management`
-- Then FO-113A sole merge of Draft PR #67
+- FO-113A — Finalize, Merge & Post-Merge Verification (Ready-for-Review → merge → verify → branch cleanup)
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release
