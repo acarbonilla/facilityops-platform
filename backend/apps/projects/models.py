@@ -1038,3 +1038,220 @@ class ProjectIssueComment(BaseModel):
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
+
+
+class ProjectOperationalLink(BaseModel):
+    """FO-108 project-owned link to FM ticket / maintenance WO / inspection.
+
+    Exactly one target FK must be set. Never mutates target workflows.
+    """
+
+    class LinkType(models.TextChoices):
+        FM_TICKET = "fm_ticket", "FM Ticket"
+        MAINTENANCE_WORK_ORDER = "maintenance_work_order", "Maintenance Work Order"
+        INSPECTION = "inspection", "Inspection"
+
+    class Relationship(models.TextChoices):
+        RELATED = "related", "Related"
+        SOURCE = "source", "Source"
+        EXECUTION = "execution", "Execution"
+        CORRECTIVE_ACTION = "corrective_action", "Corrective Action"
+        EVIDENCE = "evidence", "Evidence"
+        FOLLOW_UP = "follow_up", "Follow Up"
+
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="project_operational_links",
+    )
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="operational_links",
+    )
+    project_task = models.ForeignKey(
+        ProjectTask,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="operational_links",
+    )
+    link_type = models.CharField(
+        max_length=32,
+        choices=LinkType.choices,
+        db_index=True,
+    )
+    fm_ticket = models.ForeignKey(
+        "fm_tickets.FmTicket",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="project_operational_links",
+    )
+    maintenance_work_order = models.ForeignKey(
+        "maintenance.MaintenanceWorkOrder",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="project_operational_links",
+    )
+    inspection = models.ForeignKey(
+        "inspection.Inspection",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="project_operational_links",
+    )
+    relationship = models.CharField(
+        max_length=32,
+        choices=Relationship.choices,
+        default=Relationship.RELATED,
+        db_index=True,
+    )
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (
+                        Q(fm_ticket__isnull=False)
+                        & Q(maintenance_work_order__isnull=True)
+                        & Q(inspection__isnull=True)
+                        & Q(link_type="fm_ticket")
+                    )
+                    | (
+                        Q(fm_ticket__isnull=True)
+                        & Q(maintenance_work_order__isnull=False)
+                        & Q(inspection__isnull=True)
+                        & Q(link_type="maintenance_work_order")
+                    )
+                    | (
+                        Q(fm_ticket__isnull=True)
+                        & Q(maintenance_work_order__isnull=True)
+                        & Q(inspection__isnull=False)
+                        & Q(link_type="inspection")
+                    )
+                ),
+                name="proj_op_link_exactly_one_target",
+            ),
+            models.UniqueConstraint(
+                fields=("project", "fm_ticket"),
+                condition=Q(is_deleted=False, fm_ticket__isnull=False),
+                name="unique_active_project_fm_ticket_link",
+            ),
+            models.UniqueConstraint(
+                fields=("project", "maintenance_work_order"),
+                condition=Q(is_deleted=False, maintenance_work_order__isnull=False),
+                name="unique_active_project_mwo_link",
+            ),
+            models.UniqueConstraint(
+                fields=("project", "inspection"),
+                condition=Q(is_deleted=False, inspection__isnull=False),
+                name="unique_active_project_inspection_link",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["project", "link_type"], name="proj_op_link_type_idx"),
+            models.Index(fields=["project_task"], name="proj_op_link_task_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.project_id} -> {self.link_type} ({self.relationship})"
+
+    def target_id(self):
+        if self.fm_ticket_id:
+            return self.fm_ticket_id
+        if self.maintenance_work_order_id:
+            return self.maintenance_work_order_id
+        if self.inspection_id:
+            return self.inspection_id
+        return None
+
+    def clean(self):
+        super().clean()
+        errors = {}
+
+        if self.project_id and self.tenant_id and self.project.tenant_id != self.tenant_id:
+            errors["tenant"] = "Link tenant must match the project tenant."
+
+        if getattr(self.project, "is_deleted", False):
+            errors["project"] = "Cannot link operational records to a deleted project."
+
+        fk_count = sum(
+            [
+                1 if self.fm_ticket_id else 0,
+                1 if self.maintenance_work_order_id else 0,
+                1 if self.inspection_id else 0,
+            ]
+        )
+        if fk_count != 1:
+            errors["link_type"] = (
+                "Exactly one of fm_ticket, maintenance_work_order, or "
+                "inspection must be set."
+            )
+
+        expected_type = None
+        target = None
+        if self.fm_ticket_id:
+            expected_type = self.LinkType.FM_TICKET
+            target = self.fm_ticket
+        elif self.maintenance_work_order_id:
+            expected_type = self.LinkType.MAINTENANCE_WORK_ORDER
+            target = self.maintenance_work_order
+        elif self.inspection_id:
+            expected_type = self.LinkType.INSPECTION
+            target = self.inspection
+
+        if expected_type and self.link_type and self.link_type != expected_type:
+            errors["link_type"] = (
+                f"link_type must be '{expected_type}' for the selected target."
+            )
+
+        if target is not None:
+            if getattr(target, "is_deleted", False):
+                errors["link_type"] = "Cannot link to a deleted operational record."
+            elif self.tenant_id and target.tenant_id != self.tenant_id:
+                errors["tenant"] = "Target must belong to the same tenant as the project."
+
+        if self.project_task_id:
+            task = self.project_task
+            if task.is_deleted:
+                errors["project_task"] = "Cannot associate a deleted project task."
+            elif self.project_id and task.project_id != self.project_id:
+                errors["project_task"] = "Project task must belong to the same project."
+            elif self.tenant_id and task.tenant_id != self.tenant_id:
+                errors["project_task"] = "Project task must belong to the same tenant."
+
+        if (
+            not self.is_deleted
+            and self.project_id
+            and expected_type
+            and not errors.get("link_type")
+        ):
+            dup_filter = {
+                "project_id": self.project_id,
+                "is_deleted": False,
+            }
+            if expected_type == self.LinkType.FM_TICKET:
+                dup_filter["fm_ticket_id"] = self.fm_ticket_id
+            elif expected_type == self.LinkType.MAINTENANCE_WORK_ORDER:
+                dup_filter["maintenance_work_order_id"] = self.maintenance_work_order_id
+            else:
+                dup_filter["inspection_id"] = self.inspection_id
+            if (
+                ProjectOperationalLink.objects.filter(**dup_filter)
+                .exclude(pk=self.pk)
+                .exists()
+            ):
+                errors["link_type"] = (
+                    "An active link already exists for this project and target."
+                )
+
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)

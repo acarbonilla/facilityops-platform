@@ -57,6 +57,9 @@ _ACTION_MAP = {
         "progress",
         "Project progress recalculated",
     ),
+    "operational_link_created": ("link", "link", "Operational link created"),
+    "operational_link_updated": ("link", "link", "Operational link updated"),
+    "operational_link_removed": ("link", "link", "Operational link removed"),
 }
 
 VALID_EVENT_CATEGORIES = frozenset(
@@ -71,6 +74,7 @@ VALID_EVENT_CATEGORIES = frozenset(
         "assignment",
         "dependency",
         "checklist",
+        "link",
     }
 )
 
@@ -116,6 +120,12 @@ def _related_object(action, metadata):
             "type": "project_task_dependency",
             "id": metadata.get("dependency_id"),
             "code": None,
+        }
+    if action.startswith("operational_link_") or metadata.get("link_id"):
+        return {
+            "type": "project_operational_link",
+            "id": metadata.get("link_id"),
+            "code": metadata.get("link_type"),
         }
     if action.startswith("attachment_") or metadata.get("attachment_id"):
         return {

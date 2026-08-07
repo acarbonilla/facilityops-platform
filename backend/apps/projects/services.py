@@ -540,8 +540,10 @@ def soft_delete_task(*, task, actor):
     """Allow soft-delete of any non-already-deleted task (including completed).
 
     FO-105: block when active dependencies exist as predecessor or successor.
+    FO-108: block when active operational links reference the task.
     """
     from .dependency_service import assert_task_has_no_active_dependencies
+    from .link_service import assert_task_has_no_active_operational_links
 
     project = task.project
     _ensure_project_access(actor=actor, project=project)
@@ -550,6 +552,7 @@ def soft_delete_task(*, task, actor):
         raise ValidationError({"task": "Task is already deleted."})
 
     assert_task_has_no_active_dependencies(task)
+    assert_task_has_no_active_operational_links(task)
 
     actor_id = str(actor.id) if actor else None
     task.is_deleted = True

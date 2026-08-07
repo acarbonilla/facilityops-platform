@@ -4,6 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ProjectDependencyViewSet,
     ProjectIssueViewSet,
+    ProjectLinkOptionsView,
+    ProjectLinkViewSet,
     ProjectNoteViewSet,
     ProjectTaskViewSet,
     ProjectTimelineViewSet,
@@ -52,11 +54,32 @@ issue_detail = ProjectIssueViewSet.as_view(
 issue_comments = ProjectIssueViewSet.as_view({"get": "comments", "post": "comments"})
 issue_comment_detail = ProjectIssueViewSet.as_view({"delete": "destroy_comment"})
 
+link_list = ProjectLinkViewSet.as_view({"get": "list", "post": "create"})
+link_detail = ProjectLinkViewSet.as_view(
+    {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
+)
+link_options_list = ProjectLinkOptionsView.as_view({"get": "list"})
+
 urlpatterns = [
     path(
         "<uuid:project_id>/timeline/",
         timeline_list,
         name="project-timeline-list",
+    ),
+    path(
+        "<uuid:project_id>/links/",
+        link_list,
+        name="project-link-list",
+    ),
+    path(
+        "<uuid:project_id>/links/<uuid:pk>/",
+        link_detail,
+        name="project-link-detail",
+    ),
+    path(
+        "<uuid:project_id>/link-options/",
+        link_options_list,
+        name="project-link-options",
     ),
     path(
         "<uuid:project_id>/notes/",

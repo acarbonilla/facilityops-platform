@@ -542,6 +542,7 @@ class WorkOrderSerializer(WorkOrderListSerializer):
     attachments = AttachmentSerializer(many=True, read_only=True)
     ai_summary = AISummarySerializer(read_only=True)
     supervisor_approval = SupervisorApprovalSerializer(read_only=True)
+    linked_projects = serializers.SerializerMethodField()
 
     class Meta(WorkOrderListSerializer.Meta):
         fields = WorkOrderListSerializer.Meta.fields + (
@@ -563,9 +564,22 @@ class WorkOrderSerializer(WorkOrderListSerializer):
             "attachments",
             "ai_summary",
             "supervisor_approval",
+            "linked_projects",
             "created_at",
             "updated_at",
         )
+
+    def get_linked_projects(self, obj):
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        if actor is None:
+            return []
+        from apps.projects.link_service import (
+            LINK_TYPE_MWO,
+            reverse_project_summaries_for_target,
+        )
+
+        return reverse_project_summaries_for_target(actor, LINK_TYPE_MWO, obj)
 
 
 class WorkOrderCreateSerializer(WorkOrderValidationMixin, serializers.ModelSerializer):

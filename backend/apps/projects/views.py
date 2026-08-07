@@ -29,6 +29,7 @@ from .models import (
     ProjectIssueComment,
     ProjectMember,
     ProjectNote,
+    ProjectOperationalLink,
     ProjectProgressSnapshot,
     ProjectTask,
     ProjectTaskChecklistItem,
@@ -46,12 +47,16 @@ from .serializers import (
     ProjectIssueDetailSerializer,
     ProjectIssueSerializer,
     ProjectIssueUpdateSerializer,
+    ProjectLinkOptionSerializer,
     ProjectListSerializer,
     ProjectMemberCreateSerializer,
     ProjectMemberSerializer,
     ProjectNoteCreateSerializer,
     ProjectNoteSerializer,
     ProjectNoteUpdateSerializer,
+    ProjectOperationalLinkCreateSerializer,
+    ProjectOperationalLinkSerializer,
+    ProjectOperationalLinkUpdateSerializer,
     ProjectProgressSnapshotSerializer,
     ProjectTaskAssignSerializer,
     ProjectTaskChecklistItemCreateSerializer,
@@ -80,6 +85,15 @@ from .services import (
     soft_delete_project,
     soft_delete_task,
     soft_delete_task_comment,
+)
+from .link_service import (
+    LINK_TYPE_FM,
+    LINK_TYPE_INSPECTION,
+    LINK_TYPE_MWO,
+    build_safe_summary,
+    link_options,
+    serialize_link_option,
+    soft_delete_link,
 )
 from .tenant_scope import scope_projects_to_user
 from .timeline_service import build_timeline_queryset, history_entry_to_timeline_dto
@@ -1137,3 +1151,176 @@ class ProjectIssueViewSet(viewsets.ModelViewSet):
         )
         soft_delete_issue_comment(comment=comment, actor=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectLinkViewSet(viewsets.ViewSet):
+    """Nested FO-108 links under /projects/{project_id}/links/."""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    pagination_class = StandardResultsSetPagination
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = None
+        manage = "projects.manage"
+        links_manage = "projects.links.manage"
+
+        if self.action in ("list", "retrieve"):
+            self.required_permissions_any = (
+                "projects.links.view",
+                "projects.view",
+                manage,
+                links_manage,
+            )
+        elif self.action in ("create", "partial_update", "destroy"):
+            self.required_permissions_any = (
+                links_manage,
+                manage,
+            )
+        return super().get_permissions()
+
+    def _link_queryset(self):
+        return ProjectOperationalLink.objects.filter(
+            project=self.project,
+            is_deleted=False,
+        ).select_related(
+            "project",
+            "project_task",
+            "fm_ticket",
+            "maintenance_work_order",
+            "inspection",
+            "tenant",
+        )
+
+    def list(self, request, project_id=None):
+        queryset = self._link_queryset().order_by("-created_at")
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        entries = page if page is not None else list(queryset)
+        payload = [
+            build_safe_summary(request.user, link) for link in entries
+        ]
+        serializer = ProjectOperationalLinkSerializer(payload, many=True)
+        if page is not None:
+            return paginator.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+    def retrieve(self, request, project_id=None, pk=None):
+        link = get_object_or_404(self._link_queryset(), pk=pk)
+        payload = build_safe_summary(request.user, link)
+        return Response(ProjectOperationalLinkSerializer(payload).data)
+
+    def create(self, request, project_id=None):
+        serializer = ProjectOperationalLinkCreateSerializer(
+            data=request.data,
+            context={"request": request, "project": self.project},
+        )
+        serializer.is_valid(raise_exception=True)
+        try:
+            link = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        payload = build_safe_summary(request.user, link)
+        return Response(
+            ProjectOperationalLinkSerializer(payload).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def partial_update(self, request, project_id=None, pk=None):
+        link = get_object_or_404(self._link_queryset(), pk=pk)
+        serializer = ProjectOperationalLinkUpdateSerializer(
+            link,
+            data=request.data,
+            partial=True,
+            context={"request": request, "project": self.project},
+        )
+        serializer.is_valid(raise_exception=True)
+        try:
+            link = serializer.save()
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        payload = build_safe_summary(request.user, link)
+        return Response(ProjectOperationalLinkSerializer(payload).data)
+
+    def destroy(self, request, project_id=None, pk=None):
+        link = get_object_or_404(self._link_queryset(), pk=pk)
+        try:
+            soft_delete_link(link=link, actor=request.user)
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectLinkOptionsView(viewsets.ViewSet):
+    """GET /projects/{project_id}/link-options/?type=&search="""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    http_method_names = ["get", "head", "options"]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = (
+            "projects.links.view",
+            "projects.view",
+            "projects.manage",
+            "projects.links.manage",
+        )
+        return super().get_permissions()
+
+    def list(self, request, project_id=None):
+        link_type = request.query_params.get("type")
+        search = request.query_params.get("search", "")
+        if link_type not in (LINK_TYPE_FM, LINK_TYPE_MWO, LINK_TYPE_INSPECTION):
+            raise ValidationError(
+                {
+                    "type": (
+                        "type must be fm_ticket, maintenance_work_order, or "
+                        "inspection."
+                    )
+                }
+            )
+        try:
+            queryset = link_options(
+                project=self.project,
+                actor=request.user,
+                link_type=link_type,
+                search=search,
+            )
+        except DjangoValidationError as exc:
+            _raise_validation(exc)
+
+        paginator = StandardResultsSetPagination()
+        page = paginator.paginate_queryset(queryset, request, view=self)
+        entries = page if page is not None else list(queryset)
+        payload = [
+            serialize_link_option(link_type, target) for target in entries
+        ]
+        serializer = ProjectLinkOptionSerializer(payload, many=True)
+        if page is not None:
+            return paginator.get_paginated_response(serializer.data)
+        return Response(serializer.data)

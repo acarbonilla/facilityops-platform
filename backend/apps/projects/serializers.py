@@ -9,6 +9,7 @@ from .models import (
     ProjectIssueComment,
     ProjectMember,
     ProjectNote,
+    ProjectOperationalLink,
     ProjectProgressSnapshot,
     ProjectTask,
     ProjectTaskChecklistItem,
@@ -1047,3 +1048,161 @@ class ProjectProgressSnapshotSerializer(serializers.Serializer):
     source = serializers.CharField()
     triggered_by = serializers.DictField(allow_null=True)
     related_task = serializers.DictField(allow_null=True)
+
+
+# ---------------------------------------------------------------------------
+# FO-108 Operational link serializers
+# ---------------------------------------------------------------------------
+
+
+class ProjectOperationalLinkSerializer(serializers.Serializer):
+    """Read serializer — wraps build_safe_summary output."""
+
+    id = serializers.UUIDField()
+    project_id = serializers.UUIDField()
+    link_type = serializers.CharField()
+    relationship = serializers.CharField()
+    notes = serializers.CharField(allow_blank=True)
+    project_task_id = serializers.UUIDField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    updated_at = serializers.DateTimeField()
+    target_accessible = serializers.BooleanField()
+    target_id = serializers.UUIDField(required=False)
+    target_number = serializers.CharField(required=False, allow_null=True)
+    target_title = serializers.CharField(required=False, allow_blank=True)
+    target_status = serializers.CharField(required=False)
+    fm_ticket_id = serializers.UUIDField(required=False, allow_null=True)
+    maintenance_work_order_id = serializers.UUIDField(required=False, allow_null=True)
+    inspection_id = serializers.UUIDField(required=False, allow_null=True)
+
+
+class ProjectOperationalLinkCreateSerializer(serializers.Serializer):
+    link_type = serializers.ChoiceField(
+        choices=ProjectOperationalLink.LinkType.choices,
+        required=False,
+    )
+    fm_ticket = serializers.UUIDField(required=False)
+    maintenance_work_order = serializers.UUIDField(required=False)
+    inspection = serializers.UUIDField(required=False)
+    relationship = serializers.ChoiceField(
+        choices=ProjectOperationalLink.Relationship.choices,
+        required=False,
+        default=ProjectOperationalLink.Relationship.RELATED,
+    )
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    project_task = serializers.UUIDField(required=False, allow_null=True)
+
+    def create(self, validated_data):
+        from apps.fm_tickets.models import FmTicket
+        from apps.inspection.models import Inspection
+        from apps.maintenance.models import MaintenanceWorkOrder
+
+        from .link_service import create_link
+
+        project = self.context["project"]
+        actor = self.context["request"].user
+
+        fm_ticket = None
+        maintenance_work_order = None
+        inspection = None
+        if "fm_ticket" in validated_data:
+            fm_ticket = FmTicket.objects.filter(
+                pk=validated_data["fm_ticket"],
+                is_deleted=False,
+            ).first()
+            if fm_ticket is None:
+                raise serializers.ValidationError(
+                    {"fm_ticket": "FM ticket not found."}
+                )
+        if "maintenance_work_order" in validated_data:
+            maintenance_work_order = MaintenanceWorkOrder.objects.filter(
+                pk=validated_data["maintenance_work_order"],
+                is_deleted=False,
+            ).first()
+            if maintenance_work_order is None:
+                raise serializers.ValidationError(
+                    {"maintenance_work_order": "Work order not found."}
+                )
+        if "inspection" in validated_data:
+            inspection = Inspection.objects.filter(
+                pk=validated_data["inspection"],
+                is_deleted=False,
+            ).first()
+            if inspection is None:
+                raise serializers.ValidationError(
+                    {"inspection": "Inspection not found."}
+                )
+
+        project_task = None
+        if validated_data.get("project_task"):
+            project_task = ProjectTask.objects.filter(
+                pk=validated_data["project_task"],
+                project=project,
+                is_deleted=False,
+            ).first()
+            if project_task is None:
+                raise serializers.ValidationError(
+                    {"project_task": "Project task not found on this project."}
+                )
+
+        return create_link(
+            project=project,
+            actor=actor,
+            link_type=validated_data.get("link_type"),
+            fm_ticket=fm_ticket,
+            maintenance_work_order=maintenance_work_order,
+            inspection=inspection,
+            relationship=validated_data.get(
+                "relationship", ProjectOperationalLink.Relationship.RELATED
+            ),
+            notes=validated_data.get("notes", ""),
+            project_task=project_task,
+        )
+
+
+class ProjectOperationalLinkUpdateSerializer(serializers.Serializer):
+    relationship = serializers.ChoiceField(
+        choices=ProjectOperationalLink.Relationship.choices,
+        required=False,
+    )
+    notes = serializers.CharField(required=False, allow_blank=True)
+    project_task = serializers.UUIDField(required=False, allow_null=True)
+
+    def update(self, instance, validated_data):
+        from .link_service import update_link
+
+        project = self.context["project"]
+        data = {}
+        if "relationship" in validated_data:
+            data["relationship"] = validated_data["relationship"]
+        if "notes" in validated_data:
+            data["notes"] = validated_data["notes"]
+        if "project_task" in validated_data:
+            task_id = validated_data["project_task"]
+            if task_id is None:
+                data["project_task"] = None
+            else:
+                task = ProjectTask.objects.filter(
+                    pk=task_id,
+                    project=project,
+                    is_deleted=False,
+                ).first()
+                if task is None:
+                    raise serializers.ValidationError(
+                        {"project_task": "Project task not found on this project."}
+                    )
+                data["project_task"] = task
+        return update_link(
+            link=instance,
+            actor=self.context["request"].user,
+            data=data,
+        )
+
+
+class ProjectLinkOptionSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    number = serializers.CharField(allow_null=True)
+    title = serializers.CharField()
+    status = serializers.CharField()
+    type = serializers.CharField()
+

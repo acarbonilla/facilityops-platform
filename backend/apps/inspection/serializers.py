@@ -494,6 +494,7 @@ class InspectionDetailSerializer(InspectionListSerializer):
     sla = InspectionSLASerializer(source="sla_record", read_only=True)
     escalations = InspectionEscalationSerializer(many=True, read_only=True)
     calculated_score = serializers.SerializerMethodField()
+    linked_projects = serializers.SerializerMethodField()
 
     class Meta(InspectionListSerializer.Meta):
         fields = InspectionListSerializer.Meta.fields + (
@@ -512,10 +513,23 @@ class InspectionDetailSerializer(InspectionListSerializer):
             "ai_analysis_exists",
             "sla",
             "escalations",
+            "linked_projects",
         )
 
     def get_calculated_score(self, obj):
         return calculate_inspection_score(obj)
+
+    def get_linked_projects(self, obj):
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        if actor is None:
+            return []
+        from apps.projects.link_service import (
+            LINK_TYPE_INSPECTION,
+            reverse_project_summaries_for_target,
+        )
+
+        return reverse_project_summaries_for_target(actor, LINK_TYPE_INSPECTION, obj)
 
     def get_ai_analysis(self, obj):
         request = self.context.get("request")

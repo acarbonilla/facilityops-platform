@@ -7,6 +7,7 @@ from .models import (
     ProjectIssueComment,
     ProjectMember,
     ProjectNote,
+    ProjectOperationalLink,
     ProjectProgressSnapshot,
     ProjectTask,
     ProjectTaskChecklistItem,
@@ -166,3 +167,26 @@ class ProjectProgressSnapshotAdmin(admin.ModelAdmin):
     search_fields = ("project__project_code", "source")
     list_filter = ("source", "is_deleted")
     readonly_fields = AUDIT_READONLY_FIELDS + ("recorded_at",)
+
+
+@admin.register(ProjectOperationalLink)
+class ProjectOperationalLinkAdmin(admin.ModelAdmin):
+    list_display = (
+        "project",
+        "link_type",
+        "relationship",
+        "fm_ticket",
+        "maintenance_work_order",
+        "inspection",
+        "project_task",
+        "is_deleted",
+    )
+    search_fields = (
+        "project__project_code",
+        "notes",
+        "fm_ticket__ticket_number",
+        "maintenance_work_order__work_order_number",
+        "inspection__inspection_number",
+    )
+    list_filter = ("link_type", "relationship", "is_deleted")
+    readonly_fields = AUDIT_READONLY_FIELDS
