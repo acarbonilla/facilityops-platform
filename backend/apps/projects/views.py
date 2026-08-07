@@ -149,8 +149,20 @@ class ProjectViewSet(viewsets.ModelViewSet):
         self.required_permission = None
         self.required_permissions_any = None
 
-        if self.action in ("list", "retrieve", "history", "metrics", "task_summary"):
-            self.required_permissions_any = ("projects.view", "projects.manage")
+        if self.action in (
+            "list",
+            "retrieve",
+            "history",
+            "metrics",
+            "task_summary",
+            "my_work",
+            "my_work_tasks",
+        ):
+            self.required_permissions_any = (
+                "projects.view",
+                "projects.manage",
+                "projects.tasks.view",
+            )
         elif self.action in ("progress", "progress_history"):
             self.required_permissions_any = (
                 "projects.progress.view",
@@ -240,6 +252,31 @@ class ProjectViewSet(viewsets.ModelViewSet):
             "cancelled": queryset.filter(status=Project.Status.CANCELLED).count(),
         }
         return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="my-work")
+    def my_work(self, request):
+        """FO-112 Technician assigned-work dashboard (PIC == request.user)."""
+        from .assigned_work_service import build_technician_assigned_work
+
+        payload = build_technician_assigned_work(
+            request.user,
+            params=request.query_params,
+        )
+        return Response(payload, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="my-work/tasks")
+    def my_work_tasks(self, request):
+        """FO-112 full assigned-work task list with filters + pagination."""
+        from .assigned_work_service import list_technician_assigned_tasks
+
+        rows = list_technician_assigned_tasks(
+            request.user,
+            params=request.query_params,
+        )
+        page = self.paginate_queryset(rows)
+        if page is not None:
+            return self.get_paginated_response(page)
+        return Response(rows, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"], url_path="task-summary")
     def task_summary(self, request, pk=None):
