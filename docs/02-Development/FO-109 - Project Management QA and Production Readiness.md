@@ -5,6 +5,8 @@
 **Branch:** `feature/project-management`  
 **Starting main SHA:** `c7ae7fc81bb58b2afffd33f185910329c04c1231`  
 **Starting feature SHA:** `2ecce8ba1a0df83a644479d685e449d061c1eb7a`  
+**FO-109 commits:** `518bd04` (dependency gate), `65d5e87` (docs)  
+**Branch HEAD (FO-109 docs):** `65d5e87` (see HEAD note commit if present)  
 **Prior checkpoints:** FO-103 through FO-108  
 **Next:** FO-109A — Finalize, Merge & Post-Merge Verification (**not started**)  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (OPEN; Draft; base `main`; head `feature/project-management`; **unmerged**)  
