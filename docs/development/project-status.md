@@ -133,6 +133,8 @@
 - FO-109 — Project Management QA & Production Readiness **COMPLETE** on `feature/project-management` (unmerged).
   See `docs/02-Development/FO-109 - Project Management QA and Production Readiness.md`.
   Decision: **READY WITH ACCEPTED LIMITATIONS**. Backend `apps.projects` **222 OK**; frontend **496**; migrations `0001`–`0006` applied on PostgreSQL.
+- FO-109-NAV-001 — Project Navigation visibility **COMPLETE**: root cause was stale local RBAC seed (zero `projects.*` permissions). Re-seed + employee nav hardening + navigation regression tests.
+  See `docs/02-Development/FO-109-NAV-001 - Project Navigation and Frontend Visibility.md`.
 - FO-103–FO-108 remain complete on the same branch.
 - PM-UX-001 / PM-UX-001A UX baseline remains COMPLETE AND MERGED on `main`.
 - Latest stable merged product feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).

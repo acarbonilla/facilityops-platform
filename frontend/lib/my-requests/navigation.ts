@@ -16,6 +16,7 @@ export const MY_REQUESTS_NAV_ITEM: NavigationItem = {
 const HIDDEN_FOR_EMPLOYEE_REQUESTER = new Set([
   "/fm-tickets",
   "/maintenance",
+  "/projects",
   "/inspection/inspections",
   "/reporting",
   "/master-data",

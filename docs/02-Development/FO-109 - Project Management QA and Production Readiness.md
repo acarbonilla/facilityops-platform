@@ -184,8 +184,9 @@ Spot-check via existing FO-105–FO-108 UI (accessible Gantt schedule table, lab
 | L5 | — | Full backend suite not executed in FO-109 |
 | L6 | — | Interactive browser E2E not claimed |
 | L7 | — | FO-102 remains deferred |
+| L8 | Medium (ops) | Existing databases must re-run `seed_rbac` after FO-103+ for `projects.*` permissions; otherwise Projects nav is hidden. Corrected/documented in FO-109-NAV-001. |
 
-No unresolved Critical or High defects.
+No unresolved Critical or High defects. See also `docs/02-Development/FO-109-NAV-001 - Project Navigation and Frontend Visibility.md`.
 
 ## 21. Production-readiness checklist
 
