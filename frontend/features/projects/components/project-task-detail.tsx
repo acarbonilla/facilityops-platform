@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { SelectField } from "@/components/common/select-field";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useAssignProjectTask,
   useDeleteProjectTask,
@@ -21,6 +22,9 @@ import {
   useProjectTaskSuccessors,
 } from "@/hooks/use-projects";
 import { usePermissions } from "@/hooks/use-permissions";
+import {
+  canTechnicianEditFullTaskForm,
+} from "@/lib/projects/execution";
 import {
   formatPersonLabel,
   formatProjectDate,
@@ -47,6 +51,11 @@ import {
   isTaskRelatedHistoryAction,
 } from "@/lib/projects/tasks-display";
 import { readProjectTaskFormFlash } from "@/lib/projects/tasks-form";
+import {
+  canManageProjectLinks,
+  canReportProjectIssue,
+  usesProjectWorkspaceMode,
+} from "@/lib/projects/workspace";
 import type {
   ProjectHistory,
   ProjectMember,
@@ -57,6 +66,7 @@ import type {
 import { ProjectTaskAttachments } from "./project-task-attachments";
 import { ProjectTaskChecklist } from "./project-task-checklist";
 import { ProjectTaskComments } from "./project-task-comments";
+import { ProjectTaskExecutionPanel } from "./project-task-execution-panel";
 import { ProjectTaskPriorityBadge } from "./project-task-priority-badge";
 import { ProjectTaskStatusBadge } from "./project-task-status-badge";
 
@@ -232,7 +242,9 @@ export function ProjectTaskDetailScreen({
   taskId: string;
 }) {
   const router = useRouter();
-  const { hasPermission, permissionsLoading } = usePermissions();
+  const { user } = useAuth();
+  const { hasPermission, permissionsLoading, roles } = usePermissions();
+  const workspaceMode = usesProjectWorkspaceMode({ roles, hasPermission });
   const projectQuery = useProjectDetail(projectId);
   const detailQuery = useProjectTaskDetail(projectId, taskId);
   const membersQuery = useProjectMembers(projectId);
@@ -318,11 +330,32 @@ export function ProjectTaskDetailScreen({
   }
 
   const task = detailQuery.data;
-  const canEdit = !permissionsLoading && canUpdateProjectTask(hasPermission);
-  const canDelete = !permissionsLoading && canDeleteProjectTask(hasPermission);
-  const canAssign = !permissionsLoading && canAssignProjectTask(hasPermission);
+  const isAssignedToCurrentUser = Boolean(
+    user?.id && task.person_in_charge === user.id,
+  );
+  const canUpdate = !permissionsLoading && canUpdateProjectTask(hasPermission);
+  const canFullEdit = canTechnicianEditFullTaskForm({
+    usesWorkspaceMode: workspaceMode,
+    hasPermission,
+  });
+  const canEditChecklist =
+    canUpdate && (!workspaceMode || isAssignedToCurrentUser);
+  const canDelete =
+    !permissionsLoading &&
+    !workspaceMode &&
+    canDeleteProjectTask(hasPermission);
+  const canAssign =
+    !permissionsLoading &&
+    !workspaceMode &&
+    canAssignProjectTask(hasPermission);
   const canComment =
     !permissionsLoading && canCommentOnProjectTask(hasPermission);
+  const canReportIssue =
+    !permissionsLoading && canReportProjectIssue(hasPermission);
+  const showLinkManagement =
+    !permissionsLoading &&
+    !workspaceMode &&
+    canManageProjectLinks(hasPermission);
 
   return (
     <div className="space-y-6">
@@ -353,7 +386,7 @@ export function ProjectTaskDetailScreen({
           >
             Project detail
           </Link>
-          {canEdit ? (
+          {canFullEdit ? (
             <Link
               className="inline-flex items-center rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
               href={`/projects/${projectId}/tasks/${task.id}/edit`}
@@ -429,6 +462,14 @@ export function ProjectTaskDetailScreen({
           {task.description?.trim() || "No description provided."}
         </p>
       </SectionCard>
+
+      <ProjectTaskExecutionPanel
+        canReportIssue={canReportIssue}
+        canUpdate={canUpdate}
+        isAssignedToCurrentUser={isAssignedToCurrentUser}
+        projectId={projectId}
+        task={task}
+      />
 
       <SectionCard title="Task information">
         <MetadataList
@@ -590,14 +631,16 @@ export function ProjectTaskDetailScreen({
         description="Operational records linked specifically to this task."
         title="Linked records"
       >
-        <div className="flex flex-wrap gap-3">
-          <Link
-            className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            href={`/projects/${projectId}/links`}
-          >
-            Manage linked records
-          </Link>
-        </div>
+        {showLinkManagement ? (
+          <div className="flex flex-wrap gap-3">
+            <Link
+              className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              href={`/projects/${projectId}/links`}
+            >
+              Manage linked records
+            </Link>
+          </div>
+        ) : null}
         {linksQuery.isPending ? (
           <div
             aria-label="Loading linked records"
@@ -661,7 +704,7 @@ export function ProjectTaskDetailScreen({
       </SectionCard>
 
       <ProjectTaskChecklist
-        canEdit={canEdit}
+        canEdit={canEditChecklist}
         items={task.checklist_items ?? []}
         projectId={projectId}
         taskId={task.id}

@@ -146,6 +146,18 @@ export const API_ENDPOINTS = {
       `/projects/${projectId}/tasks/${taskId}/`,
     taskAssign: (projectId: string, taskId: string) =>
       `/projects/${projectId}/tasks/${taskId}/assign/`,
+    taskStart: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/start/`,
+    taskPause: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/pause/`,
+    taskResume: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/resume/`,
+    taskComplete: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/complete/`,
+    taskProgress: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/progress/`,
+    taskReportBlocker: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/report-blocker/`,
     taskChecklist: (projectId: string, taskId: string) =>
       `/projects/${projectId}/tasks/${taskId}/checklist/`,
     taskChecklistItem: (

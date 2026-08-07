@@ -103,6 +103,18 @@ export interface ProjectListItem {
   actual_start_date: string | null;
   actual_end_date: string | null;
   completion_percentage: string | number;
+  my_workspace?: {
+    my_assigned: number;
+    my_completed: number;
+    my_overdue: number;
+    next_assigned_task: {
+      id: string;
+      task_code: string;
+      name: string;
+      status: string;
+      planned_end: string | null;
+    } | null;
+  } | null;
   created_at: string;
   updated_at: string;
 }
@@ -115,6 +127,17 @@ export interface ProjectTaskSummary {
   on_hold: number;
   completed: number;
   cancelled: number;
+  my_assigned?: number;
+  my_completed?: number;
+  my_overdue?: number;
+  next_assigned_task?: {
+    id: string;
+    task_code: string;
+    name: string;
+    status: string;
+    planned_end: string | null;
+  } | null;
+  workspace_scoped?: boolean;
 }
 
 export interface ProjectDetail extends ProjectListItem {

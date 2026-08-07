@@ -26,6 +26,7 @@ import {
   formatProjectError,
   getProjectListLayoutClasses,
 } from "@/lib/projects/display";
+import { usesProjectWorkspaceMode } from "@/lib/projects/workspace";
 import {
   clearIncompatibleProjectBuilding,
   DEFAULT_PROJECT_LIST_FILTERS,
@@ -231,7 +232,8 @@ function ProjectMobileCard({ project }: { project: ProjectListItem }) {
 }
 
 export function ProjectListScreen() {
-  const { hasPermission, permissionsLoading } = usePermissions();
+  const { hasPermission, permissionsLoading, roles } = usePermissions();
+  const workspaceMode = usesProjectWorkspaceMode({ roles, hasPermission });
   const [filters, setFilters] = useState<ProjectListFilters>(
     DEFAULT_PROJECT_LIST_FILTERS,
   );
@@ -272,7 +274,7 @@ export function ProjectListScreen() {
     Math.ceil((listQuery.data?.count ?? 0) / filters.pageSize),
   );
   const showCreate =
-    !permissionsLoading && canCreateProject(hasPermission);
+    !permissionsLoading && !workspaceMode && canCreateProject(hasPermission);
 
   const columns: DataTableColumn<ProjectListItem>[] = [
     {
@@ -335,9 +337,13 @@ export function ProjectListScreen() {
   return (
     <div className="space-y-6">
       <PageHeader
-        description="Plan and track facility projects with status, priority, completion, and ownership filters."
+        description={
+          workspaceMode
+            ? "Projects where you are a member or Person in Charge. Management controls stay with the Project Manager."
+            : "Plan and track facility projects with status, priority, completion, and ownership filters."
+        }
         eyebrow="Projects"
-        title="Projects"
+        title={workspaceMode ? "My Projects" : "Projects"}
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <dl className="grid gap-4 sm:grid-cols-3">

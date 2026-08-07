@@ -252,6 +252,73 @@ export function assignProjectTask(
   );
 }
 
+export function startProjectTask(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskStart(projectId, taskId),
+    { method: "POST", body: {} },
+  );
+}
+
+export function pauseProjectTask(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskPause(projectId, taskId),
+    { method: "POST", body: {} },
+  );
+}
+
+export function resumeProjectTask(
+  projectId: string,
+  taskId: string,
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskResume(projectId, taskId),
+    { method: "POST", body: {} },
+  );
+}
+
+export function completeProjectTask(
+  projectId: string,
+  taskId: string,
+  payload?: { actual_end?: string },
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskComplete(projectId, taskId),
+    { method: "POST", body: payload ?? {} },
+  );
+}
+
+export function updateProjectTaskProgress(
+  projectId: string,
+  taskId: string,
+  payload: { progress_percentage: string | number },
+): Promise<ProjectTaskDetail> {
+  return apiClient<ProjectTaskDetail>(
+    API_ENDPOINTS.projects.taskProgress(projectId, taskId),
+    { method: "POST", body: payload },
+  );
+}
+
+export function reportProjectTaskBlocker(
+  projectId: string,
+  taskId: string,
+  payload: {
+    title: string;
+    description?: string;
+    severity?: string;
+  },
+): Promise<ProjectIssueDetail> {
+  return apiClient<ProjectIssueDetail>(
+    API_ENDPOINTS.projects.taskReportBlocker(projectId, taskId),
+    { method: "POST", body: payload },
+  );
+}
+
 export function reorderProjectTasks(
   projectId: string,
   payload: ProjectTaskReorderPayload,

@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import {
   assignProjectTask,
+  completeProjectTask,
   createProject,
   createProjectDependency,
   createProjectIssue,
@@ -50,14 +51,19 @@ import {
   getProjectTaskSuccessors,
   getProjectTaskSummary,
   getProjectTimeline,
+  pauseProjectTask,
   recalculateProjectProgress,
   reorderProjectTasks,
+  reportProjectTaskBlocker,
+  resumeProjectTask,
+  startProjectTask,
   updateProject,
   updateProjectIssue,
   updateProjectLink,
   updateProjectNote,
   updateProjectTask,
   updateProjectTaskChecklistItem,
+  updateProjectTaskProgress,
 } from "@/services/api/projects";
 import { projectsQueryKeys } from "@/services/api/query-keys";
 import {
@@ -364,6 +370,78 @@ export function useAssignProjectTask(projectId: string, taskId: string) {
       assignProjectTask(projectId, taskId, payload),
     onSuccess: async () => {
       await invalidateProjectTasks(queryClient, projectId, taskId);
+    },
+  });
+}
+
+export function useStartProjectTask(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => startProjectTask(projectId, taskId),
+    onSuccess: async () => {
+      await invalidateProjectTasks(queryClient, projectId, taskId);
+    },
+  });
+}
+
+export function usePauseProjectTask(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => pauseProjectTask(projectId, taskId),
+    onSuccess: async () => {
+      await invalidateProjectTasks(queryClient, projectId, taskId);
+    },
+  });
+}
+
+export function useResumeProjectTask(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => resumeProjectTask(projectId, taskId),
+    onSuccess: async () => {
+      await invalidateProjectTasks(queryClient, projectId, taskId);
+    },
+  });
+}
+
+export function useCompleteProjectTask(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload?: { actual_end?: string }) =>
+      completeProjectTask(projectId, taskId, payload),
+    onSuccess: async () => {
+      await invalidateProjectTasks(queryClient, projectId, taskId);
+    },
+  });
+}
+
+export function useUpdateProjectTaskProgress(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { progress_percentage: string | number }) =>
+      updateProjectTaskProgress(projectId, taskId, payload),
+    onSuccess: async () => {
+      await invalidateProjectTasks(queryClient, projectId, taskId);
+    },
+  });
+}
+
+export function useReportProjectTaskBlocker(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      title: string;
+      description?: string;
+      severity?: string;
+    }) => reportProjectTaskBlocker(projectId, taskId, payload),
+    onSuccess: async () => {
+      await invalidateProjectTasks(queryClient, projectId, taskId);
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.issueList(projectId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: projectsQueryKeys.timeline(projectId),
+      });
     },
   });
 }
