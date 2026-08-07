@@ -717,6 +717,24 @@ class ProjectTaskDependency(BaseModel):
         if (
             not errors
             and not self.is_deleted
+            and pred
+            and succ
+            and succ.status
+            in (
+                ProjectTask.Status.IN_PROGRESS,
+                ProjectTask.Status.COMPLETED,
+            )
+            and pred.status != ProjectTask.Status.COMPLETED
+        ):
+            # Prevent start-then-link bypass of the FS readiness gate.
+            errors["successor_task"] = (
+                "Cannot add an unfinished predecessor to a successor that "
+                "has already started or completed."
+            )
+
+        if (
+            not errors
+            and not self.is_deleted
             and self.project_id
             and self.predecessor_task_id
             and self.successor_task_id

@@ -415,17 +415,47 @@ class ProjectDependencyTests(APITestCase):
             str(blocked.data.get("code")[0]), "task_dependency_incomplete"
         )
 
-    def test_18_progress_coerce_to_completed_gated(self):
+    def test_18_progress_coerce_to_completed_gated_by_existing_deps(self):
+        a = self._create_task(name="A")
+        b = self._create_task(
+            name="B",
+            person_in_charge=str(self.member_user.id),
+        )
+        c = self._create_task(name="C")
+        self._create_dep(a["id"], b["id"])
+        self._create_dep(c["id"], b["id"])
+        self._complete_task(a["id"])
+        self._complete_task(c["id"])
+        started = self.client.patch(
+            self._task_url(b["id"]),
+            {"status": "in_progress"},
+            format="json",
+        )
+        self.assertEqual(started.status_code, status.HTTP_200_OK, started.data)
+        # Reopen predecessor C so B is in_progress with an unfinished FS pred.
+        reopened = self.client.patch(
+            self._task_url(c["id"]),
+            {"status": "not_started", "progress_percentage": "0.00"},
+            format="json",
+        )
+        self.assertEqual(reopened.status_code, status.HTTP_200_OK, reopened.data)
+        blocked = self.client.patch(
+            self._task_url(b["id"]),
+            {"progress_percentage": "100.00"},
+            format="json",
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            str(blocked.data.get("code")[0]), "task_dependency_incomplete"
+        )
+
+    def test_18b_cannot_add_unfinished_predecessor_to_started_successor(self):
         a = self._create_task(name="A")
         b = self._create_task(
             name="B",
             person_in_charge=str(self.member_user.id),
         )
         self._create_dep(a["id"], b["id"])
-        # Move B to in_progress is blocked; start A first path not taken —
-        # instead set B somehow to in_progress after completing A, then add
-        # new predecessor? Simpler: complete A, start B, add new unfinished
-        # pred, then try progress 100.
         self._complete_task(a["id"])
         started = self.client.patch(
             self._task_url(b["id"]),
@@ -434,13 +464,28 @@ class ProjectDependencyTests(APITestCase):
         )
         self.assertEqual(started.status_code, status.HTTP_200_OK, started.data)
         c = self._create_task(name="C")
-        self._create_dep(c["id"], b["id"])
-        blocked = self.client.patch(
+        blocked = self._create_dep(c["id"], b["id"])
+        self.assertEqual(blocked.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("successor_task", blocked.data)
+
+    def test_18c_completed_predecessor_may_link_to_started_successor(self):
+        a = self._create_task(name="A")
+        b = self._create_task(
+            name="B",
+            person_in_charge=str(self.member_user.id),
+        )
+        c = self._create_task(name="C")
+        self._create_dep(a["id"], b["id"])
+        self._complete_task(a["id"])
+        self._complete_task(c["id"])
+        started = self.client.patch(
             self._task_url(b["id"]),
-            {"progress_percentage": "100.00"},
+            {"status": "in_progress"},
             format="json",
         )
-        self.assertEqual(blocked.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(started.status_code, status.HTTP_200_OK, started.data)
+        linked = self._create_dep(c["id"], b["id"])
+        self.assertEqual(linked.status_code, status.HTTP_201_CREATED, linked.data)
 
     # ------------------------------------------------------------------
     # Soft-delete policy
