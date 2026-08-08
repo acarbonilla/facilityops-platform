@@ -232,6 +232,8 @@ class TechnicianAssignedWorkDashboardTests(APITestCase):
             name="Pred",
             person_in_charge=self.tech_b,
             status=ProjectTask.Status.NOT_STARTED,
+            planned_start=self.today,
+            planned_end=self.today + timedelta(days=1),
         )
         blocked = self._create_task(
             name="Status Blocked",
@@ -246,6 +248,8 @@ class TechnicianAssignedWorkDashboardTests(APITestCase):
         waiting = self._create_task(
             name="Waiting Pred",
             status=ProjectTask.Status.NOT_STARTED,
+            planned_start=self.today + timedelta(days=2),
+            planned_end=self.today + timedelta(days=4),
         )
         self.client.force_authenticate(self.fm_a)
         dep = self.client.post(

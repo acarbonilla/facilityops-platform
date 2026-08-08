@@ -234,16 +234,30 @@ class ProjectProgressTests(APITestCase):
             status="in_progress",
             progress_percentage="50.00",
             is_milestone=True,
+            planned_start=str(date.today() + timedelta(days=1)),
+            planned_end=str(date.today() + timedelta(days=1)),
         )
         self.assertEqual(calculate_accomplishment(self.project), Decimal("0.00"))
 
     def test_10_milestone_completed_contributes_100(self):
-        self._create_task(name="MS", status="completed", is_milestone=True)
+        self._create_task(
+            name="MS",
+            status="completed",
+            is_milestone=True,
+            planned_start=str(date.today() + timedelta(days=1)),
+            planned_end=str(date.today() + timedelta(days=1)),
+        )
         self.assertEqual(calculate_accomplishment(self.project), Decimal("100.00"))
 
     def test_11_cancelled_milestone_excluded(self):
         self._create_task(name="Done", status="completed")
-        ms = self._create_task(name="MS", status="not_started", is_milestone=True)
+        ms = self._create_task(
+            name="MS",
+            status="not_started",
+            is_milestone=True,
+            planned_start=str(date.today() + timedelta(days=2)),
+            planned_end=str(date.today() + timedelta(days=2)),
+        )
         self._patch_task(ms["id"], status="cancelled")
         self.assertEqual(self._refresh_project().completion_percentage, Decimal("100.00"))
 
@@ -254,7 +268,13 @@ class ProjectProgressTests(APITestCase):
         self._create_task(name="3", status="in_progress", progress_percentage="50.00")
         self._create_task(name="4", status="not_started")
         self._create_task(name="5", status="not_started")
-        self._create_task(name="6", status="not_started", is_milestone=True)
+        self._create_task(
+            name="6",
+            status="not_started",
+            is_milestone=True,
+            planned_start=str(date.today() + timedelta(days=3)),
+            planned_end=str(date.today() + timedelta(days=3)),
+        )
         self.assertEqual(round_accomplishment(Decimal("41.666")), Decimal("42.00"))
         self.assertEqual(self._refresh_project().completion_percentage, Decimal("42.00"))
 
