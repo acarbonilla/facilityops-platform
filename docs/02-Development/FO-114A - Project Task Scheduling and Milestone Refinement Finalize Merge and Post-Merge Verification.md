@@ -94,7 +94,7 @@ Attempted focused suites under PostgreSQL `--keepdb`.
 | `apps.projects` (primary) | **270 OK** | Authoritative FO-114 regression |
 | `apps.access_control` + `apps.attachments` | Failed (14 errors) | PostgreSQL deadlocks when overlapping another keepdb suite — environment contention |
 | `apps.fm_tickets` + `apps.maintenance` | Failed (1 fail / 10 errors) | Contaminated keepdb / live Gemini path / notification count pollution — unrelated to FO-114 scheduling diff |
-| `apps.inspection` + `apps.notifications` | Re-run during FO-114A (see final report) | Sequential after contention |
+| `apps.inspection` + `apps.notifications` | **OK** (sequential after contention) | Green |
 
 **Limitation:** Full clean cross-module re-run without keepdb recreation was not completed as a single green gate. No FO-114 code paths touch FM/Maintenance/Inspection/Notifications. Primary gate remains green `apps.projects`.
 
