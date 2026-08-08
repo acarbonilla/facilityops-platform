@@ -1,12 +1,17 @@
 # FO-114A — Project Task Scheduling and Milestone Refinement Finalize, Merge and Post-Merge Verification
 
-**Status:** READY WITH ACCEPTED LIMITATIONS  
+**Status:** COMPLETE AND MERGED  
 **Date:** 2026-08-08  
-**Branch:** `feature/project-task-scheduling-refinement`  
+**Branch:** `feature/project-task-scheduling-refinement` (deleted after merge)  
 **Starting main SHA:** `91cce0b22c6ee2b2091c94a0e989ee1e262e147e`  
 **Starting feature SHA:** `afc10de007bb93185a9d030cd24cf8f115ff4649`  
-**Draft PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68)  
-**FO-114:** COMPLETE ON FEATURE BRANCH (pending merge via this task)  
+**Final feature SHA:** `f32594c0…` (pre-merge HEAD)  
+**Finalization commits:** `c672fa8…`, `f32594c…`  
+**PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — **MERGED**  
+**Merge method:** merge commit  
+**Merge commit SHA:** `a8de616e2089790f4b05c09be1665d96b967d53e`  
+**Final main SHA:** `a8de616e2089790f4b05c09be1665d96b967d53e`  
+**FO-114:** COMPLETE AND MERGED  
 **Deferred:** FO-102 Gemini billing/quota diagnostics  
 **Next planned (not started):** FO-115 — Interactive Gantt Experience & Tenant-Scope Verification  
 
@@ -19,13 +24,12 @@ Finalize FO-114 scheduling refinement, validate release gates, mark PR #68 Ready
 | Check | Result |
 | --- | --- |
 | Fetch/prune | Performed |
-| `main` == `origin/main` | Yes @ `91cce0b…` |
+| `main` == `origin/main` | Yes @ `91cce0b…` at start |
 | Feature local == origin | Yes @ `afc10de…` |
 | Expected FO-114 HEAD | Exact match `afc10de007bb93185a9d030cd24cf8f115ff4649` |
 | Divergence | 5 FO-114 commits ahead of `main`; `main` unchanged since FO-114 start |
 | Tracked tree | Clean at preflight |
 | FO-114 docs | Present |
-| FO-114A docs | Created by this task |
 | FO-115 | Not started |
 | FO-102 | Deferred |
 | Untracked preserved | `backend/attachments/` and local DB/upload artifacts |
@@ -75,66 +79,72 @@ Finalize FO-114 scheduling refinement, validate release gates, mark PR #68 Ready
 | Frontend suite | **517 pass / 0 fail** |
 | ESLint | Pass |
 | TypeScript | Pass |
-| Production build | Pass (routes include `/projects`, `/projects/[projectId]/gantt`, `/projects/[projectId]/progress`, `/my-work`, `/my-work/tasks`) |
+| Production build | Pass (routes include `/projects`, gantt, progress, `/my-work`, `/my-work/tasks`) |
 | Django check | Pass |
 | makemigrations --check | No changes |
 | Migration chain | projects 0001–0006 |
 | Dependency packages | No new Python/npm packages in FO-114 diff |
-| git diff --check | Trailing whitespace in FO-114 doc header — corrected in FO-114A finalization |
-| Secret safety | Clean (GitGuardian SUCCESS on PR) |
-| Cross-module smoke | Focused sequential suites (see section 7) |
+| git diff --check | Trailing whitespace corrected in finalization |
+| Secret safety | Clean (GitGuardian SUCCESS) |
 | Full backend | Not claimed |
 
 ## 7. Cross-module backend smoke
 
-Attempted focused suites under PostgreSQL `--keepdb`.
-
 | Scope | Result | Notes |
 | --- | --- | --- |
 | `apps.projects` (primary) | **270 OK** | Authoritative FO-114 regression |
-| `apps.access_control` + `apps.attachments` | Failed (14 errors) | PostgreSQL deadlocks when overlapping another keepdb suite — environment contention |
-| `apps.fm_tickets` + `apps.maintenance` | Failed (1 fail / 10 errors) | Contaminated keepdb / live Gemini path / notification count pollution — unrelated to FO-114 scheduling diff |
-| `apps.inspection` + `apps.notifications` | **OK** (sequential after contention) | Green |
-
-**Limitation:** Full clean cross-module re-run without keepdb recreation was not completed as a single green gate. No FO-114 code paths touch FM/Maintenance/Inspection/Notifications. Primary gate remains green `apps.projects`.
-
-Intake remains under `apps.fm_tickets` (no separate intake app).
+| `apps.access_control` + `apps.attachments` | Failed (14 errors) | PostgreSQL deadlocks under overlapping keepdb suites — environment |
+| `apps.fm_tickets` + `apps.maintenance` | Failed (1 fail / 10 errors) | Contaminated keepdb / live Gemini path / notification pollution — unrelated to FO-114 |
+| `apps.inspection` + `apps.notifications` | **142 OK** | Sequential after contention |
 
 ## 8. Manual / browser acceptance
 
-**Environment:** Interactive browser Lobby Tile scenario not executed in FO-114A agent session.
-
-**Decision:** PASS WITH ACCEPTED LIMITATION — automated FO-114 coverage and code-path review green; browser acceptance alone does not block merge.
+**PASS WITH ACCEPTED LIMITATION** — interactive Lobby Tile browser scenario not executed in FO-114A agent session. Automated coverage green.
 
 ## 9. Defects
 
 | Item | Severity | Notes |
 | --- | --- | --- |
-| Parallel keepdb deadlocks during FO-114A smoke | Low / environment | Re-run sequentially; not a product defect |
-| FO-114 doc trailing whitespace | Low | Corrected in finalization commit |
-| Legacy `is_milestone=true` with null dates | Accepted limitation | Rejected on write; existing rows may still read until operator corrects |
+| Parallel keepdb deadlocks / FM suite pollution | Low / environment | Not a product defect |
+| Legacy `is_milestone=true` with null dates | Accepted limitation | Rejected on write; operator correction for any legacy rows |
 
 No Critical/High product defects open.
 
-## 10. Decision (pre-merge)
+## 10. Pre-merge decision
 
-**READY WITH ACCEPTED LIMITATIONS**
+**READY WITH ACCEPTED LIMITATIONS** — then Ready for Review → merge.
 
-Accepted limitations:
+## 11. Merge
 
-1. Interactive browser Lobby Tile manual scenario not executed in this session.
-2. Legacy date-less milestone rows (if any) require operator correction; no destructive auto-migration.
-3. Full Django backend suite not executed; projects + focused cross-module smoke used.
+| Item | Value |
+| --- | --- |
+| Ready for Review | Yes (`isDraft=false`) |
+| Checks | GitGuardian SUCCESS; MERGEABLE / CLEAN |
+| Method | Merge commit |
+| Merge SHA | `a8de616e2089790f4b05c09be1665d96b967d53e` |
+| PR state | MERGED |
 
-## 11. Merge plan
+## 12. Post-merge verification
 
-1. Finalization commit + push  
-2. Mark PR #68 Ready for Review  
-3. Merge commit into `main`  
-4. Post-merge verify  
-5. Branch cleanup  
-6. Mark FO-114 / FO-114A COMPLETE AND MERGED  
+| Gate | Result |
+| --- | --- |
+| local `main` == `origin/main` | Yes @ `a8de616…` |
+| showmigrations projects | 0001–0006 applied |
+| migrate --plan | No planned operations |
+| makemigrations --check | No changes |
+| Django check | Pass |
+| FO-114 + `apps.projects` | **270 OK** |
+| Frontend suite | **517 pass / 0 fail** |
+| ESLint | Pass |
+| TypeScript | Pass |
+| Production build | Pass |
+| Behavioral smoke | Code/routes present on `main`; browser UI not re-executed |
+| Branch cleanup | Local + remote feature branch deleted |
+| FO-115 | Not started |
+| FO-102 | Deferred |
 
-## 12. Post-merge section
+## 13. Final decision
 
-*(Filled after merge.)*
+**COMPLETE AND MERGED**
+
+Scheduling refinement is the stable baseline for FO-115.

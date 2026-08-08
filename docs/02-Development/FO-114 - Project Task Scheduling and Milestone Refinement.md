@@ -1,14 +1,14 @@
 # FO-114 — Project Task Scheduling and Milestone Refinement
 
-**Status:** READY WITH ACCEPTED LIMITATIONS (pending FO-114A merge)
-**Date:** 2026-08-08
-**Branch:** `feature/project-task-scheduling-refinement`
-**Starting main SHA:** `91cce0b22c6ee2b2091c94a0e989ee1e262e147e`
-**Branch HEAD:** `afc10de007bb93185a9d030cd24cf8f115ff4649`
-**Draft PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — OPEN / Draft / targeting `main`
-**Baseline:** FO-113A Project Management COMPLETE AND MERGED
-**Deferred:** FO-102 Gemini billing/quota diagnostics
-**Merge task:** FO-114A — in progress
+**Status:** COMPLETE AND MERGED  
+**Date:** 2026-08-08  
+**Branch:** `feature/project-task-scheduling-refinement` (deleted)  
+**Starting main SHA:** `91cce0b22c6ee2b2091c94a0e989ee1e262e147e`  
+**Merge commit SHA:** `a8de616e2089790f4b05c09be1665d96b967d53e`  
+**PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — **MERGED**  
+**Baseline:** FO-113A Project Management COMPLETE AND MERGED  
+**Deferred:** FO-102 Gemini billing/quota diagnostics  
+**Merge task:** FO-114A — COMPLETE AND MERGED  
 
 ## 1. Objective
 
@@ -88,22 +88,18 @@ Covers optionality, same-day, overlap, explicit milestones, partial rejection, p
 
 Extended `tasks-form.test.ts` and `tasks-display.test.ts` for optional schedule, same-day, partial rejection, milestone defaults/sanitize, Unscheduled labels, conflict error rendering.
 
-## 8. Validation (FO-114)
+## 8. Validation (FO-114 / FO-114A)
 
 | Gate | Result |
 | --- | --- |
-| `apps.projects` | **270 OK** (PostgreSQL `--keepdb`) |
-| Frontend suite | **517 pass / 0 fail** |
-| ESLint | Pass |
-| TypeScript (`tsc --noEmit`) | Pass |
-| Production build | Pass |
-| Django check | Pass |
-| makemigrations --check | No changes |
-| Migration | None created |
-| git diff --check | Pass |
-| Secret scan (diff) | Clean |
+| `apps.projects` | **270 OK** pre-merge and post-merge (PostgreSQL `--keepdb`) |
+| Frontend suite | **517 pass / 0 fail** pre-merge and post-merge |
+| ESLint / TypeScript / production build | Pass (pre + post) |
+| Django check / makemigrations --check | Pass; no FO-114 migration |
+| Migration chain | projects 0001–0006 |
+| PR #68 | MERGED @ `a8de616…` |
 | FO-102 | Remains deferred |
-| Merge | Not performed — FO-114A |
+| FO-115 | Not started |
 
 ## 9. Remaining limitations
 
