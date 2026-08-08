@@ -48,7 +48,9 @@ import {
   canUpdateProjectTask,
   formatProjectTaskError,
   formatProjectTaskProgress,
+  formatTaskPlannedScheduleLabel,
   isTaskRelatedHistoryAction,
+  isTaskScheduleUnscheduled,
 } from "@/lib/projects/tasks-display";
 import { readProjectTaskFormFlash } from "@/lib/projects/tasks-form";
 import {
@@ -480,13 +482,25 @@ export function ProjectTaskDetailScreen({
               value: formatPersonLabel(task.person_in_charge_email),
             },
             {
-              label: "Planned start",
-              value: formatProjectDate(task.planned_start),
+              label: task.is_milestone ? "Milestone date" : "Planned schedule",
+              value: formatTaskPlannedScheduleLabel({
+                planned_start: task.planned_start,
+                planned_end: task.planned_end,
+                is_milestone: task.is_milestone,
+              }),
             },
-            {
-              label: "Planned end",
-              value: formatProjectDate(task.planned_end),
-            },
+            ...(task.is_milestone || isTaskScheduleUnscheduled(task)
+              ? []
+              : [
+                  {
+                    label: "Planned start",
+                    value: formatProjectDate(task.planned_start),
+                  },
+                  {
+                    label: "Planned end",
+                    value: formatProjectDate(task.planned_end),
+                  },
+                ]),
             {
               label: "Actual start",
               value: formatProjectDate(task.actual_start),

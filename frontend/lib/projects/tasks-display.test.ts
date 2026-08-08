@@ -14,8 +14,10 @@ import {
   formatProjectTaskProgress,
   formatProjectTaskStatusLabel,
   formatProjectTaskSummaryCounts,
+  formatTaskPlannedScheduleLabel,
   getProjectTaskListLayoutClasses,
   isTaskRelatedHistoryAction,
+  isTaskScheduleUnscheduled,
 } from "./tasks-display";
 
 test("task status and priority labels are accessible display strings", () => {
@@ -90,5 +92,65 @@ test("formatProjectTaskError preserves field-specific backend validation", () =>
   assert.equal(
     formatProjectTaskError(error, "Fallback"),
     "Person in charge: Person in charge is required.",
+  );
+});
+
+test("FO-114 schedule labels distinguish unscheduled, same-day, and milestone", () => {
+  assert.equal(
+    formatTaskPlannedScheduleLabel({
+      planned_start: null,
+      planned_end: null,
+    }),
+    "Unscheduled",
+  );
+  assert.equal(
+    formatTaskPlannedScheduleLabel({
+      planned_start: "2026-08-10",
+      planned_end: "2026-08-10",
+      is_milestone: false,
+    }),
+    "2026-08-10",
+  );
+  assert.equal(
+    formatTaskPlannedScheduleLabel({
+      planned_start: "2026-08-11",
+      planned_end: "2026-08-12",
+    }),
+    "2026-08-11 – 2026-08-12",
+  );
+  assert.equal(
+    formatTaskPlannedScheduleLabel({
+      planned_start: "2026-08-14",
+      planned_end: "2026-08-14",
+      is_milestone: true,
+    }),
+    "2026-08-14",
+  );
+  assert.equal(
+    isTaskScheduleUnscheduled({ planned_start: null, planned_end: null }),
+    true,
+  );
+  assert.equal(
+    isTaskScheduleUnscheduled({
+      planned_start: "2026-08-10",
+      planned_end: "2026-08-10",
+    }),
+    false,
+  );
+});
+
+test("FO-114 dependency schedule conflict errors render clearly", () => {
+  const error = new ApiError("Validation failed", 400, {
+    message: "Validation failed",
+    errors: {
+      task_schedule_dependency_conflict: [
+        "task_schedule_dependency_conflict: successor planned start (2026-08-11) is before predecessor planned end (2026-08-12) for Finish-to-Start dependency T-1 → T-2.",
+      ],
+    },
+  });
+
+  assert.match(
+    formatProjectTaskError(error, "Fallback"),
+    /task_schedule_dependency_conflict/i,
   );
 });

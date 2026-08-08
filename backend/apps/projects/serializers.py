@@ -694,7 +694,10 @@ class ProjectTaskValidationMixin:
             raise serializers.ValidationError(exc.message_dict) from exc
         attrs["progress_percentage"] = task.progress_percentage
         attrs["status"] = task.status
-        if task.planned_end is not None:
+        # FO-114: mirror milestone date fill / both-or-neither normalization.
+        if "planned_start" in attrs or task.planned_start is not None:
+            attrs["planned_start"] = task.planned_start
+        if "planned_end" in attrs or task.planned_end is not None:
             attrs["planned_end"] = task.planned_end
         if task.actual_end is not None:
             attrs["actual_end"] = task.actual_end
@@ -767,13 +770,10 @@ class ProjectTaskUpdateSerializer(
         if "progress_percentage" in attrs or "status" in attrs:
             result["progress_percentage"] = cleaned["progress_percentage"]
             result["status"] = cleaned["status"]
-        if (
-            "planned_start" in attrs
-            or self.instance.is_milestone
-            or attrs.get("is_milestone")
-        ):
-            if "planned_end" in cleaned:
-                result["planned_end"] = cleaned["planned_end"]
+        if "planned_start" in cleaned:
+            result["planned_start"] = cleaned["planned_start"]
+        if "planned_end" in cleaned:
+            result["planned_end"] = cleaned["planned_end"]
         return result
 
     def update(self, instance, validated_data):

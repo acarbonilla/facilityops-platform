@@ -85,4 +85,66 @@ test("task form defaults start as not_started with zero progress", () => {
   assert.equal(defaults.priority, "medium");
   assert.equal(defaults.progress_percentage, "0");
   assert.equal(defaults.person_in_charge, "");
+  assert.equal(defaults.is_milestone, false);
+});
+
+test("FO-114 planned schedule is optional and empty dates are allowed", () => {
+  const errors = validateProjectTaskFormValues({
+    ...buildValues(),
+    planned_start: "",
+    planned_end: "",
+    is_milestone: false,
+  });
+  assert.equal(errors.planned_start, undefined);
+  assert.equal(errors.planned_end, undefined);
+});
+
+test("FO-114 same-day task dates are allowed for normal tasks", () => {
+  const errors = validateProjectTaskFormValues({
+    ...buildValues(),
+    planned_start: "2026-08-10",
+    planned_end: "2026-08-10",
+    is_milestone: false,
+  });
+  assert.equal(errors.planned_start, undefined);
+  assert.equal(errors.planned_end, undefined);
+});
+
+test("FO-114 partial planned schedule is rejected", () => {
+  const startOnly = validateProjectTaskFormValues({
+    ...buildValues(),
+    planned_start: "2026-08-11",
+    planned_end: "",
+  });
+  assert.match(startOnly.planned_end ?? "", /both/i);
+
+  const endOnly = validateProjectTaskFormValues({
+    ...buildValues(),
+    planned_start: "",
+    planned_end: "2026-08-12",
+  });
+  assert.match(endOnly.planned_end ?? "", /both/i);
+});
+
+test("FO-114 milestone checkbox defaults false and requires a date", () => {
+  assert.equal(buildProjectTaskFormDefaults().is_milestone, false);
+  const errors = validateProjectTaskFormValues({
+    ...buildValues(),
+    is_milestone: true,
+    planned_start: "",
+    planned_end: "",
+  });
+  assert.match(errors.planned_start ?? "", /milestone date/i);
+});
+
+test("FO-114 milestone sanitize persists start equals end", () => {
+  const payload = mapProjectTaskFormValuesToCreatePayload({
+    ...buildValues(),
+    is_milestone: true,
+    planned_start: "2026-08-14",
+    planned_end: "",
+  });
+  assert.equal(payload.is_milestone, true);
+  assert.equal(payload.planned_start, "2026-08-14");
+  assert.equal(payload.planned_end, "2026-08-14");
 });

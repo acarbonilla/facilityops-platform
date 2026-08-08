@@ -396,13 +396,37 @@ class ProjectTask(BaseModel):
         if self.project_id and self.tenant_id and self.project.tenant_id != self.tenant_id:
             errors["tenant"] = "Task tenant must match the project tenant."
 
-        # Milestone: if only start provided, allow end=start (zero duration).
-        if (
-            self.is_milestone
-            and self.planned_start
-            and not self.planned_end
-        ):
-            self.planned_end = self.planned_start
+        # FO-114: milestones are explicit and require a planned date.
+        if self.is_milestone:
+            if not self.planned_start and not self.planned_end:
+                errors["planned_start"] = (
+                    "Milestone tasks require a milestone date."
+                )
+            elif self.planned_start and not self.planned_end:
+                self.planned_end = self.planned_start
+            elif self.planned_end and not self.planned_start:
+                self.planned_start = self.planned_end
+            elif (
+                self.planned_start
+                and self.planned_end
+                and self.planned_start != self.planned_end
+            ):
+                # Single milestone day — persist start=end.
+                self.planned_end = self.planned_start
+
+        # FO-114: planned dates are both-or-neither (after milestone fill).
+        if bool(self.planned_start) != bool(self.planned_end):
+            if self.planned_start and not self.planned_end:
+                errors["planned_end"] = (
+                    "Provide both planned start and planned end, or leave "
+                    "both empty for an unscheduled task."
+                )
+            else:
+                errors["planned_start"] = (
+                    "Provide both planned start and planned end, or leave "
+                    "both empty for an unscheduled task."
+                )
+
         if (
             self.is_milestone
             and self.actual_start
@@ -450,6 +474,17 @@ class ProjectTask(BaseModel):
                         "planned schedule."
                     )
 
+        # FO-114: FS schedule consistency against existing dependencies.
+        if (
+            not errors
+            and self.pk
+            and self.planned_start
+            and self.planned_end
+        ):
+            schedule_error = self._validate_fs_schedule_against_dependencies()
+            if schedule_error:
+                errors.update(schedule_error)
+
         try:
             self.apply_progress_status_sync()
         except ValidationError as exc:
@@ -476,6 +511,47 @@ class ProjectTask(BaseModel):
 
         if errors:
             raise ValidationError(errors)
+
+    def _validate_fs_schedule_against_dependencies(self):
+        """Reject schedules that contradict active FS predecessors/successors.
+
+        Day-level rule: successor planned_start >= predecessor planned_end
+        when both sides are fully scheduled. Unscheduled either side: OK.
+        """
+        from .dependency_service import fs_schedule_conflict_message
+
+        pred_deps = ProjectTaskDependency.objects.filter(
+            successor_task_id=self.pk,
+            is_deleted=False,
+            dependency_type=ProjectTaskDependency.DependencyType.FINISH_TO_START,
+        ).select_related("predecessor_task")
+        for dep in pred_deps:
+            message = fs_schedule_conflict_message(
+                predecessor=dep.predecessor_task,
+                successor=self,
+            )
+            if message:
+                return {
+                    "planned_start": message,
+                    "task_schedule_dependency_conflict": message,
+                }
+
+        succ_deps = ProjectTaskDependency.objects.filter(
+            predecessor_task_id=self.pk,
+            is_deleted=False,
+            dependency_type=ProjectTaskDependency.DependencyType.FINISH_TO_START,
+        ).select_related("successor_task")
+        for dep in succ_deps:
+            message = fs_schedule_conflict_message(
+                predecessor=self,
+                successor=dep.successor_task,
+            )
+            if message:
+                return {
+                    "planned_end": message,
+                    "task_schedule_dependency_conflict": message,
+                }
+        return None
 
     def _validate_person_in_charge(self):
         """PIC: PM, active member, or Technician (FO-110 implicit access)."""
@@ -738,6 +814,18 @@ class ProjectTaskDependency(BaseModel):
                 "Cannot add an unfinished predecessor to a successor that "
                 "has already started or completed."
             )
+
+        # FO-114: reject FS links whose planned dates contradict day-level order.
+        if not errors and not self.is_deleted and pred and succ:
+            from .dependency_service import fs_schedule_conflict_message
+
+            schedule_message = fs_schedule_conflict_message(
+                predecessor=pred,
+                successor=succ,
+            )
+            if schedule_message:
+                errors["task_schedule_dependency_conflict"] = schedule_message
+                errors["successor_task"] = schedule_message
 
         if (
             not errors

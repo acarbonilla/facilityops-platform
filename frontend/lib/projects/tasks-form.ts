@@ -47,26 +47,42 @@ function parseProgress(value: string): number | null {
 }
 
 export function validateProjectTaskFormValues(values: ProjectTaskFormValues): {
+  planned_start?: string;
   planned_end?: string;
   actual_end?: string;
   progress_percentage?: string;
   person_in_charge?: string;
   name?: string;
+  is_milestone?: string;
 } {
   const errors: {
+    planned_start?: string;
     planned_end?: string;
     actual_end?: string;
     progress_percentage?: string;
     person_in_charge?: string;
     name?: string;
+    is_milestone?: string;
   } = {};
 
   if (!values.name.trim()) {
     errors.name = "Name is required.";
   }
 
-  const plannedStart = parseDate(values.planned_start);
-  const plannedEnd = parseDate(values.planned_end);
+  const plannedStartRaw = values.planned_start.trim();
+  const plannedEndRaw = values.planned_end.trim();
+  const plannedStart = parseDate(plannedStartRaw);
+  const plannedEnd = parseDate(plannedEndRaw);
+
+  if (values.is_milestone) {
+    if (!plannedStartRaw && !plannedEndRaw) {
+      errors.planned_start = "Milestone tasks require a milestone date.";
+    }
+  } else if (Boolean(plannedStartRaw) !== Boolean(plannedEndRaw)) {
+    errors.planned_end =
+      "Provide both planned start and planned end, or leave both empty for an unscheduled task.";
+  }
+
   if (plannedStart && plannedEnd && plannedEnd < plannedStart) {
     errors.planned_end =
       "Planned end must be on or after the planned start.";
@@ -107,13 +123,27 @@ export function validateProjectTaskFormValues(values: ProjectTaskFormValues): {
 export function sanitizeProjectTaskFormValues(
   values: ProjectTaskFormValues,
 ): ProjectTaskFormValues {
+  const plannedStart = values.planned_start.trim();
+  const plannedEnd = values.planned_end.trim();
+  // Milestone: single date persists as start=end.
+  const normalizedStart =
+    values.is_milestone && !plannedStart && plannedEnd
+      ? plannedEnd
+      : plannedStart;
+  const normalizedEnd =
+    values.is_milestone && plannedStart
+      ? plannedStart
+      : values.is_milestone && plannedEnd
+        ? plannedEnd
+        : plannedEnd;
+
   return {
     ...values,
     name: values.name.trim(),
     description: values.description.trim(),
     person_in_charge: values.person_in_charge.trim(),
-    planned_start: values.planned_start.trim(),
-    planned_end: values.planned_end.trim(),
+    planned_start: normalizedStart,
+    planned_end: values.is_milestone ? normalizedStart || normalizedEnd : normalizedEnd,
     actual_start: values.actual_start.trim(),
     actual_end: values.actual_end.trim(),
     progress_percentage: values.progress_percentage.trim(),

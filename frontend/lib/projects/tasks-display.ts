@@ -44,6 +44,36 @@ export function formatProjectTaskProgress(
   return formatProjectCompletion(value);
 }
 
+/** FO-114: concise planned-schedule label for detail/list surfaces. */
+export function formatTaskPlannedScheduleLabel(input: {
+  planned_start?: string | null;
+  planned_end?: string | null;
+  is_milestone?: boolean;
+}): string {
+  const start = input.planned_start?.trim() || "";
+  const end = input.planned_end?.trim() || "";
+  if (!start && !end) {
+    return "Unscheduled";
+  }
+  if (input.is_milestone) {
+    return start || end;
+  }
+  if (start && end && start === end) {
+    return start;
+  }
+  if (start && end) {
+    return `${start} – ${end}`;
+  }
+  return "Unscheduled";
+}
+
+export function isTaskScheduleUnscheduled(input: {
+  planned_start?: string | null;
+  planned_end?: string | null;
+}): boolean {
+  return !input.planned_start && !input.planned_end;
+}
+
 export function formatProjectTaskSummaryCounts(
   summary?: ProjectTaskSummary | null,
 ): Array<{ label: string; value: number }> {
@@ -93,6 +123,7 @@ const PROJECT_TASK_FORM_API_FIELD_LABELS: Record<string, string> = {
   sequence: "Sequence",
   is_milestone: "Milestone",
   non_field_errors: "Form",
+  task_schedule_dependency_conflict: "Schedule dependency",
   task_ids: "Task order",
   text: "Checklist text",
   body: "Comment",

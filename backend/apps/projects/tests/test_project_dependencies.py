@@ -631,6 +631,7 @@ class ProjectDependencyTests(APITestCase):
             project=self.project,
             name="Cancelled old",
             status=ProjectTask.Status.CANCELLED,
+            planned_start=today - timedelta(days=5),
             planned_end=today - timedelta(days=2),
             sequence=3,
         )
@@ -683,7 +684,11 @@ class ProjectDependencyTests(APITestCase):
 
     def test_31_filter_is_milestone(self):
         self._create_task(name="Normal")
-        self._create_task(name="MS", is_milestone=True)
+        self._create_task(
+            name="MS",
+            is_milestone=True,
+            planned_start=str(date.today()),
+        )
         response = self.client.get(self.tasks_url, {"is_milestone": "true"})
         self.assertEqual(len(response.data["results"]), 1)
         self.assertTrue(response.data["results"][0]["is_milestone"])
