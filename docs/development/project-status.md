@@ -16,13 +16,14 @@
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
 - Project Management — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67 @ `ebdad1b…`)
+- FO-114 Project Task Scheduling & Milestone Refinement — **IN PROGRESS** on `feature/project-task-scheduling-refinement` (unmerged; FO-114A later)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
 
 ## Current Branch
 
-- Active: `main` @ `ebdad1b45e00110845dac0dbb72302b6ca363581` (Project Management COMPLETE AND MERGED)
-- Baseline `main` @ `c7ae7fc81bb58b2afffd33f185910329c04c1231` (PM-UX-001A baseline)
+- Active: `feature/project-task-scheduling-refinement` (FO-114; branched from `main` @ `91cce0b…`)
+- Stable `main` @ `91cce0b22c6ee2b2091c94a0e989ee1e262e147e` (FO-113A docs sync / Project Management COMPLETE AND MERGED)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -130,19 +131,19 @@
 
 ## Current Task
 
-- Project Management — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67).
-  Merge commit: `ebdad1b45e00110845dac0dbb72302b6ca363581`.
-  See `docs/02-Development/FO-113A - Project Management Finalize, Merge and Post-Merge Verification.md`.
+- FO-114 — Project Task Scheduling & Milestone Refinement — **IN PROGRESS** on `feature/project-task-scheduling-refinement` (unmerged; merge via FO-114A).
+  See `docs/02-Development/FO-114 - Project Task Scheduling and Milestone Refinement.md`.
+- Project Management v1.0 — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67).
+  Merge commit: `ebdad1b45e00110845dac0dbb72302b6ca363581`; docs sync `91cce0b…`.
 - PM-UX-001 / PM-UX-001A UX baseline remains COMPLETE AND MERGED on `main`.
 - Latest stable merged product features: Intelligent Employee Ticket Intake (FO-096–FO-101A) and Project Management (FO-103–FO-113A).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 - FO-102 remains **DEFERRED**.
-- Next feature: **NOT STARTED**.
 
 ## Next Milestone
 
+- FO-114A — Finalize, Merge & Post-Merge Verification (after FO-114 Draft PR)
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
-- Next product feature: NOT STARTED
 
 ## Current Release
 
