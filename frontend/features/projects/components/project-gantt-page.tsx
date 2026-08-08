@@ -20,10 +20,12 @@ import {
   formatDependencyReadinessMessage,
   validateDependencyForm,
 } from "@/lib/projects/dependencies";
-import { formatProjectDate, formatProjectError } from "@/lib/projects/display";
+import { formatProjectError } from "@/lib/projects/display";
 import {
   fitGanttRangeToProject,
+  formatGanttViewportLabel,
   jumpGanttRangeToToday,
+  rezoomPreservingFocal,
   shiftGanttRange,
   type GanttDateRange,
   type GanttZoomScale,
@@ -274,14 +276,11 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
                   key={option.value}
                   onClick={() => {
                     setZoom(option.value);
-                    setRange(
-                      fitGanttRangeToProject({
-                        plannedStart: project.planned_start_date,
-                        plannedEnd: project.planned_end_date,
-                        taskStarts: tasks.map((task) => task.planned_start),
-                        taskEnds: tasks.map((task) => task.planned_end),
-                        zoom: option.value,
-                      }),
+                    setRange((current) =>
+                      rezoomPreservingFocal(
+                        current ?? activeRange,
+                        option.value,
+                      ),
                     );
                   }}
                   type="button"
@@ -331,10 +330,12 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
             Fit project
           </button>
         </div>
-        <p className="text-sm text-slate-600">
-          Showing{" "}
-          {formatProjectDate(activeRange.start.toISOString().slice(0, 10))} –{" "}
-          {formatProjectDate(activeRange.end.toISOString().slice(0, 10))}
+        <p className="text-sm font-medium text-slate-800" aria-live="polite">
+          Viewport: {formatGanttViewportLabel(activeRange)}
+        </p>
+        <p className="text-xs text-slate-600 md:hidden">
+          On phones, use the Schedule table below as the primary schedule view.
+          The interactive drag/pan Gantt is available from tablet widths upward.
         </p>
       </section>
 
@@ -380,7 +381,7 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
 
           <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 className="text-lg font-semibold text-slate-950">
-              Unscheduled tasks
+              Unscheduled tasks ({unscheduled.length})
             </h2>
             <p className="text-sm text-slate-600">
               Tasks without both planned start and end dates are listed here —

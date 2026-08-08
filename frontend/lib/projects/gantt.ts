@@ -322,3 +322,218 @@ export function timelineWidthPx(
 ): number {
   return inclusiveDaySpan(range) * getPixelsPerDay(zoom);
 }
+
+/** FO-115: readable viewport caption for controls. */
+export function formatGanttViewportLabel(range: GanttDateRange): string {
+  const start = startOfUtcDay(range.start);
+  const end = startOfUtcDay(range.end);
+  const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
+  const startLabel = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: sameYear ? undefined : "numeric",
+    timeZone: "UTC",
+  }).format(start);
+  const endLabel = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(end);
+  return `${startLabel} – ${endLabel}`;
+}
+
+export function isUtcWeekend(date: Date): boolean {
+  const day = startOfUtcDay(date).getUTCDay();
+  return day === 0 || day === 6;
+}
+
+export function rezoomPreservingFocal(
+  range: GanttDateRange,
+  toZoom: GanttZoomScale,
+): GanttDateRange {
+  const span = inclusiveDaySpan(range);
+  const focal = addUtcDays(range.start, Math.floor((span - 1) / 2));
+  const defaultSpan =
+    toZoom === "day" ? 21 : toZoom === "week" ? 84 : 180;
+  const half = Math.floor((defaultSpan - 1) / 2);
+  return clampGanttRange(
+    {
+      start: addUtcDays(focal, -half),
+      end: addUtcDays(focal, defaultSpan - 1 - half),
+    },
+    toZoom,
+  );
+}
+
+export interface GanttHeaderCell {
+  date: Date;
+  label: string;
+  subLabel?: string;
+  leftPercent: number;
+  widthPercent: number;
+  isWeekend?: boolean;
+}
+
+export interface GanttHeaderBand {
+  label: string;
+  leftPercent: number;
+  widthPercent: number;
+}
+
+/** FO-115 rich calendar header: month bands + day/week/month cells. */
+export function buildRichTimelineHeader(
+  range: GanttDateRange,
+  zoom: GanttZoomScale,
+): { bands: GanttHeaderBand[]; cells: GanttHeaderCell[] } {
+  const start = startOfUtcDay(range.start);
+  const end = startOfUtcDay(range.end);
+  const span = inclusiveDaySpan({ start, end });
+  const cells: GanttHeaderCell[] = [];
+  const bands: GanttHeaderBand[] = [];
+
+  if (zoom === "day") {
+    let cursor = start;
+    while (cursor <= end) {
+      const offset = diffUtcDays(start, cursor);
+      cells.push({
+        date: cursor,
+        label: String(cursor.getUTCDate()),
+        subLabel: new Intl.DateTimeFormat("en-US", {
+          weekday: "short",
+          timeZone: "UTC",
+        }).format(cursor),
+        leftPercent: (offset / span) * 100,
+        widthPercent: (1 / span) * 100,
+        isWeekend: isUtcWeekend(cursor),
+      });
+      cursor = addUtcDays(cursor, 1);
+      if (cells.length > 400) break;
+    }
+  } else if (zoom === "week") {
+    let cursor = start;
+    while (cursor <= end) {
+      const offset = diffUtcDays(start, cursor);
+      const weekEnd = addUtcDays(cursor, 6);
+      const clippedEnd = weekEnd > end ? end : weekEnd;
+      const days = diffUtcDays(cursor, clippedEnd) + 1;
+      cells.push({
+        date: cursor,
+        label: formatWeekRangeLabel(cursor, clippedEnd),
+        leftPercent: (offset / span) * 100,
+        widthPercent: (days / span) * 100,
+      });
+      cursor = addUtcDays(cursor, 7);
+      if (cells.length > 200) break;
+    }
+  } else {
+    let cursor = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1),
+    );
+    if (cursor < start) {
+      // start mid-month
+    }
+    while (cursor <= end) {
+      const monthStart = cursor < start ? start : cursor;
+      const nextMonth = addUtcMonths(cursor, 1);
+      const monthEndExclusive = nextMonth;
+      const monthEnd =
+        monthEndExclusive > end
+          ? end
+          : addUtcDays(monthEndExclusive, -1);
+      if (monthEnd < start) {
+        cursor = nextMonth;
+        continue;
+      }
+      const clippedStart = monthStart < start ? start : monthStart;
+      const clippedEnd = monthEnd > end ? end : monthEnd;
+      const offset = diffUtcDays(start, clippedStart);
+      const days = diffUtcDays(clippedStart, clippedEnd) + 1;
+      cells.push({
+        date: clippedStart,
+        label: new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        }).format(clippedStart),
+        leftPercent: (offset / span) * 100,
+        widthPercent: (days / span) * 100,
+      });
+      cursor = nextMonth;
+      if (cells.length > 120) break;
+    }
+  }
+
+  // Month/year bands for day and week zooms.
+  if (zoom !== "month") {
+    let bandCursor = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1),
+    );
+    while (bandCursor <= end) {
+      const nextMonth = addUtcMonths(bandCursor, 1);
+      const clippedStart = bandCursor < start ? start : bandCursor;
+      const clippedEnd =
+        addUtcDays(nextMonth, -1) > end ? end : addUtcDays(nextMonth, -1);
+      if (clippedEnd >= start) {
+        const offset = diffUtcDays(start, clippedStart);
+        const days = diffUtcDays(clippedStart, clippedEnd) + 1;
+        bands.push({
+          label: new Intl.DateTimeFormat("en-US", {
+            month: "short",
+            year: "numeric",
+            timeZone: "UTC",
+          })
+            .format(clippedStart)
+            .toUpperCase(),
+          leftPercent: (offset / span) * 100,
+          widthPercent: (days / span) * 100,
+        });
+      }
+      bandCursor = nextMonth;
+      if (bands.length > 48) break;
+    }
+  }
+
+  return { bands, cells };
+}
+
+export function formatWeekRangeLabel(start: Date, end: Date): string {
+  const sameMonth = start.getUTCMonth() === end.getUTCMonth();
+  const startFmt = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(start);
+  const endFmt = sameMonth
+    ? new Intl.DateTimeFormat("en-US", {
+        day: "numeric",
+        timeZone: "UTC",
+      }).format(end)
+    : new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        timeZone: "UTC",
+      }).format(end);
+  return `${startFmt}–${endFmt}`;
+}
+
+export function getTaskBarAriaLabel(task: {
+  task_code: string;
+  name: string;
+  status: string;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  progress_percentage?: string | number;
+  is_milestone?: boolean;
+}): string {
+  const schedule =
+    task.planned_start && task.planned_end
+      ? `${task.planned_start} to ${task.planned_end}`
+      : "unscheduled";
+  const kind = task.is_milestone ? "Milestone" : "Task";
+  const progress =
+    task.progress_percentage === null || task.progress_percentage === undefined
+      ? "0%"
+      : `${Math.round(Number(task.progress_percentage))}%`;
+  return `${kind} ${task.task_code} ${task.name}. Status ${task.status}. Schedule ${schedule}. Progress ${progress}.`;
+}
