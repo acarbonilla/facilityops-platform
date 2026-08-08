@@ -279,6 +279,16 @@ export interface InspectionListItem {
   updated_at: string;
 }
 
+export interface InspectionLinkedProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: string;
+  link_id: string;
+  relationship: string;
+  link_type: string;
+}
+
 export interface InspectionDetail extends InspectionListItem {
   remarks: string;
   verified_date: string | null;
@@ -294,6 +304,7 @@ export interface InspectionDetail extends InspectionListItem {
   ai_analysis_exists: boolean;
   sla: InspectionSLA | null;
   escalations: InspectionEscalation[];
+  linked_projects?: InspectionLinkedProjectSummary[];
 }
 
 export interface InspectionItemFormValues {

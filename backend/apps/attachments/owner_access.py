@@ -16,12 +16,17 @@ from apps.inspection.models import Inspection
 from apps.inspection.tenant_scope import scope_queryset_to_user as scope_inspections_to_user
 from apps.maintenance.models import MaintenanceWorkOrder
 from apps.maintenance.tenant_scope import scope_work_orders_to_user
+from apps.projects.models import Project, ProjectIssue, ProjectNote, ProjectTask
+from apps.projects.tenant_scope import scope_projects_to_user
 
 from .exceptions import AttachmentPermissionError, AttachmentValidationError
 from .ownership import (
     FM_TICKET_IMMUTABLE_STATUSES,
     INSPECTION_IMMUTABLE_STATUSES,
     MAINTENANCE_IMMUTABLE_STATUSES,
+    PROJECT_IMMUTABLE_STATUSES,
+    PROJECT_ISSUE_IMMUTABLE_STATUSES,
+    PROJECT_TASK_IMMUTABLE_STATUSES,
     AttachmentOwnerType,
     AttachmentVisibility,
 )
@@ -322,6 +327,305 @@ def filter_queryset_for_inspection(*, queryset, inspection):
 
 
 # ---------------------------------------------------------------------------
+# Project (FO-103)
+# ---------------------------------------------------------------------------
+
+
+def can_view_project_attachments(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.view",
+        "projects.manage",
+    )
+
+
+def can_contribute_to_project(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.update",
+        "projects.manage",
+    )
+
+
+def project_is_immutable(project) -> bool:
+    if getattr(project, "is_deleted", False):
+        return True
+    return getattr(project, "status", None) in PROJECT_IMMUTABLE_STATUSES
+
+
+def resolve_project_for_actor(*, actor, project_id):
+    if actor_is_requester_audience(actor) or not can_view_project_attachments(actor):
+        raise Http404
+    queryset = scope_projects_to_user(
+        Project.objects.filter(is_deleted=False),
+        actor,
+    )
+    project = queryset.filter(pk=project_id).first()
+    if project is None:
+        raise Http404
+    return project
+
+
+def authorize_project_list(*, actor, project_id):
+    return resolve_project_for_actor(actor=actor, project_id=project_id)
+
+
+def authorize_project_upload(*, actor, project_id, requested_visibility=None):
+    project = resolve_project_for_actor(actor=actor, project_id=project_id)
+    if project_is_immutable(project):
+        raise AttachmentPermissionError(
+            "Attachments cannot be uploaded while this project is completed or cancelled."
+        )
+    if not can_contribute_to_project(actor):
+        raise AttachmentPermissionError(
+            "You do not have permission to upload attachments for this project."
+        )
+    visibility = resolve_upload_visibility(
+        actor=actor,
+        requested_visibility=requested_visibility,
+        owner_type=AttachmentOwnerType.PROJECT,
+    )
+    return project, visibility
+
+
+def filter_queryset_for_project(*, queryset, project):
+    return queryset.filter(
+        owner_type=AttachmentOwnerType.PROJECT,
+        owner_id=project.id,
+        tenant_id=project.tenant_id,
+        visibility=AttachmentVisibility.INTERNAL_ONLY,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Project Task (FO-104)
+# ---------------------------------------------------------------------------
+
+
+def can_view_project_task_attachments(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.tasks.view",
+        "projects.view",
+        "projects.manage",
+        "projects.tasks.manage",
+    )
+
+
+def can_contribute_to_project_task(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.tasks.update",
+        "projects.manage",
+        "projects.tasks.manage",
+    )
+
+
+def project_task_is_immutable(task) -> bool:
+    if getattr(task, "is_deleted", False):
+        return True
+    return getattr(task, "status", None) in PROJECT_TASK_IMMUTABLE_STATUSES
+
+
+def resolve_project_task_for_actor(*, actor, task_id):
+    if actor_is_requester_audience(actor) or not can_view_project_task_attachments(
+        actor
+    ):
+        raise Http404
+    queryset = ProjectTask.objects.filter(is_deleted=False).select_related("project")
+    project_ids = scope_projects_to_user(
+        Project.objects.filter(is_deleted=False),
+        actor,
+    ).values_list("id", flat=True)
+    task = queryset.filter(pk=task_id, project_id__in=project_ids).first()
+    if task is None:
+        raise Http404
+    return task
+
+
+def authorize_project_task_list(*, actor, task_id):
+    return resolve_project_task_for_actor(actor=actor, task_id=task_id)
+
+
+def authorize_project_task_upload(*, actor, task_id, requested_visibility=None):
+    task = resolve_project_task_for_actor(actor=actor, task_id=task_id)
+    if project_task_is_immutable(task):
+        raise AttachmentPermissionError(
+            "Attachments cannot be uploaded while this task is completed or cancelled."
+        )
+    if not can_contribute_to_project_task(actor):
+        raise AttachmentPermissionError(
+            "You do not have permission to upload attachments for this task."
+        )
+    visibility = resolve_upload_visibility(
+        actor=actor,
+        requested_visibility=requested_visibility,
+        owner_type=AttachmentOwnerType.PROJECT_TASK,
+    )
+    return task, visibility
+
+
+def filter_queryset_for_project_task(*, queryset, task):
+    return queryset.filter(
+        owner_type=AttachmentOwnerType.PROJECT_TASK,
+        owner_id=task.id,
+        tenant_id=task.tenant_id,
+        visibility=AttachmentVisibility.INTERNAL_ONLY,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Project Note (FO-106)
+# ---------------------------------------------------------------------------
+
+
+def can_view_project_note_attachments(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.notes.view",
+        "projects.view",
+        "projects.manage",
+        "projects.notes.manage",
+    )
+
+
+def can_contribute_to_project_note(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.notes.manage",
+        "projects.manage",
+    )
+
+
+def project_note_is_immutable(note) -> bool:
+    return bool(getattr(note, "is_deleted", False))
+
+
+def resolve_project_note_for_actor(*, actor, note_id):
+    if actor_is_requester_audience(actor) or not can_view_project_note_attachments(
+        actor
+    ):
+        raise Http404
+    queryset = ProjectNote.objects.filter(is_deleted=False).select_related("project")
+    project_ids = scope_projects_to_user(
+        Project.objects.filter(is_deleted=False),
+        actor,
+    ).values_list("id", flat=True)
+    note = queryset.filter(pk=note_id, project_id__in=project_ids).first()
+    if note is None:
+        raise Http404
+    return note
+
+
+def authorize_project_note_list(*, actor, note_id):
+    return resolve_project_note_for_actor(actor=actor, note_id=note_id)
+
+
+def authorize_project_note_upload(*, actor, note_id, requested_visibility=None):
+    note = resolve_project_note_for_actor(actor=actor, note_id=note_id)
+    if project_note_is_immutable(note):
+        raise AttachmentPermissionError(
+            "Attachments cannot be uploaded for a deleted note."
+        )
+    if not can_contribute_to_project_note(actor):
+        raise AttachmentPermissionError(
+            "You do not have permission to upload attachments for this note."
+        )
+    visibility = resolve_upload_visibility(
+        actor=actor,
+        requested_visibility=requested_visibility,
+        owner_type=AttachmentOwnerType.PROJECT_NOTE,
+    )
+    return note, visibility
+
+
+def filter_queryset_for_project_note(*, queryset, note):
+    return queryset.filter(
+        owner_type=AttachmentOwnerType.PROJECT_NOTE,
+        owner_id=note.id,
+        tenant_id=note.tenant_id,
+        visibility=AttachmentVisibility.INTERNAL_ONLY,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Project Issue (FO-106)
+# ---------------------------------------------------------------------------
+
+
+def can_view_project_issue_attachments(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.issues.view",
+        "projects.view",
+        "projects.manage",
+        "projects.issues.manage",
+    )
+
+
+def can_contribute_to_project_issue(actor) -> bool:
+    return _has_any_permission(
+        actor,
+        "projects.issues.manage",
+        "projects.manage",
+    )
+
+
+def project_issue_is_immutable(issue) -> bool:
+    if getattr(issue, "is_deleted", False):
+        return True
+    return getattr(issue, "status", None) in PROJECT_ISSUE_IMMUTABLE_STATUSES
+
+
+def resolve_project_issue_for_actor(*, actor, issue_id):
+    if actor_is_requester_audience(actor) or not can_view_project_issue_attachments(
+        actor
+    ):
+        raise Http404
+    queryset = ProjectIssue.objects.filter(is_deleted=False).select_related("project")
+    project_ids = scope_projects_to_user(
+        Project.objects.filter(is_deleted=False),
+        actor,
+    ).values_list("id", flat=True)
+    issue = queryset.filter(pk=issue_id, project_id__in=project_ids).first()
+    if issue is None:
+        raise Http404
+    return issue
+
+
+def authorize_project_issue_list(*, actor, issue_id):
+    return resolve_project_issue_for_actor(actor=actor, issue_id=issue_id)
+
+
+def authorize_project_issue_upload(*, actor, issue_id, requested_visibility=None):
+    issue = resolve_project_issue_for_actor(actor=actor, issue_id=issue_id)
+    if project_issue_is_immutable(issue):
+        raise AttachmentPermissionError(
+            "Attachments cannot be uploaded while this issue is resolved, "
+            "closed, or cancelled."
+        )
+    if not can_contribute_to_project_issue(actor):
+        raise AttachmentPermissionError(
+            "You do not have permission to upload attachments for this issue."
+        )
+    visibility = resolve_upload_visibility(
+        actor=actor,
+        requested_visibility=requested_visibility,
+        owner_type=AttachmentOwnerType.PROJECT_ISSUE,
+    )
+    return issue, visibility
+
+
+def filter_queryset_for_project_issue(*, queryset, issue):
+    return queryset.filter(
+        owner_type=AttachmentOwnerType.PROJECT_ISSUE,
+        owner_id=issue.id,
+        tenant_id=issue.tenant_id,
+        visibility=AttachmentVisibility.INTERNAL_ONLY,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Shared owned-attachment access
 # ---------------------------------------------------------------------------
 
@@ -345,6 +649,22 @@ def authorize_owned_attachment_access(*, actor, attachment, action: str):
         )
     if owner_type == AttachmentOwnerType.INSPECTION and owner_id is not None:
         return _authorize_inspection_attachment(
+            actor=actor, attachment=attachment, action=action, owner_id=owner_id
+        )
+    if owner_type == AttachmentOwnerType.PROJECT and owner_id is not None:
+        return _authorize_project_attachment(
+            actor=actor, attachment=attachment, action=action, owner_id=owner_id
+        )
+    if owner_type == AttachmentOwnerType.PROJECT_TASK and owner_id is not None:
+        return _authorize_project_task_attachment(
+            actor=actor, attachment=attachment, action=action, owner_id=owner_id
+        )
+    if owner_type == AttachmentOwnerType.PROJECT_NOTE and owner_id is not None:
+        return _authorize_project_note_attachment(
+            actor=actor, attachment=attachment, action=action, owner_id=owner_id
+        )
+    if owner_type == AttachmentOwnerType.PROJECT_ISSUE and owner_id is not None:
+        return _authorize_project_issue_attachment(
             actor=actor, attachment=attachment, action=action, owner_id=owner_id
         )
     # Unsupported or incomplete owner context must never grant access.
@@ -438,6 +758,106 @@ def _authorize_inspection_attachment(*, actor, attachment, action, owner_id):
     raise Http404
 
 
+def _authorize_project_attachment(*, actor, attachment, action, owner_id):
+    try:
+        project = resolve_project_for_actor(actor=actor, project_id=owner_id)
+    except Http404:
+        raise Http404 from None
+
+    if attachment.tenant_id != project.tenant_id:
+        raise Http404
+    if attachment.visibility != AttachmentVisibility.INTERNAL_ONLY:
+        if actor_is_requester_audience(actor):
+            raise Http404
+
+    if action in {"view", "download"}:
+        return True
+
+    if action == "delete":
+        if project_is_immutable(project):
+            raise Http404
+        if not can_contribute_to_project(actor):
+            raise Http404
+        return True
+
+    raise Http404
+
+
+def _authorize_project_task_attachment(*, actor, attachment, action, owner_id):
+    try:
+        task = resolve_project_task_for_actor(actor=actor, task_id=owner_id)
+    except Http404:
+        raise Http404 from None
+
+    if attachment.tenant_id != task.tenant_id:
+        raise Http404
+    if attachment.visibility != AttachmentVisibility.INTERNAL_ONLY:
+        if actor_is_requester_audience(actor):
+            raise Http404
+
+    if action in {"view", "download"}:
+        return True
+
+    if action == "delete":
+        if project_task_is_immutable(task):
+            raise Http404
+        if not can_contribute_to_project_task(actor):
+            raise Http404
+        return True
+
+    raise Http404
+
+
+def _authorize_project_note_attachment(*, actor, attachment, action, owner_id):
+    try:
+        note = resolve_project_note_for_actor(actor=actor, note_id=owner_id)
+    except Http404:
+        raise Http404 from None
+
+    if attachment.tenant_id != note.tenant_id:
+        raise Http404
+    if attachment.visibility != AttachmentVisibility.INTERNAL_ONLY:
+        if actor_is_requester_audience(actor):
+            raise Http404
+
+    if action in {"view", "download"}:
+        return True
+
+    if action == "delete":
+        if project_note_is_immutable(note):
+            raise Http404
+        if not can_contribute_to_project_note(actor):
+            raise Http404
+        return True
+
+    raise Http404
+
+
+def _authorize_project_issue_attachment(*, actor, attachment, action, owner_id):
+    try:
+        issue = resolve_project_issue_for_actor(actor=actor, issue_id=owner_id)
+    except Http404:
+        raise Http404 from None
+
+    if attachment.tenant_id != issue.tenant_id:
+        raise Http404
+    if attachment.visibility != AttachmentVisibility.INTERNAL_ONLY:
+        if actor_is_requester_audience(actor):
+            raise Http404
+
+    if action in {"view", "download"}:
+        return True
+
+    if action == "delete":
+        if project_issue_is_immutable(issue):
+            raise Http404
+        if not can_contribute_to_project_issue(actor):
+            raise Http404
+        return True
+
+    raise Http404
+
+
 def compute_can_delete_for_attachment(*, actor, attachment) -> bool:
     """Advisory capability used by serializers; DELETE still revalidates."""
     from apps.attachments.tenant_scope import user_can_delete_attachments
@@ -490,6 +910,58 @@ def compute_can_delete_for_attachment(*, actor, attachment) -> bool:
             actor,
         ).filter(pk=owner_id).first()
         if inspection is None or inspection_is_immutable(inspection):
+            return False
+        return True
+
+    if owner_type == AttachmentOwnerType.PROJECT:
+        if not can_view_project_attachments(actor) or not can_contribute_to_project(
+            actor
+        ):
+            return False
+        project = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            actor,
+        ).filter(pk=owner_id).first()
+        if project is None or project_is_immutable(project):
+            return False
+        return True
+
+    if owner_type == AttachmentOwnerType.PROJECT_TASK:
+        if not can_view_project_task_attachments(
+            actor
+        ) or not can_contribute_to_project_task(actor):
+            return False
+        try:
+            task = resolve_project_task_for_actor(actor=actor, task_id=owner_id)
+        except Http404:
+            return False
+        if project_task_is_immutable(task):
+            return False
+        return True
+
+    if owner_type == AttachmentOwnerType.PROJECT_NOTE:
+        if not can_view_project_note_attachments(
+            actor
+        ) or not can_contribute_to_project_note(actor):
+            return False
+        try:
+            note = resolve_project_note_for_actor(actor=actor, note_id=owner_id)
+        except Http404:
+            return False
+        if project_note_is_immutable(note):
+            return False
+        return True
+
+    if owner_type == AttachmentOwnerType.PROJECT_ISSUE:
+        if not can_view_project_issue_attachments(
+            actor
+        ) or not can_contribute_to_project_issue(actor):
+            return False
+        try:
+            issue = resolve_project_issue_for_actor(actor=actor, issue_id=owner_id)
+        except Http404:
+            return False
+        if project_issue_is_immutable(issue):
             return False
         return True
 

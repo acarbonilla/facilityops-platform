@@ -26,6 +26,21 @@ export const APP_NAVIGATION: NavigationItem[] = [
     matchStrategy: "prefix",
   },
   {
+    label: "Projects",
+    href: "/projects",
+    authenticatedOnly: true,
+    requiredPermissions: ["projects.view"],
+    matchStrategy: "prefix",
+  },
+  {
+    label: "My Work",
+    href: "/my-work",
+    authenticatedOnly: true,
+    requiredPermissions: ["projects.view", "projects.tasks.view"],
+    permissionMode: "any",
+    matchStrategy: "prefix",
+  },
+  {
     label: "5S Inspection",
     href: "/inspection/inspections",
     authenticatedOnly: true,

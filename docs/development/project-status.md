@@ -15,13 +15,14 @@
 ## Current Module
 
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
-- Project Management — **PM-UX-001 / PM-UX-001A UX baseline** (docs merged; FO-103 not started)
+- Project Management — **FO-113A READY FOR MERGE** on shared `feature/project-management` (Draft PR #67 → Ready for Review; FO-102 deferred)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
+- FO-102 Gemini billing/quota diagnostics — **DEFERRED**
 
 ## Current Branch
 
-- `main` @ `1ea2b9bd882bbb9911c38dd824d2973579982627` (PM-UX-001A post-merge docs sync)
-- Next implementation branch (not created yet): `feature/project-management`
+- Active: `feature/project-management` (FO-113A finalize/merge; Draft PR #67)
+- Baseline `main` @ `c7ae7fc81bb58b2afffd33f185910329c04c1231` (PM-UX-001A baseline)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -129,17 +130,20 @@
 
 ## Current Task
 
-- PM-UX-001A — Finalize, Merge & Post-Merge Verification **COMPLETE AND MERGED**.
-  Approved Project Management UX baseline on `main`. FO-103 **not started**.
-- Latest stable product feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
+- FO-113A — Finalize, Merge & Post-Merge Verification **IN PROGRESS** on `feature/project-management`.
+  FO-113 decision retained: **READY WITH ACCEPTED LIMITATIONS**.
+  See `docs/02-Development/FO-113A - Project Management Finalize, Merge and Post-Merge Verification.md`.
+- FO-113 / FO-112 / FO-111 / FO-110 / FO-109 complete on the same branch.
+- FO-103–FO-108 remain complete on the same branch.
+- PM-UX-001 / PM-UX-001A UX baseline remains COMPLETE AND MERGED on `main`.
+- Latest stable merged product feature: Intelligent Employee Ticket Intake (FO-096–FO-101A).
 - UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
+- FO-102 remains **DEFERRED**.
 
 ## Next Milestone
 
-- FO-103 Project Management Foundation on shared branch `feature/project-management`
-  (create at FO-103 start; FO-103–FO-109 on that branch; FO-109A sole merge to `main`)
-- Follow-up: FO-088 date-window flake remains watchlisted
-- Deferred Phase 2: RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
+- Complete FO-113A merge of Draft PR #67 into `main` and post-merge verification
+- Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release
 

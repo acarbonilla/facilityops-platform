@@ -11,6 +11,7 @@ urlpatterns = [
     path("health/", include("apps.core.urls")),
     path("inspection/", include("apps.inspection.urls")),
     path("maintenance/", include("apps.maintenance.urls")),
+    path("projects/", include("apps.projects.urls")),
     path("master-data/", include("apps.master_data.urls")),
     path("reporting/", include("apps.reporting.urls")),
 ]

@@ -314,6 +314,7 @@ class FmTicketDetailSerializer(FmTicketListSerializer):
     sla = serializers.SerializerMethodField()
     escalation_history = serializers.SerializerMethodField()
     linked_work_order = serializers.SerializerMethodField()
+    linked_projects = serializers.SerializerMethodField()
 
     class Meta(FmTicketListSerializer.Meta):
         fields = FmTicketListSerializer.Meta.fields + (
@@ -323,6 +324,7 @@ class FmTicketDetailSerializer(FmTicketListSerializer):
             "sla",
             "escalation_history",
             "linked_work_order",
+            "linked_projects",
             "resolved_at",
             "closed_at",
             "created_at",
@@ -342,6 +344,21 @@ class FmTicketDetailSerializer(FmTicketListSerializer):
             "status": work_order.status,
             "title": work_order.title,
         }
+
+    def get_linked_projects(self, obj):
+        request = self.context.get("request")
+        actor = getattr(request, "user", None) if request else None
+        if actor is None:
+            return []
+        from apps.fm_tickets.tenant_scope import uses_employee_requester_scope
+        from apps.projects.link_service import (
+            LINK_TYPE_FM,
+            reverse_project_summaries_for_target,
+        )
+
+        if uses_employee_requester_scope(actor):
+            return []
+        return reverse_project_summaries_for_target(actor, LINK_TYPE_FM, obj)
 
     def get_sla(self, obj):
         return {

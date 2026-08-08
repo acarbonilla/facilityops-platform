@@ -130,6 +130,83 @@ export const API_ENDPOINTS = {
     cancel: (id: string) => `/inspection/inspections/${id}/cancel/`,
     reopen: (id: string) => `/inspection/inspections/${id}/reopen/`,
   },
+  projects: {
+    list: "/projects/",
+    detail: (id: string) => `/projects/${id}/`,
+    metrics: "/projects/metrics/",
+    myWork: "/projects/my-work/",
+    myWorkTasks: "/projects/my-work/tasks/",
+    members: (id: string) => `/projects/${id}/members/`,
+    member: (id: string, memberId: string) =>
+      `/projects/${id}/members/${memberId}/`,
+    history: (id: string) => `/projects/${id}/history/`,
+    taskSummary: (id: string) => `/projects/${id}/task-summary/`,
+    tasks: (projectId: string) => `/projects/${projectId}/tasks/`,
+    taskReorder: (projectId: string) =>
+      `/projects/${projectId}/tasks/reorder/`,
+    taskDetail: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/`,
+    taskAssign: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/assign/`,
+    taskStart: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/start/`,
+    taskPause: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/pause/`,
+    taskResume: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/resume/`,
+    taskComplete: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/complete/`,
+    taskProgress: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/progress/`,
+    taskReportBlocker: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/report-blocker/`,
+    taskChecklist: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/checklist/`,
+    taskChecklistItem: (
+      projectId: string,
+      taskId: string,
+      itemId: string,
+    ) => `/projects/${projectId}/tasks/${taskId}/checklist/${itemId}/`,
+    taskComments: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/comments/`,
+    taskComment: (projectId: string, taskId: string, commentId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/comments/${commentId}/`,
+    gantt: (projectId: string) => `/projects/${projectId}/gantt/`,
+    dependencies: (projectId: string) =>
+      `/projects/${projectId}/dependencies/`,
+    dependency: (projectId: string, dependencyId: string) =>
+      `/projects/${projectId}/dependencies/${dependencyId}/`,
+    taskPredecessors: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/predecessors/`,
+    taskSuccessors: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/successors/`,
+    taskDependencyReadiness: (projectId: string, taskId: string) =>
+      `/projects/${projectId}/tasks/${taskId}/dependency-readiness/`,
+    timeline: (projectId: string) => `/projects/${projectId}/timeline/`,
+    progress: (projectId: string) => `/projects/${projectId}/progress/`,
+    progressHistory: (projectId: string) =>
+      `/projects/${projectId}/progress-history/`,
+    recalculateProgress: (projectId: string) =>
+      `/projects/${projectId}/recalculate-progress/`,
+    notes: (projectId: string) => `/projects/${projectId}/notes/`,
+    noteDetail: (projectId: string, noteId: string) =>
+      `/projects/${projectId}/notes/${noteId}/`,
+    issues: (projectId: string) => `/projects/${projectId}/issues/`,
+    issueDetail: (projectId: string, issueId: string) =>
+      `/projects/${projectId}/issues/${issueId}/`,
+    issueComments: (projectId: string, issueId: string) =>
+      `/projects/${projectId}/issues/${issueId}/comments/`,
+    issueComment: (
+      projectId: string,
+      issueId: string,
+      commentId: string,
+    ) => `/projects/${projectId}/issues/${issueId}/comments/${commentId}/`,
+    links: (projectId: string) => `/projects/${projectId}/links/`,
+    linkDetail: (projectId: string, linkId: string) =>
+      `/projects/${projectId}/links/${linkId}/`,
+    linkOptions: (projectId: string) =>
+      `/projects/${projectId}/link-options/`,
+  },
   reporting: {
     overview: "/reporting/overview/",
     filterOptions: "/reporting/filter-options/",

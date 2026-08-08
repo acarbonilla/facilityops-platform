@@ -19,6 +19,7 @@ import type {
   InspectionHistory,
   InspectionItem,
 } from "@/types/inspection";
+import { LinkedProjectsSection } from "@/features/projects/components/linked-projects-section";
 
 import { InspectionLoadingSkeleton } from "./inspection-loading-skeleton";
 import { InspectionAIAnalysis } from "./inspection-ai-analysis";
@@ -586,6 +587,8 @@ export function InspectionDetailScreen({ id }: { id: string }) {
         rows={detail.escalations}
         title="Escalations"
       />
+
+      <LinkedProjectsSection linkedProjects={detail.linked_projects} />
 
       <InspectionAIAnalysis inspection={detail} />
     </div>

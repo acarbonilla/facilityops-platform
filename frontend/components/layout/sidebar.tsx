@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { usePermissions } from "@/hooks/use-permissions";
 import { APP_NAVIGATION } from "@/lib/navigation";
 import { filterNavigationForEmployeeRequester } from "@/lib/my-requests/navigation";
+import { canAccessMyWorkNav } from "@/lib/projects/my-work";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -29,6 +30,14 @@ export function Sidebar() {
     permissionsError,
     hasPermission: (code) => hasPermission(code as never),
     hasAnyPermission: (codes) => hasAnyPermission(codes as never[]),
+  }).filter((item) => {
+    if (item.href !== "/my-work") {
+      return true;
+    }
+    return canAccessMyWorkNav({
+      roles,
+      hasPermission: (code) => hasPermission(code as never),
+    });
   });
 
   return (

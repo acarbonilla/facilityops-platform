@@ -1,0 +1,987 @@
+export type ProjectStatus =
+  | "draft"
+  | "planned"
+  | "in_progress"
+  | "on_hold"
+  | "delayed"
+  | "completed"
+  | "cancelled";
+
+export type ProjectPriority = "low" | "medium" | "high" | "critical";
+
+export type ProjectMemberRole = "project_manager" | "member" | "viewer";
+
+export interface ProjectListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: ProjectStatus;
+  priority?: ProjectPriority;
+  organization?: string;
+  building?: string;
+  project_manager?: string;
+  planned_start_date_from?: string;
+  planned_start_date_to?: string;
+  planned_end_date_from?: string;
+  planned_end_date_to?: string;
+  ordering?: string;
+}
+
+export interface ProjectListFilters {
+  search: string;
+  status: ProjectStatus | "";
+  priority: ProjectPriority | "";
+  organization: string;
+  building: string;
+  projectManager: string;
+  plannedStartFrom: string;
+  plannedStartTo: string;
+  plannedEndFrom: string;
+  plannedEndTo: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectMetrics {
+  total: number;
+  draft: number;
+  planned: number;
+  in_progress: number;
+  on_hold: number;
+  delayed: number;
+  completed: number;
+  cancelled: number;
+}
+
+export interface ProjectMember {
+  id: string;
+  tenant: string;
+  project: string;
+  user: string;
+  user_email: string;
+  user_name: string;
+  role: ProjectMemberRole;
+  is_active: boolean;
+  added_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectMemberCreatePayload {
+  user: string;
+  role?: ProjectMemberRole;
+}
+
+export interface ProjectHistory {
+  id: string;
+  project: string;
+  actor: string | null;
+  actor_email: string | null;
+  action: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ProjectListItem {
+  id: string;
+  tenant: string;
+  organization: string;
+  organization_name: string;
+  building: string | null;
+  building_name: string | null;
+  project_code: string;
+  name: string;
+  description: string;
+  project_manager: string | null;
+  project_manager_email: string | null;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  planned_start_date: string | null;
+  planned_end_date: string | null;
+  actual_start_date: string | null;
+  actual_end_date: string | null;
+  completion_percentage: string | number;
+  my_workspace?: {
+    my_assigned: number;
+    my_completed: number;
+    my_overdue: number;
+    next_assigned_task: {
+      id: string;
+      task_code: string;
+      name: string;
+      status: string;
+      planned_end: string | null;
+    } | null;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskSummary {
+  total: number;
+  not_started: number;
+  in_progress: number;
+  blocked: number;
+  on_hold: number;
+  completed: number;
+  cancelled: number;
+  my_assigned?: number;
+  my_completed?: number;
+  my_overdue?: number;
+  next_assigned_task?: {
+    id: string;
+    task_code: string;
+    name: string;
+    status: string;
+    planned_end: string | null;
+  } | null;
+  workspace_scoped?: boolean;
+}
+
+export interface ProjectDetail extends ProjectListItem {
+  members: ProjectMember[];
+  recent_history: ProjectHistory[];
+  task_summary?: ProjectTaskSummary;
+}
+
+export interface ProjectFormValues {
+  organization: string;
+  building: string;
+  project_code: string;
+  name: string;
+  description: string;
+  project_manager: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  planned_start_date: string;
+  planned_end_date: string;
+  actual_start_date: string;
+  actual_end_date: string;
+}
+
+export interface ProjectCreatePayload {
+  organization: string;
+  building?: string | null;
+  project_code?: string;
+  name: string;
+  description?: string;
+  project_manager?: string | null;
+  status?: ProjectStatus;
+  priority?: ProjectPriority;
+  planned_start_date?: string | null;
+  planned_end_date?: string | null;
+  actual_start_date?: string | null;
+  actual_end_date?: string | null;
+}
+
+export type ProjectUpdatePayload = ProjectCreatePayload;
+
+export interface ProjectFormOptions {
+  organizations: import("./master-data").Organization[];
+  buildings: import("./master-data").Building[];
+  supports_user_directory: boolean;
+  user_directory_note: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// FO-104 Project tasks
+// ---------------------------------------------------------------------------
+
+export type ProjectTaskStatus =
+  | "not_started"
+  | "in_progress"
+  | "blocked"
+  | "on_hold"
+  | "completed"
+  | "cancelled";
+
+export type ProjectTaskPriority = "low" | "medium" | "high" | "critical";
+
+export interface ProjectTaskListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: ProjectTaskStatus;
+  priority?: ProjectTaskPriority;
+  person_in_charge?: string;
+  is_milestone?: boolean;
+  planned_start_from?: string;
+  planned_start_to?: string;
+  planned_end_from?: string;
+  planned_end_to?: string;
+  actual_start_from?: string;
+  actual_start_to?: string;
+  actual_end_from?: string;
+  actual_end_to?: string;
+  progress_min?: string | number;
+  progress_max?: string | number;
+  delayed?: boolean;
+  dependency_blocked?: boolean;
+  unscheduled?: boolean;
+  ordering?: string;
+}
+
+export interface ProjectTaskListFilters {
+  search: string;
+  status: ProjectTaskStatus | "";
+  priority: ProjectTaskPriority | "";
+  personInCharge: string;
+  isMilestone: "" | "true" | "false";
+  delayed: "" | "true" | "false";
+  dependencyBlocked: "" | "true" | "false";
+  unscheduled: "" | "true" | "false";
+  plannedStartFrom: string;
+  plannedStartTo: string;
+  plannedEndFrom: string;
+  plannedEndTo: string;
+  progressMin: string;
+  progressMax: string;
+  sort: string;
+  pageSize: number;
+}
+
+/** FO-105 derived readiness + delay fields on task list/detail. */
+export interface ProjectTaskDerivedFields {
+  is_dependency_ready: boolean;
+  blocking_predecessor_count: number;
+  predecessor_count: number;
+  successor_count: number;
+  is_delayed: boolean;
+  is_completed_late: boolean;
+  delay_days: number;
+}
+
+export interface ProjectTaskListItem extends ProjectTaskDerivedFields {
+  id: string;
+  tenant: string;
+  project: string;
+  task_code: string;
+  name: string;
+  description: string;
+  person_in_charge: string | null;
+  person_in_charge_email: string | null;
+  status: ProjectTaskStatus;
+  priority: ProjectTaskPriority;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  progress_percentage: string | number;
+  sequence: number;
+  is_milestone: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskChecklistItem {
+  id: string;
+  task: string;
+  text: string;
+  is_completed: boolean;
+  sequence: number;
+  completed_by: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskComment {
+  id: string;
+  task: string;
+  author: string;
+  author_email: string;
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskDetail extends ProjectTaskListItem {
+  checklist_items: ProjectTaskChecklistItem[];
+  comments: ProjectTaskComment[];
+  comments_count: number;
+}
+
+export interface ProjectTaskFormValues {
+  name: string;
+  description: string;
+  person_in_charge: string;
+  status: ProjectTaskStatus;
+  priority: ProjectTaskPriority;
+  planned_start: string;
+  planned_end: string;
+  actual_start: string;
+  actual_end: string;
+  progress_percentage: string;
+  sequence: string;
+  is_milestone: boolean;
+}
+
+export interface ProjectTaskCreatePayload {
+  name: string;
+  description?: string;
+  person_in_charge?: string | null;
+  status?: ProjectTaskStatus;
+  priority?: ProjectTaskPriority;
+  planned_start?: string | null;
+  planned_end?: string | null;
+  actual_start?: string | null;
+  actual_end?: string | null;
+  progress_percentage?: string | number;
+  sequence?: number;
+  is_milestone?: boolean;
+}
+
+export type ProjectTaskUpdatePayload = ProjectTaskCreatePayload;
+
+export interface ProjectTaskAssignPayload {
+  person_in_charge: string;
+}
+
+export interface ProjectTaskReorderPayload {
+  task_ids: string[];
+}
+
+export interface ProjectTaskChecklistCreatePayload {
+  text: string;
+  sequence?: number;
+  is_completed?: boolean;
+}
+
+export interface ProjectTaskChecklistUpdatePayload {
+  text?: string;
+  sequence?: number;
+  is_completed?: boolean;
+}
+
+export interface ProjectTaskCommentCreatePayload {
+  body: string;
+  is_internal?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// FO-105 Gantt & task dependencies
+// ---------------------------------------------------------------------------
+
+export type ProjectDependencyType = "finish_to_start";
+
+export interface ProjectTaskBlockingPredecessor {
+  id: string;
+  task_code: string;
+  name: string;
+  status: ProjectTaskStatus;
+  planned_end: string | null;
+}
+
+export interface ProjectTaskDependencyReadiness {
+  is_dependency_ready: boolean;
+  blocking_predecessor_count: number;
+  blocking_predecessors: ProjectTaskBlockingPredecessor[];
+  predecessor_count: number;
+  successor_count: number;
+}
+
+export interface ProjectTaskDependency {
+  id: string;
+  tenant: string;
+  project: string;
+  predecessor_task: string;
+  predecessor_task_code: string;
+  successor_task: string;
+  successor_task_code: string;
+  dependency_type: ProjectDependencyType;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectTaskDependencyCreatePayload {
+  predecessor_task: string;
+  successor_task: string;
+  dependency_type?: ProjectDependencyType;
+}
+
+export interface ProjectGanttProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  priority: ProjectPriority;
+  planned_start_date: string | null;
+  planned_end_date: string | null;
+  organization: string;
+  tenant: string;
+}
+
+export interface ProjectGanttTask extends ProjectTaskDerivedFields {
+  id: string;
+  tenant: string;
+  project: string;
+  task_code: string;
+  name: string;
+  description: string;
+  person_in_charge: string | null;
+  person_in_charge_email: string | null;
+  status: ProjectTaskStatus;
+  priority: ProjectTaskPriority;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  progress_percentage: string | number;
+  sequence: number;
+  is_milestone: boolean;
+  predecessor_ids: string[];
+  successor_ids: string[];
+  is_scheduled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectGanttDependency {
+  id: string;
+  predecessor_task_id: string;
+  successor_task_id: string;
+  dependency_type: ProjectDependencyType;
+}
+
+export interface ProjectGanttSummary {
+  total_tasks: number;
+  scheduled_tasks: number;
+  unscheduled_tasks: number;
+  milestones: number;
+  delayed_tasks: number;
+  dependency_blocked_tasks: number;
+}
+
+export interface ProjectGanttResponse {
+  project: ProjectGanttProjectSummary;
+  tasks: ProjectGanttTask[];
+  dependencies: ProjectGanttDependency[];
+  summary: ProjectGanttSummary;
+}
+
+// ---------------------------------------------------------------------------
+// FO-106 Timeline, Notes & Issues
+// ---------------------------------------------------------------------------
+
+export type ProjectNoteCategory =
+  | "general"
+  | "meeting"
+  | "decision"
+  | "safety"
+  | "material"
+  | "contractor"
+  | "client"
+  | "other";
+
+export type ProjectIssueSeverity = "low" | "medium" | "high" | "critical";
+
+export type ProjectIssueStatus =
+  | "open"
+  | "investigating"
+  | "blocked"
+  | "resolved"
+  | "closed"
+  | "cancelled";
+
+export type ProjectTimelineEventCategory =
+  | "project"
+  | "task"
+  | "issue"
+  | "note"
+  | "attachment"
+  | "comment"
+  | "status"
+  | "assignment"
+  | "dependency"
+  | "checklist";
+
+export interface ProjectNoteListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  category?: ProjectNoteCategory;
+  author?: string;
+  ordering?: string;
+}
+
+export interface ProjectNoteListFilters {
+  search: string;
+  category: ProjectNoteCategory | "";
+  author: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectNote {
+  id: string;
+  tenant: string;
+  project: string;
+  title: string;
+  note: string;
+  author: string | null;
+  author_email: string | null;
+  author_name: string | null;
+  category: ProjectNoteCategory;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectNoteFormValues {
+  title: string;
+  note: string;
+  category: ProjectNoteCategory;
+}
+
+export interface ProjectNoteCreatePayload {
+  title: string;
+  note: string;
+  category?: ProjectNoteCategory;
+}
+
+export type ProjectNoteUpdatePayload = ProjectNoteCreatePayload;
+
+export interface ProjectIssueListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  status?: ProjectIssueStatus;
+  severity?: ProjectIssueSeverity;
+  owner?: string;
+  due_date_from?: string;
+  due_date_to?: string;
+  ordering?: string;
+}
+
+export interface ProjectIssueListFilters {
+  search: string;
+  status: ProjectIssueStatus | "";
+  severity: ProjectIssueSeverity | "";
+  owner: string;
+  dueDateFrom: string;
+  dueDateTo: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectIssueComment {
+  id: string;
+  issue: string;
+  author: string;
+  author_email: string;
+  body: string;
+  is_internal: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectIssueListItem {
+  id: string;
+  tenant: string;
+  project: string;
+  title: string;
+  description: string;
+  severity: ProjectIssueSeverity;
+  status: ProjectIssueStatus;
+  owner: string | null;
+  owner_email: string | null;
+  due_date: string | null;
+  resolved_at: string | null;
+  comments_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectIssueDetail extends ProjectIssueListItem {
+  comments: ProjectIssueComment[];
+}
+
+export interface ProjectIssueFormValues {
+  title: string;
+  description: string;
+  severity: ProjectIssueSeverity;
+  status: ProjectIssueStatus;
+  owner: string;
+  due_date: string;
+}
+
+export interface ProjectIssueCreatePayload {
+  title: string;
+  description?: string;
+  severity?: ProjectIssueSeverity;
+  status?: ProjectIssueStatus;
+  owner?: string | null;
+  due_date?: string | null;
+}
+
+export type ProjectIssueUpdatePayload = ProjectIssueCreatePayload;
+
+export interface ProjectIssueCommentCreatePayload {
+  body: string;
+  is_internal?: boolean;
+}
+
+export interface ProjectTimelineListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  search?: string;
+  category?: ProjectTimelineEventCategory;
+  event_category?: ProjectTimelineEventCategory;
+  event_type?: string;
+  action?: string;
+  actor?: string;
+  date_from?: string;
+  date_to?: string;
+  ordering?: string;
+}
+
+export interface ProjectTimelineListFilters {
+  search: string;
+  category: ProjectTimelineEventCategory | "";
+  eventType: string;
+  actor: string;
+  dateFrom: string;
+  dateTo: string;
+  sort: string;
+  pageSize: number;
+}
+
+export interface ProjectTimelineActor {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface ProjectTimelineRelatedObject {
+  type: string;
+  id: string;
+  code: string | null;
+}
+
+export interface ProjectTimelineEntry {
+  id: string;
+  timestamp: string;
+  actor: ProjectTimelineActor | null;
+  event_type: string;
+  category: ProjectTimelineEventCategory | string;
+  title: string;
+  description: string;
+  related_object: ProjectTimelineRelatedObject | null;
+  icon: string;
+  metadata: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// FO-107 Progress & Accomplishment
+// ---------------------------------------------------------------------------
+
+export type ProjectProgressTrend = "increased" | "decreased" | "unchanged";
+
+export type ProjectProgressSnapshotSource =
+  | "task_created"
+  | "task_progress_changed"
+  | "task_status_changed"
+  | "task_cancelled"
+  | "task_deleted"
+  | "task_restored"
+  | "manual_recalculation"
+  | "migration_rebuild";
+
+export interface ProjectProgressActor {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface ProjectProgressTaskSummary {
+  id: string;
+  task_code: string;
+  name: string;
+  status: ProjectTaskStatus;
+  is_milestone: boolean;
+  planned_end: string | null;
+  progress_percentage: string;
+}
+
+export interface ProjectProgressSnapshot {
+  id: string;
+  completion_percentage: string;
+  included_task_count: number;
+  completed_task_count: number;
+  blocked_task_count: number;
+  delayed_task_count: number;
+  recorded_at: string;
+  source: ProjectProgressSnapshotSource | string;
+  triggered_by: ProjectProgressActor | null;
+  related_task: ProjectProgressTaskSummary | null;
+}
+
+export interface ProjectProgressSummary {
+  project_id: string;
+  project_completion_percentage: string;
+  schedule_elapsed_percentage: string | null;
+  included_task_count: number;
+  excluded_task_count: number;
+  total_task_count: number;
+  not_started_count: number;
+  in_progress_count: number;
+  blocked_count: number;
+  on_hold_count: number;
+  completed_count: number;
+  cancelled_count: number;
+  milestone_total: number;
+  milestone_completed: number;
+  delayed_task_count: number;
+  completed_late_count: number;
+  dependency_blocked_count: number;
+  unscheduled_task_count: number;
+  status_blocked_count: number;
+  open_issue_count: number;
+  overdue_issue_count: number;
+  resolved_issue_count: number;
+  high_critical_open_issue_count: number;
+  blocked_issue_count: number;
+  next_milestone: ProjectProgressTaskSummary | null;
+  upcoming_due_tasks: ProjectProgressTaskSummary[];
+  last_progress_update_at: string | null;
+  latest_snapshot: ProjectProgressSnapshot | null;
+  trend: ProjectProgressTrend | string;
+}
+
+export interface ProjectProgressHistoryParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  source?: string;
+  date_from?: string;
+  date_to?: string;
+  ordering?: string;
+}
+
+// ---------------------------------------------------------------------------
+// FO-108 Operational Links
+// ---------------------------------------------------------------------------
+
+export type ProjectOperationalLinkType =
+  | "fm_ticket"
+  | "maintenance_work_order"
+  | "inspection";
+
+export type ProjectOperationalLinkRelationship =
+  | "related"
+  | "source"
+  | "execution"
+  | "corrective_action"
+  | "evidence"
+  | "follow_up";
+
+export interface ProjectOperationalLink {
+  id: string;
+  project_id: string;
+  link_type: ProjectOperationalLinkType;
+  relationship: ProjectOperationalLinkRelationship;
+  notes: string;
+  project_task_id: string | null;
+  created_at: string;
+  updated_at: string;
+  target_accessible: boolean;
+  target_id?: string;
+  target_number?: string | null;
+  target_title?: string;
+  target_status?: string;
+  fm_ticket_id?: string | null;
+  maintenance_work_order_id?: string | null;
+  inspection_id?: string | null;
+}
+
+export interface ProjectLinkedProjectSummary {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  link_id: string;
+  relationship: ProjectOperationalLinkRelationship | string;
+  link_type: ProjectOperationalLinkType | string;
+}
+
+export interface ProjectLinkOption {
+  id: string;
+  number: string | null;
+  title: string;
+  status: string;
+  type: ProjectOperationalLinkType;
+}
+
+export interface ProjectOperationalLinkListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+}
+
+export type ProjectLinkAccessibilityFilter = "" | "accessible" | "restricted";
+
+export interface ProjectOperationalLinkListFilters {
+  search: string;
+  linkType: ProjectOperationalLinkType | "";
+  relationship: ProjectOperationalLinkRelationship | "";
+  accessibility: ProjectLinkAccessibilityFilter;
+  pageSize: number;
+}
+
+export interface ProjectLinkOptionParams
+  extends Record<string, string | number | boolean | undefined> {
+  type: ProjectOperationalLinkType;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface ProjectOperationalLinkFormValues {
+  link_type: ProjectOperationalLinkType | "";
+  target_id: string;
+  relationship: ProjectOperationalLinkRelationship;
+  notes: string;
+  project_task: string;
+}
+
+export interface ProjectOperationalLinkEditFormValues {
+  relationship: ProjectOperationalLinkRelationship;
+  notes: string;
+  project_task: string;
+}
+
+export interface ProjectOperationalLinkCreatePayload {
+  link_type: ProjectOperationalLinkType;
+  fm_ticket?: string;
+  maintenance_work_order?: string;
+  inspection?: string;
+  relationship?: ProjectOperationalLinkRelationship;
+  notes?: string;
+  project_task?: string | null;
+}
+
+export interface ProjectOperationalLinkUpdatePayload {
+  relationship?: ProjectOperationalLinkRelationship;
+  notes?: string;
+  project_task?: string | null;
+}
+
+/** FO-112 Technician My Work dashboard */
+export type MyWorkBlockReason =
+  | "status_blocked"
+  | "waiting_predecessor"
+  | "paused"
+  | null;
+
+export interface MyWorkAssignedTask {
+  id: string;
+  task_code: string;
+  name: string;
+  status: ProjectTaskStatus;
+  priority: ProjectPriority;
+  progress_percentage: string;
+  planned_start: string | null;
+  planned_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  is_delayed: boolean;
+  delay_days: number;
+  is_dependency_ready: boolean;
+  blocking_predecessor_count: number;
+  block_reason: MyWorkBlockReason;
+  checklist_total: number;
+  checklist_completed: number;
+  checklist_completion_label: string;
+}
+
+export interface MyWorkProjectCard {
+  id: string;
+  project_code: string;
+  name: string;
+  status: ProjectStatus;
+  accomplishment_percentage: string;
+  planned_end_date: string | null;
+  project_manager_id: string | null;
+  project_manager_email: string | null;
+  my_task_count: number;
+  my_completed_task_count: number;
+  my_overdue_task_count: number;
+}
+
+export interface MyWorkSummary {
+  my_projects: number;
+  my_assigned_tasks: number;
+  in_progress: number;
+  overdue: number;
+  due_today: number;
+  due_this_week: number;
+  blocked_or_paused: number;
+  status_blocked: number;
+  paused: number;
+  dependency_blocked: number;
+  completed_recently: number;
+  unscheduled: number;
+  upcoming: number;
+}
+
+export interface MyWorkWorkload {
+  assigned: number;
+  in_progress: number;
+  overdue: number;
+  blocked: number;
+  paused: number;
+  completed: number;
+}
+
+export interface MyWorkBlockerIssue {
+  id: string;
+  title: string;
+  status: string;
+  severity: string;
+  project_id: string;
+  project_code: string;
+  project_name: string;
+  created_at: string;
+}
+
+export interface MyWorkDashboard {
+  as_of: string;
+  week_end: string;
+  summary: MyWorkSummary;
+  workload: MyWorkWorkload;
+  projects: MyWorkProjectCard[];
+  assigned_tasks: MyWorkAssignedTask[];
+  today: MyWorkAssignedTask[];
+  due_today: MyWorkAssignedTask[];
+  due_this_week: MyWorkAssignedTask[];
+  overdue: MyWorkAssignedTask[];
+  blocked: MyWorkAssignedTask[];
+  upcoming: MyWorkAssignedTask[];
+  unscheduled: MyWorkAssignedTask[];
+  recently_completed: MyWorkAssignedTask[];
+  blockers: MyWorkBlockerIssue[];
+  workspace_scoped: boolean;
+}
+
+export interface MyWorkListParams
+  extends Record<string, string | number | boolean | undefined> {
+  page?: number;
+  page_size?: number;
+  project?: string;
+  status?: ProjectTaskStatus;
+  priority?: ProjectPriority;
+  search?: string;
+  date_from?: string;
+  date_to?: string;
+  include_completed?: boolean;
+}
+

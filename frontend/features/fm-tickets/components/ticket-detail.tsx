@@ -46,6 +46,7 @@ import {
   formatDateTime,
   formatPersonLabel,
 } from "./ticket-shared";
+import { LinkedProjectsSection } from "@/features/projects/components/linked-projects-section";
 
 export function TicketDetailScreen({ id }: { id: string }) {
   const router = useRouter();
@@ -220,6 +221,8 @@ export function TicketDetailScreen({ id }: { id: string }) {
         <TicketComments ticketId={ticket.id} />
         <TicketHistory ticketId={ticket.id} />
       </FmReviewSection>
+
+      <LinkedProjectsSection linkedProjects={ticket.linked_projects} />
 
       <SectionCard title="Dates">
         <dl className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
