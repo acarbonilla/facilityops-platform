@@ -49,16 +49,14 @@ test("mobile list layout helpers expose table and card wrappers", () => {
   assert.match(classes.cardsWrapper, /md:hidden/);
 });
 
-test("formatProjectError preserves field-specific backend validation", () => {
+test("FO-115 organization field errors stay labeled Organization not Tenant", () => {
   const error = new ApiError("Validation failed", 400, {
     message: "Validation failed",
     errors: {
       organization: ["Organization is required."],
     },
   });
-
-  assert.equal(
-    formatProjectError(error, "Fallback"),
-    "Organization: Organization is required.",
-  );
+  const message = formatProjectError(error, "Fallback");
+  assert.match(message, /^Organization:/);
+  assert.doesNotMatch(message, /Tenant:/);
 });

@@ -7,10 +7,15 @@ import {
   computeTodayMarkerPercent,
   fitGanttRangeToProject,
   formatDelayLabel,
+  formatGanttViewportLabel,
+  buildRichTimelineHeader,
+  getTaskBarAriaLabel,
   getZoomStepDays,
   inclusiveDaySpan,
+  isUtcWeekend,
   jumpGanttRangeToToday,
   parseGanttDate,
+  rezoomPreservingFocal,
   shiftGanttRange,
   GANTT_MAX_VISIBLE_DAYS,
 } from "./gantt";
@@ -121,4 +126,75 @@ test("formatDelayLabel covers delayed and completed-late copy", () => {
     formatDelayLabel({ isDelayed: false, isCompletedLate: false }),
     "On schedule",
   );
+});
+
+test("FO-115 viewport label and weekend detection", () => {
+  const range = {
+    start: parseGanttDate("2026-08-10")!,
+    end: parseGanttDate("2026-08-20")!,
+  };
+  assert.match(formatGanttViewportLabel(range), /Aug/);
+  assert.match(formatGanttViewportLabel(range), /2026/);
+  assert.equal(isUtcWeekend(parseGanttDate("2026-08-15")!), true); // Saturday
+  assert.equal(isUtcWeekend(parseGanttDate("2026-08-10")!), false); // Monday
+});
+
+test("FO-115 rich day header includes weekday and weekend flags", () => {
+  const range = {
+    start: parseGanttDate("2026-08-10")!,
+    end: parseGanttDate("2026-08-16")!,
+  };
+  const { bands, cells } = buildRichTimelineHeader(range, "day");
+  assert.ok(bands.length >= 1);
+  assert.equal(cells.length, 7);
+  assert.ok(cells[0]!.subLabel);
+  assert.ok(cells.some((cell) => cell.isWeekend));
+});
+
+test("FO-115 week and month headers produce ranged cells", () => {
+  const range = {
+    start: parseGanttDate("2026-08-01")!,
+    end: parseGanttDate("2026-09-30")!,
+  };
+  const week = buildRichTimelineHeader(range, "week");
+  assert.ok(week.cells.length >= 4);
+  assert.match(week.cells[0]!.label, /–/);
+  const month = buildRichTimelineHeader(range, "month");
+  assert.ok(month.cells.length >= 2);
+  assert.match(month.cells[0]!.label, /2026/);
+});
+
+test("FO-115 rezoom preserves focal date roughly", () => {
+  const range = {
+    start: parseGanttDate("2026-08-01")!,
+    end: parseGanttDate("2026-08-21")!,
+  };
+  const rezoomed = rezoomPreservingFocal(range, "month");
+  const mid = parseGanttDate("2026-08-11")!;
+  assert.ok(rezoomed.start <= mid);
+  assert.ok(rezoomed.end >= mid);
+});
+
+test("FO-115 task bar aria label distinguishes milestone", () => {
+  const normal = getTaskBarAriaLabel({
+    task_code: "T1",
+    name: "Inspect",
+    status: "not_started",
+    planned_start: "2026-08-10",
+    planned_end: "2026-08-10",
+    progress_percentage: 0,
+    is_milestone: false,
+  });
+  assert.match(normal, /^Task /);
+  assert.doesNotMatch(normal, /Milestone T1/);
+  const ms = getTaskBarAriaLabel({
+    task_code: "T2",
+    name: "Approved",
+    status: "not_started",
+    planned_start: "2026-08-14",
+    planned_end: "2026-08-14",
+    progress_percentage: 0,
+    is_milestone: true,
+  });
+  assert.match(ms, /^Milestone /);
 });
