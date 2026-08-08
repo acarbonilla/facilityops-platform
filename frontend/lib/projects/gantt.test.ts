@@ -71,6 +71,21 @@ test("fitGanttRangeToProject uses task dates with padding", () => {
   assert.equal(range.end.toISOString().slice(0, 10), "2026-04-21");
 });
 
+test("FO-115B fitGanttRangeToProject includes late actual end", () => {
+  const range = fitGanttRangeToProject({
+    plannedStart: "2026-08-10",
+    plannedEnd: "2026-08-12",
+    taskStarts: ["2026-08-10"],
+    taskEnds: ["2026-08-12"],
+    actualStarts: ["2026-08-11"],
+    actualEnds: ["2026-08-20"],
+    zoom: "day",
+    paddingDays: 0,
+  });
+  assert.equal(range.start.toISOString().slice(0, 10), "2026-08-10");
+  assert.equal(range.end.toISOString().slice(0, 10), "2026-08-20");
+});
+
 test("computeBarPosition places bars within the visible range", () => {
   const range = {
     start: parseGanttDate("2026-01-01")!,

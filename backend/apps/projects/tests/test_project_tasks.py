@@ -729,7 +729,8 @@ class ProjectTaskTests(APITestCase):
         self.assertEqual(patched.status_code, status.HTTP_200_OK, patched.data)
         self.assertEqual(Decimal(patched.data["progress_percentage"]), Decimal("55.00"))
 
-    def test_41_actual_end_before_start_rejected(self):
+    def test_41_actual_dates_not_writable_via_patch(self):
+        """FO-115B: Actual Start/End are system-derived — not client PATCH fields."""
         created = self._create_task()
         patched = self.client.patch(
             self._task_url(created.data["id"]),
@@ -739,7 +740,9 @@ class ProjectTaskTests(APITestCase):
             },
             format="json",
         )
-        self.assertEqual(patched.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(patched.status_code, status.HTTP_200_OK, patched.data)
+        self.assertIsNone(patched.data.get("actual_start"))
+        self.assertIsNone(patched.data.get("actual_end"))
 
     def test_42_detail_includes_checklist_and_comments(self):
         created = self._create_task()

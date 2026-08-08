@@ -39,12 +39,27 @@ test("task date validation rejects end before start", () => {
     ...buildValues(),
     planned_start: "2026-09-01",
     planned_end: "2026-08-01",
-    actual_start: "2026-09-10",
-    actual_end: "2026-09-01",
   });
 
   assert.match(errors.planned_end ?? "", /planned start/i);
-  assert.match(errors.actual_end ?? "", /actual start/i);
+});
+
+test("FO-115B create payload omits actual dates", () => {
+  const payload = mapProjectTaskFormValuesToCreatePayload({
+    ...buildValues(),
+    planned_start: "2026-09-01",
+    planned_end: "2026-09-02",
+    actual_start: "2026-09-10",
+    actual_end: "2026-09-11",
+  });
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(payload, "actual_start"),
+    false,
+  );
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(payload, "actual_end"),
+    false,
+  );
 });
 
 test("task progress validation rejects out of range values", () => {
