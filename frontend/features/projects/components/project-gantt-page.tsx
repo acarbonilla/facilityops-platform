@@ -20,6 +20,7 @@ import {
   formatDependencyReadinessMessage,
   validateDependencyForm,
 } from "@/lib/projects/dependencies";
+import { formatActualExecutionRangeLabel } from "@/lib/projects/execution-variance";
 import { formatProjectError } from "@/lib/projects/display";
 import {
   fitGanttRangeToProject,
@@ -57,13 +58,26 @@ function buildInitialRange(
   tasks: Array<{
     planned_start: string | null;
     planned_end: string | null;
+    actual_start?: string | null;
+    actual_end?: string | null;
+    status?: string;
   }>,
 ): GanttDateRange {
+  const hasOpenActual = tasks.some(
+    (task) =>
+      Boolean(task.actual_start) &&
+      !task.actual_end &&
+      task.status !== "completed" &&
+      task.status !== "cancelled",
+  );
   return fitGanttRangeToProject({
     plannedStart: project?.planned_start_date,
     plannedEnd: project?.planned_end_date,
     taskStarts: tasks.map((task) => task.planned_start),
     taskEnds: tasks.map((task) => task.planned_end),
+    actualStarts: tasks.map((task) => task.actual_start),
+    actualEnds: tasks.map((task) => task.actual_end),
+    includeTodayForActive: hasOpenActual,
     zoom,
   });
 }
@@ -403,6 +417,17 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
                         {task.task_code} · {task.name}
                       </p>
                       <p className="text-sm text-slate-600">
+                        Planned: Unscheduled
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        Actual:{" "}
+                        {formatActualExecutionRangeLabel({
+                          actual_start: task.actual_start,
+                          actual_end: task.actual_end,
+                          status: task.status,
+                        })}
+                      </p>
+                      <p className="text-sm text-slate-600">
                         {formatDependencyReadinessMessage({
                           is_dependency_ready: task.is_dependency_ready,
                           blocking_predecessor_count:
@@ -433,16 +458,30 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
               <li className="flex items-center gap-2">
                 <span
                   aria-hidden
-                  className="inline-block h-4 w-10 rounded-md border border-blue-700 bg-blue-200"
+                  className="inline-block h-3 w-10 rounded-sm border border-dashed border-slate-400 bg-slate-100"
                 />
-                Task bar (blue fill = progress)
+                Planned baseline
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="inline-block h-4 w-10 rounded-md border border-emerald-800 bg-emerald-300"
+                />
+                Actual execution
               </li>
               <li className="flex items-center gap-2">
                 <span
                   aria-hidden
                   className="inline-block h-3 w-3 rotate-45 border border-indigo-700 bg-indigo-500"
                 />
-                Milestone diamond
+                Planned milestone
+              </li>
+              <li className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="inline-block h-3 w-3 rotate-45 border border-emerald-800 bg-emerald-500"
+                />
+                Actual milestone
               </li>
               <li className="flex items-center gap-2">
                 <span
@@ -453,15 +492,13 @@ export function ProjectGanttPage({ projectId }: { projectId: string }) {
               </li>
               <li>
                 <span className="rounded bg-amber-100 px-1 text-xs font-semibold text-amber-900">
-                  Delayed
-                </span>{" "}
-                — planned end passed, not completed
+                  Delayed / Running past planned end
+                </span>
               </li>
               <li>
                 <span className="rounded bg-rose-100 px-1 text-xs font-semibold text-rose-900">
                   Dependency blocked
-                </span>{" "}
-                — unfinished predecessors
+                </span>
               </li>
               <li>Gray arrows — finish-to-start dependency links</li>
             </ul>

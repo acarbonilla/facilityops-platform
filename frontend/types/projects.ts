@@ -252,6 +252,10 @@ export interface ProjectTaskDerivedFields {
   is_delayed: boolean;
   is_completed_late: boolean;
   delay_days: number;
+  start_variance_days?: number | null;
+  completion_variance_days?: number | null;
+  execution_schedule_status?: string | null;
+  days_past_planned_end?: number | null;
 }
 
 export interface ProjectTaskListItem extends ProjectTaskDerivedFields {
@@ -328,8 +332,6 @@ export interface ProjectTaskCreatePayload {
   priority?: ProjectTaskPriority;
   planned_start?: string | null;
   planned_end?: string | null;
-  actual_start?: string | null;
-  actual_end?: string | null;
   progress_percentage?: string | number;
   sequence?: number;
   is_milestone?: boolean;

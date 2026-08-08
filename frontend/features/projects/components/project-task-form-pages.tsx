@@ -320,21 +320,13 @@ function ProjectTaskForm({
             label="Sequence"
             type="number"
           />
-          <TextInputField
-            error={getFieldErrorMessage(errors.actual_start?.message)}
-            id="task-actual-start"
-            inputProps={register("actual_start")}
-            label="Actual start"
-            type="date"
-          />
-          <TextInputField
-            error={getFieldErrorMessage(errors.actual_end?.message)}
-            id="task-actual-end"
-            inputProps={register("actual_end")}
-            label="Actual end"
-            type="date"
-          />
         </div>
+        <p className="text-sm text-slate-600">
+          Actual start and actual end are recorded automatically when work is
+          started and completed. They cannot be typed on this form.
+        </p>
+        <input type="hidden" {...register("actual_start")} />
+        <input type="hidden" {...register("actual_end")} />
         <TextAreaField
           error={getFieldErrorMessage(errors.description?.message)}
           id="task-description"

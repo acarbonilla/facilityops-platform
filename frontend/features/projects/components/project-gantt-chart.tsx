@@ -23,12 +23,17 @@ import {
   buildRichTimelineHeader,
   computeBarPosition,
   computeTodayMarkerPercent,
-  formatDelayLabel,
   getTaskBarAriaLabel,
   timelineWidthPx,
   type GanttDateRange,
   type GanttZoomScale,
 } from "@/lib/projects/gantt";
+import {
+  formatActualExecutionRangeLabel,
+  formatScheduleStatusSummary,
+  formatVarianceDaysLabel,
+  resolveActualBarEnd,
+} from "@/lib/projects/execution-variance";
 import { formatDependencyReadinessMessage } from "@/lib/projects/dependencies";
 import { formatPersonLabel, formatProjectDate } from "@/lib/projects/display";
 import {
@@ -44,9 +49,16 @@ import type {
 
 import { ProjectTaskStatusBadge } from "./project-task-status-badge";
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 52;
 const LABEL_WIDTH = 220;
 const HEADER_HEIGHT = 56;
+
+function toIsoDate(date: Date): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
 
 function progressValue(value: string | number): number {
   const numeric = typeof value === "number" ? value : Number(value);
@@ -63,6 +75,12 @@ function TaskDetailPopover({
   task: ProjectGanttTask;
   onClose: () => void;
 }) {
+  const stillInProgress =
+    Boolean(task.actual_start) &&
+    !task.actual_end &&
+    task.status !== "completed" &&
+    task.status !== "cancelled";
+
   return (
     <div
       aria-label={`Details for ${task.task_code}`}
@@ -108,9 +126,7 @@ function TaskDetailPopover({
           </dd>
         </div>
         <div className="col-span-2">
-          <dt className="font-semibold text-slate-500">
-            {task.is_milestone ? "Milestone date" : "Planned schedule"}
-          </dt>
+          <dt className="font-semibold text-slate-500">Planned schedule</dt>
           <dd className="mt-0.5">
             {formatTaskPlannedScheduleLabel({
               planned_start: task.planned_start,
@@ -118,6 +134,55 @@ function TaskDetailPopover({
               is_milestone: task.is_milestone,
             })}
           </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Planned start</dt>
+          <dd className="mt-0.5">
+            {formatProjectDate(task.planned_start) || "Unscheduled"}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Planned end</dt>
+          <dd className="mt-0.5">
+            {formatProjectDate(task.planned_end) || "Unscheduled"}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Actual start</dt>
+          <dd className="mt-0.5">
+            {task.actual_start
+              ? formatProjectDate(task.actual_start)
+              : "Not started"}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Actual end</dt>
+          <dd className="mt-0.5">
+            {task.actual_end
+              ? formatProjectDate(task.actual_end)
+              : stillInProgress
+                ? "Still in progress"
+                : "Not completed"}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Start variance</dt>
+          <dd className="mt-0.5">
+            {formatVarianceDaysLabel(task.start_variance_days, "start")}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-semibold text-slate-500">Completion variance</dt>
+          <dd className="mt-0.5">
+            {formatVarianceDaysLabel(
+              task.completion_variance_days,
+              "completion",
+            )}
+          </dd>
+        </div>
+        <div className="col-span-2">
+          <dt className="font-semibold text-slate-500">Schedule status</dt>
+          <dd className="mt-0.5">{formatScheduleStatusSummary(task)}</dd>
         </div>
         <div className="col-span-2">
           <dt className="font-semibold text-slate-500">Dependency readiness</dt>
@@ -127,16 +192,6 @@ function TaskDetailPopover({
               blocking_predecessor_count: task.blocking_predecessor_count,
               blocking_predecessors: [],
               predecessor_count: task.predecessor_count,
-            })}
-          </dd>
-        </div>
-        <div className="col-span-2">
-          <dt className="font-semibold text-slate-500">Schedule health</dt>
-          <dd className="mt-0.5">
-            {formatDelayLabel({
-              isDelayed: task.is_delayed,
-              isCompletedLate: task.is_completed_late,
-              delayDays: task.delay_days,
             })}
           </dd>
         </div>
@@ -526,20 +581,33 @@ export function ProjectGanttChart({
               </svg>
 
               {scheduled.map((task, index) => {
-                const bar = computeBarPosition(
+                const plannedBar = computeBarPosition(
                   range,
                   task.planned_start,
                   task.planned_end,
                 );
-                if (!bar) return null;
-                const progress = progressValue(task.progress_percentage);
-                const delayText = formatDelayLabel({
-                  isDelayed: task.is_delayed,
-                  isCompletedLate: task.is_completed_late,
-                  delayDays: task.delay_days,
+                if (!plannedBar) return null;
+                const todayIso = toIsoDate(new Date());
+                const actualEnd = resolveActualBarEnd({
+                  actual_start: task.actual_start,
+                  actual_end: task.actual_end,
+                  status: task.status,
+                  todayIso,
                 });
+                const actualBar =
+                  task.actual_start && actualEnd
+                    ? computeBarPosition(
+                        range,
+                        task.actual_start,
+                        actualEnd,
+                      )
+                    : null;
+                const hasActual = Boolean(actualBar);
+                const progress = progressValue(task.progress_percentage);
+                const scheduleText = formatScheduleStatusSummary(task);
                 const selected = task.id === selectedTaskId;
                 const related = relatedIds.has(task.id);
+                const paused = task.status === "on_hold";
 
                 return (
                   <div
@@ -556,75 +624,182 @@ export function ProjectGanttChart({
                       height: ROW_HEIGHT,
                     }}
                   >
-                    <div
-                      className="absolute top-2"
-                      style={{
-                        left: `${bar.leftPercent}%`,
-                        width: task.is_milestone
-                          ? undefined
-                          : `${Math.max(bar.widthPercent, 0.8)}%`,
-                      }}
-                    >
-                      {task.is_milestone ? (
-                        <button
-                          aria-label={getTaskBarAriaLabel(task)}
-                          className={`relative ml-[-8px] h-4 w-4 rotate-45 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            selected
-                              ? "border-indigo-900 bg-indigo-600"
-                              : "border-indigo-700 bg-indigo-500"
-                          }`}
-                          data-gantt-interactive="true"
-                          onClick={() =>
-                            setSelectedTaskId((current) =>
-                              current === task.id ? null : task.id,
-                            )
-                          }
-                          onKeyDown={(event) => onTaskKeyDown(event, task.id)}
-                          title={`Milestone · ${delayText}`}
-                          type="button"
-                        />
-                      ) : (
-                        <button
-                          aria-label={getTaskBarAriaLabel(task)}
-                          className={`relative h-6 w-full overflow-hidden rounded-md border text-left focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            selected
-                              ? "border-blue-900 bg-blue-300"
-                              : "border-blue-700 bg-blue-200"
-                          }`}
-                          data-gantt-interactive="true"
-                          onClick={() =>
-                            setSelectedTaskId((current) =>
-                              current === task.id ? null : task.id,
-                            )
-                          }
-                          onKeyDown={(event) => onTaskKeyDown(event, task.id)}
-                          title={`${task.name} · ${delayText}`}
-                          type="button"
-                        >
-                          <span
-                            aria-hidden
-                            className="absolute inset-y-0 left-0 bg-blue-600"
-                            style={{ width: `${progress}%` }}
-                          />
-                          <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-slate-950">
-                            {formatProjectTaskProgress(
-                              task.progress_percentage,
-                            )}
-                          </span>
-                        </button>
-                      )}
-                      <div className="mt-0.5 flex flex-wrap gap-1">
-                        {task.is_delayed ? (
-                          <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-900">
-                            Delayed
-                          </span>
-                        ) : null}
-                        {!task.is_dependency_ready ? (
-                          <span className="rounded bg-rose-100 px-1 text-[10px] font-semibold text-rose-900">
-                            Dependency blocked
-                          </span>
-                        ) : null}
+                    {/* Planned baseline (subdued when actual exists) */}
+                    {hasActual ? (
+                      <div
+                        aria-hidden
+                        className="absolute top-1.5"
+                        style={{
+                          left: `${plannedBar.leftPercent}%`,
+                          width: task.is_milestone
+                            ? undefined
+                            : `${Math.max(plannedBar.widthPercent, 0.8)}%`,
+                        }}
+                      >
+                        {task.is_milestone ? (
+                          <span className="ml-[-7px] inline-block h-3.5 w-3.5 rotate-45 border border-dashed border-slate-400 bg-slate-100" />
+                        ) : (
+                          <div className="h-3 w-full rounded-sm border border-dashed border-slate-400 bg-slate-100/80" />
+                        )}
                       </div>
+                    ) : null}
+
+                    {/* Actual execution (dominant) or planned-only interactive bar */}
+                    {actualBar ? (
+                      <div
+                        className="absolute top-5"
+                        style={{
+                          left: `${actualBar.leftPercent}%`,
+                          width: task.is_milestone
+                            ? undefined
+                            : `${Math.max(actualBar.widthPercent, 0.8)}%`,
+                        }}
+                      >
+                        {task.is_milestone ? (
+                          <button
+                            aria-label={getTaskBarAriaLabel(task)}
+                            className={`relative ml-[-8px] h-4 w-4 rotate-45 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              selected
+                                ? "border-emerald-900 bg-emerald-600"
+                                : "border-emerald-800 bg-emerald-500"
+                            }`}
+                            data-gantt-interactive="true"
+                            onClick={() =>
+                              setSelectedTaskId((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                            onKeyDown={(event) =>
+                              onTaskKeyDown(event, task.id)
+                            }
+                            title={`Actual milestone · ${scheduleText}`}
+                            type="button"
+                          />
+                        ) : (
+                          <button
+                            aria-label={getTaskBarAriaLabel(task)}
+                            className={`relative h-5 w-full overflow-hidden rounded-md border text-left focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              paused
+                                ? "border-amber-800 bg-amber-300"
+                                : selected
+                                  ? "border-emerald-900 bg-emerald-400"
+                                  : "border-emerald-800 bg-emerald-300"
+                            }`}
+                            data-gantt-interactive="true"
+                            onClick={() =>
+                              setSelectedTaskId((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                            onKeyDown={(event) =>
+                              onTaskKeyDown(event, task.id)
+                            }
+                            title={`${task.name} · ${scheduleText}`}
+                            type="button"
+                          >
+                            <span
+                              aria-hidden
+                              className={`absolute inset-y-0 left-0 ${
+                                paused ? "bg-amber-600" : "bg-emerald-700"
+                              }`}
+                              style={{ width: `${progress}%` }}
+                            />
+                            <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-slate-950">
+                              {formatProjectTaskProgress(
+                                task.progress_percentage,
+                              )}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        className="absolute top-1.5"
+                        style={{
+                          left: `${plannedBar.leftPercent}%`,
+                          width: task.is_milestone
+                            ? undefined
+                            : `${Math.max(plannedBar.widthPercent, 0.8)}%`,
+                        }}
+                      >
+                        {task.is_milestone ? (
+                          <button
+                            aria-label={getTaskBarAriaLabel(task)}
+                            className={`relative ml-[-8px] h-4 w-4 rotate-45 border focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              selected
+                                ? "border-indigo-900 bg-indigo-600"
+                                : "border-indigo-700 bg-indigo-500"
+                            }`}
+                            data-gantt-interactive="true"
+                            onClick={() =>
+                              setSelectedTaskId((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                            onKeyDown={(event) =>
+                              onTaskKeyDown(event, task.id)
+                            }
+                            title={`Milestone · ${scheduleText}`}
+                            type="button"
+                          />
+                        ) : (
+                          <button
+                            aria-label={getTaskBarAriaLabel(task)}
+                            className={`relative h-6 w-full overflow-hidden rounded-md border text-left focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                              selected
+                                ? "border-blue-900 bg-blue-300"
+                                : "border-blue-700 bg-blue-200"
+                            }`}
+                            data-gantt-interactive="true"
+                            onClick={() =>
+                              setSelectedTaskId((current) =>
+                                current === task.id ? null : task.id,
+                              )
+                            }
+                            onKeyDown={(event) =>
+                              onTaskKeyDown(event, task.id)
+                            }
+                            title={`${task.name} · ${scheduleText}`}
+                            type="button"
+                          >
+                            <span
+                              aria-hidden
+                              className="absolute inset-y-0 left-0 bg-blue-600"
+                              style={{ width: `${progress}%` }}
+                            />
+                            <span className="absolute inset-0 flex items-center px-2 text-[10px] font-semibold text-slate-950">
+                              {formatProjectTaskProgress(
+                                task.progress_percentage,
+                              )}
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div
+                      className="pointer-events-none absolute bottom-0.5 left-2 flex flex-wrap gap-1"
+                    >
+                      {paused ? (
+                        <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-900">
+                          Paused
+                        </span>
+                      ) : null}
+                      {task.execution_schedule_status ===
+                      "in_progress_past_due" ? (
+                        <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-900">
+                          Running past planned end
+                        </span>
+                      ) : task.is_delayed ? (
+                        <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-900">
+                          Delayed
+                        </span>
+                      ) : null}
+                      {!task.is_dependency_ready ? (
+                        <span className="rounded bg-rose-100 px-1 text-[10px] font-semibold text-rose-900">
+                          Dependency blocked
+                        </span>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -635,8 +810,8 @@ export function ProjectGanttChart({
       </div>
       <p className="border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
         Drag the empty timeline to pan dates. Scrollbars, Previous/Next, and
-        Today remain available. Task schedules are edited on the task form —
-        pan never changes dates.
+        Today remain available. Planned dates stay as the baseline; Start and
+        Complete record actual execution automatically. Pan never changes dates.
       </p>
     </div>
   );
@@ -655,7 +830,8 @@ export function ProjectGanttScheduleTable({
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
         <caption className="sr-only">
-          Accessible project schedule equivalent to the Gantt chart
+          Accessible project schedule equivalent to the Gantt chart, including
+          planned and actual execution
         </caption>
         <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <tr>
@@ -672,16 +848,13 @@ export function ProjectGanttScheduleTable({
               PIC
             </th>
             <th className="px-3 py-3" scope="col">
-              Schedule
+              Planned schedule
             </th>
             <th className="px-3 py-3" scope="col">
-              Planned start
+              Actual execution
             </th>
             <th className="px-3 py-3" scope="col">
-              Planned end
-            </th>
-            <th className="px-3 py-3" scope="col">
-              Delayed
+              Variance
             </th>
             <th className="px-3 py-3" scope="col">
               Dependency readiness
@@ -689,17 +862,11 @@ export function ProjectGanttScheduleTable({
             <th className="px-3 py-3" scope="col">
               Predecessors
             </th>
-            <th className="px-3 py-3" scope="col">
-              Successors
-            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {tasks.map((task) => {
             const predCodes = task.predecessor_ids
-              .map((id) => taskCodeById.get(id) ?? id)
-              .join(", ");
-            const succCodes = task.successor_ids
               .map((id) => taskCodeById.get(id) ?? id)
               .join(", ");
             return (
@@ -736,17 +903,14 @@ export function ProjectGanttScheduleTable({
                       })}
                 </td>
                 <td className="px-3 py-3 text-slate-700">
-                  {formatProjectDate(task.planned_start)}
-                </td>
-                <td className="px-3 py-3 text-slate-700">
-                  {formatProjectDate(task.planned_end)}
-                </td>
-                <td className="px-3 py-3 text-slate-700">
-                  {formatDelayLabel({
-                    isDelayed: task.is_delayed,
-                    isCompletedLate: task.is_completed_late,
-                    delayDays: task.delay_days,
+                  {formatActualExecutionRangeLabel({
+                    actual_start: task.actual_start,
+                    actual_end: task.actual_end,
+                    status: task.status,
                   })}
+                </td>
+                <td className="px-3 py-3 text-slate-700">
+                  {formatScheduleStatusSummary(task)}
                 </td>
                 <td className="px-3 py-3 text-slate-700">
                   {formatDependencyReadinessMessage({
@@ -758,9 +922,6 @@ export function ProjectGanttScheduleTable({
                 </td>
                 <td className="px-3 py-3 text-slate-700">
                   {predCodes || "None"}
-                </td>
-                <td className="px-3 py-3 text-slate-700">
-                  {succCodes || "None"}
                 </td>
               </tr>
             );

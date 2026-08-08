@@ -137,6 +137,11 @@ export function fitGanttRangeToProject(options: {
   plannedEnd?: string | null;
   taskStarts?: Array<string | null | undefined>;
   taskEnds?: Array<string | null | undefined>;
+  /** FO-115B: include actual execution extent so late bars are not clipped. */
+  actualStarts?: Array<string | null | undefined>;
+  actualEnds?: Array<string | null | undefined>;
+  /** Include today when any active task has started (open-ended actual bar). */
+  includeTodayForActive?: boolean;
   zoom: GanttZoomScale;
   today?: Date;
   paddingDays?: number;
@@ -156,6 +161,17 @@ export function fitGanttRangeToProject(options: {
   for (const value of options.taskEnds ?? []) {
     const parsed = parseGanttDate(value);
     if (parsed) candidates.push(parsed);
+  }
+  for (const value of options.actualStarts ?? []) {
+    const parsed = parseGanttDate(value);
+    if (parsed) candidates.push(parsed);
+  }
+  for (const value of options.actualEnds ?? []) {
+    const parsed = parseGanttDate(value);
+    if (parsed) candidates.push(parsed);
+  }
+  if (options.includeTodayForActive) {
+    candidates.push(today);
   }
 
   if (candidates.length === 0) {
@@ -523,17 +539,32 @@ export function getTaskBarAriaLabel(task: {
   status: string;
   planned_start?: string | null;
   planned_end?: string | null;
+  actual_start?: string | null;
+  actual_end?: string | null;
   progress_percentage?: string | number;
   is_milestone?: boolean;
+  execution_schedule_status?: string | null;
+  start_variance_days?: number | null;
+  completion_variance_days?: number | null;
 }): string {
   const schedule =
     task.planned_start && task.planned_end
       ? `${task.planned_start} to ${task.planned_end}`
       : "unscheduled";
+  const actual =
+    task.actual_start && task.actual_end
+      ? `${task.actual_start} to ${task.actual_end}`
+      : task.actual_start
+        ? `started ${task.actual_start}, not completed`
+        : "not started";
   const kind = task.is_milestone ? "Milestone" : "Task";
   const progress =
     task.progress_percentage === null || task.progress_percentage === undefined
       ? "0%"
       : `${Math.round(Number(task.progress_percentage))}%`;
-  return `${kind} ${task.task_code} ${task.name}. Status ${task.status}. Schedule ${schedule}. Progress ${progress}.`;
+  const variance =
+    task.execution_schedule_status != null
+      ? ` Schedule status ${task.execution_schedule_status}.`
+      : "";
+  return `${kind} ${task.task_code} ${task.name}. Status ${task.status}. Planned ${schedule}. Actual ${actual}. Progress ${progress}.${variance}`;
 }

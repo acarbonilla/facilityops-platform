@@ -32,6 +32,11 @@ import {
   formatProjectLabel,
 } from "@/lib/projects/display";
 import { formatDependencyReadinessMessage } from "@/lib/projects/dependencies";
+import {
+  formatActualExecutionRangeLabel,
+  formatScheduleStatusSummary,
+  formatVarianceDaysLabel,
+} from "@/lib/projects/execution-variance";
 import { formatDelayLabel } from "@/lib/projects/gantt";
 import {
   filterLinksForProjectTask,
@@ -502,12 +507,43 @@ export function ProjectTaskDetailScreen({
                   },
                 ]),
             {
+              label: "Actual execution",
+              value: formatActualExecutionRangeLabel({
+                actual_start: task.actual_start,
+                actual_end: task.actual_end,
+                status: task.status,
+              }),
+            },
+            {
               label: "Actual start",
-              value: formatProjectDate(task.actual_start),
+              value: task.actual_start
+                ? formatProjectDate(task.actual_start)
+                : "Not started",
             },
             {
               label: "Actual end",
-              value: formatProjectDate(task.actual_end),
+              value: task.actual_end
+                ? formatProjectDate(task.actual_end)
+                : task.actual_start &&
+                    task.status !== "completed" &&
+                    task.status !== "cancelled"
+                  ? "Still in progress"
+                  : "Not completed",
+            },
+            {
+              label: "Start variance",
+              value: formatVarianceDaysLabel(task.start_variance_days, "start"),
+            },
+            {
+              label: "Completion variance",
+              value: formatVarianceDaysLabel(
+                task.completion_variance_days,
+                "completion",
+              ),
+            },
+            {
+              label: "Schedule status",
+              value: formatScheduleStatusSummary(task),
             },
             { label: "Sequence", value: String(task.sequence) },
             {
