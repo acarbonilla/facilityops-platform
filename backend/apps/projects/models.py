@@ -105,12 +105,27 @@ class Project(BaseModel):
                 )
 
         if self.project_manager_id:
-            if self.project_manager.tenant_id != self.tenant_id:
-                errors["project_manager"] = (
-                    "Project manager must belong to the selected tenant."
+            from .assignment_eligibility import validate_project_manager
+
+            previous_manager_id = None
+            if self.pk:
+                previous_manager_id = (
+                    Project.objects.filter(pk=self.pk)
+                    .values_list("project_manager_id", flat=True)
+                    .first()
                 )
-            elif not self.project_manager.is_active:
-                errors["project_manager"] = "Project manager must be an active user."
+            try:
+                validate_project_manager(
+                    self.project_manager,
+                    tenant_id=self.tenant_id,
+                    allow_legacy_unchanged=True,
+                    previous_manager_id=previous_manager_id,
+                )
+            except ValidationError as exc:
+                message_dict = getattr(exc, "message_dict", None) or {
+                    "project_manager": exc.messages
+                }
+                errors.update(message_dict)
 
         if (
             self.planned_start_date
@@ -554,35 +569,32 @@ class ProjectTask(BaseModel):
         return None
 
     def _validate_person_in_charge(self):
-        """PIC: PM, active member, or Technician (FO-110 implicit access)."""
-        user = self.person_in_charge
-        if user.tenant_id != self.tenant_id:
-            return "Person in charge must belong to the project tenant."
-        if not user.is_active:
-            return "Person in charge must be an active user."
+        """FO-115C: PIC must be Technician or this Project's Project Manager."""
+        from .assignment_eligibility import validate_task_pic
 
-        if self.project.project_manager_id == user.id:
-            return None
-
-        is_active_member = ProjectMember.objects.filter(
-            project_id=self.project_id,
-            user_id=user.id,
-            is_active=True,
-            is_deleted=False,
-        ).exists()
-        if is_active_member:
-            return None
-
-        # FO-110: Technicians may be assigned without ProjectMember governance.
-        from apps.access_control.services import get_user_roles
-
-        if get_user_roles(user).filter(code="technician").exists():
-            return None
-
-        return (
-            "Person in charge must be an active project member, the "
-            "project manager, or a Technician."
-        )
+        previous_pic_id = None
+        if self.pk:
+            previous_pic_id = (
+                ProjectTask.objects.filter(pk=self.pk)
+                .values_list("person_in_charge_id", flat=True)
+                .first()
+            )
+        try:
+            validate_task_pic(
+                self.person_in_charge,
+                self.project,
+                allow_legacy_unchanged=True,
+                previous_pic_id=previous_pic_id,
+            )
+        except ValidationError as exc:
+            message_dict = getattr(exc, "message_dict", None)
+            if message_dict and "person_in_charge" in message_dict:
+                messages = message_dict["person_in_charge"]
+                if isinstance(messages, list):
+                    return str(messages[0])
+                return str(messages)
+            return str(exc.messages[0] if exc.messages else exc)
+        return None
 
     def _generate_task_code(self):
         # Include soft-deleted in sequence scan so codes are never reused.

@@ -1238,3 +1238,17 @@ class ProjectLinkOptionSerializer(serializers.Serializer):
     status = serializers.CharField()
     type = serializers.CharField()
 
+
+class ProjectAssignmentOptionSerializer(serializers.Serializer):
+    """FO-115C Project Manager / Task PIC option row."""
+
+    id = serializers.UUIDField()
+    email = serializers.EmailField()
+    display_name = serializers.CharField()
+    first_name = serializers.CharField(allow_blank=True)
+    last_name = serializers.CharField(allow_blank=True)
+    role_label = serializers.CharField()
+    is_project_manager = serializers.BooleanField(required=False, default=False)
+    is_project_member = serializers.BooleanField(required=False, default=False)
+    is_active = serializers.BooleanField()
+
