@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ChangeEvent, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -233,16 +233,43 @@ function ProjectTaskForm({
     handleSubmit,
     register,
     reset,
+    setValue,
+    watch,
   } = useForm<ProjectTaskFormValues>({
     defaultValues: initialValues,
     resolver: zodResolver(projectTaskFormSchema),
   });
+
+  const isMilestone = watch("is_milestone");
+  const milestoneDate = watch("planned_start");
+  const plannedEndWatch = watch("planned_end");
 
   useUnsavedChangesPrompt(isDirty && !isSubmitting);
 
   useEffect(() => {
     reset(initialValues);
   }, [initialValues, reset]);
+
+  useEffect(() => {
+    if (isMilestone && milestoneDate) {
+      setValue("planned_end", milestoneDate, { shouldDirty: false });
+    }
+  }, [isMilestone, milestoneDate, setValue]);
+
+  const handleMilestoneToggle = (event: ChangeEvent<HTMLInputElement>) => {
+    const checked = event.target.checked;
+    const start = milestoneDate.trim();
+    const end = plannedEndWatch.trim();
+    if (checked && start && end && start !== end) {
+      const preferStart = window.confirm(
+        "This task has different planned start and end dates. Use the planned start as the Milestone date?\n\nOK = use planned start\nCancel = use planned end",
+      );
+      const chosen = preferStart ? start : end;
+      setValue("planned_start", chosen, { shouldDirty: true });
+      setValue("planned_end", chosen, { shouldDirty: true });
+    }
+    setValue("is_milestone", checked, { shouldDirty: true });
+  };
 
   return (
     <form
@@ -251,97 +278,78 @@ function ProjectTaskForm({
         await onSubmit(values);
       })}
     >
-      <div className="grid gap-4 md:grid-cols-2">
-        <TextInputField
-          error={getFieldErrorMessage(errors.name?.message)}
-          id="task-name"
-          inputProps={register("name")}
-          label="Name"
-        />
-        <SelectField
-          error={getFieldErrorMessage(errors.status?.message)}
-          id="task-status"
-          label="Status"
-          options={STATUS_OPTIONS}
-          {...register("status")}
-        />
-        <SelectField
-          error={getFieldErrorMessage(errors.priority?.message)}
-          id="task-priority"
-          label="Priority"
-          options={PRIORITY_OPTIONS}
-          {...register("priority")}
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.progress_percentage?.message)}
-          id="task-progress"
-          inputProps={register("progress_percentage")}
-          label="Progress (%)"
-          type="number"
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.planned_start?.message)}
-          id="task-planned-start"
-          inputProps={register("planned_start")}
-          label="Planned start"
-          type="date"
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.planned_end?.message)}
-          id="task-planned-end"
-          inputProps={register("planned_end")}
-          label="Planned end"
-          type="date"
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.actual_start?.message)}
-          id="task-actual-start"
-          inputProps={register("actual_start")}
-          label="Actual start"
-          type="date"
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.actual_end?.message)}
-          id="task-actual-end"
-          inputProps={register("actual_end")}
-          label="Actual end"
-          type="date"
-        />
-        <TextInputField
-          error={getFieldErrorMessage(errors.sequence?.message)}
-          id="task-sequence"
-          inputProps={register("sequence")}
-          label="Sequence"
-          type="number"
-        />
-        <FormField
-          error={getFieldErrorMessage(errors.is_milestone?.message)}
-          htmlFor="task-is-milestone"
-          label="Milestone"
+      <section className="space-y-4" aria-labelledby="task-information-heading">
+        <h2
+          className="text-base font-semibold text-slate-950"
+          id="task-information-heading"
         >
-          <label
-            className="inline-flex items-center gap-2 text-sm text-slate-700"
-            htmlFor="task-is-milestone"
-          >
-            <input
-              className="h-4 w-4 rounded border-slate-300"
-              id="task-is-milestone"
-              type="checkbox"
-              {...register("is_milestone")}
-            />
-            Mark as milestone
-          </label>
-        </FormField>
-      </div>
+          Task information
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          <TextInputField
+            error={getFieldErrorMessage(errors.name?.message)}
+            id="task-name"
+            inputProps={register("name")}
+            label="Name"
+          />
+          <SelectField
+            error={getFieldErrorMessage(errors.status?.message)}
+            id="task-status"
+            label="Status"
+            options={STATUS_OPTIONS}
+            {...register("status")}
+          />
+          <SelectField
+            error={getFieldErrorMessage(errors.priority?.message)}
+            id="task-priority"
+            label="Priority"
+            options={PRIORITY_OPTIONS}
+            {...register("priority")}
+          />
+          <TextInputField
+            error={getFieldErrorMessage(errors.progress_percentage?.message)}
+            id="task-progress"
+            inputProps={register("progress_percentage")}
+            label="Progress (%)"
+            type="number"
+          />
+          <TextInputField
+            error={getFieldErrorMessage(errors.sequence?.message)}
+            id="task-sequence"
+            inputProps={register("sequence")}
+            label="Sequence"
+            type="number"
+          />
+          <TextInputField
+            error={getFieldErrorMessage(errors.actual_start?.message)}
+            id="task-actual-start"
+            inputProps={register("actual_start")}
+            label="Actual start"
+            type="date"
+          />
+          <TextInputField
+            error={getFieldErrorMessage(errors.actual_end?.message)}
+            id="task-actual-end"
+            inputProps={register("actual_end")}
+            label="Actual end"
+            type="date"
+          />
+        </div>
+        <TextAreaField
+          error={getFieldErrorMessage(errors.description?.message)}
+          id="task-description"
+          label="Description"
+          textAreaProps={register("description")}
+        />
+      </section>
 
-      <TextAreaField
-        error={getFieldErrorMessage(errors.description?.message)}
-        id="task-description"
-        label="Description"
-        textAreaProps={register("description")}
-      />
-
-      <div className="space-y-3">
+      <section className="space-y-3" aria-labelledby="task-assignment-heading">
+        <h2
+          className="text-base font-semibold text-slate-950"
+          id="task-assignment-heading"
+        >
+          Assignment
+        </h2>
         <SelectField
           description="PIC must be an active project member or the project manager."
           error={getFieldErrorMessage(errors.person_in_charge?.message)}
@@ -365,7 +373,69 @@ function ProjectTaskForm({
             }
           />
         ) : null}
-      </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="task-schedule-heading">
+        <div>
+          <h2
+            className="text-base font-semibold text-slate-950"
+            id="task-schedule-heading"
+          >
+            Planned schedule (optional)
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Set dates when this task needs to appear on the Project schedule and
+            Gantt. Tasks without dates can still be assigned and completed.
+          </p>
+        </div>
+        <FormField
+          error={getFieldErrorMessage(errors.is_milestone?.message)}
+          htmlFor="task-is-milestone"
+          label="Milestone"
+        >
+          <label
+            className="inline-flex min-h-11 items-center gap-2 text-sm text-slate-700"
+            htmlFor="task-is-milestone"
+          >
+            <input
+              checked={isMilestone}
+              className="h-4 w-4 rounded border-slate-300"
+              id="task-is-milestone"
+              onChange={handleMilestoneToggle}
+              type="checkbox"
+            />
+            This task is a milestone
+          </label>
+        </FormField>
+        {isMilestone ? (
+          <TextInputField
+            error={getFieldErrorMessage(
+              errors.planned_start?.message || errors.planned_end?.message,
+            )}
+            id="task-milestone-date"
+            inputProps={register("planned_start")}
+            label="Milestone date"
+            type="date"
+          />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            <TextInputField
+              error={getFieldErrorMessage(errors.planned_start?.message)}
+              id="task-planned-start"
+              inputProps={register("planned_start")}
+              label="Planned start"
+              type="date"
+            />
+            <TextInputField
+              error={getFieldErrorMessage(errors.planned_end?.message)}
+              id="task-planned-end"
+              inputProps={register("planned_end")}
+              label="Planned end"
+              type="date"
+            />
+          </div>
+        )}
+      </section>
 
       <FormActions
         cancelHref={cancelHref}

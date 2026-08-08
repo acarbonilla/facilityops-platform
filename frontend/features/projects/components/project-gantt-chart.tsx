@@ -21,7 +21,11 @@ import {
 } from "@/lib/projects/gantt";
 import { formatDependencyReadinessMessage } from "@/lib/projects/dependencies";
 import { formatPersonLabel, formatProjectDate } from "@/lib/projects/display";
-import { formatProjectTaskProgress } from "@/lib/projects/tasks-display";
+import {
+  formatProjectTaskProgress,
+  formatTaskPlannedScheduleLabel,
+  isTaskScheduleUnscheduled,
+} from "@/lib/projects/tasks-display";
 import type {
   ProjectGanttDependency,
   ProjectGanttTask,
@@ -318,6 +322,9 @@ export function ProjectGanttScheduleTable({
               PIC
             </th>
             <th className="px-3 py-3" scope="col">
+              Schedule
+            </th>
+            <th className="px-3 py-3" scope="col">
               Planned start
             </th>
             <th className="px-3 py-3" scope="col">
@@ -368,6 +375,15 @@ export function ProjectGanttScheduleTable({
                 </td>
                 <td className="px-3 py-3 text-slate-700">
                   {formatPersonLabel(task.person_in_charge_email)}
+                </td>
+                <td className="px-3 py-3 text-slate-700">
+                  {isTaskScheduleUnscheduled(task)
+                    ? "Unscheduled"
+                    : formatTaskPlannedScheduleLabel({
+                        planned_start: task.planned_start,
+                        planned_end: task.planned_end,
+                        is_milestone: task.is_milestone,
+                      })}
                 </td>
                 <td className="px-3 py-3 text-slate-700">
                   {formatProjectDate(task.planned_start)}
