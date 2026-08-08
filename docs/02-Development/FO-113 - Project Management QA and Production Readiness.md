@@ -6,7 +6,7 @@
 **Starting main SHA:** `c7ae7fc81bb58b2afffd33f185910329c04c1231`  
 **Starting feature SHA:** `e27382d1ac6afdcbae60f8d7cff92e1c75f03668`  
 **Draft epic PR:** [#67](https://github.com/acarbonilla/facilityops-platform/pull/67) (OPEN; Draft; unmerged)  
-**Next:** FO-113A — Finalize, Merge & Post-Merge Verification (**in progress / sole merge**)  
+**Next:** FO-113A — Finalize, Merge & Post-Merge Verification (**COMPLETE AND MERGED** / PR #67 @ `ebdad1b…`)  
 **Deferred:** FO-102 Gemini billing/quota diagnostics  
 
 ## Final readiness decision
