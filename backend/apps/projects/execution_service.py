@@ -84,7 +84,12 @@ def resume_task(*, task, actor):
 
 
 def complete_task(*, task, actor, actual_end=None):
-    """Mark assigned task completed at 100%."""
+    """Mark assigned task completed at 100%.
+
+    FO-115B: actual_end is system-derived (local business date). The optional
+    actual_end argument remains for internal/tests only — API clients cannot
+    spoof it via the complete action.
+    """
     _ensure_execution_actor(actor=actor, task=task)
     if task.status == ProjectTask.Status.CANCELLED:
         raise ValidationError({"status": "Cancelled tasks cannot be completed."})

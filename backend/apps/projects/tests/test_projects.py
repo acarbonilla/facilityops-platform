@@ -453,16 +453,17 @@ class ProjectFoundationTests(APITestCase):
         self.assertTrue(membership.is_active)
 
         self._auth(self.fm_a)
-        self.client.patch(
+        patched = self.client.patch(
             reverse("project-detail", args=[project_id]),
-            {"project_manager": str(self.member_user.id)},
+            {"project_manager": str(self.fm_a.id)},
             format="json",
         )
+        self.assertEqual(patched.status_code, status.HTTP_200_OK, patched.data)
         membership.refresh_from_db()
         self.assertEqual(membership.role, ProjectMember.Role.MEMBER)
         new_pm = ProjectMember.objects.get(
             project_id=project_id,
-            user=self.member_user,
+            user=self.fm_a,
             is_deleted=False,
         )
         self.assertEqual(new_pm.role, ProjectMember.Role.PROJECT_MANAGER)

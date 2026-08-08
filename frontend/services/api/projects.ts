@@ -3,6 +3,7 @@ import { API_ENDPOINTS } from "./endpoints";
 import { getBuildings, getOrganizations } from "./master-data";
 
 import type { PaginatedResponse } from "@/services/api/types";
+import type { ProjectAssignmentOption } from "@/lib/projects/assignment-options";
 import type {
   ProjectCreatePayload,
   ProjectDetail,
@@ -797,6 +798,33 @@ export function getProjectLinkOptions(
 ): Promise<PaginatedResponse<ProjectLinkOption>> {
   return apiClient<PaginatedResponse<ProjectLinkOption>>(
     API_ENDPOINTS.projects.linkOptions(projectId),
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectManagerAssignmentOptions(params?: {
+  search?: string;
+  tenant?: string;
+  page_size?: number;
+}): Promise<{ count: number; results: ProjectAssignmentOption[] }> {
+  return apiClient<{ count: number; results: ProjectAssignmentOption[] }>(
+    API_ENDPOINTS.projects.projectManagerOptions,
+    {
+      method: "GET",
+      query: params,
+    },
+  );
+}
+
+export function getProjectTaskPicAssignmentOptions(
+  projectId: string,
+  params?: { search?: string; page_size?: number },
+): Promise<{ count: number; results: ProjectAssignmentOption[] }> {
+  return apiClient<{ count: number; results: ProjectAssignmentOption[] }>(
+    API_ENDPOINTS.projects.taskPicOptions(projectId),
     {
       method: "GET",
       query: params,

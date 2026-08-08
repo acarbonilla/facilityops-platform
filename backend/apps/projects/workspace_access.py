@@ -40,14 +40,20 @@ TECHNICIAN_TIMELINE_HIDDEN_ACTIONS = frozenset(
     }
 )
 
-# Fields Technicians may change on their own assigned tasks (FO-110 MVP).
+# Fields Technicians may change on their own assigned tasks (FO-110 / FO-115B).
+# Actual Start/End are system-derived via execution lifecycle — not client PATCH
+# (serializers omit them), but lifecycle services may set them through update_task.
 ASSIGNED_TASK_EDITABLE_FIELDS = frozenset(
     {
         "status",
         "progress_percentage",
+        "description",
+    }
+)
+ASSIGNED_TASK_SYSTEM_FIELDS = frozenset(
+    {
         "actual_start",
         "actual_end",
-        "description",
     }
 )
 

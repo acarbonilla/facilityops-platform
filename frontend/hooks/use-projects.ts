@@ -38,6 +38,8 @@ import {
   getProjectList,
   getProjectMembers,
   getProjectMetrics,
+  getProjectManagerAssignmentOptions,
+  getProjectTaskPicAssignmentOptions,
   getMyWorkDashboard,
   getMyWorkTaskList,
   getProjectNoteDetail,
@@ -175,6 +177,29 @@ export function useProjectMembers(id: string) {
     queryKey: projectsQueryKeys.members(id),
     queryFn: () => getProjectMembers(id, { page_size: 100 }),
     enabled: Boolean(id),
+  });
+}
+
+export function useProjectManagerAssignmentOptions(
+  params?: { search?: string; tenant?: string; page_size?: number },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.projectManagerOptions(params),
+    queryFn: () => getProjectManagerAssignmentOptions(params),
+    enabled,
+  });
+}
+
+export function useProjectTaskPicAssignmentOptions(
+  projectId: string,
+  params?: { search?: string; page_size?: number },
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: projectsQueryKeys.taskPicOptions(projectId, params),
+    queryFn: () => getProjectTaskPicAssignmentOptions(projectId, params),
+    enabled: Boolean(projectId) && enabled,
   });
 }
 
