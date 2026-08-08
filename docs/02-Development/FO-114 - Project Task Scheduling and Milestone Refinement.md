@@ -4,6 +4,8 @@
 **Date:** 2026-08-08  
 **Branch:** `feature/project-task-scheduling-refinement`  
 **Starting main SHA:** `91cce0b22c6ee2b2091c94a0e989ee1e262e147e`  
+**Branch HEAD:** `99d7d5a6fa6838ee362b0a9e3d4cef7d2053f04c`  
+**Draft PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — OPEN / Draft / targeting `main`  
 **Baseline:** FO-113A Project Management COMPLETE AND MERGED  
 **Deferred:** FO-102 Gemini billing/quota diagnostics  
 **Merge task:** FO-114A (not started)
