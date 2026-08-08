@@ -1,14 +1,14 @@
 # FO-114 — Project Task Scheduling and Milestone Refinement
 
-**Status:** COMPLETE ON FEATURE BRANCH (UNMERGED)  
-**Date:** 2026-08-08  
-**Branch:** `feature/project-task-scheduling-refinement`  
-**Starting main SHA:** `91cce0b22c6ee2b2091c94a0e989ee1e262e147e`  
-**Branch HEAD:** `99d7d5a6fa6838ee362b0a9e3d4cef7d2053f04c`  
-**Draft PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — OPEN / Draft / targeting `main`  
-**Baseline:** FO-113A Project Management COMPLETE AND MERGED  
-**Deferred:** FO-102 Gemini billing/quota diagnostics  
-**Merge task:** FO-114A (not started)
+**Status:** READY WITH ACCEPTED LIMITATIONS (pending FO-114A merge)
+**Date:** 2026-08-08
+**Branch:** `feature/project-task-scheduling-refinement`
+**Starting main SHA:** `91cce0b22c6ee2b2091c94a0e989ee1e262e147e`
+**Branch HEAD:** `afc10de007bb93185a9d030cd24cf8f115ff4649`
+**Draft PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — OPEN / Draft / targeting `main`
+**Baseline:** FO-113A Project Management COMPLETE AND MERGED
+**Deferred:** FO-102 Gemini billing/quota diagnostics
+**Merge task:** FO-114A — in progress
 
 ## 1. Objective
 
