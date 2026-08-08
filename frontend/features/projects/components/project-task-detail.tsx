@@ -12,12 +12,11 @@ import { useAuth } from "@/hooks/use-auth";
 import {
   useAssignProjectTask,
   useDeleteProjectTask,
-  useProjectDetail,
   useProjectHistory,
   useProjectLinkList,
-  useProjectMembers,
   useProjectTaskDependencyReadiness,
   useProjectTaskDetail,
+  useProjectTaskPicAssignmentOptions,
   useProjectTaskPredecessors,
   useProjectTaskSuccessors,
 } from "@/hooks/use-projects";
@@ -37,6 +36,7 @@ import {
   formatScheduleStatusSummary,
   formatVarianceDaysLabel,
 } from "@/lib/projects/execution-variance";
+import { formatAssignmentOptionLabel } from "@/lib/projects/assignment-options";
 import { formatDelayLabel } from "@/lib/projects/gantt";
 import {
   filterLinksForProjectTask,
@@ -65,7 +65,6 @@ import {
 } from "@/lib/projects/workspace";
 import type {
   ProjectHistory,
-  ProjectMember,
   ProjectOperationalLink,
   ProjectTaskDependency,
 } from "@/types/projects";
@@ -162,31 +161,6 @@ function TaskHistorySummary({ entries }: { entries: ProjectHistory[] }) {
   );
 }
 
-function buildPicOptions(
-  members: ProjectMember[],
-  projectManagerId: string | null | undefined,
-  projectManagerEmail: string | null | undefined,
-) {
-  const options = members
-    .filter((member) => member.is_active)
-    .map((member) => ({
-      value: member.user,
-      label: `${member.user_name || member.user_email} (${member.user_email}) — ${formatProjectLabel(member.role)}`,
-    }));
-
-  if (
-    projectManagerId &&
-    !options.some((option) => option.value === projectManagerId)
-  ) {
-    options.unshift({
-      value: projectManagerId,
-      label: `${projectManagerEmail || "Project manager"} — Project Manager`,
-    });
-  }
-
-  return options;
-}
-
 function DependencyLinkList({
   title,
   items,
@@ -252,9 +226,10 @@ export function ProjectTaskDetailScreen({
   const { user } = useAuth();
   const { hasPermission, permissionsLoading, roles } = usePermissions();
   const workspaceMode = usesProjectWorkspaceMode({ roles, hasPermission });
-  const projectQuery = useProjectDetail(projectId);
   const detailQuery = useProjectTaskDetail(projectId, taskId);
-  const membersQuery = useProjectMembers(projectId);
+  const picOptionsQuery = useProjectTaskPicAssignmentOptions(projectId, {
+    page_size: 50,
+  });
   const historyQuery = useProjectHistory(projectId);
   const predecessorsQuery = useProjectTaskPredecessors(projectId, taskId);
   const successorsQuery = useProjectTaskSuccessors(projectId, taskId);
@@ -279,12 +254,11 @@ export function ProjectTaskDetailScreen({
 
   const picOptions = useMemo(
     () =>
-      buildPicOptions(
-        membersQuery.data?.results ?? [],
-        projectQuery.data?.project_manager,
-        projectQuery.data?.project_manager_email,
-      ),
-    [membersQuery.data?.results, projectQuery.data],
+      (picOptionsQuery.data?.results ?? []).map((option) => ({
+        value: option.id,
+        label: formatAssignmentOptionLabel(option),
+      })),
+    [picOptionsQuery.data?.results],
   );
 
   const taskHistory = useMemo(() => {
@@ -559,7 +533,7 @@ export function ProjectTaskDetailScreen({
       </SectionCard>
 
       <SectionCard
-        description="Assign a person in charge from active project members or the project manager."
+        description="Assign an active Technician or the Project Manager. Technicians do not need to be Project Members first."
         title="Assignment"
       >
         {assignError ? (

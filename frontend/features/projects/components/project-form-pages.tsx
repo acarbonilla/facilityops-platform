@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 
@@ -13,8 +13,8 @@ import { FormActions } from "@/components/common/form-actions";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { SelectField } from "@/components/common/select-field";
-import { UserDirectoryPicker } from "@/components/common/user-directory-picker";
 import { AppShell } from "@/components/layout/app-shell";
+import { ProjectAssignmentPicker } from "@/features/projects/components/project-assignment-picker";
 import {
   buildRecordOptions,
   filterBuildingsByOrganization,
@@ -22,15 +22,16 @@ import {
   TextAreaField,
   TextInputField,
 } from "@/features/master-data/components/shared";
-import { usePermissions } from "@/hooks/use-permissions";
 import {
   useCreateProject,
   useProjectDetail,
   useProjectFormDefaults,
   useProjectFormOptions,
+  useProjectManagerAssignmentOptions,
   useUpdateProject,
 } from "@/hooks/use-projects";
 import { useUnsavedChangesPrompt } from "@/hooks/use-unsaved-changes-prompt";
+import { createAssignmentOptionFallback } from "@/lib/projects/assignment-options";
 import { formatProjectError } from "@/lib/projects/display";
 import {
   mapProjectFormValuesToCreatePayload,
@@ -38,7 +39,6 @@ import {
   validateProjectDateRanges,
   writeProjectFormFlash,
 } from "@/lib/projects/form";
-import { createUserDirectoryEmailFallback } from "@/lib/users/directory";
 import type {
   ProjectFormOptions,
   ProjectFormValues,
@@ -181,7 +181,6 @@ function ProjectForm({
   projectManagerLabel?: string | null;
   submitLabel: string;
 }) {
-  const { hasPermission, permissionsLoading } = usePermissions();
   const {
     control,
     formState: { errors, isDirty },
@@ -203,6 +202,29 @@ function ProjectForm({
   const organization = useWatch({ control, name: "organization" });
   const building = useWatch({ control, name: "building" });
   const projectManagerValue = useWatch({ control, name: "project_manager" });
+  const [managerSearch, setManagerSearch] = useState("");
+  const [debouncedManagerSearch, setDebouncedManagerSearch] = useState("");
+
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedManagerSearch(managerSearch.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [managerSearch]);
+
+  const selectedOrganization = formOptions.organizations.find(
+    (item) => item.id === organization,
+  );
+  const managerOptionsQuery = useProjectManagerAssignmentOptions(
+    {
+      search: debouncedManagerSearch || undefined,
+      tenant: selectedOrganization?.tenant || undefined,
+      page_size: 50,
+    },
+    Boolean(organization),
+  );
+
   const buildingOptions = useMemo(
     () =>
       buildRecordOptions(
@@ -228,10 +250,12 @@ function ProjectForm({
 
   const projectManagerFallback = useMemo(
     () =>
-      createUserDirectoryEmailFallback(
-        projectManagerValue,
-        projectManagerLabel,
-      ),
+      createAssignmentOptionFallback({
+        id: projectManagerValue,
+        email: projectManagerLabel,
+        displayName: projectManagerLabel,
+        roleLabel: "Facility Manager",
+      }),
     [projectManagerLabel, projectManagerValue],
   );
 
@@ -304,8 +328,8 @@ function ProjectForm({
             Ownership and lifecycle
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Select an optional project manager from the users directory and set
-            status and priority.
+            Select an eligible Facility Manager or Project Manager for this
+            project. Project Manager remains optional.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -313,17 +337,25 @@ function ProjectForm({
             control={control}
             name="project_manager"
             render={({ field }) => (
-              <UserDirectoryPicker
-                description="Optional project manager for this project."
-                disabled={isSubmitting}
+              <ProjectAssignmentPicker
+                description="Select an eligible Facility Manager or Project Manager for this project."
+                disabled={isSubmitting || !organization}
+                emptyMessage="No eligible Project Managers found."
                 error={getFieldErrorMessage(errors.project_manager?.message)}
                 label="Project manager"
+                loading={managerOptionsQuery.isPending}
                 onChange={(value) => field.onChange(value ?? "")}
-                organization={organization || null}
-                permissionEnabled={
-                  !permissionsLoading && hasPermission("users.directory")
+                onSearchChange={setManagerSearch}
+                options={managerOptionsQuery.data?.results ?? []}
+                search={managerSearch}
+                selectedOption={projectManagerFallback}
+                statusMessage={
+                  !organization
+                    ? "Select an organization before choosing a Project Manager."
+                    : managerOptionsQuery.isError
+                      ? "Eligible Project Managers could not be loaded."
+                      : undefined
                 }
-                selectedUser={projectManagerFallback}
                 value={field.value || null}
               />
             )}

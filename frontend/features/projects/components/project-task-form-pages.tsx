@@ -3,12 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, type ChangeEvent, type ReactNode } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { ProtectedPermissionRoute } from "@/components/auth/protected-permission-route";
-import { EmptyState } from "@/components/common/empty-state";
 import { ErrorState } from "@/components/common/error-state";
 import { FormActions } from "@/components/common/form-actions";
 import { FormField } from "@/components/common/form-field";
@@ -16,6 +15,7 @@ import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { SelectField } from "@/components/common/select-field";
 import { AppShell } from "@/components/layout/app-shell";
+import { ProjectAssignmentPicker } from "@/features/projects/components/project-assignment-picker";
 import {
   getFieldErrorMessage,
   TextAreaField,
@@ -24,13 +24,13 @@ import {
 import {
   useCreateProjectTask,
   useProjectDetail,
-  useProjectMembers,
   useProjectTaskDetail,
   useProjectTaskFormDefaults,
+  useProjectTaskPicAssignmentOptions,
   useUpdateProjectTask,
 } from "@/hooks/use-projects";
 import { useUnsavedChangesPrompt } from "@/hooks/use-unsaved-changes-prompt";
-import { formatProjectLabel } from "@/lib/projects/display";
+import { createAssignmentOptionFallback } from "@/lib/projects/assignment-options";
 import { formatProjectTaskError } from "@/lib/projects/tasks-display";
 import {
   mapProjectTaskFormValuesToCreatePayload,
@@ -38,7 +38,7 @@ import {
   validateProjectTaskFormValues,
   writeProjectTaskFormFlash,
 } from "@/lib/projects/tasks-form";
-import type { ProjectMember, ProjectTaskFormValues } from "@/types/projects";
+import type { ProjectTaskFormValues } from "@/types/projects";
 
 const requiredString = (fieldLabel: string) =>
   z.string().trim().min(1, `${fieldLabel} is required.`);
@@ -184,51 +184,23 @@ function TaskFormSkeleton() {
   );
 }
 
-function buildPicOptions(
-  members: ProjectMember[],
-  projectManagerId: string | null | undefined,
-  projectManagerEmail: string | null | undefined,
-) {
-  const options = members
-    .filter((member) => member.is_active)
-    .map((member) => ({
-      value: member.user,
-      label: `${member.user_name || member.user_email} (${member.user_email}) — ${formatProjectLabel(member.role)}`,
-    }));
-
-  if (
-    projectManagerId &&
-    !options.some((option) => option.value === projectManagerId)
-  ) {
-    options.unshift({
-      value: projectManagerId,
-      label: `${projectManagerEmail || "Project manager"} — Project Manager`,
-    });
-  }
-
-  return options;
-}
-
 function ProjectTaskForm({
   cancelHref,
   initialValues,
   isSubmitting,
-  members,
-  membersEmptyHref,
   onSubmit,
-  picOptions,
+  projectId,
   submitLabel,
 }: {
   cancelHref: string;
   initialValues: ProjectTaskFormValues;
   isSubmitting: boolean;
-  members: ProjectMember[];
-  membersEmptyHref: string;
   onSubmit: (values: ProjectTaskFormValues) => void | Promise<void>;
-  picOptions: Array<{ value: string; label: string }>;
+  projectId: string;
   submitLabel: string;
 }) {
   const {
+    control,
     formState: { errors, isDirty },
     handleSubmit,
     register,
@@ -240,15 +212,41 @@ function ProjectTaskForm({
     resolver: zodResolver(projectTaskFormSchema),
   });
 
-  const isMilestone = watch("is_milestone");
-  const milestoneDate = watch("planned_start");
-  const plannedEndWatch = watch("planned_end");
+  const [picSearch, setPicSearch] = useState("");
+  const [debouncedPicSearch, setDebouncedPicSearch] = useState("");
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedPicSearch(picSearch.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [picSearch]);
+
+  const picOptionsQuery = useProjectTaskPicAssignmentOptions(projectId, {
+    search: debouncedPicSearch || undefined,
+    page_size: 50,
+  });
 
   useUnsavedChangesPrompt(isDirty && !isSubmitting);
 
   useEffect(() => {
     reset(initialValues);
   }, [initialValues, reset]);
+
+  const isMilestone = watch("is_milestone");
+  const personInCharge = watch("person_in_charge");
+  const milestoneDate = watch("planned_start");
+  const plannedEndWatch = watch("planned_end");
+  const picFallback = useMemo(
+    () =>
+      createAssignmentOptionFallback({
+        id: personInCharge || null,
+        email: null,
+        displayName: null,
+        roleLabel: "Assigned",
+      }),
+    [personInCharge],
+  );
 
   useEffect(() => {
     if (isMilestone && milestoneDate) {
@@ -342,29 +340,31 @@ function ProjectTaskForm({
         >
           Assignment
         </h2>
-        <SelectField
-          description="PIC must be an active project member or the project manager."
-          error={getFieldErrorMessage(errors.person_in_charge?.message)}
-          id="task-person-in-charge"
-          label="Person in charge"
-          options={picOptions}
-          placeholder="Unassigned"
-          {...register("person_in_charge")}
+        <Controller
+          control={control}
+          name="person_in_charge"
+          render={({ field }) => (
+            <ProjectAssignmentPicker
+              description="Assign an active Technician or the Project Manager. Assigning a Technician grants the minimum Project workspace access required for this task."
+              disabled={isSubmitting}
+              emptyMessage="No eligible Technicians found."
+              error={getFieldErrorMessage(errors.person_in_charge?.message)}
+              label="Person in charge"
+              loading={picOptionsQuery.isPending}
+              onChange={(value) => field.onChange(value ?? "")}
+              onSearchChange={setPicSearch}
+              options={picOptionsQuery.data?.results ?? []}
+              search={picSearch}
+              selectedOption={picFallback}
+              statusMessage={
+                picOptionsQuery.isError
+                  ? "Eligible Technicians could not be loaded."
+                  : undefined
+              }
+              value={field.value || null}
+            />
+          )}
         />
-        {members.length === 0 && picOptions.length === 0 ? (
-          <EmptyState
-            message="Add project members before assigning a person in charge."
-            title="No assignable members"
-            action={
-              <Link
-                className="inline-flex items-center rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                href={membersEmptyHref}
-              >
-                Open project members guidance
-              </Link>
-            }
-          />
-        ) : null}
       </section>
 
       <section className="space-y-4" aria-labelledby="task-schedule-heading">
@@ -461,22 +461,11 @@ export function ProjectTaskCreatePageContent({
   projectId: string;
 }) {
   const projectQuery = useProjectDetail(projectId);
-  const membersQuery = useProjectMembers(projectId);
   const defaultValues = useProjectTaskFormDefaults();
   const mutation = useCreateProjectTask(projectId);
   const router = useRouter();
 
-  const picOptions = useMemo(
-    () =>
-      buildPicOptions(
-        membersQuery.data?.results ?? [],
-        projectQuery.data?.project_manager,
-        projectQuery.data?.project_manager_email,
-      ),
-    [membersQuery.data?.results, projectQuery.data],
-  );
-
-  if (projectQuery.isPending || membersQuery.isPending) {
+  if (projectQuery.isPending) {
     return (
       <TaskProtectedFormState
         requiredPermissions={[
@@ -539,8 +528,6 @@ export function ProjectTaskCreatePageContent({
           cancelHref={`/projects/${projectId}/tasks`}
           initialValues={defaultValues}
           isSubmitting={mutation.isPending}
-          members={membersQuery.data?.results ?? []}
-          membersEmptyHref={`/projects/${projectId}`}
           onSubmit={async (values) => {
             const task = await mutation.mutateAsync(
               mapProjectTaskFormValuesToCreatePayload(values),
@@ -549,7 +536,7 @@ export function ProjectTaskCreatePageContent({
             router.replace(`/projects/${projectId}/tasks/${task.id}`);
             router.refresh();
           }}
-          picOptions={picOptions}
+          projectId={projectId}
           submitLabel="Create task"
         />
       </TaskFormLayout>
@@ -566,26 +553,11 @@ export function ProjectTaskEditPageContent({
 }) {
   const projectQuery = useProjectDetail(projectId);
   const detailQuery = useProjectTaskDetail(projectId, taskId);
-  const membersQuery = useProjectMembers(projectId);
   const mutation = useUpdateProjectTask(projectId, taskId);
   const router = useRouter();
   const defaultValues = useProjectTaskFormDefaults(detailQuery.data);
 
-  const picOptions = useMemo(
-    () =>
-      buildPicOptions(
-        membersQuery.data?.results ?? [],
-        projectQuery.data?.project_manager,
-        projectQuery.data?.project_manager_email,
-      ),
-    [membersQuery.data?.results, projectQuery.data],
-  );
-
-  if (
-    projectQuery.isPending ||
-    detailQuery.isPending ||
-    membersQuery.isPending
-  ) {
+  if (projectQuery.isPending || detailQuery.isPending) {
     return (
       <TaskProtectedFormState
         requiredPermissions={[
@@ -653,8 +625,6 @@ export function ProjectTaskEditPageContent({
           cancelHref={`/projects/${projectId}/tasks/${taskId}`}
           initialValues={defaultValues}
           isSubmitting={mutation.isPending}
-          members={membersQuery.data?.results ?? []}
-          membersEmptyHref={`/projects/${projectId}`}
           onSubmit={async (values) => {
             const task = await mutation.mutateAsync(
               mapProjectTaskFormValuesToUpdatePayload(values),
@@ -663,7 +633,7 @@ export function ProjectTaskEditPageContent({
             router.replace(`/projects/${projectId}/tasks/${task.id}`);
             router.refresh();
           }}
-          picOptions={picOptions}
+          projectId={projectId}
           submitLabel="Save changes"
         />
       </TaskFormLayout>

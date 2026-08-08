@@ -206,6 +206,9 @@ export const API_ENDPOINTS = {
       `/projects/${projectId}/links/${linkId}/`,
     linkOptions: (projectId: string) =>
       `/projects/${projectId}/link-options/`,
+    projectManagerOptions: "/projects/assignment-options/project-managers/",
+    taskPicOptions: (projectId: string) =>
+      `/projects/${projectId}/assignment-options/task-pic/`,
   },
   reporting: {
     overview: "/reporting/overview/",

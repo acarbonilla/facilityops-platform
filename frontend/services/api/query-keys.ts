@@ -292,6 +292,28 @@ export const projectsQueryKeys = {
   detail: (id: string) => ["projects", "detail", id] as const,
   history: (id: string) => ["projects", "history", id] as const,
   members: (id: string) => ["projects", "members", id] as const,
+  projectManagerOptions: (params?: {
+    search?: string;
+    tenant?: string;
+    page_size?: number;
+  }) =>
+    [
+      "projects",
+      "assignment-options",
+      "project-managers",
+      stripNilParams(params),
+    ] as const,
+  taskPicOptions: (
+    projectId: string,
+    params?: { search?: string; page_size?: number },
+  ) =>
+    [
+      "projects",
+      projectId,
+      "assignment-options",
+      "task-pic",
+      stripNilParams(params),
+    ] as const,
   taskSummary: (id: string) => ["projects", "task-summary", id] as const,
   tasks: (projectId: string) => ["projects", projectId, "tasks"] as const,
   taskList: (projectId: string, params?: ProjectTaskListParams) =>
