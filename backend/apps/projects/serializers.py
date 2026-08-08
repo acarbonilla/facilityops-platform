@@ -502,10 +502,16 @@ class ProjectTaskDerivedFieldsMixin:
 
         return compute_delay_flags(obj)
 
+    def _resolve_execution(self, obj):
+        from .execution_variance import compute_execution_schedule
+
+        return compute_execution_schedule(task=obj)
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         readiness = self._resolve_readiness(instance)
         delay = self._resolve_delay(instance)
+        execution = self._resolve_execution(instance)
         data["is_dependency_ready"] = readiness["is_dependency_ready"]
         data["blocking_predecessor_count"] = readiness[
             "blocking_predecessor_count"
@@ -515,6 +521,14 @@ class ProjectTaskDerivedFieldsMixin:
         data["is_delayed"] = delay["is_delayed"]
         data["is_completed_late"] = delay["is_completed_late"]
         data["delay_days"] = delay["delay_days"]
+        data["start_variance_days"] = execution["start_variance_days"]
+        data["completion_variance_days"] = execution[
+            "completion_variance_days"
+        ]
+        data["execution_schedule_status"] = execution[
+            "execution_schedule_status"
+        ]
+        data["days_past_planned_end"] = execution["days_past_planned_end"]
         return data
 
 
@@ -718,8 +732,6 @@ class ProjectTaskCreateSerializer(
             "priority",
             "planned_start",
             "planned_end",
-            "actual_start",
-            "actual_end",
             "progress_percentage",
             "sequence",
             "is_milestone",
@@ -751,8 +763,6 @@ class ProjectTaskUpdateSerializer(
             "priority",
             "planned_start",
             "planned_end",
-            "actual_start",
-            "actual_end",
             "progress_percentage",
             "sequence",
             "is_milestone",

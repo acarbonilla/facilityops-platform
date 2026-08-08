@@ -708,11 +708,8 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
     def complete(self, request, project_id=None, pk=None):
         from .execution_service import complete_task
 
-        return self._execute_task_action(
-            request,
-            complete_task,
-            actual_end=request.data.get("actual_end"),
-        )
+        # FO-115B: actual_end is system-derived (local business date).
+        return self._execute_task_action(request, complete_task)
 
     def update_progress(self, request, project_id=None, pk=None):
         from .execution_service import update_task_progress
