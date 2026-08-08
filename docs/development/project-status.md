@@ -23,7 +23,8 @@
 
 ## Current Branch
 
-- Active: `main` @ `a8de616e2089790f4b05c09be1665d96b967d53e` (FO-114 COMPLETE AND MERGED)
+- Active: `main` @ `f7e318ac987da9fea4b9c03e3364e3579b7ccab8` (FO-114 COMPLETE AND MERGED + post-merge docs)
+- Merge commit: `a8de616e2089790f4b05c09be1665d96b967d53e` (PR #68)
 - Prior stable docs sync: `91cce0b22c6ee2b2091c94a0e989ee1e262e147e` (FO-113A)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 

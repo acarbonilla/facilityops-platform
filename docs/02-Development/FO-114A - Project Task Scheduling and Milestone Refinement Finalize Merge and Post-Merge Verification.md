@@ -10,7 +10,7 @@
 **PR:** [#68](https://github.com/acarbonilla/facilityops-platform/pull/68) — **MERGED**  
 **Merge method:** merge commit  
 **Merge commit SHA:** `a8de616e2089790f4b05c09be1665d96b967d53e`  
-**Final main SHA:** `a8de616e2089790f4b05c09be1665d96b967d53e`  
+**Final main SHA:** `f7e318ac987da9fea4b9c03e3364e3579b7ccab8` (post-merge docs sync; merge @ `a8de616…`)  
 **FO-114:** COMPLETE AND MERGED  
 **Deferred:** FO-102 Gemini billing/quota diagnostics  
 **Next planned (not started):** FO-115 — Interactive Gantt Experience & Tenant-Scope Verification  
@@ -128,7 +128,7 @@ No Critical/High product defects open.
 
 | Gate | Result |
 | --- | --- |
-| local `main` == `origin/main` | Yes @ `a8de616…` |
+| local `main` == `origin/main` | Yes @ `f7e318a…` (docs sync after merge `a8de616…`) |
 | showmigrations projects | 0001–0006 applied |
 | migrate --plan | No planned operations |
 | makemigrations --check | No changes |
