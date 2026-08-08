@@ -76,7 +76,7 @@ class ProjectTaskTests(APITestCase):
             "fo104-pm-a@example.com", cls.tenant_a, cls.org_a, "facility_manager"
         )
         cls.member_user = make_user(
-            "fo104-member-a@example.com", cls.tenant_a, cls.org_a, "viewer"
+            "fo104-member-a@example.com", cls.tenant_a, cls.org_a, "technician"
         )
         cls.inactive_user = make_user(
             "fo104-inactive@example.com",
@@ -357,8 +357,10 @@ class ProjectTaskTests(APITestCase):
         created = self._create_task(person_in_charge=str(self.pm_user.id))
         self.assertEqual(str(created.data["person_in_charge"]), str(self.pm_user.id))
 
-    def test_21_pic_active_member_allowed(self):
+    def test_21_pic_technician_allowed_without_membership_gate(self):
+        """FO-115C: Technician PIC is valid (membership optional)."""
         created = self._create_task(person_in_charge=str(self.member_user.id))
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED, created.data)
         self.assertEqual(
             str(created.data["person_in_charge"]), str(self.member_user.id)
         )
