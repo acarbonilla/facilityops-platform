@@ -6,7 +6,8 @@
 **Starting main SHA:** `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`  
 **Baseline:** FO-114 / FO-114A COMPLETE AND MERGED  
 **Deferred:** FO-102 Gemini billing/quota diagnostics  
-**Merge task:** FO-115A (not started)
+**Merge task:** FO-115A (not started)  
+**Follow-on on same branch:** FO-115B Planned vs Actual (see sibling doc)
 
 ## 1. Objective
 
