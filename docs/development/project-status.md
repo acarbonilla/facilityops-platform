@@ -19,12 +19,13 @@
 - FO-114 / FO-114A Project Task Scheduling & Milestone Refinement — **COMPLETE AND MERGED** (PR #68 @ `a8de616…`)
 - FO-115 Interactive Gantt Experience & Tenant-Scope Verification — **COMPLETE on feature branch** (unmerged)
 - FO-115B Planned vs Actual Gantt Execution Tracking — **COMPLETE on feature branch** (same branch; unmerged; FO-115A later)
+- FO-115C Project Manager & Task PIC Role-Based Assignment Refinement — **COMPLETE on feature branch** (same branch; unmerged; FO-115A later)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
 
 ## Current Branch
 
-- Active: `feature/interactive-gantt-tenant-scope` (FO-115 + FO-115B; branched from `main` @ `2fae32b…`)
+- Active: `feature/interactive-gantt-tenant-scope` (FO-115 + FO-115B + FO-115C; branched from `main` @ `2fae32b…`)
 - Stable `main` @ `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
@@ -137,6 +138,8 @@
   See `docs/02-Development/FO-115 - Interactive Gantt Experience and Tenant-Scope Verification.md`.
 - FO-115B — Planned vs Actual Gantt Execution Tracking — **COMPLETE** on the same branch (unmerged).
   See `docs/02-Development/FO-115B - Planned vs Actual Gantt Execution Tracking.md`.
+- FO-115C — Project Manager & Task PIC Role-Based Assignment Refinement — **COMPLETE** on the same branch (unmerged).
+  See `docs/02-Development/FO-115C - Project Manager and Task PIC Role-Based Assignment Refinement.md`.
 - FO-114 / FO-114A — **COMPLETE AND MERGED** (PR #68).
 - Project Management v1.0 — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67).
 - FO-102 remains **DEFERRED**.
@@ -144,7 +147,7 @@
 
 ## Next Milestone
 
-- FO-115A after Draft PR is ready
+- FO-115A after Draft PR is ready (covers FO-115 + FO-115B + FO-115C)
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release

@@ -7,7 +7,7 @@
 **Baseline:** FO-114 / FO-114A COMPLETE AND MERGED  
 **Deferred:** FO-102 Gemini billing/quota diagnostics  
 **Merge task:** FO-115A (not started)  
-**Follow-on on same branch:** FO-115B Planned vs Actual (see sibling doc)
+**Follow-on on same branch:** FO-115B Planned vs Actual; FO-115C assignment refinement (see sibling docs)
 
 ## 1. Objective
 

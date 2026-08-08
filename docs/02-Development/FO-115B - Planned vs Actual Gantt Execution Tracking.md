@@ -5,6 +5,7 @@
 **Draft PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)  
 **Baseline (FO-115 HEAD):** `95e7b300734bb5d164b66df38832287cdf49dbaa`  
 **Merge task:** FO-115A (not started)  
+**Follow-on on same branch:** FO-115C assignment refinement (does not alter actual_start/actual_end rules)
 **FO-102:** Deferred
 
 ---
@@ -115,5 +116,6 @@ No data migration. Legacy tasks without reliable start/end history may leave `ac
 
 ## 10. Next
 
-**FO-115A** — Finalize, merge Draft PR #69, and post-merge verification.  
+**FO-115C** — Project Manager & Task PIC role-based assignment refinement (same branch).
+**FO-115A** — Finalize, merge Draft PR #69, and post-merge verification.
 **FO-102** remains deferred.
