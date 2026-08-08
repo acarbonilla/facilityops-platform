@@ -197,6 +197,27 @@ def is_task_scheduled(task) -> bool:
     return task.planned_start is not None and task.planned_end is not None
 
 
+def fs_schedule_conflict_message(*, predecessor, successor) -> str | None:
+    """FO-114 Finish-to-Start day-level schedule consistency.
+
+    When both tasks are fully scheduled, require:
+      successor.planned_start >= predecessor.planned_end
+
+    Same-day successor start after predecessor end date is allowed.
+    Unscheduled either side does not create a schedule conflict.
+    """
+    if not is_task_scheduled(predecessor) or not is_task_scheduled(successor):
+        return None
+    if successor.planned_start >= predecessor.planned_end:
+        return None
+    return (
+        "task_schedule_dependency_conflict: successor planned start "
+        f"({successor.planned_start}) is before predecessor planned end "
+        f"({predecessor.planned_end}) for Finish-to-Start dependency "
+        f"{predecessor.task_code} → {successor.task_code}."
+    )
+
+
 def assert_task_dependency_ready_for_status(task, *, target_status):
     """Raise ValidationError when FS predecessors block status transition."""
     if target_status not in (
