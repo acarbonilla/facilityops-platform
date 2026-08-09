@@ -109,14 +109,14 @@ test("FO-114 schedule labels distinguish unscheduled, same-day, and milestone", 
       planned_end: "2026-08-10",
       is_milestone: false,
     }),
-    "2026-08-10",
+    "Aug 10",
   );
   assert.equal(
     formatTaskPlannedScheduleLabel({
       planned_start: "2026-08-11",
       planned_end: "2026-08-12",
     }),
-    "2026-08-11 – 2026-08-12",
+    "Aug 11 – Aug 12",
   );
   assert.equal(
     formatTaskPlannedScheduleLabel({
@@ -124,7 +124,7 @@ test("FO-114 schedule labels distinguish unscheduled, same-day, and milestone", 
       planned_end: "2026-08-14",
       is_milestone: true,
     }),
-    "2026-08-14",
+    "Milestone · Aug 14",
   );
   assert.equal(
     isTaskScheduleUnscheduled({ planned_start: null, planned_end: null }),

@@ -5,7 +5,37 @@ import type {
   ProjectTaskSummary,
 } from "@/types/projects";
 
-import { formatProjectCompletion, formatProjectLabel } from "./display";
+import {
+  formatProjectCompletion,
+  formatProjectDate,
+  formatProjectLabel,
+} from "./display";
+
+/** Desktop/mobile Task list column header (FO-117). */
+export const PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER = "Planned schedule";
+
+/**
+ * Compact calendar day for Task Planned Schedule cells.
+ * Prefer short month + day (Aug 9) over raw ISO strings.
+ */
+function formatScheduleDayLabel(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const parsed = new Date(year, month - 1, day);
+    if (!Number.isNaN(parsed.getTime())) {
+      return new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+      }).format(parsed);
+    }
+  }
+
+  const formatted = formatProjectDate(value, "");
+  return formatted || value.trim();
+}
 
 export const PROJECT_TASK_STATUS_LABELS: Record<ProjectTaskStatus, string> = {
   not_started: "Not Started",
@@ -44,7 +74,15 @@ export function formatProjectTaskProgress(
   return formatProjectCompletion(value);
 }
 
-/** FO-114: concise planned-schedule label for detail/list surfaces. */
+/**
+ * FO-114 / FO-117: concise planned-schedule label for list/detail/Gantt surfaces.
+ *
+ * - Unscheduled when both dates are empty
+ * - Same-day non-milestone → single day (not "Aug 9 – Aug 9")
+ * - Multi-day → "Aug 9 – Aug 10"
+ * - Explicit milestone → "Milestone · Aug 14"
+ * - Partial legacy data → "Incomplete schedule" (no silent normalization)
+ */
 export function formatTaskPlannedScheduleLabel(input: {
   planned_start?: string | null;
   planned_end?: string | null;
@@ -55,16 +93,37 @@ export function formatTaskPlannedScheduleLabel(input: {
   if (!start && !end) {
     return "Unscheduled";
   }
-  if (input.is_milestone) {
-    return start || end;
+  if (Boolean(start) !== Boolean(end)) {
+    return "Incomplete schedule";
   }
-  if (start && end && start === end) {
-    return start;
+  if (input.is_milestone) {
+    return `Milestone · ${formatScheduleDayLabel(start || end)}`;
+  }
+  const startLabel = formatScheduleDayLabel(start);
+  const endLabel = formatScheduleDayLabel(end);
+  if (start === end) {
+    return startLabel;
+  }
+  return `${startLabel} – ${endLabel}`;
+}
+
+/** Project-level schedule context for Task list header (FO-117). */
+export function formatProjectScheduleContextLabel(input: {
+  planned_start_date?: string | null;
+  planned_end_date?: string | null;
+}): string {
+  const start = input.planned_start_date?.trim() || "";
+  const end = input.planned_end_date?.trim() || "";
+  if (!start && !end) {
+    return "Not set";
   }
   if (start && end) {
-    return `${start} – ${end}`;
+    return `${formatProjectDate(start)} – ${formatProjectDate(end)}`;
   }
-  return "Unscheduled";
+  if (start) {
+    return `Starts ${formatProjectDate(start)}`;
+  }
+  return `Ends ${formatProjectDate(end)}`;
 }
 
 export function isTaskScheduleUnscheduled(input: {

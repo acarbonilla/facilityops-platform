@@ -21,11 +21,12 @@
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
 - FO-116 / FO-116A Application Shell & Validation Error UX — **COMPLETE AND MERGED** (PR #70)
+- FO-117 Project Task Planned Schedule Display Refinement — **IN PROGRESS** (Draft PR; unmerged)
 
 ## Current Branch
 
-- Active: `main` @ `912964d…` (FO-116A merge commit; post-merge docs may tip ahead)
-- Prior feature: `feature/application-shell-validation-ux` (deleted after merge)
+- Active: `feature/project-task-schedule-display` (FO-117 Draft PR; base `main` @ `ee421b1…`)
+- Prior stable: `main` @ `ee421b1…` (FO-116A complete)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -140,10 +141,12 @@
 - FO-102 remains **DEFERRED**.
 - FO-116 / FO-116A — Application Shell & Validation Error UX — **COMPLETE AND MERGED** (PR #70).
   See `docs/02-Development/FO-116A - Application Shell and Validation Error UX Finalize Merge and Post-Merge Verification.md`.
+- FO-117 — Project Task Planned Schedule Display Refinement — **IN PROGRESS** (unmerged; FO-117A not started).
+  See `docs/02-Development/FO-117 - Project Task Planned Schedule Display Refinement.md`.
 
 ## Next Milestone
 
-- Next feature NOT STARTED
+- FO-117A Finalize, Merge & Post-Merge Verification — NOT STARTED
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release

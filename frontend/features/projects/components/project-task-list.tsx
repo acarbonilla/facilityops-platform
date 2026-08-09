@@ -17,15 +17,15 @@ import {
   useProjectTaskList,
 } from "@/hooks/use-projects";
 import { usePermissions } from "@/hooks/use-permissions";
-import {
-  formatPersonLabel,
-  formatProjectDate,
-} from "@/lib/projects/display";
+import { formatPersonLabel } from "@/lib/projects/display";
 import { formatDelayLabel } from "@/lib/projects/gantt";
 import {
+  PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER,
   canCreateProjectTask,
+  formatProjectScheduleContextLabel,
   formatProjectTaskError,
   formatProjectTaskProgress,
+  formatTaskPlannedScheduleLabel,
   getProjectTaskListLayoutClasses,
 } from "@/lib/projects/tasks-display";
 import {
@@ -65,6 +65,8 @@ const SORT_OPTIONS: SelectOption[] = [
   { value: "-status", label: "Status: reverse" },
   { value: "priority", label: "Priority: lowest first" },
   { value: "-priority", label: "Priority: highest first" },
+  { value: "planned_start", label: "Planned schedule: earliest start" },
+  { value: "-planned_start", label: "Planned schedule: latest start" },
   { value: "planned_end", label: "Planned end: earliest" },
   { value: "-planned_end", label: "Planned end: latest" },
   { value: "-updated", label: "Updated: newest first" },
@@ -140,12 +142,16 @@ function TaskMobileCard({
             {formatProjectTaskProgress(task.progress_percentage)}
           </dd>
         </div>
-        <div>
+        <div className="col-span-2">
           <dt className="text-xs uppercase tracking-wide text-slate-500">
-            Planned end
+            {PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER}
           </dt>
           <dd className="mt-1 text-slate-800">
-            {formatProjectDate(task.planned_end)}
+            {formatTaskPlannedScheduleLabel({
+              planned_start: task.planned_start,
+              planned_end: task.planned_end,
+              is_milestone: task.is_milestone,
+            })}
           </dd>
         </div>
         <div>
@@ -157,7 +163,7 @@ function TaskMobileCard({
         {task.is_delayed ? (
           <div className="col-span-2">
             <dt className="text-xs uppercase tracking-wide text-slate-500">
-              Schedule
+              Delay
             </dt>
             <dd className="mt-1 text-slate-800">
               {formatDelayLabel({
@@ -233,8 +239,20 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
       className: "min-w-40 whitespace-normal",
     },
     {
-      header: "Planned end",
-      cell: (task) => formatProjectDate(task.planned_end),
+      header: PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER,
+      cell: (task) => {
+        const scheduleLabel = formatTaskPlannedScheduleLabel({
+          planned_start: task.planned_start,
+          planned_end: task.planned_end,
+          is_milestone: task.is_milestone,
+        });
+        return (
+          <span aria-label={`${PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER}: ${scheduleLabel}`}>
+            {scheduleLabel}
+          </span>
+        );
+      },
+      className: "min-w-36 whitespace-nowrap",
     },
     {
       header: "Actions",
@@ -250,6 +268,10 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
   ];
 
   const projectName = projectQuery.data?.name ?? "Project";
+  const projectScheduleLabel = formatProjectScheduleContextLabel({
+    planned_start_date: projectQuery.data?.planned_start_date,
+    planned_end_date: projectQuery.data?.planned_end_date,
+  });
   const tasks = listQuery.data?.results ?? [];
   const totalCount = listQuery.data?.count ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / filters.pageSize));
@@ -284,6 +306,16 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
           ) : null}
         </div>
       </PageHeader>
+
+      <section
+        aria-label="Project schedule context"
+        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 sm:px-6"
+      >
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Project schedule
+        </p>
+        <p className="mt-1 font-medium text-slate-900">{projectScheduleLabel}</p>
+      </section>
 
       <section className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
