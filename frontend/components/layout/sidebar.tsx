@@ -274,8 +274,19 @@ function MobileNavigationDrawer() {
 
 export function MobileNavTrigger() {
   const { openMobileNav, mobileNavOpen } = useAppShell();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (wasOpenRef.current && !mobileNavOpen) {
+      triggerRef.current?.focus();
+    }
+    wasOpenRef.current = mobileNavOpen;
+  }, [mobileNavOpen]);
+
   return (
     <button
+      ref={triggerRef}
       aria-controls="facilityops-mobile-navigation"
       aria-expanded={mobileNavOpen}
       aria-label="Open navigation"
