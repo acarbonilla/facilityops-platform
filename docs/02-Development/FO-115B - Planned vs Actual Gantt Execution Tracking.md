@@ -1,10 +1,10 @@
 # FO-115B — Planned vs Actual Gantt Execution Tracking
 
-**Status:** Complete on feature branch (unmerged)  
-**Branch:** `feature/interactive-gantt-tenant-scope`  
-**Draft PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)  
-**Baseline (FO-115 HEAD):** `95e7b300734bb5d164b66df38832287cdf49dbaa`  
-**Merge task:** FO-115A (not started)  
+**Status:** COMPLETE AND MERGED (via FO-115A / PR #69)
+**Branch:** `feature/interactive-gantt-tenant-scope` (deleted after merge)
+**PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)
+**Baseline (FO-115 HEAD):** `95e7b300734bb5d164b66df38832287cdf49dbaa`
+**Merge task:** FO-115A — see sibling FO-115A doc
 **Follow-on on same branch:** FO-115C assignment refinement (does not alter actual_start/actual_end rules)
 **FO-102:** Deferred
 

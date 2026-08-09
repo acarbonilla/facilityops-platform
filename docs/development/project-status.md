@@ -17,16 +17,15 @@
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
 - Project Management — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67 @ `ebdad1b…`)
 - FO-114 / FO-114A Project Task Scheduling & Milestone Refinement — **COMPLETE AND MERGED** (PR #68 @ `a8de616…`)
-- FO-115 Interactive Gantt Experience & Tenant-Scope Verification — **COMPLETE on feature branch** (unmerged)
-- FO-115B Planned vs Actual Gantt Execution Tracking — **COMPLETE on feature branch** (same branch; unmerged; FO-115A later)
-- FO-115C Project Manager & Task PIC Role-Based Assignment Refinement — **COMPLETE on feature branch** (same branch; unmerged; FO-115A later)
+- FO-115 / FO-115B / FO-115C / FO-115A — Interactive Gantt, Planned vs Actual, Assignment Refinement — **COMPLETE AND MERGED** (PR #69)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
+- FO-116 Application Shell & Validation Error UX — **NOT STARTED**
 
 ## Current Branch
 
-- Active: `feature/interactive-gantt-tenant-scope` (FO-115 + FO-115B + FO-115C; branched from `main` @ `2fae32b…`)
-- Stable `main` @ `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`
+- Active: `main` (post FO-115A merge; SHAs recorded in FO-115A doc)
+- Prior feature: `feature/interactive-gantt-tenant-scope` (deleted after merge)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -134,20 +133,16 @@
 
 ## Current Task
 
-- FO-115 — Interactive Gantt Experience & Tenant-Scope Verification — **COMPLETE** on `feature/interactive-gantt-tenant-scope` (unmerged; merge via FO-115A).
-  See `docs/02-Development/FO-115 - Interactive Gantt Experience and Tenant-Scope Verification.md`.
-- FO-115B — Planned vs Actual Gantt Execution Tracking — **COMPLETE** on the same branch (unmerged).
-  See `docs/02-Development/FO-115B - Planned vs Actual Gantt Execution Tracking.md`.
-- FO-115C — Project Manager & Task PIC Role-Based Assignment Refinement — **COMPLETE** on the same branch (unmerged).
-  See `docs/02-Development/FO-115C - Project Manager and Task PIC Role-Based Assignment Refinement.md`.
+- FO-115 / FO-115B / FO-115C / FO-115A — **COMPLETE AND MERGED** (PR #69).
+  See `docs/02-Development/FO-115A - Interactive Gantt Planned vs Actual and Assignment Finalize Merge and Post-Merge Verification.md`.
 - FO-114 / FO-114A — **COMPLETE AND MERGED** (PR #68).
 - Project Management v1.0 — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67).
 - FO-102 remains **DEFERRED**.
-- FO-115A — Finalize, Merge & Post-Merge Verification — **NOT STARTED**.
+- FO-116 — Application Shell & Validation Error UX Refinement — **NOT STARTED**.
 
 ## Next Milestone
 
-- FO-115A after Draft PR is ready (covers FO-115 + FO-115B + FO-115C)
+- FO-116 Application Shell & Validation Error UX Refinement
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release

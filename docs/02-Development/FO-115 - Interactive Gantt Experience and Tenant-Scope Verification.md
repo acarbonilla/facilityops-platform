@@ -1,12 +1,12 @@
 # FO-115 — Interactive Gantt Experience and Tenant-Scope Verification
 
-**Status:** COMPLETE ON FEATURE BRANCH (UNMERGED)  
-**Date:** 2026-08-08  
-**Branch:** `feature/interactive-gantt-tenant-scope`  
-**Starting main SHA:** `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`  
-**Baseline:** FO-114 / FO-114A COMPLETE AND MERGED  
-**Deferred:** FO-102 Gemini billing/quota diagnostics  
-**Merge task:** FO-115A (not started)  
+**Status:** COMPLETE AND MERGED (via FO-115A / PR #69)
+**Date:** 2026-08-08
+**Branch:** `feature/interactive-gantt-tenant-scope` (deleted after merge)
+**Starting main SHA:** `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`
+**Baseline:** FO-114 / FO-114A COMPLETE AND MERGED
+**Deferred:** FO-102 Gemini billing/quota diagnostics
+**Merge task:** FO-115A — see sibling FO-115A doc
 **Follow-on on same branch:** FO-115B Planned vs Actual; FO-115C assignment refinement (see sibling docs)
 
 ## 1. Objective

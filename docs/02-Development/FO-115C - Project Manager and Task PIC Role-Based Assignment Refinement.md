@@ -1,10 +1,10 @@
 # FO-115C — Project Manager and Task PIC Role-Based Assignment Refinement
 
-**Status:** Complete on feature branch (unmerged)  
-**Branch:** `feature/interactive-gantt-tenant-scope`  
-**Draft PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)  
-**Baseline (FO-115B HEAD):** `0c7b8a4224517d4013ceff445ad07162da3ca190`  
-**Merge task:** FO-115A (not started)  
+**Status:** COMPLETE AND MERGED (via FO-115A / PR #69)
+**Branch:** `feature/interactive-gantt-tenant-scope` (deleted after merge)
+**PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)
+**Baseline (FO-115B HEAD):** `0c7b8a4224517d4013ceff445ad07162da3ca190`
+**Merge task:** FO-115A — see sibling FO-115A doc
 **FO-102:** Deferred
 
 ---
@@ -168,7 +168,7 @@ Regression coverage includes workspace/My Work/implicit access, reassignment, ex
 
 ## 11. Next
 
-**FO-115A** — Finalize, merge Draft PR #69 (FO-115 + FO-115B + FO-115C), and post-merge verification.  
+**FO-115A** — Finalize, merge Draft PR #69 (FO-115 + FO-115B + FO-115C), and post-merge verification.
 **FO-102** remains deferred.
 
 ---
