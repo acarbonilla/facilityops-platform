@@ -24,7 +24,7 @@
 
 ## Current Branch
 
-- Active: `main` @ `c06e32ce985ec3e0eb956e06ae4600dcf6bacc7d` (PR #69 merge; FO-115A)
+- Active: `main` @ `b5684c86d8dc1146b679332cb87783c5eb785cc3` (FO-115A post-merge docs; merge @ `c06e32c…`)
 - Prior feature: `feature/interactive-gantt-tenant-scope` (deleted after merge)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 

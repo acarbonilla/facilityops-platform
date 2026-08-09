@@ -10,7 +10,7 @@
 **PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69) — **MERGED**
 **Merge method:** merge commit
 **Merge commit SHA:** `c06e32ce985ec3e0eb956e06ae4600dcf6bacc7d`
-**Final main SHA:** `c06e32ce985ec3e0eb956e06ae4600dcf6bacc7d` (post-merge docs sync may advance HEAD)
+**Final main SHA:** `b5684c86d8dc1146b679332cb87783c5eb785cc3` (post-merge docs sync; merge @ `c06e32c…`)
 **Package:** FO-115 + FO-115B + FO-115C
 **Deferred:** FO-102 Gemini billing/quota diagnostics
 **Next planned (not started):** FO-116 — Application Shell & Validation Error UX Refinement
