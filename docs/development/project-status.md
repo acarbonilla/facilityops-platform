@@ -20,12 +20,12 @@
 - FO-115 / FO-115B / FO-115C / FO-115A — Interactive Gantt, Planned vs Actual, Assignment Refinement — **COMPLETE AND MERGED** (PR #69)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
-- FO-116 Application Shell & Validation Error UX — **NOT STARTED**
+- FO-116 Application Shell & Validation Error UX — **IN PROGRESS** on `feature/application-shell-validation-ux` (unmerged)
 
 ## Current Branch
 
-- Active: `main` @ `2fcdfc6e9c7aecd2a9d834e00f8d29322cbf23b1` (FO-115A post-merge docs; merge @ `c06e32c…`)
-- Prior feature: `feature/interactive-gantt-tenant-scope` (deleted after merge)
+- Active: `feature/application-shell-validation-ux` (FO-116; from `main` @ `242432d…`)
+- Stable `main` @ `242432d5ba7d0d69dd5ac9a657e03d84471f413f`
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -138,11 +138,12 @@
 - FO-114 / FO-114A — **COMPLETE AND MERGED** (PR #68).
 - Project Management v1.0 — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67).
 - FO-102 remains **DEFERRED**.
-- FO-116 — Application Shell & Validation Error UX Refinement — **NOT STARTED**.
+- FO-116 — Application Shell & Validation Error UX Refinement — **IN PROGRESS** (Draft PR; merge via FO-116A).
+  See `docs/02-Development/FO-116 - Application Shell and Validation Error UX Refinement.md`.
 
 ## Next Milestone
 
-- FO-116 Application Shell & Validation Error UX Refinement
+- FO-116A Finalize, Merge & Post-Merge Verification after FO-116 Draft PR is ready
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release
