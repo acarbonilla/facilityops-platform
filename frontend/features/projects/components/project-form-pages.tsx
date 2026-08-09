@@ -10,6 +10,7 @@ import { z } from "zod";
 import { ProtectedPermissionRoute } from "@/components/auth/protected-permission-route";
 import { ErrorState } from "@/components/common/error-state";
 import { FormActions } from "@/components/common/form-actions";
+import { FormValidationSummary } from "@/components/common/form-validation-summary";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { SelectField } from "@/components/common/select-field";
@@ -31,6 +32,10 @@ import {
   useUpdateProject,
 } from "@/hooks/use-projects";
 import { useUnsavedChangesPrompt } from "@/hooks/use-unsaved-changes-prompt";
+import {
+  normalizeFormValidationError,
+  type FormValidationResult,
+} from "@/lib/api/form-validation";
 import { createAssignmentOptionFallback } from "@/lib/projects/assignment-options";
 import { formatProjectError } from "@/lib/projects/display";
 import {
@@ -124,12 +129,10 @@ function ProjectBreadcrumbs({ currentLabel }: { currentLabel: string }) {
 function ProjectFormLayout({
   children,
   description,
-  errorMessage,
   title,
 }: {
   children: ReactNode;
   description: string;
-  errorMessage?: string | null;
   title: string;
 }) {
   return (
@@ -142,9 +145,6 @@ function ProjectFormLayout({
         >
           <ProjectBreadcrumbs currentLabel={title} />
         </PageHeader>
-        {errorMessage ? (
-          <ErrorState message={errorMessage} title="Unable to save project" />
-        ) : null}
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           {children}
         </section>
@@ -181,12 +181,16 @@ function ProjectForm({
   projectManagerLabel?: string | null;
   submitLabel: string;
 }) {
+  const [serverValidation, setServerValidation] =
+    useState<FormValidationResult | null>(null);
   const {
     control,
     formState: { errors, isDirty },
     handleSubmit,
     register,
     reset,
+    setError,
+    clearErrors,
     setValue,
   } = useForm<ProjectFormValues>({
     defaultValues: initialValues,
@@ -268,9 +272,33 @@ function ProjectForm({
     <form
       className="space-y-6"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit(values);
+        setServerValidation(null);
+        clearErrors();
+        try {
+          await onSubmit(values);
+        } catch (error) {
+          const normalized = normalizeFormValidationError(error, {
+            entityLabel: "Project",
+          });
+          if (normalized.isExpected) {
+            setServerValidation(normalized);
+            for (const [field, message] of Object.entries(
+              normalized.fieldErrors,
+            )) {
+              if (field in initialValues) {
+                setError(field as keyof ProjectFormValues, {
+                  type: "server",
+                  message,
+                });
+              }
+            }
+            return;
+          }
+          throw error;
+        }
       })}
     >
+      <FormValidationSummary result={serverValidation} />
       <section className="space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-slate-950">
@@ -488,11 +516,6 @@ export function ProjectCreatePageContent() {
     >
       <ProjectFormLayout
         description="Create a facility project. Tenant is set by the backend from the selected organization."
-        errorMessage={
-          mutation.isError
-            ? formatProjectError(mutation.error, "Project could not be created.")
-            : null
-        }
         title="New Project"
       >
         <ProjectForm
@@ -563,11 +586,6 @@ export function ProjectEditPageContent({ projectId }: { projectId: string }) {
     >
       <ProjectFormLayout
         description={`Edit ${detailQuery.data.project_code}. Completion percentage remains read-only.`}
-        errorMessage={
-          mutation.isError
-            ? formatProjectError(mutation.error, "Project could not be updated.")
-            : null
-        }
         title="Edit Project"
       >
         <ProjectForm
