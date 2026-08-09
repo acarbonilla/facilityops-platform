@@ -240,12 +240,18 @@ export function ProjectTaskListScreen({ projectId }: { projectId: string }) {
     },
     {
       header: PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER,
-      cell: (task) =>
-        formatTaskPlannedScheduleLabel({
+      cell: (task) => {
+        const scheduleLabel = formatTaskPlannedScheduleLabel({
           planned_start: task.planned_start,
           planned_end: task.planned_end,
           is_milestone: task.is_milestone,
-        }),
+        });
+        return (
+          <span aria-label={`${PROJECT_TASK_LIST_SCHEDULE_COLUMN_HEADER}: ${scheduleLabel}`}>
+            {scheduleLabel}
+          </span>
+        );
+      },
       className: "min-w-36 whitespace-nowrap",
     },
     {
