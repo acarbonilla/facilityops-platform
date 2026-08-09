@@ -11,6 +11,7 @@ import { ProtectedPermissionRoute } from "@/components/auth/protected-permission
 import { ErrorState } from "@/components/common/error-state";
 import { FormActions } from "@/components/common/form-actions";
 import { FormField } from "@/components/common/form-field";
+import { FormValidationSummary } from "@/components/common/form-validation-summary";
 import { LoadingState } from "@/components/common/loading-state";
 import { PageHeader } from "@/components/common/page-header";
 import { SelectField } from "@/components/common/select-field";
@@ -30,6 +31,10 @@ import {
   useUpdateProjectTask,
 } from "@/hooks/use-projects";
 import { useUnsavedChangesPrompt } from "@/hooks/use-unsaved-changes-prompt";
+import {
+  normalizeFormValidationError,
+  type FormValidationResult,
+} from "@/lib/api/form-validation";
 import { createAssignmentOptionFallback } from "@/lib/projects/assignment-options";
 import { formatProjectTaskError } from "@/lib/projects/tasks-display";
 import {
@@ -142,13 +147,11 @@ function TaskBreadcrumbs({
 function TaskFormLayout({
   children,
   description,
-  errorMessage,
   projectId,
   title,
 }: {
   children: ReactNode;
   description: string;
-  errorMessage?: string | null;
   projectId: string;
   title: string;
 }) {
@@ -162,9 +165,6 @@ function TaskFormLayout({
         >
           <TaskBreadcrumbs currentLabel={title} projectId={projectId} />
         </PageHeader>
-        {errorMessage ? (
-          <ErrorState message={errorMessage} title="Unable to save task" />
-        ) : null}
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           {children}
         </section>
@@ -190,6 +190,7 @@ function ProjectTaskForm({
   isSubmitting,
   onSubmit,
   projectId,
+  projectSchedule,
   submitLabel,
 }: {
   cancelHref: string;
@@ -197,14 +198,22 @@ function ProjectTaskForm({
   isSubmitting: boolean;
   onSubmit: (values: ProjectTaskFormValues) => void | Promise<void>;
   projectId: string;
+  projectSchedule?: {
+    plannedStart?: string | null;
+    plannedEnd?: string | null;
+  };
   submitLabel: string;
 }) {
+  const [serverValidation, setServerValidation] =
+    useState<FormValidationResult | null>(null);
   const {
     control,
     formState: { errors, isDirty },
     handleSubmit,
     register,
     reset,
+    setError,
+    clearErrors,
     setValue,
     watch,
   } = useForm<ProjectTaskFormValues>({
@@ -273,9 +282,34 @@ function ProjectTaskForm({
     <form
       className="space-y-6"
       onSubmit={handleSubmit(async (values) => {
-        await onSubmit(values);
+        setServerValidation(null);
+        clearErrors();
+        try {
+          await onSubmit(values);
+        } catch (error) {
+          const normalized = normalizeFormValidationError(error, {
+            entityLabel: "Task",
+            projectSchedule,
+          });
+          if (normalized.isExpected) {
+            setServerValidation(normalized);
+            for (const [field, message] of Object.entries(
+              normalized.fieldErrors,
+            )) {
+              if (field in initialValues) {
+                setError(field as keyof ProjectTaskFormValues, {
+                  type: "server",
+                  message,
+                });
+              }
+            }
+            return;
+          }
+          throw error;
+        }
       })}
     >
+      <FormValidationSummary result={serverValidation} />
       <section className="space-y-4" aria-labelledby="task-information-heading">
         <h2
           className="text-base font-semibold text-slate-950"
@@ -513,14 +547,6 @@ export function ProjectTaskCreatePageContent({
     >
       <TaskFormLayout
         description={`Create a task under ${projectQuery.data.project_code}. Assignment is optional until the task moves to in progress.`}
-        errorMessage={
-          mutation.isError
-            ? formatProjectTaskError(
-                mutation.error,
-                "Task could not be created.",
-              )
-            : null
-        }
         projectId={projectId}
         title="New Task"
       >
@@ -537,6 +563,10 @@ export function ProjectTaskCreatePageContent({
             router.refresh();
           }}
           projectId={projectId}
+          projectSchedule={{
+            plannedStart: projectQuery.data.planned_start_date,
+            plannedEnd: projectQuery.data.planned_end_date,
+          }}
           submitLabel="Create task"
         />
       </TaskFormLayout>
@@ -610,14 +640,6 @@ export function ProjectTaskEditPageContent({
     >
       <TaskFormLayout
         description={`Edit ${detailQuery.data.task_code}. Person in charge is required before in progress or completed.`}
-        errorMessage={
-          mutation.isError
-            ? formatProjectTaskError(
-                mutation.error,
-                "Task could not be updated.",
-              )
-            : null
-        }
         projectId={projectId}
         title="Edit Task"
       >
@@ -634,6 +656,10 @@ export function ProjectTaskEditPageContent({
             router.refresh();
           }}
           projectId={projectId}
+          projectSchedule={{
+            plannedStart: projectQuery.data.planned_start_date,
+            plannedEnd: projectQuery.data.planned_end_date,
+          }}
           submitLabel="Save changes"
         />
       </TaskFormLayout>
