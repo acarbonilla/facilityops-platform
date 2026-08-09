@@ -1,16 +1,16 @@
 # FO-115A — Interactive Gantt, Planned vs Actual & Assignment Finalize, Merge and Post-Merge Verification
 
-**Status:** COMPLETE AND MERGED (pending post-merge SHA fill)
+**Status:** COMPLETE AND MERGED
 **Date:** 2026-08-09
 **Branch:** `feature/interactive-gantt-tenant-scope` (deleted after merge)
 **Starting main SHA:** `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`
 **Starting feature SHA:** `3da2cfdf3edc035fa17e3d8ce73f8adcdca64e83`
-**Final feature SHA:** _(filled after finalization push)_
-**Finalization commit:** _(filled after finalization)_
-**PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)
+**Final feature SHA:** `d984481a6f7439e400c0bc3fcd26c47c33094735`
+**Finalization commits:** `e21e065…`, `d984481…`
+**PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69) — **MERGED**
 **Merge method:** merge commit
-**Merge commit SHA:** _(filled after merge)_
-**Final main SHA:** _(filled after post-merge sync)_
+**Merge commit SHA:** `c06e32ce985ec3e0eb956e06ae4600dcf6bacc7d`
+**Final main SHA:** `c06e32ce985ec3e0eb956e06ae4600dcf6bacc7d` (post-merge docs sync may advance HEAD)
 **Package:** FO-115 + FO-115B + FO-115C
 **Deferred:** FO-102 Gemini billing/quota diagnostics
 **Next planned (not started):** FO-116 — Application Shell & Validation Error UX Refinement
@@ -91,7 +91,17 @@ Proceed to Ready for Review and merge after finalization commit, static gates (E
 
 ## 9. Post-merge verification
 
-_(Filled after merge.)_
+| Gate | Result |
+| --- | --- |
+| `main` == `origin/main` | Yes @ merge commit `c06e32c…` |
+| Feature files present | `assignment_eligibility.py`, `gantt.ts`, `execution-variance.ts`, `assignment-options.ts` |
+| Django check / makemigrations | Pass / no changes |
+| `apps.projects` | **311 OK** (PostgreSQL `--keepdb`) |
+| Frontend suite | **532 pass / 0 fail** |
+| seed_rbac | Idempotent pre-merge; no seed change required by FO-115A |
+| Branch cleanup | Local + remote feature branch deleted after gates |
+| FO-116 | NOT STARTED |
+| Tag | NOT CREATED |
 
 ## 10. Stable baseline
 
