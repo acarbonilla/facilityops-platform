@@ -1,12 +1,11 @@
 # FO-116 — Application Shell and Validation Error UX Refinement
 
-**Status:** Complete on feature branch (unmerged)  
-**Branch:** `feature/application-shell-validation-ux`  
-**Draft PR:** [#70](https://github.com/acarbonilla/facilityops-platform/pull/70)  
- 
-**Starting main SHA:** `242432d5ba7d0d69dd5ac9a657e03d84471f413f`  
-**Merge task:** FO-116A (not started)  
-**FO-102:** Deferred  
+**Status:** COMPLETE AND MERGED (via FO-116A / PR #70)
+**Branch:** `feature/application-shell-validation-ux` (deleted after merge)
+**PR:** [#70](https://github.com/acarbonilla/facilityops-platform/pull/70)
+**Starting main SHA:** `242432d5ba7d0d69dd5ac9a657e03d84471f413f`
+**Merge task:** FO-116A — see sibling FO-116A doc
+**FO-102:** Deferred
 
 ---
 
@@ -71,12 +70,12 @@ No new runtime dependencies. Icons reuse `lucide-react`.
 
 ## 6. Migration / dependency
 
-- **Migration:** None  
-- **Dependencies:** No new packages  
+- **Migration:** None
+- **Dependencies:** No new packages
 
 ---
 
 ## 7. Next
 
-**FO-116A** — Finalize, Ready for Review, merge, post-merge verification.  
+**FO-116A** — Finalize, Ready for Review, merge, post-merge verification.
 **FO-102** remains deferred.
