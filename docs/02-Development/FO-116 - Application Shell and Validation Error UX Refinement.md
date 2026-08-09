@@ -2,7 +2,8 @@
 
 **Status:** Complete on feature branch (unmerged)  
 **Branch:** `feature/application-shell-validation-ux`  
-**Draft PR:** _(filled after create)_  
+**Draft PR:** [#70](https://github.com/acarbonilla/facilityops-platform/pull/70)  
+ 
 **Starting main SHA:** `242432d5ba7d0d69dd5ac9a657e03d84471f413f`  
 **Merge task:** FO-116A (not started)  
 **FO-102:** Deferred  
