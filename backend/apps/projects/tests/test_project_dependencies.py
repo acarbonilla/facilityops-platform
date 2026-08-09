@@ -84,7 +84,7 @@ class ProjectDependencyTests(APITestCase):
             "fo105-pm-a@example.com", cls.tenant_a, cls.org_a, "facility_manager"
         )
         cls.member_user = make_user(
-            "fo105-member-a@example.com", cls.tenant_a, cls.org_a, "viewer"
+            "fo105-member-a@example.com", cls.tenant_a, cls.org_a, "technician"
         )
 
     def setUp(self):

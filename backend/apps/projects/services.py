@@ -470,6 +470,7 @@ def update_task(*, task, data, actor=None):
     from .dependency_service import assert_task_dependency_ready_for_status
     from .workspace_access import (
         ASSIGNED_TASK_EDITABLE_FIELDS,
+        ASSIGNED_TASK_SYSTEM_FIELDS,
         can_edit_assigned_project_task,
         user_uses_project_workspace_scope,
     )
@@ -482,7 +483,11 @@ def update_task(*, task, data, actor=None):
             raise PermissionDenied(
                 "Technicians may only update tasks assigned to them."
             )
-        disallowed = set(data.keys()) - ASSIGNED_TASK_EDITABLE_FIELDS
+        disallowed = (
+            set(data.keys())
+            - ASSIGNED_TASK_EDITABLE_FIELDS
+            - ASSIGNED_TASK_SYSTEM_FIELDS
+        )
         if disallowed:
             raise ValidationError(
                 {
@@ -506,6 +511,47 @@ def update_task(*, task, data, actor=None):
                 "to": str(value) if value is not None else None,
             }
             setattr(task, field, value)
+
+    # FO-115B: reopening completed work clears current actual_end; keep actual_start.
+    if (
+        previous_status == ProjectTask.Status.COMPLETED
+        and task.status != ProjectTask.Status.COMPLETED
+        and "actual_end" not in data
+        and task.actual_end is not None
+    ):
+        changes["actual_end"] = {
+            "from": str(task.actual_end),
+            "to": None,
+        }
+        task.actual_end = None
+
+    # FO-115B: system-derived actual timestamps for lifecycle transitions.
+    _active_statuses = {
+        ProjectTask.Status.IN_PROGRESS,
+        ProjectTask.Status.ON_HOLD,
+        ProjectTask.Status.BLOCKED,
+    }
+    if (
+        task.status in _active_statuses
+        and previous_status not in _active_statuses
+        and task.actual_start is None
+        and "actual_start" not in data
+    ):
+        today = timezone.localdate()
+        changes["actual_start"] = {"from": None, "to": str(today)}
+        task.actual_start = today
+
+    if (
+        task.status == ProjectTask.Status.COMPLETED
+        and previous_status != ProjectTask.Status.COMPLETED
+    ):
+        today = timezone.localdate()
+        if task.actual_end is None and "actual_end" not in data:
+            changes["actual_end"] = {"from": None, "to": str(today)}
+            task.actual_end = today
+        if task.actual_start is None and "actual_start" not in data:
+            changes["actual_start"] = {"from": None, "to": str(today)}
+            task.actual_start = today
 
     if not changes:
         return task

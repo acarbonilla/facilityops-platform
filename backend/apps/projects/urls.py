@@ -6,7 +6,9 @@ from .views import (
     ProjectIssueViewSet,
     ProjectLinkOptionsView,
     ProjectLinkViewSet,
+    ProjectManagerOptionsView,
     ProjectNoteViewSet,
+    ProjectTaskPicOptionsView,
     ProjectTaskViewSet,
     ProjectTimelineViewSet,
     ProjectViewSet,
@@ -65,8 +67,20 @@ link_detail = ProjectLinkViewSet.as_view(
     {"get": "retrieve", "patch": "partial_update", "delete": "destroy"}
 )
 link_options_list = ProjectLinkOptionsView.as_view({"get": "list"})
+project_manager_options = ProjectManagerOptionsView.as_view({"get": "list"})
+task_pic_options = ProjectTaskPicOptionsView.as_view({"get": "list"})
 
 urlpatterns = [
+    path(
+        "assignment-options/project-managers/",
+        project_manager_options,
+        name="project-assignment-options-project-managers",
+    ),
+    path(
+        "<uuid:project_id>/assignment-options/task-pic/",
+        task_pic_options,
+        name="project-assignment-options-task-pic",
+    ),
     path(
         "<uuid:project_id>/timeline/",
         timeline_list,

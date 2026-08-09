@@ -49,7 +49,6 @@ function parseProgress(value: string): number | null {
 export function validateProjectTaskFormValues(values: ProjectTaskFormValues): {
   planned_start?: string;
   planned_end?: string;
-  actual_end?: string;
   progress_percentage?: string;
   person_in_charge?: string;
   name?: string;
@@ -58,7 +57,6 @@ export function validateProjectTaskFormValues(values: ProjectTaskFormValues): {
   const errors: {
     planned_start?: string;
     planned_end?: string;
-    actual_end?: string;
     progress_percentage?: string;
     person_in_charge?: string;
     name?: string;
@@ -86,13 +84,6 @@ export function validateProjectTaskFormValues(values: ProjectTaskFormValues): {
   if (plannedStart && plannedEnd && plannedEnd < plannedStart) {
     errors.planned_end =
       "Planned end must be on or after the planned start.";
-  }
-
-  const actualStart = parseDate(values.actual_start);
-  const actualEnd = parseDate(values.actual_end);
-  if (actualStart && actualEnd && actualEnd < actualStart) {
-    errors.actual_end =
-      "Actual end must be on or after the actual start.";
   }
 
   const progress = parseProgress(values.progress_percentage);
@@ -144,8 +135,8 @@ export function sanitizeProjectTaskFormValues(
     person_in_charge: values.person_in_charge.trim(),
     planned_start: normalizedStart,
     planned_end: values.is_milestone ? normalizedStart || normalizedEnd : normalizedEnd,
-    actual_start: values.actual_start.trim(),
-    actual_end: values.actual_end.trim(),
+    actual_start: "",
+    actual_end: "",
     progress_percentage: values.progress_percentage.trim(),
     sequence: values.sequence.trim(),
   };
@@ -168,8 +159,6 @@ export function mapProjectTaskFormValuesToCreatePayload(
     priority: sanitized.priority,
     planned_start: normalizeOptionalDate(sanitized.planned_start),
     planned_end: normalizeOptionalDate(sanitized.planned_end),
-    actual_start: normalizeOptionalDate(sanitized.actual_start),
-    actual_end: normalizeOptionalDate(sanitized.actual_end),
     progress_percentage: progress ?? undefined,
     sequence: Number.isFinite(sequence) ? sequence : undefined,
     is_milestone: sanitized.is_milestone,
@@ -210,8 +199,8 @@ export function mapProjectTaskDetailToFormValues(
     priority: detail.priority,
     planned_start: detail.planned_start ?? "",
     planned_end: detail.planned_end ?? "",
-    actual_start: detail.actual_start ?? "",
-    actual_end: detail.actual_end ?? "",
+    actual_start: "",
+    actual_end: "",
     progress_percentage: String(detail.progress_percentage ?? "0"),
     sequence: String(detail.sequence ?? ""),
     is_milestone: Boolean(detail.is_milestone),
@@ -249,8 +238,6 @@ export const PROJECT_TASK_FORM_API_FIELD_MAP: Record<
   priority: "priority",
   planned_start: "planned_start",
   planned_end: "planned_end",
-  actual_start: "actual_start",
-  actual_end: "actual_end",
   progress_percentage: "progress_percentage",
   sequence: "sequence",
   is_milestone: "is_milestone",

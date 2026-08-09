@@ -76,7 +76,7 @@ class ProjectTaskTests(APITestCase):
             "fo104-pm-a@example.com", cls.tenant_a, cls.org_a, "facility_manager"
         )
         cls.member_user = make_user(
-            "fo104-member-a@example.com", cls.tenant_a, cls.org_a, "viewer"
+            "fo104-member-a@example.com", cls.tenant_a, cls.org_a, "technician"
         )
         cls.inactive_user = make_user(
             "fo104-inactive@example.com",
@@ -357,8 +357,10 @@ class ProjectTaskTests(APITestCase):
         created = self._create_task(person_in_charge=str(self.pm_user.id))
         self.assertEqual(str(created.data["person_in_charge"]), str(self.pm_user.id))
 
-    def test_21_pic_active_member_allowed(self):
+    def test_21_pic_technician_allowed_without_membership_gate(self):
+        """FO-115C: Technician PIC is valid (membership optional)."""
         created = self._create_task(person_in_charge=str(self.member_user.id))
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED, created.data)
         self.assertEqual(
             str(created.data["person_in_charge"]), str(self.member_user.id)
         )
@@ -729,7 +731,8 @@ class ProjectTaskTests(APITestCase):
         self.assertEqual(patched.status_code, status.HTTP_200_OK, patched.data)
         self.assertEqual(Decimal(patched.data["progress_percentage"]), Decimal("55.00"))
 
-    def test_41_actual_end_before_start_rejected(self):
+    def test_41_actual_dates_not_writable_via_patch(self):
+        """FO-115B: Actual Start/End are system-derived — not client PATCH fields."""
         created = self._create_task()
         patched = self.client.patch(
             self._task_url(created.data["id"]),
@@ -739,7 +742,9 @@ class ProjectTaskTests(APITestCase):
             },
             format="json",
         )
-        self.assertEqual(patched.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(patched.status_code, status.HTTP_200_OK, patched.data)
+        self.assertIsNone(patched.data.get("actual_start"))
+        self.assertIsNone(patched.data.get("actual_end"))
 
     def test_42_detail_includes_checklist_and_comments(self):
         created = self._create_task()

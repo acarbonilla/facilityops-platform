@@ -48,6 +48,7 @@ from .serializers import (
     ProjectIssueSerializer,
     ProjectIssueUpdateSerializer,
     ProjectLinkOptionSerializer,
+    ProjectAssignmentOptionSerializer,
     ProjectListSerializer,
     ProjectMemberCreateSerializer,
     ProjectMemberSerializer,
@@ -95,8 +96,14 @@ from .link_service import (
     serialize_link_option,
     soft_delete_link,
 )
-from .tenant_scope import scope_projects_to_user
+from .tenant_scope import has_global_project_scope, scope_projects_to_user
 from .timeline_service import build_timeline_queryset, history_entry_to_timeline_dto
+from .assignment_eligibility import (
+    DEFAULT_OPTIONS_LIMIT,
+    eligible_project_managers,
+    eligible_task_pic_users,
+    serialize_assignment_option,
+)
 
 
 def _raise_validation(exc):
@@ -708,11 +715,8 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
     def complete(self, request, project_id=None, pk=None):
         from .execution_service import complete_task
 
-        return self._execute_task_action(
-            request,
-            complete_task,
-            actual_end=request.data.get("actual_end"),
-        )
+        # FO-115B: actual_end is system-derived (local business date).
+        return self._execute_task_action(request, complete_task)
 
     def update_progress(self, request, project_id=None, pk=None):
         from .execution_service import update_task_progress
@@ -1459,3 +1463,105 @@ class ProjectLinkOptionsView(viewsets.ViewSet):
         if page is not None:
             return paginator.get_paginated_response(serializer.data)
         return Response(serializer.data)
+
+
+class ProjectManagerOptionsView(viewsets.ViewSet):
+    """GET /projects/assignment-options/project-managers/?search=&tenant="""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    http_method_names = ["get", "head", "options"]
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = (
+            "projects.create",
+            "projects.update",
+            "projects.manage",
+            "projects.view",
+        )
+        return super().get_permissions()
+
+    def list(self, request):
+        search = request.query_params.get("search", "")
+        tenant_id = getattr(request.user, "tenant_id", None)
+        tenant_param = request.query_params.get("tenant")
+        if tenant_param:
+            if not has_global_project_scope(request.user) and str(
+                tenant_id
+            ) != str(tenant_param):
+                raise ValidationError(
+                    {"tenant": "You may only list managers for your tenant."}
+                )
+            tenant_id = tenant_param
+        if not tenant_id:
+            raise ValidationError(
+                {
+                    "tenant": (
+                        "Tenant context is required to list Project Managers."
+                    )
+                }
+            )
+        try:
+            limit = int(
+                request.query_params.get("page_size") or DEFAULT_OPTIONS_LIMIT
+            )
+        except (TypeError, ValueError):
+            limit = DEFAULT_OPTIONS_LIMIT
+        limit = max(1, min(limit, 100))
+        users = eligible_project_managers(
+            tenant_id=tenant_id, search=search, limit=limit
+        )
+        payload = [serialize_assignment_option(user) for user in users]
+        serializer = ProjectAssignmentOptionSerializer(payload, many=True)
+        return Response({"count": len(payload), "results": serializer.data})
+
+
+class ProjectTaskPicOptionsView(viewsets.ViewSet):
+    """GET /projects/{project_id}/assignment-options/task-pic/?search="""
+
+    permission_classes = [IsAuthenticated, HasProjectPermission]
+    http_method_names = ["get", "head", "options"]
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        self.project = self._get_project()
+
+    def _get_project(self):
+        project_id = self.kwargs["project_id"]
+        queryset = scope_projects_to_user(
+            Project.objects.filter(is_deleted=False),
+            self.request.user,
+        )
+        return get_object_or_404(queryset, pk=project_id)
+
+    def get_permissions(self):
+        self.required_permission = None
+        self.required_permissions_any = (
+            "projects.tasks.assign",
+            "projects.tasks.create",
+            "projects.tasks.update",
+            "projects.tasks.manage",
+            "projects.manage",
+            "projects.update",
+            "projects.view",
+        )
+        return super().get_permissions()
+
+    def list(self, request, project_id=None):
+        search = request.query_params.get("search", "")
+        try:
+            limit = int(
+                request.query_params.get("page_size") or DEFAULT_OPTIONS_LIMIT
+            )
+        except (TypeError, ValueError):
+            limit = DEFAULT_OPTIONS_LIMIT
+        limit = max(1, min(limit, 100))
+        users = eligible_task_pic_users(
+            project=self.project, search=search, limit=limit
+        )
+        payload = [
+            serialize_assignment_option(user, project=self.project)
+            for user in users
+        ]
+        serializer = ProjectAssignmentOptionSerializer(payload, many=True)
+        return Response({"count": len(payload), "results": serializer.data})

@@ -17,15 +17,15 @@
 - Intelligent Employee Ticket Intake — **COMPLETE AND MERGED** (FO-096–FO-101A / PR #63)
 - Project Management — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67 @ `ebdad1b…`)
 - FO-114 / FO-114A Project Task Scheduling & Milestone Refinement — **COMPLETE AND MERGED** (PR #68 @ `a8de616…`)
+- FO-115 / FO-115B / FO-115C / FO-115A — Interactive Gantt, Planned vs Actual, Assignment Refinement — **COMPLETE AND MERGED** (PR #69)
 - UX-001 COMPLETE AND MERGED; AI Platform v1.0 FROZEN
 - FO-102 Gemini billing/quota diagnostics — **DEFERRED**
-- FO-115 — Interactive Gantt Experience & Tenant-Scope Verification — **NOT STARTED**
+- FO-116 Application Shell & Validation Error UX — **NOT STARTED**
 
 ## Current Branch
 
-- Active: `main` @ `f7e318ac987da9fea4b9c03e3364e3579b7ccab8` (FO-114 COMPLETE AND MERGED + post-merge docs)
-- Merge commit: `a8de616e2089790f4b05c09be1665d96b967d53e` (PR #68)
-- Prior stable docs sync: `91cce0b22c6ee2b2091c94a0e989ee1e262e147e` (FO-113A)
+- Active: `main` (post FO-115A merge; SHAs recorded in FO-115A doc)
+- Prior feature: `feature/interactive-gantt-tenant-scope` (deleted after merge)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
 
@@ -133,21 +133,16 @@
 
 ## Current Task
 
-- FO-114 / FO-114A — Project Task Scheduling & Milestone Refinement — **COMPLETE AND MERGED** (PR #68 @ `a8de616…`).
-  See `docs/02-Development/FO-114 - Project Task Scheduling and Milestone Refinement.md` and
-  `docs/02-Development/FO-114A - Project Task Scheduling and Milestone Refinement Finalize Merge and Post-Merge Verification.md`.
+- FO-115 / FO-115B / FO-115C / FO-115A — **COMPLETE AND MERGED** (PR #69).
+  See `docs/02-Development/FO-115A - Interactive Gantt Planned vs Actual and Assignment Finalize Merge and Post-Merge Verification.md`.
+- FO-114 / FO-114A — **COMPLETE AND MERGED** (PR #68).
 - Project Management v1.0 — **COMPLETE AND MERGED** (FO-103–FO-113A / PR #67).
-  Merge commit: `ebdad1b45e00110845dac0dbb72302b6ca363581`.
-- Scheduling refinement is the **stable baseline** for FO-115.
-- PM-UX-001 / PM-UX-001A UX baseline remains COMPLETE AND MERGED on `main`.
-- Latest stable merged product features: Intelligent Employee Ticket Intake (FO-096–FO-101A), Project Management (FO-103–FO-113A), and FO-114 scheduling refinement.
-- UX-001 COMPLETE AND MERGED. AI Platform v1.0 frozen (`98c1661…`).
 - FO-102 remains **DEFERRED**.
-- FO-115 — Interactive Gantt Experience & Tenant-Scope Verification — **NOT STARTED**.
+- FO-116 — Application Shell & Validation Error UX Refinement — **NOT STARTED**.
 
 ## Next Milestone
 
-- Next planned refinement: FO-115 (not started)
+- FO-116 Application Shell & Validation Error UX Refinement
 - Deferred: FO-102 Gemini billing/quota; Phase 2 RAG/embeddings, token/cost, OTel/Prometheus/Grafana, auto-remediation
 
 ## Current Release

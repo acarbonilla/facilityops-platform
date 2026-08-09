@@ -177,6 +177,7 @@ function ProjectMobileCard({ project }: { project: ProjectListItem }) {
             {project.name}
           </h3>
           <p className="mt-1 text-sm text-slate-600">
+            <span className="font-medium text-slate-700">Organization:</span>{" "}
             {project.organization_name}
           </p>
         </div>
@@ -283,20 +284,23 @@ export function ProjectListScreen() {
       className: "min-w-32",
     },
     {
-      header: "Name",
+      header: "Project",
       cell: (item) => (
         <div className="min-w-0 whitespace-normal">
           <p className="font-medium text-slate-900">{item.name}</p>
-          <p className="mt-1 text-xs text-slate-500">{item.organization_name}</p>
         </div>
       ),
-      className: "min-w-72 whitespace-normal",
+      className: "min-w-56 whitespace-normal",
+    },
+    {
+      header: "Organization",
+      cell: (item) => item.organization_name || "—",
+      className: "min-w-44 whitespace-normal",
     },
     {
       header: "Status",
       cell: (item) => <ProjectStatusBadge status={item.status} />,
-    },
-    {
+    },    {
       header: "Priority",
       cell: (item) => <ProjectPriorityBadge priority={item.priority} />,
     },

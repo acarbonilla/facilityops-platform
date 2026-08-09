@@ -15,6 +15,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from .execution_variance import compute_execution_schedule
 from .models import ProjectTask, ProjectTaskDependency
 from .services import _ensure_project_access, record_history
 from .tenant_scope import user_can_access_tenant
@@ -407,6 +408,7 @@ def build_gantt_payload(project, *, today=None):
             task
         )
         delay = compute_delay_flags(task, today=today)
+        execution = compute_execution_schedule(task=task, today=today)
         scheduled = is_task_scheduled(task)
         if scheduled:
             scheduled_count += 1
@@ -459,6 +461,14 @@ def build_gantt_payload(project, *, today=None):
                 "is_delayed": delay["is_delayed"],
                 "is_completed_late": delay["is_completed_late"],
                 "delay_days": delay["delay_days"],
+                "start_variance_days": execution["start_variance_days"],
+                "completion_variance_days": execution[
+                    "completion_variance_days"
+                ],
+                "execution_schedule_status": execution[
+                    "execution_schedule_status"
+                ],
+                "days_past_planned_end": execution["days_past_planned_end"],
                 "predecessor_ids": pred_ids_by_task.get(task.id, []),
                 "successor_ids": succ_ids_by_task.get(task.id, []),
                 "is_scheduled": scheduled,
