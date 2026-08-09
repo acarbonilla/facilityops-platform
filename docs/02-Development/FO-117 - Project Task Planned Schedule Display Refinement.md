@@ -1,12 +1,12 @@
 # FO-117 — Project Task Planned Schedule Display Refinement
 
-**Status:** Complete on feature branch (unmerged)  
-**Date:** 2026-08-09  
-**Branch:** `feature/project-task-schedule-display`  
-**Draft PR:** _(filled after open)_  
-**Starting main SHA:** `ee421b1de9b73950467f89c9381d39428dbc9e6a`  
-**Merge task:** FO-117A (not started)  
-**FO-102:** Deferred  
+**Status:** Complete on feature branch (unmerged)
+**Date:** 2026-08-09
+**Branch:** `feature/project-task-schedule-display`
+**Draft PR:** _(filled after open)_
+**Starting main SHA:** `ee421b1de9b73950467f89c9381d39428dbc9e6a`
+**Merge task:** FO-117A (not started)
+**FO-102:** Deferred
 
 ## Problem
 
