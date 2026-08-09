@@ -3,7 +3,7 @@
 **Status:** Complete on feature branch (unmerged)
 **Date:** 2026-08-09
 **Branch:** `feature/project-task-schedule-display`
-**Draft PR:** _(filled after open)_
+**Draft PR:** [#71](https://github.com/acarbonilla/facilityops-platform/pull/71)
 **Starting main SHA:** `ee421b1de9b73950467f89c9381d39428dbc9e6a`
 **Merge task:** FO-117A (not started)
 **FO-102:** Deferred
