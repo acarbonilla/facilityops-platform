@@ -5,12 +5,12 @@
 **Branch:** `feature/application-shell-validation-ux` (deleted after merge)
 **Starting main SHA:** `242432d5ba7d0d69dd5ac9a657e03d84471f413f`
 **Starting feature SHA:** `a6123d0fef311ce2e7f5e72b3717ec817750a5a5`
-**Final feature SHA:** _(filled after finalization push)_
-**Finalization commit:** _(filled after finalization)_
+**Final feature SHA:** `012781759321e55b9a48f5dd47c6ae21e3b8524f`
+**Finalization commit:** `012781759321e55b9a48f5dd47c6ae21e3b8524f`
 **PR:** [#70](https://github.com/acarbonilla/facilityops-platform/pull/70) — **MERGED**
 **Merge method:** merge commit
-**Merge commit SHA:** _(filled after merge)_
-**Final main SHA:** _(filled after post-merge sync)_
+**Merge commit SHA:** `912964d600f155989c1e83bb94dd60114936770b`
+**Final main SHA:** `912964d600f155989c1e83bb94dd60114936770b` (pre post-merge docs commit)
 **FO-116:** COMPLETE AND MERGED
 **Deferred:** FO-102 Gemini billing/quota diagnostics
 **Next feature:** NOT STARTED
@@ -27,7 +27,7 @@ Finalize FO-116 application-shell and validation-error UX, validate release gate
 | `main` == `origin/main` | Yes @ `242432d…` |
 | Feature local == origin | Yes @ `a6123d0…` |
 | Expected FO-116 HEAD | Exact match |
-| Divergence | 6 FO-116 commits ahead of `main` |
+| Divergence | 6 FO-116 commits ahead of `main` (+ FO-116A finalization) |
 | PR #70 | OPEN, Draft, MERGEABLE / CLEAN |
 | FO-116 docs | Present |
 | FO-116A prior | Not present |
@@ -81,7 +81,18 @@ PR #70 contains only intended source/tests/docs/`package.json` test-script entri
 
 ## 8. Post-merge verification
 
-_(Filled after merge.)_
+| Gate | Result |
+| --- | --- |
+| `main` == `origin/main` | Yes @ `912964d…` |
+| Frontend suite | **544 pass / 0 fail** |
+| `apps.projects` | **311 OK** (PostgreSQL `--keepdb`) |
+| ESLint | Pass |
+| TypeScript (`tsc --noEmit`) | Pass |
+| Production build (`next build`) | Pass |
+| Django check | Pass |
+| `makemigrations --check` | No changes |
+| Validation UX / shell smoke | Automated + code-path (manual browser not available) |
+| Branch cleanup | Local + remote feature branch deleted after verification |
 
 ## 9. Stable baseline
 
@@ -89,6 +100,8 @@ _(Filled after merge.)_
 | --- | --- |
 | FO-116 | COMPLETE AND MERGED |
 | FO-116A | COMPLETE AND MERGED |
+| Application Shell | STABLE |
+| Validation Error UX | STABLE |
 | Suggested tag `application-shell-ux-v1.0` | NOT CREATED |
 | FO-102 | DEFERRED |
 | Next feature | NOT STARTED |

@@ -24,7 +24,7 @@
 
 ## Current Branch
 
-- Active: `main` (post FO-116A merge; SHAs in FO-116A doc)
+- Active: `main` @ `912964d…` (FO-116A merge commit; post-merge docs may tip ahead)
 - Prior feature: `feature/application-shell-validation-ux` (deleted after merge)
 - AI Platform v1.0 freeze: `98c1661…` — **FROZEN AND UNCHANGED**
 
