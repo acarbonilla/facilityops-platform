@@ -1,19 +1,19 @@
 # FO-115A — Interactive Gantt, Planned vs Actual & Assignment Finalize, Merge and Post-Merge Verification
 
-**Status:** COMPLETE AND MERGED (pending post-merge SHA fill)  
-**Date:** 2026-08-09  
-**Branch:** `feature/interactive-gantt-tenant-scope` (deleted after merge)  
-**Starting main SHA:** `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`  
-**Starting feature SHA:** `3da2cfdf3edc035fa17e3d8ce73f8adcdca64e83`  
-**Final feature SHA:** _(filled after finalization push)_  
-**Finalization commit:** _(filled after finalization)_  
-**PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)  
-**Merge method:** merge commit  
-**Merge commit SHA:** _(filled after merge)_  
-**Final main SHA:** _(filled after post-merge sync)_  
-**Package:** FO-115 + FO-115B + FO-115C  
-**Deferred:** FO-102 Gemini billing/quota diagnostics  
-**Next planned (not started):** FO-116 — Application Shell & Validation Error UX Refinement  
+**Status:** COMPLETE AND MERGED (pending post-merge SHA fill)
+**Date:** 2026-08-09
+**Branch:** `feature/interactive-gantt-tenant-scope` (deleted after merge)
+**Starting main SHA:** `2fae32bd36be322345ab0ecdb5d5c44de1265f2f`
+**Starting feature SHA:** `3da2cfdf3edc035fa17e3d8ce73f8adcdca64e83`
+**Final feature SHA:** _(filled after finalization push)_
+**Finalization commit:** _(filled after finalization)_
+**PR:** [#69](https://github.com/acarbonilla/facilityops-platform/pull/69)
+**Merge method:** merge commit
+**Merge commit SHA:** _(filled after merge)_
+**Final main SHA:** _(filled after post-merge sync)_
+**Package:** FO-115 + FO-115B + FO-115C
+**Deferred:** FO-102 Gemini billing/quota diagnostics
+**Next planned (not started):** FO-116 — Application Shell & Validation Error UX Refinement
 
 ## 1. Objective
 
