@@ -1,6 +1,7 @@
 "use client";
 
 import { UserMenu } from "@/components/auth/user-menu";
+import { MobileNavTrigger } from "@/components/layout/sidebar";
 import { NotificationBell } from "@/features/notifications/components/notification-bell";
 import { useAuth } from "@/hooks/use-auth";
 import { APP_NAME } from "@/lib/constants";
@@ -9,10 +10,15 @@ export function Header() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 sm:px-6">
-      <div>
-        <p className="text-sm font-semibold text-slate-950">{APP_NAME}</p>
-        <p className="text-xs text-slate-500">Operations workspace</p>
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2">
+        <MobileNavTrigger />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-950">{APP_NAME}</p>
+          <p className="hidden truncate text-xs text-slate-500 sm:block">
+            Operations workspace
+          </p>
+        </div>
       </div>
 
       {isLoading ? (
@@ -25,7 +31,7 @@ export function Header() {
           </div>
         </div>
       ) : isAuthenticated ? (
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <NotificationBell />
           <UserMenu />
         </div>
